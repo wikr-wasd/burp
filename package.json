@@ -1,0 +1,12 @@
+{
+  "name": "burp",
+  "version": "1.0.0",
+  "description": "Food marketplace and restaurant ordering platform",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "author": "rijadkrak",
+  "license": "MIT"
+}
