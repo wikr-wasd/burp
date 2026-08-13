@@ -1,8 +1,10 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getActiveMenu } from "@/lib/menu";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { getOrCreateTableSession, lookupTable } from "@/lib/table-session";
+import { MenuOrder } from "@/components/order/menu-order";
 
 /**
  * QR-landningssidan — burp.se/t/R7K2M9X4TB (avsnitt 4.2).
@@ -70,24 +72,25 @@ export default async function TablePage({ params }: PageProps) {
   const { table } = lookup;
   await getOrCreateTableSession(table);
 
+  const menu = await getActiveMenu(table.restaurantId);
+
+  if (!menu || menu.categories.length === 0) {
+    return (
+      <TableMessage
+        title="Ingen meny just nu"
+        body="Restaurangen har inte publicerat någon meny för den här tiden. Prata med personalen."
+      />
+    );
+  }
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
-      <header>
-        <p className="text-sm font-medium uppercase tracking-wide opacity-60">
-          Bord {table.tableNumber}
-          {table.zone ? ` · ${table.zone}` : ""}
-        </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">{table.restaurantName}</h1>
-      </header>
-
-      {/* Menyn renderas här när Fas 2 byggs. Bordssessionen ligger redan i
-          cookien, så det som saknas är menyvyn och kassan. */}
-      <section className="mt-8 rounded-xl border border-black/10 p-6 dark:border-white/15">
-        <h2 className="font-semibold">Menyn kommer här</h2>
-        <p className="mt-2 text-sm opacity-70">
-          Bordet är identifierat och din nota är öppen. Menyvyn byggs i Fas 2.
-        </p>
-      </section>
+      <MenuOrder
+        menu={menu}
+        tableToken={token.toUpperCase()}
+        restaurantName={table.restaurantName}
+        tableNumber={table.zone ? `${table.tableNumber} · ${table.zone}` : table.tableNumber}
+      />
     </main>
   );
 }
