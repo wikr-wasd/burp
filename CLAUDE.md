@@ -222,9 +222,23 @@ utdata i stället för att beskriva det som klart.
 mellan `$$ ... $$` är en strängliteral för SQL-parsern. Det är `db:verify` som
 täcker triggers och funktioner. CI kör båda.
 
-På den här maskinen finns ingen Docker, men WSL2 med Ubuntu och PostgreSQL:
+Utan Docker går det ändå att verifiera schemat — WSL2 med Ubuntu och PostgreSQL
+räcker:
 
 ```bash
 wsl -d Ubuntu -u root service postgresql start
 wsl -d Ubuntu -u postgres bash /mnt/c/Users/wikr/.claude/burp/scripts/verify-schema.sh
 ```
+
+### Docker på den här maskinen
+
+Docker Desktop är installerat per användare, inte i `Program Files`:
+
+```
+C:\Users\wikr\AppData\Local\Programs\DockerDesktop\resources\bin
+```
+
+Katalogen läggs på PATH först när ett nytt skal startas. Ett skal som öppnades
+före installationen ser den inte, och då säger Supabase CLI
+`docker: command not found` — vilket läser som en trasig installation men bara
+är en gammal PATH. Starta om terminalen, eller lägg till katalogen för stunden.

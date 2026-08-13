@@ -19,8 +19,9 @@ major_version = 17
 enabled = true
 port = 54323
 
-[inbucket]
+[local_smtp]
 # Fångar utgående mail lokalt så att inget testmail når en riktig gäst.
+# Hette [inbucket] före Supabase CLI 2.x.
 enabled = true
 port = 54324
 
