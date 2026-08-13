@@ -11,6 +11,7 @@ export * from "./types";
 export * from "./pricing";
 export * from "./order-status";
 export * from "./order-policy";
+export * from "./order-build";
 export * from "./qr";
 export * from "./schemas";
 export * from "./loyalty";

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   assertClientTotalMatches,
+  buildPricedLines,
   calculateFee,
   calculateOrderTotals,
   createOrderSchema,
@@ -8,7 +9,6 @@ import {
   parseOrderPolicy,
   PriceMismatchError,
   statusAfterPlacement,
-  type PricedLine,
 } from "@burp/core";
 import { serverEnv } from "@/lib/env";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -86,10 +86,9 @@ export async function POST(request: Request) {
     restaurantId = "";
   }
 
-  /* ── 2. Hämta menyn och kontrollera att raderna får beställas ──────────── */
+  /* ── 2. Hämta katalogen ────────────────────────────────────────────────── */
 
   const menuItemIds = [...new Set(input.items.map((item) => item.menu_item_id))];
-  const optionIds = [...new Set(input.items.flatMap((item) => item.options.map((o) => o.option_id)))];
 
   const { data: menuItems, error: menuError } = await supabase
     .from("menu_items")
@@ -100,64 +99,78 @@ export async function POST(request: Request) {
     return problem(400, "Okänd menyrad", "En eller flera rätter finns inte längre.");
   }
 
-  const restaurantIds = new Set(menuItems.map((item) => item.restaurant_id));
-  if (restaurantIds.size !== 1) {
-    return problem(
-      400,
-      "Blandade restauranger",
-      "En order kan bara innehålla rätter från en restaurang.",
-    );
+  // Grupperna hämtas per RÄTT, inte per valt tillval. Det är den kopplingen
+  // som avgör vilka tillval som faktiskt får väljas — hämtas tillvalen bara på
+  // sina egna id:n går det att hänga ett tillval från en annan rätt på ordern.
+  const { data: optionGroups, error: groupsError } = await supabase
+    .from("option_groups")
+    .select("id, menu_item_id, name, min_select, max_select")
+    .in("menu_item_id", menuItemIds);
+
+  if (groupsError || !optionGroups) {
+    return problem(500, "Menyn kunde inte läsas", "Försök igen.");
   }
 
-  const menuRestaurantId = menuItems[0]!.restaurant_id;
-  if (restaurantId && menuRestaurantId !== restaurantId) {
-    return problem(400, "Fel restaurang", "Rätterna hör inte till det här bordet.");
-  }
-  restaurantId = menuRestaurantId;
-
-  const unavailable = menuItems.filter(
-    (item) => !item.is_available || item.status !== "PUBLISHED",
-  );
-  if (unavailable.length > 0) {
-    return problem(
-      409,
-      "Slut för dagen",
-      `${unavailable.map((item) => item.name).join(", ")} går inte att beställa just nu.`,
-    );
-  }
-
-  const { data: options, error: optionsError } = optionIds.length
+  const { data: options, error: optionsError } = optionGroups.length
     ? await supabase
         .from("options")
-        .select("id, name, price_ore, option_group_id, is_available")
-        .in("id", optionIds)
+        .select("id, option_group_id, name, price_ore, is_available")
+        .in(
+          "option_group_id",
+          optionGroups.map((group) => group.id),
+        )
     : { data: [], error: null };
 
-  if (optionsError || !options || options.length !== optionIds.length) {
-    return problem(400, "Okänt tillval", "Ett eller flera tillval finns inte längre.");
+  if (optionsError || !options) {
+    return problem(500, "Menyn kunde inte läsas", "Försök igen.");
   }
 
   /* ── 3. Räkna om priset från menyn, inte från klienten ─────────────────── */
 
-  const menuById = new Map(menuItems.map((item) => [item.id, item]));
-  const optionById = new Map(options.map((option) => [option.id, option]));
-
-  const lines: PricedLine[] = input.items.map((item) => {
-    const menuItem = menuById.get(item.menu_item_id)!;
-    return {
-      menuItemId: menuItem.id,
-      name: menuItem.name,
-      unitPriceOre: menuItem.price_ore,
-      quantity: item.quantity,
-      vatRateBps: menuItem.vat_rate_bps,
-      options: item.options.map((selected) => {
-        const option = optionById.get(selected.option_id)!;
-        return { optionId: option.id, name: option.name, priceOre: option.price_ore };
-      }),
-    };
+  const built = buildPricedLines(input.items, {
+    menuItems: menuItems.map((row) => ({
+      id: row.id,
+      restaurantId: row.restaurant_id,
+      name: row.name,
+      priceOre: row.price_ore,
+      vatRateBps: row.vat_rate_bps,
+      isAvailable: row.is_available,
+      status: row.status,
+    })),
+    optionGroups: optionGroups.map((row) => ({
+      id: row.id,
+      menuItemId: row.menu_item_id,
+      name: row.name,
+      minSelect: row.min_select,
+      maxSelect: row.max_select,
+    })),
+    options: options.map((row) => ({
+      id: row.id,
+      optionGroupId: row.option_group_id,
+      name: row.name,
+      priceOre: row.price_ore,
+      isAvailable: row.is_available,
+    })),
   });
 
-  const totals = calculateOrderTotals({ lines, tipOre: input.tip_ore });
+  if (!built.ok) {
+    // 409 för sådant som ändrats sedan gästen laddade menyn, 400 för sådant
+    // som aldrig var giltigt.
+    const status =
+      built.error.code === "ITEM_UNAVAILABLE" || built.error.code === "OPTION_UNAVAILABLE"
+        ? 409
+        : 400;
+    return problem(status, "Beställningen kan inte läggas", built.error.message, undefined, {
+      code: built.error.code,
+    });
+  }
+
+  if (restaurantId && built.restaurantId !== restaurantId) {
+    return problem(400, "Fel restaurang", "Rätterna hör inte till det här bordet.");
+  }
+  restaurantId = built.restaurantId;
+
+  const totals = calculateOrderTotals({ lines: built.lines, tipOre: input.tip_ore });
 
   if (input.client_total_ore !== undefined) {
     try {
@@ -226,20 +239,21 @@ export async function POST(request: Request) {
       fee_bps: fee.bps,
       fee_base_amount_ore: fee.baseAmountOre,
       fee_ore: fee.feeOre,
-      lines: input.items.map((item, index) => ({
-        menu_item_id: item.menu_item_id,
-        // Namn och pris sparas som ögonblicksbild. Ändras menyn i morgon ska
-        // gårdagens kvitto fortfarande visa vad gästen faktiskt betalade.
-        name_snapshot: menuById.get(item.menu_item_id)!.name,
-        unit_price_ore: menuById.get(item.menu_item_id)!.price_ore,
-        vat_rate_bps: menuById.get(item.menu_item_id)!.vat_rate_bps,
-        quantity: item.quantity,
+      // Raderna byggs ur `built.lines`, inte ur klientens request. Namn och
+      // pris sparas som ögonblicksbild — ändras menyn i morgon ska gårdagens
+      // kvitto fortfarande visa vad gästen faktiskt betalade.
+      lines: built.lines.map((line, index) => ({
+        menu_item_id: line.menuItemId,
+        name_snapshot: line.name,
+        unit_price_ore: line.unitPriceOre,
+        vat_rate_bps: line.vatRateBps,
+        quantity: line.quantity,
         line_gross_ore: totals.lines[index]!.grossOre,
-        note: item.note ?? null,
-        options: item.options.map((selected) => ({
-          option_id: selected.option_id,
-          name_snapshot: optionById.get(selected.option_id)!.name,
-          price_ore: optionById.get(selected.option_id)!.price_ore,
+        note: input.items[index]?.note ?? null,
+        options: line.options.map((option) => ({
+          option_id: option.optionId,
+          name_snapshot: option.name,
+          price_ore: option.priceOre,
         })),
       })),
     },
