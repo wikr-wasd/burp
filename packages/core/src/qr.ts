@@ -61,9 +61,31 @@ export function generatePublicId(): string {
 
 /** Skapar ett komplett, signerat token för ett nytt bord. */
 export async function generateTableToken(secret: string): Promise<string> {
-  const publicId = generatePublicId();
-  const signature = await sign(publicId, secret);
-  return publicId + signature;
+  return signTableToken(generatePublicId(), secret);
+}
+
+/**
+ * Signerar ett BEFINTLIGT publikt bords-id.
+ *
+ * Behövs varje gång en QR-kod ska skrivas ut igen: signaturen lagras aldrig i
+ * databasen utan räknas fram ur nyckeln vid behov. Det är också därför ett
+ * byte av QR_TOKEN_SECRET tar alla utskrivna dekaler med sig.
+ */
+export async function signTableToken(publicId: string, secret: string): Promise<string> {
+  const normalized = publicId.toUpperCase();
+
+  if (normalized.length !== PUBLIC_ID_LENGTH) {
+    throw new RangeError(
+      `Publikt bords-id ska vara ${PUBLIC_ID_LENGTH} tecken, fick ${normalized.length}.`,
+    );
+  }
+  for (const char of normalized) {
+    if (!ALPHABET.includes(char)) {
+      throw new RangeError(`Ogiltigt tecken i publikt bords-id: ${char}`);
+    }
+  }
+
+  return normalized + (await sign(normalized, secret));
 }
 
 /** Delar upp ett token i sina två delar. Returnerar null vid fel form. */
