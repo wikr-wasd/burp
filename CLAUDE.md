@@ -209,9 +209,22 @@ går live.
 npm run db:validate && npm run type-check && npm run test && npm run build
 ```
 
-Alla fyra ska passera. Rapportera faktiskt utfall — misslyckas något, säg det
-med utdata i stället för att beskriva det som klart.
+Har du en PostgreSQL med PostGIS tillgänglig, kör även:
 
-⚠️ `db:validate` granskar **inte** innehållet i plpgsql-funktioner. Kroppen
-mellan `$$ ... $$` är en strängliteral för SQL-parsern. Trigger- och
-funktionslogik måste köras mot en riktig databas för att verifieras.
+```bash
+npm run db:verify     # skapar en ren databas, kör hela schemat och 11 logiktester
+```
+
+Alla ska passera. Rapportera faktiskt utfall — misslyckas något, säg det med
+utdata i stället för att beskriva det som klart.
+
+`db:validate` granskar **inte** innehållet i plpgsql-funktioner — kroppen
+mellan `$$ ... $$` är en strängliteral för SQL-parsern. Det är `db:verify` som
+täcker triggers och funktioner. CI kör båda.
+
+På den här maskinen finns ingen Docker, men WSL2 med Ubuntu och PostgreSQL:
+
+```bash
+wsl -d Ubuntu -u root service postgresql start
+wsl -d Ubuntu -u postgres bash /mnt/c/Users/wikr/.claude/burp/scripts/verify-schema.sh
+```

@@ -9,8 +9,8 @@ Version 0.1 · underlag för bygge
 | Avsnitt | Status | Var |
 |---|---|---|
 | 2 Teknikval | Byggt | `apps/web`, `packages/core`, `supabase/` |
-| 3 Datamodell | Byggt | `supabase/migrations/0001`–`0008` |
-| 4 QR vid bordet | Byggt | `packages/core/src/qr.ts`, `apps/web/src/lib/table-session.ts`, `apps/web/src/app/t/[token]` |
+| 3 Datamodell | Byggt och verifierat mot riktig Postgres | `supabase/migrations/0001`–`0010`, `scripts/verify-schema.sh` |
+| 4 QR vid bordet | Byggt — meny, varukorg, kassa och kvitto | `packages/core/src/qr.ts`, `apps/web/src/lib/table-session.ts`, `apps/web/src/app/t/[token]` |
 | 5 Orderns livscykel | Byggt | `packages/core/src/order-status.ts`, `order-policy.ts`, migration `0010` |
 | 6 Betalning och avgifter | Delvis — schema klart, leverantör obeslutad | `supabase/migrations/0006`, `packages/core/src/pricing.ts` |
 | 7 Rating | Schema och triggers klart, UI saknas | `supabase/migrations/0007`, `0010` |
@@ -504,7 +504,8 @@ Datamodell ✅, auth, restaurangprofil, meny, webb-beställning för avhämtning
 betalning med avgift, dashboard och köksskärm.
 
 **Fas 2 — bordet**
-QR-koder ✅, bordssessioner ✅, notor, betyg och dricks.
+QR-koder ✅, bordssessioner ✅, meny och kassa vid bordet ✅, dricks ✅,
+notor (flera gäster som delar), betyg.
 
 **Fas 3 — appen**
 React Native med samma backend. Push. Lojalitet. Favoriter.
