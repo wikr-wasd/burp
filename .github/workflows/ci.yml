@@ -33,6 +33,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Validera migrations
+        run: npm run db:validate
+
       - name: Typkontroll
         run: npm run type-check
 

@@ -91,6 +91,7 @@ npx next dev
 npx next build
 
 # Databas
+npm run db:validate        # kör migrations genom PG17:s parser — inget Docker krävs
 npx supabase start         # lokal stack i Docker
 npx supabase db reset      # kör migrations + seed
 npx supabase db push       # skjuter migrations till länkat projekt
@@ -205,8 +206,12 @@ går live.
 ## Innan du säger att något är klart
 
 ```bash
-npm run type-check && npm run test && npm run build
+npm run db:validate && npm run type-check && npm run test && npm run build
 ```
 
-Alla tre ska passera. Rapportera faktiskt utfall — misslyckas något, säg det
+Alla fyra ska passera. Rapportera faktiskt utfall — misslyckas något, säg det
 med utdata i stället för att beskriva det som klart.
+
+⚠️ `db:validate` granskar **inte** innehållet i plpgsql-funktioner. Kroppen
+mellan `$$ ... $$` är en strängliteral för SQL-parsern. Trigger- och
+funktionslogik måste köras mot en riktig databas för att verifieras.

@@ -79,6 +79,7 @@ npm run build        # core + web
 npm run test         # vitest
 npm run type-check   # tsc --noEmit
 npm run lint
+npm run db:validate  # kör migrations genom PG17:s parser, kräver inget Docker
 npm run db:types     # genererar TypeScript-typer ur schemat
 ```
 
