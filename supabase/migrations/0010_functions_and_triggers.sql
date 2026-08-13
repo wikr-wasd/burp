@@ -17,19 +17,23 @@ begin
     return new;
   end if;
 
-  v_allowed := case old.status
+  -- Alla grenar måste ha samma typ, därför text[] hela vägen och en enda cast
+  -- till slut. Blandas text[] och order_status[] i samma CASE vägrar Postgres
+  -- att matcha typerna.
+  v_allowed := (case old.status
     when 'DRAFT'     then array['PLACED', 'CANCELLED']
     when 'PLACED'    then array['ACCEPTED', 'CANCELLED']
     when 'ACCEPTED'  then array['PREPARING', 'CANCELLED', 'REFUNDED']
     when 'PREPARING' then array['READY', 'CANCELLED', 'REFUNDED']
     when 'READY'     then array['COMPLETED', 'REFUNDED']
     when 'COMPLETED' then array['REFUNDED']
-    else array[]::public.order_status[]
-  end::public.order_status[];
+    else array[]::text[]
+  end)::public.order_status[];
 
   if not (new.status = any(v_allowed)) then
     raise exception 'Ordern kan inte gå från % till %. Tillåtna nästa steg: %',
-      old.status, new.status, coalesce(array_to_string(v_allowed, ', '), 'inga (slutläge)')
+      old.status, new.status,
+      coalesce(nullif(array_to_string(v_allowed, ', '), ''), 'inga (slutläge)')
       using errcode = 'check_violation';
   end if;
 
@@ -123,6 +127,7 @@ declare
   v_order_item_id  uuid;
   v_restaurant_id  uuid := (p_payload->>'restaurant_id')::uuid;
   v_idempotency    uuid := (p_payload->>'idempotency_key')::uuid;
+  v_status         public.order_status := (p_payload->>'status')::public.order_status;
 begin
   -- Idempotens (avsnitt 12): samma nyckel ger samma order. Dubbeltryck på
   -- "Beställ" blir en order, inte två notor.
@@ -135,16 +140,19 @@ begin
   end if;
 
   insert into public.orders (
-    restaurant_id, table_id, table_session_id, type, status, note, scheduled_for,
+    restaurant_id, guest_id, table_id, table_session_id, type, status, note, scheduled_for,
     items_gross_ore, items_vat_ore, vat_by_rate, delivery_fee_ore, discount_ore,
-    tip_ore, total_ore, idempotency_key, placed_at
+    tip_ore, total_ore, idempotency_key, placed_at, accepted_at
   )
   values (
     v_restaurant_id,
+    -- Null för anonym bordsbeställning. Det är hela poängen med QR-flödet att
+    -- inget konto ska krävas.
+    nullif(p_payload->>'guest_id', '')::uuid,
     nullif(p_payload->>'table_id', '')::uuid,
     nullif(p_payload->>'table_session_id', '')::uuid,
     (p_payload->>'type')::public.order_type,
-    (p_payload->>'status')::public.order_status,
+    v_status,
     p_payload->>'note',
     nullif(p_payload->>'scheduled_for', '')::timestamptz,
     (p_payload->>'items_gross_ore')::integer,
@@ -155,7 +163,10 @@ begin
     (p_payload->>'tip_ore')::integer,
     (p_payload->>'total_ore')::integer,
     v_idempotency,
-    now()
+    now(),
+    -- Statustriggern är BEFORE UPDATE och rör inte INSERT, så en order som
+    -- auto-accepteras måste få sin tidsstämpel här.
+    case when v_status = 'ACCEPTED' then now() end
   )
   returning id into v_order_id;
 
@@ -213,7 +224,7 @@ begin
   )
   values (
     v_order_id, v_restaurant_id, 'ORDER_PLACED',
-    (p_payload->>'status')::public.order_status,
+    v_status,
     case when auth.uid() is null then 'GUEST' else 'STAFF' end,
     jsonb_build_object('total_ore', (p_payload->>'total_ore')::integer)
   );
@@ -301,8 +312,17 @@ security definer
 set search_path = public
 as $$
 declare
-  v_restaurant_id uuid := coalesce(new.restaurant_id, old.restaurant_id);
+  v_restaurant_id uuid;
 begin
+  -- NEW är oåtkomlig i en DELETE-trigger och OLD i en INSERT-trigger. Att läsa
+  -- fel av dem kastar i plpgsql, därför grenas det på TG_OP i stället för att
+  -- coalesce:a över båda.
+  if tg_op = 'DELETE' then
+    v_restaurant_id := old.restaurant_id;
+  else
+    v_restaurant_id := new.restaurant_id;
+  end if;
+
   update public.restaurants r
   set rating_average = sub.avg_rating,
       rating_count   = sub.cnt

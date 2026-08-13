@@ -13,6 +13,7 @@ import {
 import { serverEnv } from "@/lib/env";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { currentTableSessionId, lookupTable } from "@/lib/table-session";
 
 /**
@@ -56,6 +57,14 @@ export async function POST(request: Request) {
   let restaurantId: string;
   let tableId: string | null = null;
   let tableSessionId: string | null = null;
+
+  // Är gästen inloggad knyts ordern till kontot så att den syns under "Mina
+  // beställningar" och kan ge lojalitetspoäng. Bordsbeställningar är oftast
+  // anonyma och får då guest_id null — det är avsiktligt (avsnitt 4).
+  const {
+    data: { user },
+  } = await (await createClient()).auth.getUser();
+  const guestId = user?.id ?? null;
 
   if (input.type === "TABLE") {
     const lookup = await lookupTable(input.table_token!);
@@ -199,6 +208,7 @@ export async function POST(request: Request) {
     p_payload: {
       idempotency_key: input.idempotency_key,
       restaurant_id: restaurantId,
+      guest_id: guestId,
       table_id: tableId,
       table_session_id: tableSessionId,
       type: input.type,
