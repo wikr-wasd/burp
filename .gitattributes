@@ -1,0 +1,6 @@
+# Skalskript måste ha LF även på Windows — bash vägrar köra en fil med CRLF
+# och felmeddelandet ($'\r': command not found) säger inte varför.
+*.sh text eol=lf
+
+# SQL körs av psql i Linux-miljöer (CI, Supabase). Håll dem på LF.
+*.sql text eol=lf

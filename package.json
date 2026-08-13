@@ -20,6 +20,7 @@
     "type-check": "npm run type-check --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "db:validate": "node scripts/validate-migrations.mjs",
+    "db:verify": "bash scripts/verify-schema.sh",
     "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID --schema public > packages/core/src/database.types.ts",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset"

@@ -45,6 +45,41 @@ jobs:
       - name: Bygg
         run: npm run build
 
+  # Kör hela schemat mot en riktig PostgreSQL. Parsern i `db:validate` ser inte
+  # in i plpgsql-funktioner — det gör det här jobbet. PG17 med PostGIS, samma
+  # version som Supabase kör.
+  schema:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installera psql
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Verifiera schema och databaslogik
+        run: bash scripts/verify-schema.sh
+
   # Fångar hemligheter som råkat committas. Kör separat så att ett fynd syns
   # tydligt i stället för att gömmas bland byggloggar.
   secrets:
