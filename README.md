@@ -58,9 +58,22 @@ fungera. Sätt den en gång och rör den inte.
 
 ```bash
 npx supabase start          # lokal stack i Docker
-npx supabase db reset       # kör migrations 0001–0010 + seed.sql
-node scripts/print-qr-links.mjs   # skriver ut fungerande QR-länkar till seed-borden
+npx supabase db reset       # kör migrations 0001–0011 + seed.sql
+
+# Testkonton för personalytorna (skriver i auth-schemat, därför separat):
+psql "$(npx supabase status -o env | grep DB_URL | cut -d= -f2-)" -f supabase/seed-staff.sql
+
+node scripts/print-qr-links.mjs   # QR-länkar som fungerar mot din lokala miljö
 ```
+
+Testkonton efter `seed-staff.sql`:
+
+| E-post | Lösenord | Roll | Landar på |
+|---|---|---|---|
+| `agare@burp.test` | `burp1234` | ägare | `/dashboard` |
+| `kock@burp.test` | `burp1234` | kock | `/kok` |
+
+Utan en riktig databas går det ändå att verifiera schemat — se `npm run db:verify`.
 
 Mot ett riktigt projekt:
 
@@ -88,13 +101,17 @@ npm run db:types     # genererar TypeScript-typer ur schemat
 ## Struktur
 
 ```
-apps/web/                 Next.js — gästytor, QR-flöde, API
-  src/app/t/[token]/      QR-landning vid bordet
+apps/web/                 Next.js — gästytor, personalytor, API
+  src/app/t/[token]/      QR-beställning vid bordet: meny, varukorg, kassa
   src/app/r/[city]/[slug] Publik restaurangsida (SEO)
+  src/app/kok/            Köksskärm i realtid
+  src/app/dashboard/      Order live och bordshantering med QR-utskrift
+  src/app/logga-in/       Inloggning för personal
   src/app/api/orders/     Orderskapande med serverside-prisvalidering
+  src/lib/auth.ts         Rollhämtning ur staff-tabellen
   src/lib/supabase/       client (browser) · server (RLS) · admin (service role)
   src/lib/table-session   Bordssessioner för anonyma gäster
-  src/proxy.ts            Sessionsförnyelse + skydd av dashboard-ytor
+  src/proxy.ts            Sessionsförnyelse + skydd av personalytorna
 
 packages/core/            Delad affärslogik
   money.ts                Heltal öre, bankers rounding

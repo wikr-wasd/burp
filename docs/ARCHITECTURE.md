@@ -17,7 +17,7 @@ Version 0.1 · underlag för bygge
 | 8 Media | Schema klart, uppladdning saknas | `supabase/migrations/0008` |
 | 9 SEO | Grund byggd | `apps/web/src/app/r/[city]/[slug]`, `src/lib/seo/jsonld.ts` |
 | 10 Lojalitet | Logik och schema klart, UI saknas | `packages/core/src/loyalty.ts`, migration `0007` |
-| 11 Dashboard | Ej byggt | Fas 1 |
+| 11 Dashboard | Order live, köksskärm och bord byggt; meny, kampanjer, statistik och ekonomi kvar | `apps/web/src/app/dashboard`, `apps/web/src/app/kok` |
 | 12 Säkerhet | Byggt | `supabase/migrations/0009`, `apps/web/src/lib/rate-limit.ts`, `proxy.ts` |
 
 Öppna frågor som blockerar: se [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md).

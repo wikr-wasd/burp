@@ -39,10 +39,11 @@ const files = readdirSync(migrationsDir)
   .filter((name) => name.endsWith(".sql"))
   .sort();
 
-// seed.sql körs av `db reset` och ska hålla samma krav.
+// seed-filerna körs också mot databasen och ska hålla samma krav.
 const targets = [
   ...files.map((name) => ({ label: `migrations/${name}`, path: join(migrationsDir, name) })),
   { label: "seed.sql", path: join(root, "supabase", "seed.sql") },
+  { label: "seed-staff.sql", path: join(root, "supabase", "seed-staff.sql") },
 ];
 
 await loadModule();
