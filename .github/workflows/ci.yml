@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    env:
+      # Platshållare så att bygget kan köras utan riktiga hemligheter.
+      # Inget i CI rör en riktig databas.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-minst-tjugo-tecken
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key-minst-tjugo-tecken
+      QR_TOKEN_SECRET: ci-only-secret-som-aldrig-anvands-i-produktion-123
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typkontroll
+        run: npm run type-check
+
+      - name: Tester
+        run: npm run test
+
+      - name: Bygg
+        run: npm run build
+
+  # Fångar hemligheter som råkat committas. Kör separat så att ett fynd syns
+  # tydligt i stället för att gömmas bland byggloggar.
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Leta efter committade nycklar
+        run: |
+          if git grep -nE '(SUPABASE_SERVICE_ROLE_KEY|sk_live_|eyJhbGciOiJIUzI1NiIs)' -- ':!*.example' ':!.github/workflows/*'; then
+            echo "::error::Möjlig hemlighet committad. Rotera nyckeln och ta bort den ur historiken."
+            exit 1
+          fi

@@ -1,0 +1,102 @@
+import { headers } from "next/headers";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { getOrCreateTableSession, lookupTable } from "@/lib/table-session";
+
+/**
+ * QR-landningssidan — burp.se/t/R7K2M9X4TB (avsnitt 4.2).
+ *
+ * Det här är Burps viktigaste sida. Gästen har precis skannat en dekal, sitter
+ * vid ett bord och har ingen app, inget konto och inget tålamod. Sidan är
+ * serverrenderad utan klientJS för första vyn av just den anledningen.
+ *
+ * Flödet:
+ *   1. Rate limit på IP  — påhittade koder ska inte vara gratis att prova
+ *   2. Verifiera HMAC    — utan databasslagning
+ *   3. Slå upp bordet    — restaurang, öppettider, låsning
+ *   4. Sätt session      — cookie mot `table_sessions`
+ *   5. Visa menyn
+ */
+
+export const dynamic = "force-dynamic";
+
+// Sidan får aldrig indexeras. Den är knuten till ett fysiskt bord och skulle i
+// en sökträff ge en främling en giltig bordssession.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, nocache: true },
+};
+
+interface PageProps {
+  params: Promise<{ token: string }>;
+}
+
+export default async function TablePage({ params }: PageProps) {
+  const { token } = await params;
+
+  const requestHeaders = await headers();
+  const limit = rateLimit(`qr:${clientIp(requestHeaders)}`, RATE_LIMITS.qrLookup);
+  if (!limit.success) {
+    return <TableMessage title="För många försök" body="Vänta en stund och skanna koden igen." />;
+  }
+
+  const lookup = await lookupTable(token);
+
+  if (!lookup.ok) {
+    // Ogiltig signatur och okänt bord ger avsiktligt samma svar. Skulle de
+    // skilja sig kunde sidan användas som orakel för att kartlägga vilka koder
+    // som existerar.
+    if (lookup.reason === "INVALID_TOKEN" || lookup.reason === "UNKNOWN_TABLE") {
+      notFound();
+    }
+
+    if (lookup.reason === "TABLE_LOCKED") {
+      return (
+        <TableMessage
+          title="Bordet tar inte emot beställningar"
+          body="Prata med personalen så hjälper de dig."
+        />
+      );
+    }
+
+    return (
+      <TableMessage
+        title="Restaurangen är stängd"
+        body="Beställningar går bara att lägga under öppettiderna."
+      />
+    );
+  }
+
+  const { table } = lookup;
+  await getOrCreateTableSession(table);
+
+  return (
+    <main className="mx-auto max-w-2xl px-6 py-10">
+      <header>
+        <p className="text-sm font-medium uppercase tracking-wide opacity-60">
+          Bord {table.tableNumber}
+          {table.zone ? ` · ${table.zone}` : ""}
+        </p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight">{table.restaurantName}</h1>
+      </header>
+
+      {/* Menyn renderas här när Fas 2 byggs. Bordssessionen ligger redan i
+          cookien, så det som saknas är menyvyn och kassan. */}
+      <section className="mt-8 rounded-xl border border-black/10 p-6 dark:border-white/15">
+        <h2 className="font-semibold">Menyn kommer här</h2>
+        <p className="mt-2 text-sm opacity-70">
+          Bordet är identifierat och din nota är öppen. Menyvyn byggs i Fas 2.
+        </p>
+      </section>
+    </main>
+  );
+}
+
+function TableMessage({ title, body }: { title: string; body: string }) {
+  return (
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-3 px-6 text-center">
+      <h1 className="text-2xl font-bold">{title}</h1>
+      <p className="opacity-70">{body}</p>
+    </main>
+  );
+}

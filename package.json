@@ -1,12 +1,29 @@
 {
   "name": "burp",
-  "version": "1.0.0",
-  "description": "Food marketplace and restaurant ordering platform",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+  "version": "0.1.0",
+  "private": true,
+  "description": "Burp — matmarknadsplats och restaurangbeställning (webb, QR vid bordet, dashboard)",
+  "author": "wikr-wasd",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.11"
   },
-  "author": "rijadkrak",
-  "license": "MIT"
+  "scripts": {
+    "dev": "npm run dev --workspace @burp/web",
+    "build": "npm run build --workspace @burp/core && npm run build --workspace @burp/web",
+    "start": "npm run start --workspace @burp/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID --schema public > packages/core/src/database.types.ts",
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
 }

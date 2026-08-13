@@ -1,0 +1,49 @@
+# Supabase CLI-konfiguration för lokal utveckling.
+# `supabase start` startar hela stacken i Docker mot dessa portar.
+
+project_id = "burp"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+# Fångar utgående mail lokalt så att inget testmail når en riktig gäst.
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+# Menybilder. Videon ligger inte här utan hos en videotjänst (avsnitt 8.2).
+file_size_limit = "20MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false  # Endast lokalt. I prod ska bekräftelse krävas.
+
+[auth.sms]
+enable_signup = false
+
+[analytics]
+enabled = false

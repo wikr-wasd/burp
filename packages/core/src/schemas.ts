@@ -1,0 +1,144 @@
+import { z } from "zod";
+import { ORDER_STATUSES, ORDER_TYPES, STAFF_ROLES } from "./types";
+import { TOKEN_LENGTH } from "./qr";
+
+/**
+ * Valideringsscheman. Allt som kommer utifrån — formulär, API-anrop, webhooks —
+ * passerar ett schema här innan det får röra databasen.
+ *
+ * Samma scheman används av webben, appen och route handlers, så en regel som
+ * skärps gäller överallt samtidigt.
+ */
+
+export const uuidSchema = z.uuid();
+
+/** Belopp i öre. Aldrig decimaler, aldrig negativa i inkommande data. */
+export const oreSchema = z.int().min(0).max(100_000_000);
+
+export const bpsSchema = z.int().min(0).max(10_000);
+
+/** Slug för URL:er: burp.se/r/malmo/{slug} */
+export const slugSchema = z
+  .string()
+  .min(2)
+  .max(64)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug får bara innehålla små bokstäver, siffror och bindestreck");
+
+/** Svenskt organisationsnummer, 10 siffror med valfritt bindestreck. */
+export const orgNumberSchema = z
+  .string()
+  .regex(/^\d{6}-?\d{4}$/, "Organisationsnummer ska vara 10 siffror, t.ex. 556677-8899")
+  .transform((value) => value.replace("-", ""));
+
+export const qrTokenSchema = z
+  .string()
+  .length(TOKEN_LENGTH)
+  .regex(/^[0-9A-HJKMNP-TV-Z]+$/i, "Ogiltigt bordstoken")
+  .transform((value) => value.toUpperCase());
+
+export const staffRoleSchema = z.enum(STAFF_ROLES);
+export const orderStatusSchema = z.enum(ORDER_STATUSES);
+export const orderTypeSchema = z.enum(ORDER_TYPES);
+
+/* ── Orderregler ─────────────────────────────────────────────────────────── */
+
+export const orderPolicySchema = z.object({
+  edit_window_seconds: z.int().min(0).max(3600).default(120),
+  editable_until_status: orderStatusSchema.default("ACCEPTED"),
+  allow_add_items: z.boolean().default(true),
+  allow_remove_items: z.boolean().default(true),
+  allow_change_options: z.boolean().default(false),
+  allow_cancel_until_status: orderStatusSchema.default("PREPARING"),
+  auto_accept: z.boolean().default(false),
+  prep_time_minutes: z.int().min(1).max(240).default(20),
+  allow_scheduled_orders: z.boolean().default(false),
+});
+
+/* ── Order som skickas in ────────────────────────────────────────────────── */
+
+export const orderItemOptionInputSchema = z.object({
+  option_id: uuidSchema,
+});
+
+export const orderItemInputSchema = z.object({
+  menu_item_id: uuidSchema,
+  quantity: z.int().min(1).max(99),
+  options: z.array(orderItemOptionInputSchema).max(20).default([]),
+  /** Fritext till köket, t.ex. "utan lök". */
+  note: z.string().max(280).optional(),
+});
+
+/**
+ * Det klienten får skicka när en order skapas.
+ *
+ * Lägg märke till vad som INTE finns här: inga priser. Klienten skickar bara
+ * VAD som beställs — servern hämtar priserna ur menyn och räknar själv
+ * (avsnitt 12). `client_total_ore` är valfri och används enbart som kontroll:
+ * stämmer den inte med serverns summa avbryts ordern.
+ */
+export const createOrderSchema = z
+  .object({
+    type: orderTypeSchema,
+    /** Krävs när type === "TABLE". */
+    table_token: qrTokenSchema.optional(),
+    items: z.array(orderItemInputSchema).min(1).max(100),
+    tip_ore: oreSchema.default(0),
+    note: z.string().max(500).optional(),
+    /** ISO 8601. Kräver att restaurangen tillåter schemalagda order. */
+    scheduled_for: z.iso.datetime({ offset: true }).optional(),
+    client_total_ore: oreSchema.optional(),
+    /**
+     * Idempotensnyckel (avsnitt 12). Två anrop med samma nyckel ger samma
+     * order — dubbeltryck på "Beställ" får aldrig bli två notor.
+     */
+    idempotency_key: z.uuid(),
+  })
+  .refine((order) => order.type !== "TABLE" || order.table_token !== undefined, {
+    message: "Bordsbeställning kräver ett bordstoken",
+    path: ["table_token"],
+  });
+
+export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+
+/* ── Meny ────────────────────────────────────────────────────────────────── */
+
+export const menuItemSchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().max(1000).optional(),
+  price_ore: oreSchema,
+  vat_rate_bps: bpsSchema.default(1200),
+  /** Fritt textfält per allergen — EU:s 14 allergener plus restaurangens egna. */
+  allergens: z.array(z.string().max(60)).max(30).default([]),
+  is_available: z.boolean().default(true),
+  sort_order: z.int().min(0).default(0),
+});
+
+/* ── Recension ───────────────────────────────────────────────────────────── */
+
+/**
+ * Recensioner kan bara lämnas på en genomförd order (avsnitt 7). Kopplingen
+ * till `order_id` är det som stoppar falska recensioner — den enforcas i
+ * databasen, inte bara här.
+ */
+export const reviewSchema = z.object({
+  order_id: uuidSchema,
+  rating_food: z.int().min(1).max(5),
+  rating_service: z.int().min(1).max(5).optional(),
+  rating_delivery: z.int().min(1).max(5).optional(),
+  comment: z.string().max(2000).optional(),
+});
+
+/* ── Restaurang ──────────────────────────────────────────────────────────── */
+
+export const restaurantSchema = z.object({
+  name: z.string().min(1).max(160),
+  slug: slugSchema,
+  org_number: orgNumberSchema,
+  city: z.string().min(1).max(80),
+  address: z.string().min(1).max(240),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  order_policy: orderPolicySchema.optional(),
+  /** Avgift i baspunkter för specialavtal. Null = standardavgiften gäller. */
+  fee_override_bps: bpsSchema.nullable().default(null),
+});

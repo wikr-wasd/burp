@@ -1,0 +1,5 @@
+{
+  "// Rot-tsconfig": "Innehåller inga egna filer — pekar bara ut workspacen så att editorer hittar dem. Gemensamma compilerOptions ligger i tsconfig.base.json.",
+  "files": [],
+  "references": [{ "path": "./packages/core" }, { "path": "./apps/web" }]
+}
