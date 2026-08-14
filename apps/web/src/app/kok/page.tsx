@@ -17,13 +17,23 @@ export const dynamic = "force-dynamic";
 
 export default async function KitchenPage() {
   const staff = await requireStaff();
-  const orders = await getActiveOrders(staff.restaurantId);
+  const { due, upcoming } = await getActiveOrders(staff.restaurantId);
 
   return (
     <>
       <StaffHeader staff={staff} current="kok" />
       <main className="mx-auto max-w-6xl px-6 py-6">
-        <KitchenBoard initialOrders={orders} restaurantId={staff.restaurantId} />
+        {/* Köket ser bara det som ska lagas nu. Förbeställningar dyker upp
+            när tillagningstiden återstår — de listas i dashboarden så länge. */}
+        <KitchenBoard initialOrders={due} restaurantId={staff.restaurantId} />
+
+        {upcoming.length > 0 ? (
+          <p className="mt-8 text-center opacity-50">
+            {upcoming.length === 1
+              ? "1 förbeställning senare i dag."
+              : `${upcoming.length} förbeställningar senare i dag.`}
+          </p>
+        ) : null}
       </main>
     </>
   );

@@ -45,6 +45,11 @@ interface Props {
   restaurantName: string;
   context: OrderContext;
   /**
+   * Valbara hämttider som ISO-strängar. Tom lista betyder att restaurangen
+   * inte tar emot förbeställningar — då visas ingen väljare alls.
+   */
+  pickupSlots?: readonly string[];
+  /**
    * QR-sidan har inget eget sidhuvud — där är menyn hela sidan, och rubriken
    * hör hemma här. Restaurangsidan har redan namn och adress överst, och skulle
    * annars visa restaurangnamnet två gånger under varandra.
@@ -52,12 +57,20 @@ interface Props {
   showHeading?: boolean;
 }
 
-export function MenuOrder({ menu, restaurantName, context, showHeading = true }: Props) {
+export function MenuOrder({
+  menu,
+  restaurantName,
+  context,
+  pickupSlots = [],
+  showHeading = true,
+}: Props) {
   const router = useRouter();
 
   const [cart, setCart] = useState<CartLine[]>([]);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [tipOre, setTipOre] = useState<Ore>(0);
+  // Tom sträng = åt gången, vilket är det gästen oftast vill.
+  const [scheduledFor, setScheduledFor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,6 +144,7 @@ export function MenuOrder({ menu, restaurantName, context, showHeading = true }:
           type: context.kind,
           ...(context.kind === "TABLE" ? { table_token: context.tableToken } : {}),
           tip_ore: tipOre,
+          ...(scheduledFor ? { scheduled_for: scheduledFor } : {}),
           client_total_ore: totals.totalOre,
           // Nyckeln skapas en gång per försök. Dubbeltryck på knappen ger
           // samma nyckel och därmed samma order, inte två notor.
@@ -210,6 +224,9 @@ export function MenuOrder({ menu, restaurantName, context, showHeading = true }:
           itemCount={itemCount}
           tipOre={tipOre}
           onTipChange={setTipOre}
+          pickupSlots={pickupSlots}
+          scheduledFor={scheduledFor}
+          onScheduleChange={setScheduledFor}
           onQuantityChange={changeQuantity}
           onSubmit={placeOrder}
           submitting={submitting}
@@ -384,6 +401,9 @@ function CartBar({
   onSubmit,
   submitting,
   error,
+  pickupSlots,
+  scheduledFor,
+  onScheduleChange,
 }: {
   cart: CartLine[];
   totals: ReturnType<typeof calculateOrderTotals>;
@@ -394,6 +414,9 @@ function CartBar({
   onSubmit: () => void;
   submitting: boolean;
   error: string | null;
+  pickupSlots: readonly string[];
+  scheduledFor: string;
+  onScheduleChange: (value: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -442,6 +465,31 @@ function CartBar({
                 </li>
               ))}
             </ul>
+
+            {pickupSlots.length > 0 ? (
+              <div className="mt-4">
+                <label className="block">
+                  <span className="text-sm font-semibold">När vill du hämta?</span>
+                  <select
+                    value={scheduledFor}
+                    onChange={(event) => onScheduleChange(event.target.value)}
+                    className="mt-2 min-h-11 w-full rounded-md border border-black/15 bg-transparent px-3 dark:border-white/20"
+                  >
+                    {/* Tom sträng betyder "så snart som möjligt". Att göra det
+                        till förstaval är avsiktligt: de flesta vill äta nu. */}
+                    <option value="">Så snart som möjligt</option>
+                    {pickupSlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {new Date(slot).toLocaleTimeString("sv-SE", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
 
             <div className="mt-4">
               <p className="text-sm font-semibold">Dricks</p>

@@ -519,6 +519,51 @@ else
   fail "$ANON_EARN poängrader skapades för beställningar utan gäst"
 fi
 
+echo "→ Förbeställningar"
+# Inställningen är avstängd i seed. En förbeställning ska då avvisas, inte tyst
+# behandlas som en vanlig order.
+SCHEDULED=$(order_request "{
+  \"type\": \"PICKUP\", \"idempotency_key\": \"$(uuid)\",
+  \"scheduled_for\": \"$(node -e 'const d=new Date(Date.now()+3*3600e3); d.setMinutes(0,0,0); console.log(d.toISOString())')\",
+  \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
+}")
+if [ "$(tail -1 <<<"$SCHEDULED")" = "409" ]; then
+  pass "förbeställning avvisas när restaurangen stängt av den"
+else
+  fail "förbeställning accepterades trots att den är avstängd: $(tail -1 <<<"$SCHEDULED")"
+fi
+
+# Slås den på ska en tid i det förflutna fortfarande avvisas — klienten
+# föreslår, servern avgör.
+sql "update public.restaurants set order_policy = jsonb_set(order_policy, '{allow_scheduled_orders}', 'true')
+     where id = '$SEED_RESTAURANT';" > /dev/null
+
+PAST=$(order_request "{
+  \"type\": \"PICKUP\", \"idempotency_key\": \"$(uuid)\",
+  \"scheduled_for\": \"$(node -e 'console.log(new Date(Date.now()-3600e3).toISOString())')\",
+  \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
+}")
+if [ "$(tail -1 <<<"$PAST")" = "409" ]; then
+  pass "hämttid i det förflutna avvisas"
+else
+  fail "en hämttid som redan passerat accepterades: $(tail -1 <<<"$PAST")"
+fi
+
+# En tid som inte ligger på en kvart ska avvisas oavsett hur långt fram den är.
+ODD=$(order_request "{
+  \"type\": \"PICKUP\", \"idempotency_key\": \"$(uuid)\",
+  \"scheduled_for\": \"$(node -e 'const d=new Date(Date.now()+3*3600e3); d.setMinutes(7,0,0); console.log(d.toISOString())')\",
+  \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
+}")
+if [ "$(tail -1 <<<"$ODD")" = "409" ]; then
+  pass "hämttid utanför kvartarna avvisas"
+else
+  fail "en godtycklig minut accepterades som hämttid: $(tail -1 <<<"$ODD")"
+fi
+
+sql "update public.restaurants set order_policy = jsonb_set(order_policy, '{allow_scheduled_orders}', 'false')
+     where id = '$SEED_RESTAURANT';" > /dev/null
+
 echo "→ Mediauppladdning och moderering"
 OTHER_RESTAURANT_FOLDER="11111111-1111-1111-1111-111111111112"
 IMAGE_FILE="$(mktemp).png"

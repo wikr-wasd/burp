@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { formatOre } from "@burp/core";
 import { KitchenBoard } from "@/components/staff/kitchen-board";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { requireStaff } from "@/lib/auth";
@@ -23,19 +24,48 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const staff = await requireStaff(["owner", "manager", "staff"]);
-  const orders = await getActiveOrders(staff.restaurantId);
+  const { due, upcoming } = await getActiveOrders(staff.restaurantId);
 
   return (
     <>
       <StaffHeader staff={staff} current="dashboard" />
       <main className="mx-auto max-w-6xl px-6 py-6">
         <KitchenBoard
-          initialOrders={orders}
+          initialOrders={due}
           restaurantId={staff.restaurantId}
           title="Order live"
           canCancel
           showTotals
         />
+
+        {/* Förbeställningar visas här men inte på köksskärmen. Personalen ska
+            kunna se vad som är på gång utan att köket börjar laga för tidigt. */}
+        {upcoming.length > 0 ? (
+          <section className="mt-10">
+            <h2 className="text-lg font-semibold">Kommande</h2>
+            <p className="mt-1 text-sm opacity-60">
+              Släpps till köket när tillagningstiden återstår.
+            </p>
+            <ul className="mt-3 divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+              {upcoming.map((order) => (
+                <li key={order.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
+                  <span className="font-semibold tabular-nums">
+                    {order.scheduledFor
+                      ? new Date(order.scheduledFor).toLocaleTimeString("sv-SE", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "—"}
+                  </span>
+                  <span className="mr-auto">
+                    {order.items.map((item) => `${item.quantity}× ${item.name}`).join(", ")}
+                  </span>
+                  <span className="tabular-nums opacity-60">{formatOre(order.totalOre)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </main>
     </>
   );

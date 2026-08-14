@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { availableSlots, parseOpeningHours, parseOrderPolicy } from "@burp/core";
 import { MenuOrder } from "@/components/order/menu-order";
 import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
@@ -45,6 +46,7 @@ interface RestaurantRow {
   rating_average: number | null;
   rating_count: number;
   opening_hours: OpeningHours | null;
+  order_policy: unknown;
 }
 
 async function getRestaurant(city: string, slug: string): Promise<RestaurantRow | null> {
@@ -52,7 +54,7 @@ async function getRestaurant(city: string, slug: string): Promise<RestaurantRow 
   const { data } = await supabase
     .from("restaurants")
     .select(
-      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, rating_average, rating_count, opening_hours",
+      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, rating_average, rating_count, opening_hours, order_policy",
     )
     .eq("slug", slug)
     .eq("city_slug", city)
@@ -102,6 +104,21 @@ export default async function RestaurantPage({ params }: PageProps) {
   // upp till en timme gammalt vore värre än inget. Regeln körs i stället på
   // servern när ordern läggs — `is_restaurant_open()` i POST /api/orders.
   const hours = todaysHours(restaurant.opening_hours);
+
+  /*
+   * Hämttider räknas på servern, inte i klienten. Öppettiderna och
+   * tillagningstiden är restaurangens data, och en klient som räknar själv kan
+   * erbjuda en tid som servern sedan avvisar — vilket ser ut som en bugg för
+   * gästen. Tom lista när förbeställning är avstängd; då visas ingen väljare.
+   */
+  const policy = parseOrderPolicy(restaurant.order_policy);
+  const pickupSlots = policy.allowScheduledOrders
+    ? availableSlots({
+        openingHours: parseOpeningHours(restaurant.opening_hours),
+        prepTimeMinutes: policy.prepTimeMinutes,
+        now: new Date(),
+      }).map((slot) => slot.toISOString())
+    : [];
 
   const url = new URL(`/r/${city}/${slug}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString();
 
@@ -162,6 +179,7 @@ export default async function RestaurantPage({ params }: PageProps) {
             menu={menu}
             restaurantName={restaurant.name}
             context={{ kind: "PICKUP" }}
+            pickupSlots={pickupSlots}
             showHeading={false}
           />
         </section>

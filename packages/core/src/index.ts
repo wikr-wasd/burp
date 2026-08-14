@@ -14,6 +14,7 @@ export * from "./order-policy";
 export * from "./order-build";
 export * from "./menu-schedule";
 export * from "./opening-hours";
+export * from "./scheduling";
 export * from "./qr";
 export * from "./schemas";
 export * from "./loyalty";

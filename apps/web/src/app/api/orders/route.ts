@@ -6,9 +6,12 @@ import {
   calculateOrderTotals,
   createOrderSchema,
   DEFAULT_FEE_BASE,
+  parseOpeningHours,
   parseOrderPolicy,
   PriceMismatchError,
+  SCHEDULE_PROBLEM_MESSAGES,
   statusAfterPlacement,
+  validateScheduledFor,
 } from "@burp/core";
 import { serverEnv } from "@/lib/env";
 import { rememberGuestOrder } from "@/lib/guest-orders";
@@ -198,7 +201,7 @@ export async function POST(request: Request) {
 
   const { data: restaurant, error: restaurantError } = await supabase
     .from("restaurants")
-    .select("id, status, order_policy, fee_override_bps, fee_base")
+    .select("id, status, order_policy, fee_override_bps, fee_base, opening_hours")
     .eq("id", restaurantId)
     .single();
 
@@ -230,12 +233,29 @@ export async function POST(request: Request) {
 
   const policy = parseOrderPolicy(restaurant.order_policy);
 
-  if (input.scheduled_for && !policy.allowScheduledOrders) {
-    return problem(
-      409,
-      "Förbeställning stängd",
-      "Restaurangen tar inte emot beställningar i förväg.",
-    );
+  if (input.scheduled_for) {
+    if (!policy.allowScheduledOrders) {
+      return problem(
+        409,
+        "Förbeställning stängd",
+        "Restaurangen tar inte emot beställningar i förväg.",
+      );
+    }
+
+    // Klienten föreslår en hämttid, servern avgör. Utan den här kontrollen går
+    // det att beställa till en stängd timme, till en tid köket omöjligt hinner
+    // till, eller godtyckligt långt fram i tiden.
+    const problemCode = validateScheduledFor(new Date(input.scheduled_for), {
+      openingHours: parseOpeningHours(restaurant.opening_hours),
+      prepTimeMinutes: policy.prepTimeMinutes,
+      now: new Date(),
+    });
+
+    if (problemCode) {
+      return problem(409, "Tiden går inte att välja", SCHEDULE_PROBLEM_MESSAGES[problemCode], undefined, {
+        code: problemCode,
+      });
+    }
   }
 
   const fee = calculateFee(
