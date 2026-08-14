@@ -1,0 +1,784 @@
+"use client";
+
+import { useActionState, useState, useTransition } from "react";
+import { useFormStatus } from "react-dom";
+import { formatKronorInput, formatOre, VAT_ALCOHOL_BPS, VAT_FOOD_BPS } from "@burp/core";
+import {
+  createCategory,
+  createMenu,
+  createMenuItem,
+  createOption,
+  createOptionGroup,
+  deleteCategory,
+  deleteMenu,
+  deleteMenuItem,
+  deleteOption,
+  deleteOptionGroup,
+  moveMenuItem,
+  renameCategory,
+  setMenuStatus,
+  setOptionAvailable,
+  updateMenu,
+  updateMenuItem,
+  type ActionResult,
+} from "@/app/dashboard/meny/actions";
+import type {
+  EditorCategory,
+  EditorItem,
+  EditorMenu,
+  EditorOptionGroup,
+} from "@/app/dashboard/meny/page";
+
+/**
+ * Menyredigeraren.
+ *
+ * Serveråtgärderna gör allt riktigt arbete och validerar allt som spelar roll.
+ * Den här komponenten sköter tre saker: visa trädet, samla in vad någon skrev,
+ * och visa felet när servern säger nej. Ingen validering som betyder något
+ * ligger här — den som anropar åtgärden direkt möter exakt samma regler.
+ */
+
+const WEEKDAYS = ["Sön", "Mån", "Tis", "Ons", "Tors", "Fre", "Lör"] as const;
+
+export function MenuEditor({ menus }: { menus: EditorMenu[] }) {
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div className="mt-8">
+      {error ? (
+        <p role="alert" className="mb-4 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+          {error}
+        </p>
+      ) : null}
+
+      <NewMenuForm />
+
+      {menus.length === 0 ? (
+        <p className="mt-8 opacity-60">Ingen meny ännu. Skapa den första ovan.</p>
+      ) : (
+        <div className="mt-8 space-y-8">
+          {menus.map((menu) => (
+            <MenuCard key={menu.id} menu={menu} onError={setError} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Meny ────────────────────────────────────────────────────────────────── */
+
+function NewMenuForm() {
+  const [result, formAction] = useActionState<ActionResult | null, FormData>(createMenu, null);
+
+  return (
+    <form action={formAction} className="flex flex-wrap items-end gap-3">
+      <label className="flex-1 basis-48">
+        <span className="text-sm font-medium">Ny meny</span>
+        <input
+          name="name"
+          required
+          maxLength={120}
+          placeholder="Lunch, Kväll, Helg…"
+          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+        />
+      </label>
+      <SubmitButton label="Skapa meny" pendingLabel="Skapar…" />
+      {result?.message ? <Feedback result={result} /> : null}
+    </form>
+  );
+}
+
+function MenuCard({ menu, onError }: { menu: EditorMenu; onError: (message: string) => void }) {
+  const [pending, run] = useAction(onError);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const published = menu.status === "PUBLISHED";
+
+  function toggleDay(day: number) {
+    const days = menu.activeDays.includes(day)
+      ? menu.activeDays.filter((d) => d !== day)
+      : [...menu.activeDays, day];
+    run(() => updateMenu(menu.id, { activeDays: days }));
+  }
+
+  return (
+    <section className="rounded-xl border border-black/10 dark:border-white/15">
+      <header className="flex flex-wrap items-center gap-3 border-b border-black/10 p-4 dark:border-white/15">
+        <InlineText
+          value={menu.name}
+          label="Menyns namn"
+          className="mr-auto text-lg font-semibold"
+          onSave={(name) => run(() => updateMenu(menu.id, { name }))}
+        />
+
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+            published
+              ? "bg-green-600/15 text-green-700 dark:text-green-400"
+              : "bg-black/10 opacity-70 dark:bg-white/15"
+          }`}
+        >
+          {published ? "Publicerad" : "Utkast"}
+        </span>
+
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => setMenuStatus(menu.id, !published))}
+          className="rounded-md border border-black/15 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20"
+        >
+          {published ? "Avpublicera" : "Publicera"}
+        </button>
+
+        {confirmDelete ? (
+          <>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => deleteMenu(menu.id))}
+              className="rounded-md bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+            >
+              Radera allt
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+            >
+              Avbryt
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+          >
+            Radera
+          </button>
+        )}
+      </header>
+
+      <div className="border-b border-black/10 p-4 dark:border-white/15">
+        <p className="text-sm font-medium">Gäller</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {WEEKDAYS.map((label, day) => (
+            <button
+              key={day}
+              type="button"
+              disabled={pending}
+              onClick={() => toggleDay(day)}
+              className={`rounded-full border px-3 py-1 text-sm disabled:opacity-50 ${
+                menu.activeDays.includes(day)
+                  ? "border-transparent bg-burp-600 text-white"
+                  : "border-black/15 dark:border-white/20"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <TimeField
+            label="Från"
+            value={menu.activeFrom}
+            onSave={(activeFrom) => run(() => updateMenu(menu.id, { activeFrom }))}
+          />
+          <TimeField
+            label="Till"
+            value={menu.activeUntil}
+            onSave={(activeUntil) => run(() => updateMenu(menu.id, { activeUntil }))}
+          />
+          <p className="text-sm opacity-60">
+            Tomt = hela dagen. En meny med tidsfönster vinner över en utan.
+          </p>
+        </div>
+      </div>
+
+      <div className="p-4">
+        {menu.categories.map((category) => (
+          <CategoryBlock key={category.id} category={category} onError={onError} />
+        ))}
+
+        <AddCategory menuId={menu.id} onError={onError} />
+      </div>
+    </section>
+  );
+}
+
+/* ── Kategori ────────────────────────────────────────────────────────────── */
+
+function CategoryBlock({
+  category,
+  onError,
+}: {
+  category: EditorCategory;
+  onError: (message: string) => void;
+}) {
+  const [pending, run] = useAction(onError);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  return (
+    <div className="mb-6 rounded-lg border border-black/10 p-3 dark:border-white/15">
+      <div className="flex items-center gap-3">
+        <InlineText
+          value={category.name}
+          label="Kategorins namn"
+          className="mr-auto font-semibold"
+          onSave={(name) => run(() => renameCategory(category.id, name))}
+        />
+
+        {confirmDelete ? (
+          <>
+            <span className="text-sm opacity-70">
+              Raderar {category.items.length} rätt{category.items.length === 1 ? "" : "er"}.
+            </span>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => deleteCategory(category.id))}
+              className="rounded-md bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+            >
+              Bekräfta
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+            >
+              Avbryt
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+          >
+            Ta bort kategori
+          </button>
+        )}
+      </div>
+
+      <ul className="mt-3 space-y-3">
+        {category.items.map((item) => (
+          <ItemRow key={item.id} item={item} onError={onError} />
+        ))}
+      </ul>
+
+      <AddItemForm categoryId={category.id} />
+    </div>
+  );
+}
+
+function AddCategory({ menuId, onError }: { menuId: string; onError: (message: string) => void }) {
+  const [pending, run] = useAction(onError);
+  const [name, setName] = useState("");
+
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <label className="flex-1 basis-48">
+        <span className="text-sm font-medium">Ny kategori</span>
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          maxLength={120}
+          placeholder="Pizza, Dryck, Efterrätt…"
+          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+        />
+      </label>
+      <button
+        type="button"
+        disabled={pending || name.trim() === ""}
+        onClick={() => {
+          run(() => createCategory(menuId, name));
+          setName("");
+        }}
+        className="rounded-md bg-burp-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+      >
+        Lägg till
+      </button>
+    </div>
+  );
+}
+
+/* ── Rätt ────────────────────────────────────────────────────────────────── */
+
+function AddItemForm({ categoryId }: { categoryId: string }) {
+  const [result, formAction] = useActionState<ActionResult | null, FormData>(createMenuItem, null);
+
+  return (
+    <form action={formAction} className="mt-3 flex flex-wrap items-end gap-3">
+      <input type="hidden" name="category_id" value={categoryId} />
+      <label className="flex-1 basis-40">
+        <span className="text-sm font-medium">Ny rätt</span>
+        <input
+          name="name"
+          required
+          maxLength={120}
+          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+        />
+      </label>
+      <label className="basis-28">
+        <span className="text-sm font-medium">Pris</span>
+        <input
+          name="price"
+          required
+          inputMode="decimal"
+          placeholder="129,00"
+          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+        />
+      </label>
+      <SubmitButton label="Lägg till" pendingLabel="Lägger till…" />
+      {result?.message ? <Feedback result={result} /> : null}
+    </form>
+  );
+}
+
+function ItemRow({ item, onError }: { item: EditorItem; onError: (message: string) => void }) {
+  const [pending, run] = useAction(onError);
+  const [expanded, setExpanded] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  return (
+    <li className="rounded-md border border-black/10 p-3 dark:border-white/15">
+      <div className="flex flex-wrap items-center gap-3">
+        <InlineText
+          value={item.name}
+          label="Rättens namn"
+          className="mr-auto font-medium"
+          onSave={(name) => run(() => updateMenuItem(item.id, { name }))}
+        />
+
+        <InlineText
+          value={formatKronorInput(item.priceOre)}
+          label="Pris i kronor"
+          className="w-24 text-right tabular-nums"
+          inputMode="decimal"
+          onSave={(price) => run(() => updateMenuItem(item.id, { price }))}
+        />
+
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => updateMenuItem(item.id, { isAvailable: !item.isAvailable }))}
+          className={`rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-50 ${
+            item.isAvailable
+              ? "bg-green-600/15 text-green-700 dark:text-green-400"
+              : "bg-red-600/15 text-red-700 dark:text-red-400"
+          }`}
+        >
+          {item.isAvailable ? "I lager" : "Slut för dagen"}
+        </button>
+
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            run(() =>
+              updateMenuItem(item.id, {
+                status: item.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED",
+              }),
+            )
+          }
+          className="rounded-md border border-black/15 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20"
+        >
+          {item.status === "PUBLISHED" ? "Avpublicera" : "Publicera"}
+        </button>
+
+        <div className="flex gap-1">
+          <button
+            type="button"
+            aria-label={`Flytta ${item.name} uppåt`}
+            disabled={pending}
+            onClick={() => run(() => moveMenuItem(item.id, "up"))}
+            className="h-8 w-8 rounded-md border border-black/15 disabled:opacity-50 dark:border-white/20"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            aria-label={`Flytta ${item.name} nedåt`}
+            disabled={pending}
+            onClick={() => run(() => moveMenuItem(item.id, "down"))}
+            className="h-8 w-8 rounded-md border border-black/15 disabled:opacity-50 dark:border-white/20"
+          >
+            ↓
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+        >
+          {expanded ? "Dölj" : "Detaljer"}
+        </button>
+      </div>
+
+      {expanded ? (
+        <div className="mt-4 space-y-4 border-t border-black/10 pt-4 dark:border-white/15">
+          <label className="block">
+            <span className="text-sm font-medium">Beskrivning</span>
+            <InlineTextarea
+              value={item.description ?? ""}
+              onSave={(description) => run(() => updateMenuItem(item.id, { description }))}
+            />
+          </label>
+
+          <div>
+            <span className="text-sm font-medium">Moms</span>
+            <div className="mt-1 flex gap-2">
+              {[
+                { bps: VAT_FOOD_BPS, label: "12 % mat" },
+                { bps: VAT_ALCOHOL_BPS, label: "25 % alkohol" },
+              ].map((choice) => (
+                <button
+                  key={choice.bps}
+                  type="button"
+                  disabled={pending}
+                  onClick={() => run(() => updateMenuItem(item.id, { vatRateBps: choice.bps }))}
+                  className={`rounded-md border px-3 py-1.5 text-sm disabled:opacity-50 ${
+                    item.vatRateBps === choice.bps
+                      ? "border-transparent bg-burp-600 text-white"
+                      : "border-black/15 dark:border-white/20"
+                  }`}
+                >
+                  {choice.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="block">
+            <span className="text-sm font-medium">
+              Allergener <span className="font-normal opacity-60">kommaseparerade</span>
+            </span>
+            <InlineText
+              value={item.allergens.join(", ")}
+              label="Allergener"
+              className="mt-1 w-full"
+              onSave={(value) =>
+                run(() => updateMenuItem(item.id, { allergens: value.split(",") }))
+              }
+            />
+          </label>
+
+          <OptionGroups item={item} onError={onError} />
+
+          <div>
+            {confirmDelete ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => run(() => deleteMenuItem(item.id))}
+                  className="rounded-md bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                >
+                  Radera {item.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+                >
+                  Avbryt
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+              >
+                Ta bort rätten
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+/* ── Tillval ─────────────────────────────────────────────────────────────── */
+
+function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: string) => void }) {
+  const [pending, run] = useAction(onError);
+  const [name, setName] = useState("");
+  const [min, setMin] = useState("0");
+  const [max, setMax] = useState("1");
+
+  return (
+    <div>
+      <p className="text-sm font-medium">Tillvalsgrupper</p>
+
+      {item.optionGroups.map((group) => (
+        <OptionGroupBlock key={group.id} group={group} onError={onError} />
+      ))}
+
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <label className="flex-1 basis-40">
+          <span className="text-xs opacity-70">Ny grupp</span>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Välj storlek"
+            className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm dark:border-white/20"
+          />
+        </label>
+        <label className="basis-20">
+          <span className="text-xs opacity-70">Minst</span>
+          <input
+            type="number"
+            min={0}
+            value={min}
+            onChange={(event) => setMin(event.target.value)}
+            className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-2 py-1.5 text-sm dark:border-white/20"
+          />
+        </label>
+        <label className="basis-20">
+          <span className="text-xs opacity-70">Högst</span>
+          <input
+            type="number"
+            min={1}
+            value={max}
+            onChange={(event) => setMax(event.target.value)}
+            className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-2 py-1.5 text-sm dark:border-white/20"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={pending || name.trim() === ""}
+          onClick={() => {
+            run(() => createOptionGroup(item.id, name, Number(min), Number(max)));
+            setName("");
+          }}
+          className="rounded-md border border-black/15 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20"
+        >
+          Lägg till grupp
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function OptionGroupBlock({
+  group,
+  onError,
+}: {
+  group: EditorOptionGroup;
+  onError: (message: string) => void;
+}) {
+  const [pending, run] = useAction(onError);
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+
+  return (
+    <div className="mt-2 rounded-md border border-black/10 p-3 dark:border-white/15">
+      <div className="flex items-center gap-3">
+        <p className="mr-auto text-sm font-medium">
+          {group.name}
+          <span className="ml-2 font-normal opacity-60">
+            välj {group.minSelect}–{group.maxSelect}
+          </span>
+        </p>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => deleteOptionGroup(group.id))}
+          className="text-sm opacity-60 hover:opacity-100 disabled:opacity-30"
+        >
+          Ta bort grupp
+        </button>
+      </div>
+
+      <ul className="mt-2 space-y-1">
+        {group.options.map((option) => (
+          <li key={option.id} className="flex items-center gap-3 text-sm">
+            <span className="mr-auto">{option.name}</span>
+            <span className="tabular-nums opacity-70">
+              {option.priceOre === 0 ? "±0" : formatOre(option.priceOre)}
+            </span>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => setOptionAvailable(option.id, !option.isAvailable))}
+              className={`rounded-full px-2 py-0.5 text-xs disabled:opacity-50 ${
+                option.isAvailable
+                  ? "bg-green-600/15 text-green-700 dark:text-green-400"
+                  : "bg-red-600/15 text-red-700 dark:text-red-400"
+              }`}
+            >
+              {option.isAvailable ? "Finns" : "Slut"}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => deleteOption(option.id))}
+              aria-label={`Ta bort ${option.name}`}
+              className="opacity-60 hover:opacity-100 disabled:opacity-30"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-2 flex flex-wrap items-end gap-2">
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Nytt tillval"
+          className="flex-1 basis-32 rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm dark:border-white/20"
+        />
+        <input
+          value={price}
+          onChange={(event) => setPrice(event.target.value)}
+          inputMode="decimal"
+          placeholder="0,00"
+          className="basis-24 rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm dark:border-white/20"
+        />
+        <button
+          type="button"
+          disabled={pending || name.trim() === ""}
+          onClick={() => {
+            run(() => createOption(group.id, name, price));
+            setName("");
+            setPrice("");
+          }}
+          className="rounded-md border border-black/15 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20"
+        >
+          Lägg till
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Byggstenar ──────────────────────────────────────────────────────────── */
+
+/** Kör en serveråtgärd och lyfter felmeddelandet till sidans felruta. */
+function useAction(onError: (message: string) => void): [boolean, (fn: () => Promise<ActionResult>) => void] {
+  const [pending, startTransition] = useTransition();
+
+  const run = (fn: () => Promise<ActionResult>) => {
+    startTransition(async () => {
+      const result = await fn();
+      if (!result.ok) onError(result.message ?? "Något gick fel.");
+    });
+  };
+
+  return [pending, run];
+}
+
+/**
+ * Text som sparas när fältet lämnas.
+ *
+ * Ingen sparaknapp per fält — den som lägger upp trettio rätter ska inte behöva
+ * klicka sextio gånger. Escape återställer, så ett felskrivet pris går att
+ * ångra innan det når servern.
+ */
+function InlineText({
+  value,
+  label,
+  className = "",
+  inputMode,
+  onSave,
+}: {
+  value: string;
+  label: string;
+  className?: string;
+  inputMode?: "decimal";
+  onSave: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  return (
+    <input
+      aria-label={label}
+      value={draft}
+      inputMode={inputMode}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (draft !== value) onSave(draft);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+        if (event.key === "Escape") {
+          setDraft(value);
+          event.currentTarget.blur();
+        }
+      }}
+      className={`rounded-md border border-transparent bg-transparent px-2 py-1 hover:border-black/15 focus:border-black/30 dark:hover:border-white/20 dark:focus:border-white/40 ${className}`}
+    />
+  );
+}
+
+function InlineTextarea({ value, onSave }: { value: string; onSave: (value: string) => void }) {
+  const [draft, setDraft] = useState(value);
+
+  return (
+    <textarea
+      value={draft}
+      rows={2}
+      maxLength={1000}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (draft !== value) onSave(draft);
+      }}
+      className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+    />
+  );
+}
+
+function TimeField({
+  label,
+  value,
+  onSave,
+}: {
+  label: string;
+  value: string | null;
+  onSave: (value: string) => void;
+}) {
+  return (
+    <label>
+      <span className="text-sm font-medium">{label}</span>
+      <input
+        type="time"
+        // Databasen ger "11:00:00"; <input type="time"> vill ha "11:00".
+        defaultValue={value ? value.slice(0, 5) : ""}
+        onBlur={(event) => onSave(event.target.value)}
+        className="mt-1 block rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+      />
+    </label>
+  );
+}
+
+function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-md bg-burp-600 px-4 py-2 font-medium text-white disabled:opacity-60"
+    >
+      {pending ? pendingLabel : label}
+    </button>
+  );
+}
+
+function Feedback({ result }: { result: ActionResult }) {
+  return (
+    <p
+      role="alert"
+      className={`basis-full text-sm ${
+        result.ok ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"
+      }`}
+    >
+      {result.message}
+    </p>
+  );
+}

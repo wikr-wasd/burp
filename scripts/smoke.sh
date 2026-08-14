@@ -17,6 +17,11 @@
 set -uo pipefail
 
 BASE="${BASE:-http://localhost:3000}"
+
+# Seed-datan innehåller flera restauranger för marknadsplatsvyn, men bara den
+# här har meny, bord och personal. Allt nedan pekas explicit på den — utan det
+# plockar ett `limit 1` godtycklig restaurang och testet blir slumpmässigt.
+SEED_RESTAURANT="11111111-1111-1111-1111-111111111111"
 DB="postgresql://postgres:postgres@host.docker.internal:54322/postgres"
 PG_IMAGE="public.ecr.aws/supabase/postgres:17.6.1.158"
 COOKIES="$(mktemp)"
@@ -83,12 +88,14 @@ echo "→ Öppnar restaurangen för testet"
 # Seed-restaurangen har riktiga öppettider. Körs testet 09:00 är den stängd och
 # QR-flödet svarar korrekt men går inte att testa. Vi öppnar dygnet runt och
 # återställer i slutet.
-ORIGINAL_HOURS=$(sql "select opening_hours::text from public.restaurants limit 1;")
-sql "update public.restaurants set opening_hours = '{\"mon\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"tue\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"wed\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"thu\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"fri\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"sat\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"sun\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}]}'::jsonb;" > /dev/null
+ORIGINAL_HOURS=$(sql "select opening_hours::text from public.restaurants where id = '$SEED_RESTAURANT';")
+sql "update public.restaurants set opening_hours = '{\"mon\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"tue\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"wed\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"thu\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"fri\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"sat\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"sun\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}]}'::jsonb where id = '$SEED_RESTAURANT';" > /dev/null
 
+# WHERE-satsen är inte kosmetisk: utan den skrivs öppettiderna om för samtliga
+# restauranger i seed-datan och återställningen sätter tillbaka fel tider.
 restore_hours() {
   if [ -n "${ORIGINAL_HOURS:-}" ]; then
-    sql "update public.restaurants set opening_hours = '$ORIGINAL_HOURS'::jsonb;" > /dev/null
+    sql "update public.restaurants set opening_hours = '$ORIGINAL_HOURS'::jsonb where id = '$SEED_RESTAURANT';" > /dev/null
   fi
   rm -f "$COOKIES"
 }
@@ -204,11 +211,20 @@ fi
 
 echo "→ Personalytor kräver inloggning"
 for path in /dashboard /kok /dashboard/bord; do
-  LOCATION=$(curl -s -o /dev/null -w '%{redirect_url}' "$BASE$path")
-  if grep -q "/logga-in" <<<"$LOCATION"; then
-    pass "$path skickar till inloggning"
+  # Status OCH mål. Bara målet räcker inte: en 500:a ger tom redirect-URL och
+  # rapporten blir "skyddas inte", vilket pekar helt fel vid felsökning.
+  RESULT=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE$path")
+  CODE=${RESULT%% *}
+  LOCATION=${RESULT#* }
+
+  if [ "$CODE" = "307" ] || [ "$CODE" = "302" ]; then
+    if grep -q "/logga-in" <<<"$LOCATION"; then
+      pass "$path skickar till inloggning"
+    else
+      fail "$path redirectar till '$LOCATION' i stället för inloggning"
+    fi
   else
-    fail "$path skyddas inte (redirect: '${LOCATION:-ingen}')"
+    fail "$path svarade $CODE i stället för att redirecta"
   fi
 done
 
@@ -239,6 +255,50 @@ if [ -z "$(json_field access_token <<<"$BAD")" ]; then
 else
   fail "fel lösenord accepterades"
 fi
+
+echo "→ Menyhantering (RLS-vägen serveråtgärderna går)"
+OWNER_TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+  -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"email":"agare@burp.test","password":"burp1234"}' | json_field access_token)
+
+KITCHEN_TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+  -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"email":"kock@burp.test","password":"burp1234"}' | json_field access_token)
+
+RESTAURANT_ID="$SEED_RESTAURANT"
+
+# Namnet är avsiktligt ren ASCII. Git Bash skickar å/ä/ö i fel teckenkodning
+# i en -d-sträng, och PostgREST avvisar då hela anropet som ogiltig JSON — ett
+# fel som ser ut som ett rättighetsproblem men inte är det.
+post_menu() {
+  curl -s -o /dev/null -w '%{http_code}' -X POST "$SUPABASE_URL/rest/v1/menus" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $1" \
+    -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+    -d "{\"restaurant_id\":\"$RESTAURANT_ID\",\"name\":\"SMOKE-TEST-MENU\",\"status\":\"DRAFT\"}"
+}
+
+if [ "$(post_menu "$OWNER_TOKEN")" = "201" ]; then
+  pass "ägaren kan skapa en meny"
+else
+  fail "ägaren kunde inte skapa en meny (fick $(post_menu "$OWNER_TOKEN"))"
+fi
+
+# Kocken har bara köksskärmen. Kan han skriva i menyn är rollmodellen trasig.
+KITCHEN_STATUS=$(post_menu "$KITCHEN_TOKEN")
+if [ "$KITCHEN_STATUS" != "201" ]; then
+  pass "kocken kan inte skapa en meny ($KITCHEN_STATUS)"
+else
+  fail "kocken kunde skapa en meny — rollmodellen släpper igenom för mycket"
+fi
+
+ANON_STATUS=$(post_menu "$ANON_KEY")
+if [ "$ANON_STATUS" != "201" ]; then
+  pass "anonym kan inte skapa en meny ($ANON_STATUS)"
+else
+  fail "anonym kunde skapa en meny"
+fi
+
+sql "delete from public.menus where name = 'SMOKE-TEST-MENU';" > /dev/null
 
 echo ""
 if [ "$FAILED" -gt 0 ]; then

@@ -7,7 +7,14 @@ import {
   PriceMismatchError,
   vatFromGross,
 } from "./pricing";
-import { applyBasisPoints, formatOre, kronorToOre, roundHalfEven } from "./money";
+import {
+  applyBasisPoints,
+  formatKronorInput,
+  formatOre,
+  kronorToOre,
+  parseKronor,
+  roundHalfEven,
+} from "./money";
 import { VAT_ALCOHOL_BPS, VAT_FOOD_BPS, type PricedLine } from "./types";
 
 function line(overrides: Partial<PricedLine> = {}): PricedLine {
@@ -206,6 +213,58 @@ describe("assertClientTotalMatches", () => {
 
   it("avvisar en summa som inte är heltal öre", () => {
     expect(() => assertClientTotalMatches(totals, 14900.5)).toThrow(TypeError);
+  });
+});
+
+describe("parseKronor", () => {
+  it("tolkar svenskt decimalkomma", () => {
+    expect(parseKronor("149,50")).toBe(14950);
+    expect(parseKronor("0,05")).toBe(5);
+  });
+
+  it("tolkar punkt lika gärna", () => {
+    expect(parseKronor("149.50")).toBe(14950);
+  });
+
+  it("tolkar heltal", () => {
+    expect(parseKronor("129")).toBe(12900);
+  });
+
+  it("tål mellanslag och kr-suffix", () => {
+    expect(parseKronor(" 1 495,00 kr ")).toBe(149500);
+    expect(parseKronor("1 495")).toBe(149500);
+  });
+
+  it("tillåter negativa belopp för tillval som drar av", () => {
+    expect(parseKronor("-10")).toBe(-1000);
+  });
+
+  it("avvisar mer än två decimaler — öre är minsta enhet", () => {
+    expect(parseKronor("149,555")).toBeNull();
+  });
+
+  it("avvisar allt som inte otvetydigt är ett belopp", () => {
+    for (const bad of ["", "  ", "abc", "12abc", "1,2,3", "1..5", "--5", "kr"]) {
+      expect(parseKronor(bad)).toBeNull();
+    }
+  });
+
+  it("avvisar värden som inte är strängar", () => {
+    expect(parseKronor(149 as unknown as string)).toBeNull();
+  });
+});
+
+describe("formatKronorInput", () => {
+  it("ger ett redigerbart tal utan valuta", () => {
+    expect(formatKronorInput(14950)).toBe("149,50");
+    expect(formatKronorInput(12900)).toBe("129,00");
+    expect(formatKronorInput(-1000)).toBe("-10,00");
+  });
+
+  it("överlever en tur fram och tillbaka", () => {
+    for (const ore of [0, 5, 12900, 149500, -1000]) {
+      expect(parseKronor(formatKronorInput(ore))).toBe(ore);
+    }
   });
 });
 

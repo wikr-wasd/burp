@@ -34,9 +34,14 @@ export function StaffHeader({ staff, current }: { staff: StaffContext; current: 
           </Link>
 
           {staff.role === "owner" || staff.role === "manager" ? (
-            <Link href="/dashboard/bord" className="opacity-60 hover:opacity-100">
-              Bord
-            </Link>
+            <>
+              <Link href="/dashboard/meny" className="opacity-60 hover:opacity-100">
+                Meny
+              </Link>
+              <Link href="/dashboard/bord" className="opacity-60 hover:opacity-100">
+                Bord
+              </Link>
+            </>
           ) : null}
 
           <form action="/logga-ut" method="post">

@@ -71,6 +71,35 @@ export function applyBasisPoints(amount: Ore, bps: number): Ore {
   return roundHalfEven((amount * bps) / 10_000);
 }
 
+/**
+ * Tolkar ett pris som en människa skrivit in.
+ *
+ * Restaurangen skriver "149,50" i dashboarden — svenskt decimalkomma, ibland
+ * med mellanslag som tusentalsavgränsare och ibland med "kr" efter. Att låta
+ * `Number()` tolka det ger NaN på komma och tyst fel pris på "1 495".
+ *
+ * Returnerar null vid allt som inte otvetydigt är ett belopp. Anropande kod
+ * ska visa ett fel, aldrig gissa — ett felgissat menypris debiteras gäster.
+ */
+export function parseKronor(input: string): Ore | null {
+  if (typeof input !== "string") return null;
+
+  const cleaned = input
+    .trim()
+    .replace(/\s| /g, "") // vanliga och hårda mellanslag
+    .replace(/kr$/i, "")
+    .replace(",", ".");
+
+  if (cleaned === "" || !/^-?\d+(\.\d{1,2})?$/.test(cleaned)) return null;
+
+  return kronorToOre(Number(cleaned));
+}
+
+/** Formaterar öre som ett redigerbart tal utan valuta: 14950 → "149,50". */
+export function formatKronorInput(ore: Ore): string {
+  return oreToKronor(ore).toFixed(2).replace(".", ",");
+}
+
 /** Formaterar öre som svensk valutasträng, t.ex. "149,50 kr". */
 export function formatOre(ore: Ore, locale = "sv-SE"): string {
   return new Intl.NumberFormat(locale, {
