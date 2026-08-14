@@ -519,6 +519,89 @@ else
   fail "$ANON_EARN poängrader skapades för beställningar utan gäst"
 fi
 
+echo "→ Mediauppladdning och moderering"
+OTHER_RESTAURANT_FOLDER="11111111-1111-1111-1111-111111111112"
+IMAGE_FILE="$(mktemp).png"
+# Minsta möjliga giltiga PNG. Innehållet spelar ingen roll — det som testas är
+# behörigheten, inte bildbehandlingen.
+printf '\211PNG\r\n\032\n\0\0\0\rIHDR\0\0\0\1\0\0\0\1\10\6\0\0\0\37\25\304\211\0\0\0\nIDATx\234c\370\17\0\1\1\1\0\30\335\215\260\0\0\0\0IEND\256B\140\202' > "$IMAGE_FILE"
+
+upload_image() {
+  curl -s -o /dev/null -w '%{http_code}' -X POST \
+    "$SUPABASE_URL/storage/v1/object/menu-media/$2" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $1" \
+    -H "Content-Type: image/png" --data-binary "@$IMAGE_FILE"
+}
+
+OWN_PATH="$SEED_RESTAURANT/$(uuid).png"
+if [ "$(upload_image "$OWNER_TOKEN" "$OWN_PATH")" = "200" ]; then
+  pass "ägaren kan ladda upp till sin egen mapp"
+else
+  fail "ägaren kunde inte ladda upp (fick $(upload_image "$OWNER_TOKEN" "$SEED_RESTAURANT/$(uuid).png"))"
+fi
+
+# Sökvägens första mapp är restaurangens id, och storage-policyn jämför den
+# mot `staff`. Det är det som hindrar en restaurang från att skriva i en annans
+# mapp — eller skriva över en annans bild.
+FOREIGN=$(upload_image "$OWNER_TOKEN" "$OTHER_RESTAURANT_FOLDER/$(uuid).png")
+if [ "$FOREIGN" != "200" ]; then
+  pass "ägaren kan inte ladda upp i en annan restaurangs mapp ($FOREIGN)"
+else
+  fail "ägaren kunde skriva i en annan restaurangs mapp"
+fi
+
+KITCHEN_UPLOAD=$(upload_image "$KITCHEN_TOKEN" "$SEED_RESTAURANT/$(uuid).png")
+if [ "$KITCHEN_UPLOAD" != "200" ]; then
+  pass "kocken kan inte ladda upp bilder ($KITCHEN_UPLOAD)"
+else
+  fail "kocken kunde ladda upp bilder"
+fi
+
+ANON_UPLOAD=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+  "$SUPABASE_URL/storage/v1/object/menu-media/$SEED_RESTAURANT/$(uuid).png" \
+  -H "apikey: $ANON_KEY" -H "Content-Type: image/png" --data-binary "@$IMAGE_FILE")
+if [ "$ANON_UPLOAD" != "200" ]; then
+  pass "anonym kan inte ladda upp ($ANON_UPLOAD)"
+else
+  fail "anonym kunde ladda upp en bild"
+fi
+
+rm -f "$IMAGE_FILE"
+
+# Hela modereringsslingan: uppladdad bild är PENDING och osynlig, godkännande
+# publicerar den, tillbakadraget godkännande tar bort den igen. Utan sista
+# steget vore moderering en knapp utan effekt.
+MARGHERITA_ID="44444444-4444-4444-4444-444444444441"
+sql "delete from public.media where menu_item_id = '$MARGHERITA_ID';" > /dev/null
+sql "update public.menu_items set image_url = null where id = '$MARGHERITA_ID';" > /dev/null
+sql "insert into public.media (restaurant_id, menu_item_id, kind, storage_path)
+     values ('$SEED_RESTAURANT', '$MARGHERITA_ID', 'IMAGE', '$OWN_PATH');" > /dev/null
+
+BEFORE_APPROVAL=$(sql "select coalesce(image_url, 'INGEN') from public.menu_items where id = '$MARGHERITA_ID';")
+if [ "$BEFORE_APPROVAL" = "INGEN" ]; then
+  pass "ogranskad bild syns inte för gästen"
+else
+  fail "en ogranskad bild publicerades direkt: $BEFORE_APPROVAL"
+fi
+
+sql "update public.media set status = 'APPROVED' where menu_item_id = '$MARGHERITA_ID';" > /dev/null
+AFTER_APPROVAL=$(sql "select coalesce(image_url, 'INGEN') from public.menu_items where id = '$MARGHERITA_ID';")
+if [ "${AFTER_APPROVAL#INGEN}" = "$AFTER_APPROVAL" ] && [ -n "$AFTER_APPROVAL" ]; then
+  pass "godkännande publicerar bilden"
+else
+  fail "godkännandet publicerade ingen bild"
+fi
+
+sql "update public.media set status = 'REJECTED' where menu_item_id = '$MARGHERITA_ID';" > /dev/null
+AFTER_REJECT=$(sql "select coalesce(image_url, 'INGEN') from public.menu_items where id = '$MARGHERITA_ID';")
+if [ "$AFTER_REJECT" = "INGEN" ]; then
+  pass "tillbakadraget godkännande tar bort bilden"
+else
+  fail "en tillbakadragen bild låg kvar i menyn"
+fi
+
+sql "delete from public.media where menu_item_id = '$MARGHERITA_ID';" > /dev/null
+
 echo "→ Google-synlighet"
 check_status "stadssida"          "/malmo"            200
 check_status "kökssida"           "/malmo/tacos"      200

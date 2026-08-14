@@ -32,6 +32,7 @@ echo "→ Stubbar Supabase-specifika objekt"
 $PSQL -d "$DB_NAME" <<'SQL'
 create schema if not exists auth;
 create schema if not exists extensions;
+create schema if not exists storage;
 
 -- Rollerna RLS-policyerna refererar till.
 do $$
@@ -63,6 +64,36 @@ language sql
 stable
 as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+$$;
+
+-- Minimal Storage. Migration 0017 skapar en bucket och policies på objects;
+-- stubbarna finns för att den ska gå att köra, inte för att härma Storage.
+create table if not exists storage.buckets (
+  id                  text primary key,
+  name                text not null,
+  public              boolean not null default false,
+  file_size_limit     bigint,
+  allowed_mime_types  text[]
+);
+
+create table if not exists storage.objects (
+  id         uuid primary key default gen_random_uuid(),
+  bucket_id  text references storage.buckets(id),
+  name       text not null,
+  owner      uuid
+);
+
+alter table storage.objects enable row level security;
+
+-- Delar sökvägen i mappar. Supabase har en riktig implementation; den här
+-- räcker för att policyerna ska gå att skapa och för att första mappnivån
+-- (restaurangens id) ska gå att läsa ut.
+create or replace function storage.foldername(name text)
+returns text[]
+language sql
+immutable
+as $$
+  select string_to_array(name, '/');
 $$;
 SQL
 

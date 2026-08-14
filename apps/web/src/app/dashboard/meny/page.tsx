@@ -43,6 +43,10 @@ export interface EditorItem {
   allergens: string[];
   isAvailable: boolean;
   status: string;
+  /** Publicerad bild. Sätts av moderering, inte av uppladdning. */
+  imageUrl: string | null;
+  /** Bilder som väntar på Burps granskning. */
+  pendingMedia: number;
   optionGroups: EditorOptionGroup[];
 }
 
@@ -88,7 +92,7 @@ export default async function MenuPage() {
     ? await supabase
         .from("menu_items")
         .select(
-          "id, category_id, name, description, price_ore, vat_rate_bps, allergens, is_available, status, sort_order",
+          "id, category_id, name, description, price_ore, vat_rate_bps, allergens, is_available, status, sort_order, image_url",
         )
         .in("category_id", categoryIds)
         .order("sort_order", { ascending: true })
@@ -114,6 +118,23 @@ export default async function MenuPage() {
         .order("sort_order", { ascending: true })
     : { data: [] };
 
+  // Bilder som väntar på granskning. Restaurangen ska se att uppladdningen
+  // gick igenom även innan Burp hunnit titta på den.
+  const { data: pendingMedia } = itemIds.length
+    ? await supabase
+        .from("media")
+        .select("menu_item_id")
+        .eq("status", "PENDING")
+        .in("menu_item_id", itemIds)
+    : { data: [] };
+
+  const pendingByItem = new Map<string, number>();
+  for (const row of pendingMedia ?? []) {
+    if (row.menu_item_id) {
+      pendingByItem.set(row.menu_item_id, (pendingByItem.get(row.menu_item_id) ?? 0) + 1);
+    }
+  }
+
   const optionsByGroup = group(options ?? [], (option) => option.option_group_id);
   const groupsByItem = group(groups ?? [], (row) => row.menu_item_id);
   const itemsByCategory = group(items ?? [], (item) => item.category_id);
@@ -138,6 +159,8 @@ export default async function MenuPage() {
         allergens: item.allergens ?? [],
         isAvailable: item.is_available,
         status: item.status,
+        imageUrl: item.image_url,
+        pendingMedia: pendingByItem.get(item.id) ?? 0,
         optionGroups: (groupsByItem.get(item.id) ?? []).map((row) => ({
           id: row.id,
           name: row.name,
@@ -162,7 +185,7 @@ export default async function MenuPage() {
         <p className="mt-1 text-sm opacity-70">
           Bara publicerade menyer och rätter syns för gästen. Priser anges inklusive moms.
         </p>
-        <MenuEditor menus={tree} />
+        <MenuEditor menus={tree} restaurantId={staff.restaurantId} />
       </main>
     </>
   );

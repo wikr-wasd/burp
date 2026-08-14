@@ -28,6 +28,7 @@ import type {
   EditorMenu,
   EditorOptionGroup,
 } from "@/app/dashboard/meny/page";
+import { ImageUpload } from "@/components/staff/image-upload";
 
 /**
  * Menyredigeraren.
@@ -40,7 +41,13 @@ import type {
 
 const WEEKDAYS = ["Sön", "Mån", "Tis", "Ons", "Tors", "Fre", "Lör"] as const;
 
-export function MenuEditor({ menus }: { menus: EditorMenu[] }) {
+export function MenuEditor({
+  menus,
+  restaurantId,
+}: {
+  menus: EditorMenu[];
+  restaurantId: string;
+}) {
   const [error, setError] = useState<string | null>(null);
 
   return (
@@ -58,7 +65,7 @@ export function MenuEditor({ menus }: { menus: EditorMenu[] }) {
       ) : (
         <div className="mt-8 space-y-8">
           {menus.map((menu) => (
-            <MenuCard key={menu.id} menu={menu} onError={setError} />
+            <MenuCard key={menu.id} menu={menu} restaurantId={restaurantId} onError={setError} />
           ))}
         </div>
       )}
@@ -89,7 +96,15 @@ function NewMenuForm() {
   );
 }
 
-function MenuCard({ menu, onError }: { menu: EditorMenu; onError: (message: string) => void }) {
+function MenuCard({
+  menu,
+  restaurantId,
+  onError,
+}: {
+  menu: EditorMenu;
+  restaurantId: string;
+  onError: (message: string) => void;
+}) {
   const [pending, run] = useAction(onError);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const published = menu.status === "PUBLISHED";
@@ -198,7 +213,12 @@ function MenuCard({ menu, onError }: { menu: EditorMenu; onError: (message: stri
 
       <div className="p-4">
         {menu.categories.map((category) => (
-          <CategoryBlock key={category.id} category={category} onError={onError} />
+          <CategoryBlock
+            key={category.id}
+            category={category}
+            restaurantId={restaurantId}
+            onError={onError}
+          />
         ))}
 
         <AddCategory menuId={menu.id} onError={onError} />
@@ -211,9 +231,11 @@ function MenuCard({ menu, onError }: { menu: EditorMenu; onError: (message: stri
 
 function CategoryBlock({
   category,
+  restaurantId,
   onError,
 }: {
   category: EditorCategory;
+  restaurantId: string;
   onError: (message: string) => void;
 }) {
   const [pending, run] = useAction(onError);
@@ -263,7 +285,7 @@ function CategoryBlock({
 
       <ul className="mt-3 space-y-3">
         {category.items.map((item) => (
-          <ItemRow key={item.id} item={item} onError={onError} />
+          <ItemRow key={item.id} item={item} restaurantId={restaurantId} onError={onError} />
         ))}
       </ul>
 
@@ -336,7 +358,15 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
   );
 }
 
-function ItemRow({ item, onError }: { item: EditorItem; onError: (message: string) => void }) {
+function ItemRow({
+  item,
+  restaurantId,
+  onError,
+}: {
+  item: EditorItem;
+  restaurantId: string;
+  onError: (message: string) => void;
+}) {
   const [pending, run] = useAction(onError);
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -464,6 +494,29 @@ function ItemRow({ item, onError }: { item: EditorItem; onError: (message: strin
               }
             />
           </label>
+
+          <div>
+            <p className="text-sm font-medium">Bild</p>
+            <p className="mt-0.5 text-sm opacity-60">
+              Bilden syns för gästen först när Burp godkänt den. JPEG, PNG, WebP eller AVIF,
+              högst 10 MB.
+            </p>
+            {item.pendingMedia > 0 ? (
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                {item.pendingMedia === 1
+                  ? "En bild väntar på granskning."
+                  : `${item.pendingMedia} bilder väntar på granskning.`}
+              </p>
+            ) : null}
+            <div className="mt-2">
+              <ImageUpload
+                restaurantId={restaurantId}
+                menuItemId={item.id}
+                currentUrl={item.imageUrl}
+                label={`Ladda upp bild för ${item.name}`}
+              />
+            </div>
+          </div>
 
           <OptionGroups item={item} onError={onError} />
 

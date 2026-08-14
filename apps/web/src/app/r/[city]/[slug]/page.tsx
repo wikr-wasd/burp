@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { MenuOrder } from "@/components/order/menu-order";
 import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { getActiveMenu } from "@/lib/menu";
 import { restaurantJsonLd, serializeJsonLd } from "@/lib/seo/jsonld";
 import { createClient } from "@/lib/supabase/server";
@@ -81,7 +82,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url: canonical,
       type: "website",
-      ...(restaurant.hero_image_url ? { images: [restaurant.hero_image_url] } : {}),
+      ...(resolveMediaUrl(restaurant.hero_image_url)
+        ? { images: [resolveMediaUrl(restaurant.hero_image_url)!] }
+        : {}),
     },
   };
 }
@@ -106,7 +109,7 @@ export default async function RestaurantPage({ params }: PageProps) {
     name: restaurant.name,
     description: restaurant.description,
     url,
-    imageUrl: restaurant.hero_image_url,
+    imageUrl: resolveMediaUrl(restaurant.hero_image_url),
     streetAddress: restaurant.street_address,
     postalCode: restaurant.postal_code,
     city: restaurant.city,

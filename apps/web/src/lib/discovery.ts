@@ -1,4 +1,5 @@
 import { sanitizeQuery, type OpeningHours } from "@/lib/discovery-format";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { createClient } from "@/lib/supabase/server";
 
 export { priceTierLabel, todaysHours } from "@/lib/discovery-format";
@@ -69,7 +70,7 @@ function toRestaurant(row: RestaurantRow): DiscoveryRestaurant {
     priceTier: row.price_tier,
     ratingAverage: row.rating_average,
     ratingCount: row.rating_count ?? 0,
-    heroImageUrl: row.hero_image_url,
+    heroImageUrl: resolveMediaUrl(row.hero_image_url),
     openingHours: row.opening_hours,
   };
 }

@@ -137,7 +137,7 @@ export function MediaQueue({
 }
 
 function MediaPreview({ item }: { item: ModeratedMedia }) {
-  const url = item.kind === "VIDEO" ? (item.posterUrl ?? item.playbackUrl) : item.storagePath;
+  const url = item.kind === "VIDEO" ? (item.posterUrl ?? item.playbackUrl) : item.previewUrl;
 
   if (!url) {
     return (

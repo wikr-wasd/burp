@@ -1,6 +1,7 @@
 import "server-only";
 
 import { pickMenuForNow, type Ore } from "@burp/core";
+import { resolveMediaUrl } from "./media-url";
 import { createAdminClient } from "./supabase/admin";
 
 /**
@@ -144,7 +145,7 @@ export async function getActiveMenu(restaurantId: string, now = new Date()): Pro
           priceOre: item.price_ore,
           vatRateBps: item.vat_rate_bps,
           allergens: item.allergens ?? [],
-          imageUrl: item.image_url,
+          imageUrl: resolveMediaUrl(item.image_url),
           isAvailable: item.is_available,
           optionGroups: (groupsByItem.get(item.id) ?? []).map((group) => ({
             id: group.id,

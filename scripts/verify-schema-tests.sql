@@ -670,4 +670,72 @@ begin
 end
 $$;
 
+\echo '   godkänd media publiceras, avvisad tas bort'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_item_id  uuid := '44444444-4444-4444-4444-444444444441';
+  v_media_id uuid;
+  v_url      text;
+begin
+  insert into public.media (restaurant_id, menu_item_id, kind, storage_path, alt_text)
+  values (v_rest_id, v_item_id, 'IMAGE', v_rest_id || '/test.jpg', 'Testbild')
+  returning id into v_media_id;
+
+  -- PENDING ska inte synas för gästen.
+  select image_url into v_url from public.menu_items where id = v_item_id;
+  if v_url is not null then
+    raise exception 'FEL: en ogranskad bild publicerades direkt';
+  end if;
+
+  update public.media set status = 'APPROVED' where id = v_media_id;
+
+  select image_url into v_url from public.menu_items where id = v_item_id;
+  if v_url is null or v_url not like '%menu-media%' then
+    raise exception 'FEL: godkännandet publicerade ingen bild (image_url = %)', v_url;
+  end if;
+
+  -- Tillbakadraget godkännande ska ta bort bilden ur menyn.
+  update public.media set status = 'REJECTED' where id = v_media_id;
+
+  select image_url into v_url from public.menu_items where id = v_item_id;
+  if v_url is not null then
+    raise exception 'FEL: en tillbakadragen bild låg kvar i menyn';
+  end if;
+end
+$$;
+
+\echo '   avvisad bild raderar inte en nyare godkänd'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+  v_item_id uuid := '44444444-4444-4444-4444-444444444442';
+  v_gammal  uuid;
+  v_ny      uuid;
+  v_url     text;
+begin
+  insert into public.media (restaurant_id, menu_item_id, kind, storage_path)
+  values (v_rest_id, v_item_id, 'IMAGE', v_rest_id || '/gammal.jpg')
+  returning id into v_gammal;
+
+  insert into public.media (restaurant_id, menu_item_id, kind, storage_path)
+  values (v_rest_id, v_item_id, 'IMAGE', v_rest_id || '/ny.jpg')
+  returning id into v_ny;
+
+  update public.media set status = 'APPROVED' where id = v_gammal;
+  update public.media set status = 'APPROVED' where id = v_ny;
+
+  -- Den nyare bilden gäller nu. Att dra tillbaka den äldre får inte ta med
+  -- sig den nyare — pekaren pekar inte längre på den gamla.
+  update public.media set status = 'REJECTED' where id = v_gammal;
+
+  select image_url into v_url from public.menu_items where id = v_item_id;
+  if v_url is null or v_url not like '%ny.jpg' then
+    raise exception 'FEL: den nyare godkända bilden försvann (image_url = %)', v_url;
+  end if;
+end
+$$;
+
 rollback;

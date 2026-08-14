@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PlatformHeader } from "@/components/platform/platform-header";
 import { MediaQueue } from "@/components/platform/media-queue";
+import { publicEnv } from "@/lib/env";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,7 +24,8 @@ export interface ModeratedMedia {
   id: string;
   kind: string;
   status: string;
-  storagePath: string | null;
+  /** Färdig URL att visa i granskningen. Byggd ur lagringsvägen, inte rå. */
+  previewUrl: string | null;
   playbackUrl: string | null;
   posterUrl: string | null;
   altText: string | null;
@@ -74,11 +76,15 @@ export default async function MediaPage({ searchParams }: PageProps) {
   const restaurantName = new Map((restaurantsResult.data ?? []).map((r) => [r.id, r.name]));
   const itemName = new Map((itemsResult.data ?? []).map((i) => [i.id, i.name]));
 
+  // Bucketen är publik, så URL:en går att bygga utan signering. Den byggs här
+  // och inte i klienten, så att formen bara finns på ett ställe.
+  const publicBase = `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menu-media/`;
+
   const media: ModeratedMedia[] = (rows ?? []).map((row) => ({
     id: row.id,
     kind: row.kind,
     status: row.status,
-    storagePath: row.storage_path,
+    previewUrl: row.storage_path ? `${publicBase}${row.storage_path}` : null,
     playbackUrl: row.playback_url,
     posterUrl: row.poster_url,
     altText: row.alt_text,
