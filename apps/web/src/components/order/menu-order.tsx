@@ -31,14 +31,22 @@ interface CartLine {
   note: string;
 }
 
+/**
+ * Var beställningen görs. Bordsfallet bär sitt token och sitt bordsnummer,
+ * avhämtning bär ingenting — en union i stället för fyra valfria fält, så att
+ * det inte går att bygga ett halvt bordsfall utan token.
+ */
+export type OrderContext =
+  | { kind: "TABLE"; tableToken: string; tableNumber: string }
+  | { kind: "PICKUP" };
+
 interface Props {
   menu: Menu;
-  tableToken: string;
   restaurantName: string;
-  tableNumber: string;
+  context: OrderContext;
 }
 
-export function MenuOrder({ menu, tableToken, restaurantName, tableNumber }: Props) {
+export function MenuOrder({ menu, restaurantName, context }: Props) {
   const router = useRouter();
 
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -114,8 +122,8 @@ export function MenuOrder({ menu, tableToken, restaurantName, tableNumber }: Pro
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "TABLE",
-          table_token: tableToken,
+          type: context.kind,
+          ...(context.kind === "TABLE" ? { table_token: context.tableToken } : {}),
           tip_ore: tipOre,
           client_total_ore: totals.totalOre,
           // Nyckeln skapas en gång per försök. Dubbeltryck på knappen ger
@@ -138,7 +146,13 @@ export function MenuOrder({ menu, tableToken, restaurantName, tableNumber }: Pro
       }
 
       setCart([]);
-      router.push(`/t/${tableToken}/order/${body.order_id}`);
+      // Bordskvittot ligger under bordets token, avhämtningskvittot fristående
+      // — en avhämtningsgäst har inget bord att hänga sidan under.
+      router.push(
+        context.kind === "TABLE"
+          ? `/t/${context.tableToken}/order/${body.order_id}`
+          : `/order/${body.order_id}`,
+      );
     } catch {
       setError("Ingen kontakt med servern. Kontrollera nätet och försök igen.");
     } finally {
@@ -152,7 +166,7 @@ export function MenuOrder({ menu, tableToken, restaurantName, tableNumber }: Pro
     <div className="pb-40">
       <header className="mb-8">
         <p className="text-sm font-medium uppercase tracking-wide opacity-60">
-          Bord {tableNumber}
+          {context.kind === "TABLE" ? `Bord ${context.tableNumber}` : "Avhämtning"}
         </p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight">{restaurantName}</h1>
         <p className="mt-1 text-sm opacity-60">{menu.name}</p>

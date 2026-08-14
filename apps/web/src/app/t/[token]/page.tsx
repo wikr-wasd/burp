@@ -89,9 +89,14 @@ export default async function TablePage({ params }: PageProps) {
     <main className="mx-auto max-w-2xl px-6 py-10">
       <MenuOrder
         menu={menu}
-        tableToken={token.toUpperCase()}
         restaurantName={table.restaurantName}
-        tableNumber={table.zone ? `${table.tableNumber} · ${table.zone}` : table.tableNumber}
+        context={{
+          kind: "TABLE",
+          tableToken: token.toUpperCase(),
+          tableNumber: table.zone
+            ? `${table.tableNumber} · ${table.zone}`
+            : table.tableNumber,
+        }}
       />
     </main>
   );

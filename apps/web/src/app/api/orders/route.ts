@@ -11,6 +11,7 @@ import {
   statusAfterPlacement,
 } from "@burp/core";
 import { serverEnv } from "@/lib/env";
+import { rememberGuestOrder } from "@/lib/guest-orders";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -87,6 +88,8 @@ export async function POST(request: Request) {
   } else {
     // Avhämtning och leverans härleder restaurangen ur menyraderna, som ändå
     // måste tillhöra en och samma restaurang (kontrolleras i steg 2).
+    // Öppettiderna kan därför inte kontrolleras här — restaurangen är ännu
+    // okänd. Kontrollen ligger i stället i steg 4, när den är känd.
     restaurantId = "";
   }
 
@@ -203,6 +206,28 @@ export async function POST(request: Request) {
     return problem(409, "Restaurangen tar inte emot order", "Försök igen senare.");
   }
 
+  // Bordsflödet kontrollerade redan öppettiderna i `lookupTable`. Avhämtning
+  // och leverans gick förbi den kontrollen, eftersom restaurangen inte var känd
+  // förrän menyraderna slagits upp. Utan den här går det att beställa mat att
+  // hämta från ett stängt kök.
+  if (input.type !== "TABLE" && !input.scheduled_for) {
+    const { data: isOpen, error: openError } = await supabase.rpc("is_restaurant_open", {
+      p_restaurant_id: restaurantId,
+    });
+
+    if (openError) {
+      return problem(500, "Kunde inte läsa öppettiderna", "Försök igen.");
+    }
+
+    if (!isOpen) {
+      return problem(
+        409,
+        "Restaurangen är stängd",
+        "Beställningar går bara att lägga under öppettiderna.",
+      );
+    }
+  }
+
   const policy = parseOrderPolicy(restaurant.order_policy);
 
   if (input.scheduled_for && !policy.allowScheduledOrders) {
@@ -265,6 +290,13 @@ export async function POST(request: Request) {
 
   if (writeError) {
     return problem(500, "Beställningen kunde inte sparas", writeError.message);
+  }
+
+  // Kvittosidan för avhämtning har varken bordssession eller inloggning att gå
+  // på. Cookien är det som gör att gästen kan se sin egen order — och bara sin
+  // egen. Bordsflödet har redan sin `table_session_id` och behöver den inte.
+  if (input.type !== "TABLE" && typeof order === "string") {
+    await rememberGuestOrder(order);
   }
 
   return NextResponse.json(

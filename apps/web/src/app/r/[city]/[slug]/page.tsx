@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { MenuOrder } from "@/components/order/menu-order";
+import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
+import { getActiveMenu } from "@/lib/menu";
 import { restaurantJsonLd, serializeJsonLd } from "@/lib/seo/jsonld";
 import { createClient } from "@/lib/supabase/server";
 
@@ -40,6 +43,7 @@ interface RestaurantRow {
   hero_image_url: string | null;
   rating_average: number | null;
   rating_count: number;
+  opening_hours: OpeningHours | null;
 }
 
 async function getRestaurant(city: string, slug: string): Promise<RestaurantRow | null> {
@@ -47,7 +51,7 @@ async function getRestaurant(city: string, slug: string): Promise<RestaurantRow 
   const { data } = await supabase
     .from("restaurants")
     .select(
-      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, rating_average, rating_count",
+      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, rating_average, rating_count, opening_hours",
     )
     .eq("slug", slug)
     .eq("city_slug", city)
@@ -87,6 +91,14 @@ export default async function RestaurantPage({ params }: PageProps) {
   const restaurant = await getRestaurant(city, slug);
 
   if (!restaurant) notFound();
+
+  const menu = await getActiveMenu(restaurant.id);
+
+  // Öppettiderna visas, men om restaurangen tar emot order just nu avgörs inte
+  // här. Sidan är cachad en timme för SEO:ns skull, och ett "öppet nu" som är
+  // upp till en timme gammalt vore värre än inget. Regeln körs i stället på
+  // servern när ordern läggs — `is_restaurant_open()` i POST /api/orders.
+  const hours = todaysHours(restaurant.opening_hours);
 
   const url = new URL(`/r/${city}/${slug}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString();
 
@@ -133,10 +145,29 @@ export default async function RestaurantPage({ params }: PageProps) {
         </p>
       ) : null}
 
-      <section className="mt-10 rounded-xl border border-black/10 p-6 dark:border-white/15">
-        <h2 className="font-semibold">Meny</h2>
-        <p className="mt-2 text-sm opacity-70">Menyvyn byggs i Fas 1.</p>
-      </section>
+      {hours ? (
+        <p className="mt-4 text-sm opacity-70">Öppet idag {hours}</p>
+      ) : (
+        <p className="mt-4 text-sm opacity-70">Stängt idag</p>
+      )}
+
+      {menu && menu.categories.length > 0 ? (
+        <section className="mt-10">
+          <MenuOrder
+            menu={menu}
+            restaurantName={restaurant.name}
+            context={{ kind: "PICKUP" }}
+          />
+        </section>
+      ) : (
+        <section className="mt-10 rounded-xl border border-black/10 p-6 dark:border-white/15">
+          <h2 className="font-semibold">Ingen meny just nu</h2>
+          <p className="mt-2 text-sm opacity-70">
+            {restaurant.name} har inte publicerat någon meny för den här tiden. Ring gärna dit
+            och fråga.
+          </p>
+        </section>
+      )}
     </main>
   );
 }
