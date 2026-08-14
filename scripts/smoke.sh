@@ -442,6 +442,35 @@ for path in /backoffice /backoffice/restauranger /backoffice/media; do
   fi
 done
 
+echo "→ Kundpanel"
+check_status "registrering är publik" "/skapa-konto" 200
+
+for path in /konto /konto/favoriter /konto/adresser; do
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' "$BASE$path")
+  if [ "$CODE" = "307" ] || [ "$CODE" = "302" ]; then
+    pass "$path kräver inloggning"
+  else
+    fail "$path svarade $CODE i stället för att redirecta"
+  fi
+done
+
+# En inloggad gäst ska bara se sina egna adresser och favoriter. Ägarkontot har
+# inga, och att det får en tom lista i stället för någon annans är hela poängen
+# med `addresses_own` och `favorites_own`.
+for table in addresses favorites; do
+  ROWS=$(curl -s "$SUPABASE_URL/rest/v1/$table?select=user_id" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+    | node -e 'let r="";process.stdin.on("data",c=>r+=c).on("end",()=>{
+        try { const j = JSON.parse(r); process.stdout.write(Array.isArray(j) ? String(j.length) : "-1"); }
+        catch { process.stdout.write("-1"); }
+      });')
+  if [ "$ROWS" = "0" ]; then
+    pass "$table läcker inte mellan konton"
+  else
+    fail "$table gav $ROWS rader till ett konto utan egna"
+  fi
+done
+
 echo ""
 if [ "$FAILED" -gt 0 ]; then
   echo "$FAILED kontroll(er) misslyckades."
