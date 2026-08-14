@@ -18,6 +18,7 @@ declare
   v_restaurant_id uuid := '11111111-1111-1111-1111-111111111111';
   v_owner_id      uuid;
   v_kitchen_id    uuid;
+  v_platform_id   uuid;
 begin
   if not exists (select 1 from public.restaurants where id = v_restaurant_id) then
     raise exception 'Kör supabase/seed.sql först — restaurangen saknas.';
@@ -104,6 +105,53 @@ begin
       where i.user_id = u.id and i.provider = 'email'
     );
 
+  -- Burps egen backoffice. Ligger i platform_admins, inte i staff — en
+  -- plattformsadmin ska inte synas i någon restaurangs personallista.
+  select id into v_platform_id from auth.users where email = 'burp@burp.test';
+  if v_platform_id is null then
+    insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password,
+      email_confirmed_at, created_at, updated_at,
+      raw_app_meta_data, raw_user_meta_data,
+      confirmation_token, recovery_token, email_change_token_new, email_change
+    )
+    values (
+      '00000000-0000-0000-0000-000000000000',
+      gen_random_uuid(), 'authenticated', 'authenticated',
+      'burp@burp.test', crypt('burp1234', gen_salt('bf')),
+      now(), now(), now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"full_name":"Burp Backoffice"}'::jsonb,
+      '', '', '', ''
+    )
+    returning id into v_platform_id;
+  end if;
+
+  update auth.users
+  set confirmation_token      = coalesce(confirmation_token, ''),
+      recovery_token          = coalesce(recovery_token, ''),
+      email_change_token_new  = coalesce(email_change_token_new, ''),
+      email_change            = coalesce(email_change, '')
+  where id = v_platform_id;
+
+  insert into auth.identities (
+    provider_id, user_id, identity_data, provider,
+    last_sign_in_at, created_at, updated_at
+  )
+  select
+    u.id::text, u.id,
+    jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
+    'email', now(), now(), now()
+  from auth.users u
+  where u.id = v_platform_id
+    and not exists (
+      select 1 from auth.identities i where i.user_id = u.id and i.provider = 'email'
+    );
+
+  insert into public.platform_admins (user_id, role, note)
+  values (v_platform_id, 'owner', 'Testkonto för lokal utveckling')
+  on conflict (user_id) do update set role = excluded.role;
+
   -- Kopplingen till restaurangen. Det är den här raden RLS frågar efter.
   insert into public.staff (restaurant_id, user_id, role)
   values (v_restaurant_id, v_owner_id, 'owner')
@@ -116,5 +164,6 @@ begin
   raise notice 'Testkonton klara:';
   raise notice '  agare@burp.test / burp1234  → /dashboard (ägare, ser allt)';
   raise notice '  kock@burp.test  / burp1234  → /kok (kock, bara köksskärmen)';
+  raise notice '  burp@burp.test  / burp1234  → /backoffice (Burps egen personal)';
 end
 $$;

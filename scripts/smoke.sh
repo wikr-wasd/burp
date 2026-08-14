@@ -357,6 +357,91 @@ else
   fail "anonym kunde läsa restaurangens omsättning"
 fi
 
+echo "→ Plattformsroll (Burp backoffice)"
+PLATFORM_TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+  -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"email":"burp@burp.test","password":"burp1234"}' | json_field access_token)
+
+if [ -n "$PLATFORM_TOKEN" ]; then
+  pass "backoffice-kontot kan logga in"
+else
+  fail "backoffice-kontot kan inte logga in"
+fi
+
+count_restaurants() {
+  curl -s "$SUPABASE_URL/rest/v1/restaurants?select=id" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $1" \
+    | node -e 'let r="";process.stdin.on("data",c=>r+=c).on("end",()=>{
+        try { process.stdout.write(String(JSON.parse(r).length)); } catch { process.stdout.write("-1"); }
+      });'
+}
+
+# Burp ser alla sju. Utan plattformsrollen visar RLS bara aktiva restauranger,
+# och en PENDING-ansökan skulle vara osynlig för den som ska godkänna den.
+PLATFORM_COUNT=$(count_restaurants "$PLATFORM_TOKEN")
+if [ "$PLATFORM_COUNT" -ge 7 ] 2>/dev/null; then
+  pass "backoffice ser alla restauranger ($PLATFORM_COUNT)"
+else
+  fail "backoffice såg $PLATFORM_COUNT restauranger, väntade minst 7"
+fi
+
+# ── Regressionsskyddet ──────────────────────────────────────────────────────
+# Plattformspolicyerna är additiva. Det får INTE betyda att en restaurangägare
+# plötsligt ser andras data. De två kontrollerna nedan är hela skälet till att
+# den här sektionen finns.
+
+OTHER_RESTAURANT="11111111-1111-1111-1111-111111111112"
+
+OWNER_SEES_OTHER=$(curl -s \
+  "$SUPABASE_URL/rest/v1/staff?select=id&restaurant_id=eq.$OTHER_RESTAURANT" \
+  -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+  | node -e 'let r="";process.stdin.on("data",c=>r+=c).on("end",()=>{
+      try { process.stdout.write(String(JSON.parse(r).length)); } catch { process.stdout.write("-1"); }
+    });')
+
+if [ "$OWNER_SEES_OTHER" = "0" ]; then
+  pass "restaurangägaren ser inte andras personal"
+else
+  fail "restaurangägaren såg $OWNER_SEES_OTHER personalrader hos en annan restaurang"
+fi
+
+OWNER_SEES_PLATFORM=$(curl -s "$SUPABASE_URL/rest/v1/platform_admins?select=user_id" \
+  -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+  | node -e 'let r="";process.stdin.on("data",c=>r+=c).on("end",()=>{
+      try { process.stdout.write(String(JSON.parse(r).length)); } catch { process.stdout.write("-1"); }
+    });')
+
+if [ "$OWNER_SEES_PLATFORM" = "0" ]; then
+  pass "restaurangägaren ser inte Burps personallista"
+else
+  fail "restaurangägaren såg $OWNER_SEES_PLATFORM rader i platform_admins"
+fi
+
+# RLS ger en tom lista, inte ett fel — PostgREST svarar 200 med []. Det är
+# rätt beteende och samma som för `staff`. Kontrollen måste därför gälla
+# ANTALET RADER, inte statuskoden: en 200 med data vore läckan, inte 200 i sig.
+ANON_PLATFORM=$(curl -s "$SUPABASE_URL/rest/v1/platform_admins?select=user_id" \
+  -H "apikey: $ANON_KEY" \
+  | node -e 'let r="";process.stdin.on("data",c=>r+=c).on("end",()=>{
+      try { const j = JSON.parse(r); process.stdout.write(Array.isArray(j) ? String(j.length) : "-1"); }
+      catch { process.stdout.write("-1"); }
+    });')
+
+if [ "$ANON_PLATFORM" = "0" ]; then
+  pass "anonym får inga rader ur platform_admins"
+else
+  fail "anonym fick $ANON_PLATFORM rader ur platform_admins"
+fi
+
+for path in /backoffice /backoffice/restauranger /backoffice/media; do
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' "$BASE$path")
+  if [ "$CODE" = "307" ] || [ "$CODE" = "302" ]; then
+    pass "$path kräver inloggning"
+  else
+    fail "$path svarade $CODE i stället för att redirecta"
+  fi
+done
+
 echo ""
 if [ "$FAILED" -gt 0 ]; then
   echo "$FAILED kontroll(er) misslyckades."

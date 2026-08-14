@@ -515,4 +515,72 @@ begin
 end
 $$;
 
+\echo '   plattformsrollen är skild från restaurangpersonal'
+
+do $$
+declare
+  v_burp_user  uuid;
+  v_staff_user uuid;
+begin
+  insert into auth.users (email) values ('backoffice@burp.test') returning id into v_burp_user;
+  insert into auth.users (email) values ('personal@restaurang.test') returning id into v_staff_user;
+
+  insert into public.platform_admins (user_id, role) values (v_burp_user, 'owner');
+
+  insert into public.staff (restaurant_id, user_id, role)
+  values ('11111111-1111-1111-1111-111111111111', v_staff_user, 'owner');
+
+  -- En plattformsadmin ska INTE dyka upp i restaurangens personallista.
+  -- Frestelsen att lösa backoffice genom att lägga Burp-personal i staff på
+  -- varje restaurang är just det här testet finns för att stänga.
+  if exists (select 1 from public.staff where user_id = v_burp_user) then
+    raise exception 'FEL: plattformsadmin hamnade i en restaurangs personallista';
+  end if;
+
+  -- Och restaurangpersonal ska inte råka bli plattformsadmin.
+  if exists (select 1 from public.platform_admins where user_id = v_staff_user) then
+    raise exception 'FEL: restaurangpersonal hamnade i plattformsrollen';
+  end if;
+end
+$$;
+
+\echo '   plattformsrollens funktioner svarar utan inloggning'
+
+do $$
+begin
+  -- Utan auth.uid() (ingen session) ska funktionerna svara nej, inte kasta.
+  -- Kastar de blir varje anonym sidladdning ett fel i stället för en tom vy.
+  if public.is_platform_admin() then
+    raise exception 'FEL: is_platform_admin() gav true utan inloggad användare';
+  end if;
+
+  if public.has_platform_role(array['owner']::public.platform_role[]) then
+    raise exception 'FEL: has_platform_role() gav true utan inloggad användare';
+  end if;
+end
+$$;
+
+\echo '   plattformsöversikten summerar över alla restauranger'
+
+do $$
+declare
+  v_summary record;
+begin
+  select * into v_summary
+  from public.platform_summary('2000-01-01 00:00:00+01', '2100-01-01 00:00:00+01');
+
+  -- Seed har sju restauranger. Siffran ska komma från tabellen, inte från
+  -- de order som råkar finnas.
+  if v_summary.restaurants_total < 7 then
+    raise exception 'FEL: plattformsöversikten räknade % restauranger, väntade minst 7',
+      v_summary.restaurants_total;
+  end if;
+
+  if v_summary.restaurants_active < 7 then
+    raise exception 'FEL: % aktiva restauranger, seed har sju aktiva',
+      v_summary.restaurants_active;
+  end if;
+end
+$$;
+
 rollback;
