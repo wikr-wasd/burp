@@ -153,10 +153,13 @@ export default async function RestaurantPage({ params }: PageProps) {
 
       {menu && menu.categories.length > 0 ? (
         <section className="mt-10">
+          <h2 className="text-xl font-semibold">Beställ för avhämtning</h2>
+          <p className="mt-1 mb-6 text-sm opacity-60">{menu.name}</p>
           <MenuOrder
             menu={menu}
             restaurantName={restaurant.name}
             context={{ kind: "PICKUP" }}
+            showHeading={false}
           />
         </section>
       ) : (

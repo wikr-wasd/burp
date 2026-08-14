@@ -44,9 +44,15 @@ interface Props {
   menu: Menu;
   restaurantName: string;
   context: OrderContext;
+  /**
+   * QR-sidan har inget eget sidhuvud — där är menyn hela sidan, och rubriken
+   * hör hemma här. Restaurangsidan har redan namn och adress överst, och skulle
+   * annars visa restaurangnamnet två gånger under varandra.
+   */
+  showHeading?: boolean;
 }
 
-export function MenuOrder({ menu, restaurantName, context }: Props) {
+export function MenuOrder({ menu, restaurantName, context, showHeading = true }: Props) {
   const router = useRouter();
 
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -163,14 +169,18 @@ export function MenuOrder({ menu, restaurantName, context }: Props) {
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
 
   return (
-    <div className="pb-40">
-      <header className="mb-8">
-        <p className="text-sm font-medium uppercase tracking-wide opacity-60">
-          {context.kind === "TABLE" ? `Bord ${context.tableNumber}` : "Avhämtning"}
-        </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">{restaurantName}</h1>
-        <p className="mt-1 text-sm opacity-60">{menu.name}</p>
-      </header>
+    // Plats för den fasta varukorgsraden — men bara när den finns. Annars
+    // slutar sidan med en skärmhög lucka som ser ut som att något saknas.
+    <div className={cart.length > 0 ? "pb-44" : ""}>
+      {showHeading ? (
+        <header className="mb-8">
+          <p className="text-sm font-medium uppercase tracking-wide opacity-60">
+            {context.kind === "TABLE" ? `Bord ${context.tableNumber}` : "Avhämtning"}
+          </p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">{restaurantName}</h1>
+          <p className="mt-1 text-sm opacity-60">{menu.name}</p>
+        </header>
+      ) : null}
 
       {menu.categories.map((category) => (
         <section key={category.id} className="mb-10">
@@ -388,7 +398,9 @@ function CartBar({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 border-t border-black/10 bg-[var(--background)] p-4 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:border-white/15">
+    // Nederkanten tar hänsyn till iPhones hemindikator. Utan det hamnar
+    // "Beställ" delvis under den, och knappen blir svår att träffa.
+    <div className="fixed inset-x-0 bottom-0 border-t border-black/10 bg-[var(--background)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:border-white/15">
       <div className="mx-auto max-w-2xl">
         {expanded ? (
           <div className="mb-4 max-h-[45vh] overflow-y-auto">
@@ -413,7 +425,7 @@ function CartBar({
                       type="button"
                       aria-label={`Ta bort en ${line.item.name}`}
                       onClick={() => onQuantityChange(line.key, -1)}
-                      className="h-8 w-8 rounded-full border border-black/15 dark:border-white/20"
+                      className="grid h-11 w-11 place-items-center rounded-full border border-black/15 text-lg dark:border-white/20"
                     >
                       −
                     </button>
@@ -422,7 +434,7 @@ function CartBar({
                       type="button"
                       aria-label={`Lägg till en ${line.item.name}`}
                       onClick={() => onQuantityChange(line.key, 1)}
-                      className="h-8 w-8 rounded-full border border-black/15 dark:border-white/20"
+                      className="grid h-11 w-11 place-items-center rounded-full border border-black/15 text-lg dark:border-white/20"
                     >
                       +
                     </button>
