@@ -16,6 +16,13 @@ export const metadata: Metadata = {
     siteName: "Burp",
   },
   robots: { index: true, follow: true },
+  // iOS läser inte `display: standalone` ur manifestet. Utan det här öppnas
+  // Burp i Safari med adressfält även när gästen startat den från hemskärmen.
+  appleWebApp: {
+    capable: true,
+    title: "Burp",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
