@@ -221,6 +221,18 @@ schemakontroll missar hela klasser av fel: att appen frågar efter en kolumn som
 inte finns, att RLS-policyn saknar sin GRANT, att en sida skriver en cookie där
 Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat.
 
+### Vad som testas var
+
+| Var | Vad | Kräver |
+|---|---|---|
+| `packages/core` | All affärslogik: pris, moms, avgift, statusmaskin, orderregler, QR-token, lojalitet | inget |
+| `apps/web` | Rena moduler: skydd mot öppen vidarebefordran, rate limiter, JSON-LD-escapning | inget |
+| `scripts/verify-schema.sh` | Migrationer, RLS, grants, triggers, plpgsql | PostgreSQL + PostGIS |
+| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning | Docker + Supabase |
+
+Route handlers och server components har medvetet inga enhetstester — de kräver
+databas och session för att säga något meningsfullt, och täcks av `smoke.sh`.
+
 Alla ska passera. Rapportera faktiskt utfall — misslyckas något, säg det med
 utdata i stället för att beskriva det som klart.
 

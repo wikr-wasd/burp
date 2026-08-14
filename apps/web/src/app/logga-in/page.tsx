@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getStaff, ROLE_HOME } from "@/lib/auth";
+import { safeNext } from "@/lib/safe-redirect";
 import { LoginForm } from "./login-form";
 
 /**
@@ -40,15 +41,3 @@ export default async function LoginPage({ searchParams }: PageProps) {
   );
 }
 
-/**
- * Släpper bara igenom interna sökvägar.
- *
- * Utan kontrollen kan `?next=https://angripare.se` göra inloggningssidan till
- * en öppen vidarebefordran, som ser trovärdig ut just för att den ligger på
- * vår domän.
- */
-function safeNext(next: string | undefined): string | undefined {
-  if (!next) return undefined;
-  if (!next.startsWith("/") || next.startsWith("//")) return undefined;
-  return next;
-}
