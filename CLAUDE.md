@@ -212,8 +212,14 @@ npm run db:validate && npm run type-check && npm run test && npm run build
 Har du en PostgreSQL med PostGIS tillgänglig, kör även:
 
 ```bash
-npm run db:verify     # skapar en ren databas, kör hela schemat och 11 logiktester
+npm run db:verify      # ren databas, hela schemat och 11 logiktester
+bash scripts/smoke.sh  # 25 kontroller mot körande app + Supabase-stack
 ```
+
+**`smoke.sh` är det som avgör om något faktiskt fungerar.** Enhetstester och
+schemakontroll missar hela klasser av fel: att appen frågar efter en kolumn som
+inte finns, att RLS-policyn saknar sin GRANT, att en sida skriver en cookie där
+Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat.
 
 Alla ska passera. Rapportera faktiskt utfall — misslyckas något, säg det med
 utdata i stället för att beskriva det som klart.
@@ -242,3 +248,13 @@ Katalogen läggs på PATH först när ett nytt skal startas. Ett skal som öppna
 före installationen ser den inte, och då säger Supabase CLI
 `docker: command not found` — vilket läser som en trasig installation men bara
 är en gammal PATH. Starta om terminalen, eller lägg till katalogen för stunden.
+
+Dessutom: **Supabase CLI 2.114 klarar inte Docker Engine 29:s API (1.55).**
+Stacken faller med `LegacyContainerCreateError` eller "No such container" mitt
+i uppstarten. Lösningen är att pinna API-versionen:
+
+```bash
+export DOCKER_API_VERSION=1.47
+```
+
+Utan den går `supabase start` inte att köra alls på den här maskinen.

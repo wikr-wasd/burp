@@ -56,9 +56,17 @@ fungera. Sätt den en gång och rör den inte.
 
 ### Databas
 
+⚠️ **Supabase CLI 2.114 klarar inte Docker Engine 29.** Startar stacken med
+`LegacyContainerCreateError` eller "No such container" är det API-versionen som
+krockar (Engine 29 talar API 1.55, CLI:t klarar inte det). Sätt:
+
+```bash
+export DOCKER_API_VERSION=1.47
+```
+
 ```bash
 npx supabase start          # lokal stack i Docker
-npx supabase db reset       # kör migrations 0001–0011 + seed.sql
+npx supabase db reset       # kör migrations 0001–0013 + seed.sql
 
 # Testkonton för personalytorna (skriver i auth-schemat, därför separat):
 psql "$(npx supabase status -o env | grep DB_URL | cut -d= -f2-)" -f supabase/seed-staff.sql
@@ -93,8 +101,16 @@ npm run test         # vitest
 npm run type-check   # tsc --noEmit
 npm run lint
 npm run db:validate  # kör migrations genom PG17:s parser, kräver inget Docker
+npm run db:verify    # hela schemat + 11 logiktester mot en riktig PostgreSQL
 npm run db:types     # genererar TypeScript-typer ur schemat
+
+bash scripts/smoke.sh  # 25 kontroller mot körande app + Supabase-stack
 ```
+
+`smoke.sh` är det som fångar fel enhetstesterna inte kan se: att appen frågar
+efter en kolumn som inte finns, att en RLS-policy saknar sin GRANT, eller att
+en sida råkar skriva en cookie där Next.js inte tillåter det. Kör det innan du
+säger att något fungerar.
 
 ---
 
