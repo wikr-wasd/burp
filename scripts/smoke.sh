@@ -471,6 +471,54 @@ for table in addresses favorites; do
   fi
 done
 
+echo "→ Inställningar och lojalitet"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/dashboard/installningar")
+if [ "$CODE" = "307" ] || [ "$CODE" = "302" ]; then
+  pass "/dashboard/installningar kräver inloggning"
+else
+  fail "/dashboard/installningar svarade $CODE"
+fi
+
+# Öppettiderna styr om gäster kan beställa alls. Att de går att ändra via RLS
+# med ägarens egen session är hela poängen med sidan.
+HOURS_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH \
+  "$SUPABASE_URL/rest/v1/restaurants?id=eq.$SEED_RESTAURANT" \
+  -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+  -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+  -d '{"loyalty_points_per_krona": 1.00}')
+if [ "$HOURS_CODE" = "204" ] || [ "$HOURS_CODE" = "200" ]; then
+  pass "ägaren kan ändra restaurangens inställningar ($HOURS_CODE)"
+else
+  fail "ägaren kunde inte ändra inställningar (fick $HOURS_CODE)"
+fi
+
+# PostgREST svarar 204 även när RLS blockerade varenda rad — en UPDATE som
+# träffar noll rader ser identisk ut med en som lyckades. Kontrollen måste
+# därför läsa tillbaka VÄRDET, inte statuskoden.
+curl -s -o /dev/null -X PATCH \
+  "$SUPABASE_URL/rest/v1/restaurants?id=eq.$SEED_RESTAURANT" \
+  -H "apikey: $ANON_KEY" -H "Authorization: Bearer $KITCHEN_TOKEN" \
+  -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+  -d '{"loyalty_points_per_krona": 9.99}'
+
+AFTER_KITCHEN=$(sql "select loyalty_points_per_krona from public.restaurants where id = '$SEED_RESTAURANT';")
+if [ "$AFTER_KITCHEN" = "1.00" ]; then
+  pass "kockens ändring av inställningar tog inte"
+else
+  fail "kocken ändrade inställningen till $AFTER_KITCHEN"
+fi
+
+# Ordrarna ovan lades anonymt, utan inloggad gäst. Att de INTE gav poäng är
+# egenskapen som testas: utan guest_id finns ingen att ge dem till.
+ANON_EARN=$(sql "select count(*) from public.loyalty_transactions t
+  join public.orders o on o.id = t.order_id
+  where t.kind = 'EARN' and o.guest_id is null;")
+if [ "$ANON_EARN" = "0" ]; then
+  pass "anonyma beställningar ger inga poäng"
+else
+  fail "$ANON_EARN poängrader skapades för beställningar utan gäst"
+fi
+
 echo "→ Google-synlighet"
 check_status "stadssida"          "/malmo"            200
 check_status "kökssida"           "/malmo/tacos"      200

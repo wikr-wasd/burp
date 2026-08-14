@@ -583,4 +583,91 @@ begin
 end
 $$;
 
+\echo '   lojalitetspoäng delas ut vid slutförd order'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_user_id  uuid;
+  v_order_id uuid;
+  v_points   integer;
+  v_expires  timestamptz;
+begin
+  insert into auth.users (email) values ('poang@example.com') returning id into v_user_id;
+
+  insert into public.orders (
+    restaurant_id, guest_id, type, status, idempotency_key,
+    items_gross_ore, items_vat_ore, tip_ore, total_ore
+  )
+  values (v_rest_id, v_user_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 14950, 1602, 1000, 15950)
+  returning id into v_order_id;
+
+  update public.orders set status = 'PLACED'    where id = v_order_id;
+  update public.orders set status = 'ACCEPTED'  where id = v_order_id;
+  update public.orders set status = 'PREPARING' where id = v_order_id;
+  update public.orders set status = 'READY'     where id = v_order_id;
+
+  -- Ingen poäng förrän ordern faktiskt är slutförd.
+  if exists (
+    select 1 from public.loyalty_transactions t
+    join public.loyalty_accounts a on a.id = t.account_id
+    where a.user_id = v_user_id
+  ) then
+    raise exception 'FEL: poäng delades ut innan ordern var slutförd';
+  end if;
+
+  update public.orders set status = 'COMPLETED' where id = v_order_id;
+
+  select t.points, t.expires_at into v_points, v_expires
+  from public.loyalty_transactions t
+  join public.loyalty_accounts a on a.id = t.account_id
+  where a.user_id = v_user_id and t.order_id = v_order_id;
+
+  -- 149,50 kr → 149 poäng. Avrundat nedåt: uppåt skulle göra poängskulden
+  -- större än omsättningen den bygger på. Dricksen ingår inte.
+  if v_points is distinct from 149 then
+    raise exception 'FEL: poängen blev %, väntade 149 (149,50 kr, dricks exkluderad)', v_points;
+  end if;
+
+  if v_expires is null then
+    raise exception 'FEL: poängen saknar utgångsdatum — skulden kan aldrig stängas';
+  end if;
+end
+$$;
+
+\echo '   anonym bordsbeställning ger inga poäng'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_table_id uuid;
+  v_order_id uuid;
+  v_before   bigint;
+  v_after    bigint;
+begin
+  select count(*) into v_before from public.loyalty_transactions;
+  select id into v_table_id from public.tables where qr_public_id = 'B3H8N5';
+
+  insert into public.orders (
+    restaurant_id, guest_id, table_id, type, status, idempotency_key,
+    items_gross_ore, items_vat_ore, total_ore
+  )
+  values (v_rest_id, null, v_table_id, 'TABLE', 'DRAFT', gen_random_uuid(), 10000, 1071, 10000)
+  returning id into v_order_id;
+
+  update public.orders set status = 'PLACED'    where id = v_order_id;
+  update public.orders set status = 'ACCEPTED'  where id = v_order_id;
+  update public.orders set status = 'PREPARING' where id = v_order_id;
+  update public.orders set status = 'READY'     where id = v_order_id;
+  update public.orders set status = 'COMPLETED' where id = v_order_id;
+
+  select count(*) into v_after from public.loyalty_transactions;
+
+  -- Inte en brist utan en följd av att QR-flödet inte kräver konto.
+  if v_after <> v_before then
+    raise exception 'FEL: en anonym beställning skapade % lojalitetsrader', v_after - v_before;
+  end if;
+end
+$$;
+
 rollback;
