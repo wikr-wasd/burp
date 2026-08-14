@@ -10,7 +10,18 @@ import { TOKEN_LENGTH } from "./qr";
  * skärps gäller överallt samtidigt.
  */
 
-export const uuidSchema = z.uuid();
+/**
+ * Id-validering.
+ *
+ * `z.guid()` och inte `z.uuid()`. Den senare kräver en RFC-korrekt versions-
+ * och variantbit, och avvisar därmed id:n som databasen accepterar utan
+ * invändning — till exempel de läsbara id:n i seed-datan, eller ett id som
+ * kommer från ett kassasystem med egen generator.
+ *
+ * Vi validerar formen för att avvisa uppenbart skräp innan det når databasen.
+ * Att ett id existerar avgörs av främmande nycklar, inte av ett regex.
+ */
+export const uuidSchema = z.guid();
 
 /** Belopp i öre. Aldrig decimaler, aldrig negativa i inkommande data. */
 export const oreSchema = z.int().min(0).max(100_000_000);
@@ -91,7 +102,7 @@ export const createOrderSchema = z
      * Idempotensnyckel (avsnitt 12). Två anrop med samma nyckel ger samma
      * order — dubbeltryck på "Beställ" får aldrig bli två notor.
      */
-    idempotency_key: z.uuid(),
+    idempotency_key: uuidSchema,
   })
   .refine((order) => order.type !== "TABLE" || order.table_token !== undefined, {
     message: "Bordsbeställning kräver ett bordstoken",

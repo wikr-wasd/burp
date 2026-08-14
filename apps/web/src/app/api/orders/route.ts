@@ -14,7 +14,7 @@ import { serverEnv } from "@/lib/env";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { currentTableSessionId, lookupTable } from "@/lib/table-session";
+import { getOrCreateTableSession, lookupTable } from "@/lib/table-session";
 
 /**
  * Skapar en order.
@@ -79,7 +79,11 @@ export async function POST(request: Request) {
     }
     restaurantId = lookup.table.restaurantId;
     tableId = lookup.table.tableId;
-    tableSessionId = await currentTableSessionId();
+
+    // Notan öppnas här, inte när koden skannades. En route handler får skriva
+    // cookies; en server component får det inte. Finns redan en öppen nota vid
+    // bordet läggs ordern på den — flera gäster delar nota.
+    tableSessionId = await getOrCreateTableSession(lookup.table);
   } else {
     // Avhämtning och leverans härleder restaurangen ur menyraderna, som ändå
     // måste tillhöra en och samma restaurang (kontrolleras i steg 2).

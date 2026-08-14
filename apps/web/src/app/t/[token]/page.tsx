@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getActiveMenu } from "@/lib/menu";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { getOrCreateTableSession, lookupTable } from "@/lib/table-session";
+import { lookupTable } from "@/lib/table-session";
 import { MenuOrder } from "@/components/order/menu-order";
 
 /**
@@ -70,8 +70,10 @@ export default async function TablePage({ params }: PageProps) {
   }
 
   const { table } = lookup;
-  await getOrCreateTableSession(table);
 
+  // Ingen bordssession skapas här. Den kräver en cookie-skrivning, och det får
+  // bara ske i en route handler — POST /api/orders gör det när gästen faktiskt
+  // beställer.
   const menu = await getActiveMenu(table.restaurantId);
 
   if (!menu || menu.categories.length === 0) {

@@ -118,6 +118,26 @@ if [ -n "$NO_POLICY" ]; then
 fi
 echo "   alla tabeller har minst en policy"
 
+echo "→ Kontrollerar att anon och authenticated har SELECT"
+# RLS räcker inte ensamt. Utan GRANT avvisas frågan med "permission denied"
+# innan policyn ens utvärderas — ett schema som ser komplett ut men är dött.
+# Den här kontrollen finns för att just det felet slank igenom en gång.
+MISSING_GRANTS=$($PSQL -d "$DB_NAME" -tAc "
+  select string_agg(format('%s(%s)', c.relname, r.rolname), ', ')
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  cross join (values ('anon'), ('authenticated')) as r(rolname)
+  where n.nspname = 'public'
+    and c.relkind = 'r'
+    and not exists (select 1 from pg_depend d where d.objid = c.oid and d.deptype = 'e')
+    and not has_table_privilege(r.rolname, c.oid, 'SELECT');
+")
+if [ -n "$MISSING_GRANTS" ]; then
+  echo "   FEL: saknar SELECT-rättighet: $MISSING_GRANTS"
+  exit 1
+fi
+echo "   alla tabeller är läsbara för anon och authenticated"
+
 echo "→ Testar affärslogiken"
 $PSQL -d "$DB_NAME" -f scripts/verify-schema-tests.sql
 

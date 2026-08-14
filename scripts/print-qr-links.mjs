@@ -35,7 +35,9 @@ function loadEnv(file) {
   }
 }
 
-const env = { ...loadEnv(".env.local"), ...process.env };
+// Next.js läser sin env från appens katalog, inte från repo-roten. Rotfilen
+// stöds fortfarande som fallback för den som lagt den där.
+const env = { ...loadEnv(".env.local"), ...loadEnv("apps/web/.env.local"), ...process.env };
 const secret = env.QR_TOKEN_SECRET;
 const siteUrl = env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 

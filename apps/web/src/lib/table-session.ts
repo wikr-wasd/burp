@@ -113,6 +113,15 @@ export async function lookupTable(token: string): Promise<TableLookup> {
  * En session är gemensam för bordet, inte för gästen. Sitter fyra personer och
  * äter delar de nota — det är så en restaurang fungerar och så gästen förväntar
  * sig att det ska bete sig.
+ *
+ * ⚠️ Får BARA anropas från en route handler eller server action. Funktionen
+ * skriver en cookie, och Next.js tillåter inte cookie-skrivning under
+ * rendering av en server component — den kastar
+ * "Cookies can only be modified in a Server Action or Route Handler".
+ *
+ * Det är också rätt semantiskt: notan ska börja när någon beställer, inte när
+ * någon råkar skanna koden i förbifarten. QR-sidan renderar menyn utan session;
+ * POST /api/orders skapar den.
  */
 export async function getOrCreateTableSession(table: TableContext): Promise<string> {
   const supabase = createAdminClient();
