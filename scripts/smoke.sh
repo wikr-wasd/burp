@@ -471,6 +471,53 @@ for table in addresses favorites; do
   fi
 done
 
+echo "→ Google-synlighet"
+check_status "stadssida"          "/malmo"            200
+check_status "kökssida"           "/malmo/tacos"      200
+check_status "okänd stad 404:ar"  "/finns-inte-alls"  404
+check_status "okänt kök 404:ar"   "/malmo/rymdmat"    404
+check_status "sitemap"            "/sitemap.xml"      200
+check_status "robots"             "/robots.txt"       200
+
+# En indexerad bordskod vore en sökträff som ger vem som helst en giltig
+# bordssession vid någon annans bord. Den raden får aldrig försvinna.
+if curl -s "$BASE/robots.txt" | grep -q "Disallow: /t/"; then
+  pass "bordskoder utestängs från indexering"
+else
+  fail "robots.txt stänger inte ute /t/ — bordskoder kan indexeras"
+fi
+
+if curl -s "$BASE/sitemap.xml" | grep -q "/r/malmo/pizzeria-roma"; then
+  pass "restaurangsidor finns i sitemap"
+else
+  fail "sitemap saknar restaurangsidorna"
+fi
+
+# Sitemap ska bara innehålla publicerbara sidor. En bordskod eller en
+# kontosida där vore samma läcka som robots.txt är till för att förhindra.
+if curl -s "$BASE/sitemap.xml" | grep -qE "/t/|/konto|/backoffice|/dashboard"; then
+  fail "sitemap innehåller sidor som inte ska indexeras"
+else
+  pass "sitemap innehåller bara publika sidor"
+fi
+
+if curl -s "$BASE/malmo" | grep -q '"@type":"ItemList"'; then
+  pass "stadssidan har ItemList-markup"
+else
+  fail "stadssidan saknar strukturerad data"
+fi
+
+# Statiska rutter måste vinna över [stad]. Gör de inte det blir /konto en
+# "stad" som 404:ar, och kundpanelen försvinner.
+for path in /konto /dashboard /backoffice; do
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' "$BASE$path")
+  if [ "$CODE" = "307" ] || [ "$CODE" = "302" ]; then
+    pass "$path krockar inte med stadsrutten"
+  else
+    fail "$path svarade $CODE — [stad] kan ha tagit över rutten"
+  fi
+done
+
 echo ""
 if [ "$FAILED" -gt 0 ]; then
   echo "$FAILED kontroll(er) misslyckades."
