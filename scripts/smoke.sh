@@ -300,6 +300,63 @@ fi
 
 sql "delete from public.menus where name = 'SMOKE-TEST-MENU';" > /dev/null
 
+echo "→ Statistik"
+# Ordrarna som lades ovan ligger i PLACED. Statistiken räknar bara COMPLETED,
+# så de drivs igenom statusmaskinen ett steg i taget — triggern avvisar hopp.
+for step in ACCEPTED PREPARING READY COMPLETED; do
+  sql "update public.orders set status = '$step' where restaurant_id = '$SEED_RESTAURANT' and status = $(
+    case "$step" in
+      ACCEPTED)  echo "'PLACED'" ;;
+      PREPARING) echo "'ACCEPTED'" ;;
+      READY)     echo "'PREPARING'" ;;
+      COMPLETED) echo "'READY'" ;;
+    esac
+  );" > /dev/null
+done
+
+rpc() {
+  curl -s -X POST "$SUPABASE_URL/rest/v1/rpc/$1" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $2" \
+    -H "Content-Type: application/json" -d "$3"
+}
+
+STATS_ARGS="{\"p_restaurant_id\":\"$SEED_RESTAURANT\",\"p_from\":\"2000-01-01T00:00:00Z\",\"p_to\":\"2100-01-01T00:00:00Z\"}"
+SUMMARY=$(rpc restaurant_revenue_summary "$OWNER_TOKEN" "$STATS_ARGS")
+
+# Svaret är en lista med en rad. Plockar ut fälten utan jq.
+ORDERS_COUNT=$(node -e '
+  let raw = ""; process.stdin.on("data", (c) => (raw += c)).on("end", () => {
+    try { const r = JSON.parse(raw); process.stdout.write(String(r?.[0]?.orders_count ?? "")); }
+    catch { process.stdout.write(""); }
+  });' <<<"$SUMMARY")
+FEES_TOTAL=$(node -e '
+  let raw = ""; process.stdin.on("data", (c) => (raw += c)).on("end", () => {
+    try { const r = JSON.parse(raw); process.stdout.write(String(r?.[0]?.fees_ore ?? "")); }
+    catch { process.stdout.write(""); }
+  });' <<<"$SUMMARY")
+
+if [ -n "$ORDERS_COUNT" ] && [ "$ORDERS_COUNT" -gt 0 ] 2>/dev/null; then
+  pass "omsättningen räknas ($ORDERS_COUNT genomförda order)"
+else
+  fail "statistiken gav inga genomförda order: $(head -c 200 <<<"$SUMMARY")"
+fi
+
+if [ -n "$FEES_TOTAL" ] && [ "$FEES_TOTAL" -gt 0 ] 2>/dev/null; then
+  pass "Burps avgift summeras ($FEES_TOTAL öre)"
+else
+  fail "avgiften summerades inte: $FEES_TOTAL"
+fi
+
+# Statistiken är personalens. En anonym gäst ska inte kunna läsa omsättningen.
+ANON_STATS=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+  "$SUPABASE_URL/rest/v1/rpc/restaurant_revenue_summary" \
+  -H "apikey: $ANON_KEY" -H "Content-Type: application/json" -d "$STATS_ARGS")
+if [ "$ANON_STATS" != "200" ]; then
+  pass "anonym kan inte läsa omsättningen ($ANON_STATS)"
+else
+  fail "anonym kunde läsa restaurangens omsättning"
+fi
+
 echo ""
 if [ "$FAILED" -gt 0 ]; then
   echo "$FAILED kontroll(er) misslyckades."

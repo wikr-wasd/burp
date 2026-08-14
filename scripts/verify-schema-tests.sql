@@ -382,4 +382,137 @@ begin
 end
 $$;
 
+\echo '   statistiken räknar bara genomförda order'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  -- Eget tidsfönster i det förflutna. Tidigare test i samma transaktion lämnar
+  -- genomförda order med completed_at = now(), och de skulle annars räknas med
+  -- här — testet blir då beroende av i vilken ordning blocken körs.
+  v_from     timestamptz := '2020-01-01 00:00:00+01';
+  v_to       timestamptz := '2020-02-01 00:00:00+01';
+  v_stamp    timestamptz := '2020-01-15 12:00:00+01';
+  v_order_id uuid;
+  v_summary  record;
+  v_top      record;
+  v_prep     record;
+begin
+  -- Tre order: en genomförd, en avbruten, en som fortfarande tillagas.
+  -- Bara den första ska räknas som omsättning.
+  for i in 1..3 loop
+    insert into public.orders (
+      restaurant_id, type, status, idempotency_key,
+      items_gross_ore, items_vat_ore, vat_by_rate, tip_ore, total_ore
+    )
+    values (
+      v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(),
+      10000, 1071, jsonb_build_object('1200', 1071), 500, 10500
+    )
+    returning id into v_order_id;
+
+    insert into public.order_items (
+      order_id, restaurant_id, name_snapshot, unit_price_ore,
+      vat_rate_bps, quantity, line_gross_ore
+    )
+    values (v_order_id, v_rest_id, 'Testrört', 10000, 1200, 1, 10000);
+
+    insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
+    values (v_order_id, v_rest_id, 'GROSS_ITEMS', 10000, 340, 340);
+
+    update public.orders set status = 'PLACED'    where id = v_order_id;
+
+    if i = 2 then
+      update public.orders set status = 'CANCELLED' where id = v_order_id;
+    else
+      update public.orders set status = 'ACCEPTED'  where id = v_order_id;
+      update public.orders set status = 'PREPARING' where id = v_order_id;
+      if i = 1 then
+        update public.orders set status = 'READY'     where id = v_order_id;
+        update public.orders set status = 'COMPLETED' where id = v_order_id;
+
+        -- Flyttas in i testets fönster. Statustriggern är BEFORE UPDATE OF
+        -- status och rör inte en uppdatering som bara sätter tidsstämplar.
+        update public.orders
+        set completed_at = v_stamp,
+            placed_at    = v_stamp - interval '15 minutes',
+            ready_at     = v_stamp - interval '2 minutes'
+        where id = v_order_id;
+      end if;
+    end if;
+  end loop;
+
+  select * into v_summary
+  from public.restaurant_revenue_summary(v_rest_id, v_from, v_to);
+
+  if v_summary.orders_count <> 1 then
+    raise exception 'FEL: statistiken räknade % order, bara den genomförda skulle räknas', v_summary.orders_count;
+  end if;
+  if v_summary.items_gross_ore <> 10000 then
+    raise exception 'FEL: omsättningen blev % öre, väntade 10000', v_summary.items_gross_ore;
+  end if;
+  if v_summary.items_net_ore <> 10000 - 1071 then
+    raise exception 'FEL: nettot blev % öre', v_summary.items_net_ore;
+  end if;
+  if v_summary.tips_ore <> 500 then
+    raise exception 'FEL: dricksen blev % öre, väntade 500', v_summary.tips_ore;
+  end if;
+  if v_summary.fees_ore <> 340 then
+    raise exception 'FEL: avgiften blev % öre, väntade 340 (bara genomförd order)', v_summary.fees_ore;
+  end if;
+  if v_summary.avg_order_ore <> 10000 then
+    raise exception 'FEL: snittnotan blev % öre', v_summary.avg_order_ore;
+  end if;
+
+  -- Utanför perioden ska ingenting räknas.
+  select * into v_summary
+  from public.restaurant_revenue_summary(v_rest_id, '2019-01-01 00:00:00+01', '2019-02-01 00:00:00+01');
+  if v_summary.orders_count <> 0 or v_summary.items_gross_ore <> 0 then
+    raise exception 'FEL: order utanför perioden räknades med';
+  end if;
+
+  -- Populäraste rätter: bara den genomförda ordern bidrar.
+  select * into v_top
+  from public.restaurant_top_items(v_rest_id, v_from, v_to, 10)
+  where name = 'Testrört';
+
+  if v_top.quantity <> 1 then
+    raise exception 'FEL: topplistan räknade % st, väntade 1', v_top.quantity;
+  end if;
+
+  -- Tillagningstid mäts bara på order som faktiskt nått READY.
+  select * into v_prep from public.restaurant_prep_times(v_rest_id, v_from, v_to);
+  if v_prep.measured_orders <> 1 then
+    raise exception 'FEL: tillagningstid mättes på % order, väntade 1', v_prep.measured_orders;
+  end if;
+end
+$$;
+
+\echo '   momsen delas upp per sats'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+  v_mat     bigint;
+  v_alkohol bigint;
+begin
+  select vat_ore into v_mat
+  from public.restaurant_vat_breakdown(v_rest_id, '2020-01-01 00:00:00+01', '2020-02-01 00:00:00+01')
+  where vat_rate_bps = 1200;
+
+  if coalesce(v_mat, 0) = 0 then
+    raise exception 'FEL: momsen för 12 %% saknas i uppdelningen';
+  end if;
+
+  select vat_ore into v_alkohol
+  from public.restaurant_vat_breakdown(v_rest_id, '2020-01-01 00:00:00+01', '2020-02-01 00:00:00+01')
+  where vat_rate_bps = 2500;
+
+  -- Ingen alkohol i testdatan — satsen ska då inte dyka upp alls, inte som noll.
+  if v_alkohol is not null then
+    raise exception 'FEL: en momssats utan omsättning listades ändå';
+  end if;
+end
+$$;
+
 rollback;
