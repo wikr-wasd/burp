@@ -246,3 +246,71 @@ describe("buildPricedLines — en restaurang per order", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+/**
+ * Ordningen är inte en detalj — den bär gästens noteringar.
+ *
+ * `POST /api/orders` sparar noteringen med `input.items[index].note` mot
+ * `built.lines[index]`. Kopplingen är rent positionell: det finns inget id som
+ * binder ihop en beställd rad med sin prissatta rad. Slås två identiska rätter
+ * ihop till en rad, eller sorteras raderna om, glider noteringarna ett steg och
+ * hamnar på fel rätt. I noteringen står "utan nötter".
+ *
+ * Testerna nedan låser fast egenskapen så att en framtida optimering inte kan
+ * införa hopslagning utan att något går rött.
+ */
+describe("buildPricedLines — raderna ligger kvar i klientens ordning", () => {
+  it("ger exakt en rad per beställd rad, i samma ordning", () => {
+    // Sekvensen är avsiktligt osymmetrisk. Vore den ett palindrom skulle en
+    // omvänd radlista se identisk ut och testet missa hela felet.
+    const requested = [
+      item({ menu_item_id: "margherita" }),
+      item({ menu_item_id: "diavola", options: [{ option_id: "stor" }] }),
+      item({ menu_item_id: "diavola", options: [{ option_id: "stor" }] }),
+    ];
+
+    const result = buildPricedLines(requested, catalog);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.lines).toHaveLength(requested.length);
+    expect(result.lines.map((line) => line.menuItemId)).toEqual(
+      requested.map((row) => row.menu_item_id),
+    );
+  });
+
+  it("slår inte ihop två identiska rätter till en rad", () => {
+    // Samma rätt, samma tillval, ingenting som skiljer dem åt. Frestelsen att
+    // slå ihop dem till quantity: 2 är precis det som skulle bryta kopplingen.
+    const requested = [item(), item()];
+
+    const result = buildPricedLines(requested, catalog);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.lines).toHaveLength(2);
+    expect(result.lines[0]!.quantity).toBe(1);
+    expect(result.lines[1]!.quantity).toBe(1);
+  });
+
+  it("behåller ordningen även när tillvalen skiljer raderna åt", () => {
+    const requested = [
+      item({ options: [{ option_id: "rucola" }] }),
+      item({ options: [] }),
+      item({ options: [{ option_id: "extra-ost" }, { option_id: "rucola" }] }),
+    ];
+
+    const result = buildPricedLines(requested, catalog);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.lines.map((line) => line.options.map((option) => option.optionId))).toEqual([
+      ["rucola"],
+      [],
+      ["extra-ost", "rucola"],
+    ]);
+  });
+});

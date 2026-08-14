@@ -71,6 +71,22 @@ export interface OrderBuildError {
   message: string;
 }
 
+/**
+ * Bygger prissatta orderrader ur klientens önskemål och restaurangens katalog.
+ *
+ * KONTRAKT: `lines[i]` hör ihop med `items[i]`. Exakt en rad per beställd rad,
+ * i samma ordning, aldrig hopslagen och aldrig omsorterad.
+ *
+ * Det är inte en implementationsdetalj. `POST /api/orders` sparar gästens
+ * notering positionellt — `items[i].note` mot `lines[i]` — eftersom det inte
+ * finns något id som binder ihop dem. Slås två identiska rätter ihop till
+ * `quantity: 2` glider noteringarna, och i noteringen står det som gästen inte
+ * tål. Vill man införa hopslagning måste raderna först få ett eget id att
+ * mappa noteringen mot.
+ *
+ * Låst av testerna i `order-build.test.ts` under "raderna ligger kvar i
+ * klientens ordning".
+ */
 export function buildPricedLines(
   items: readonly RequestedItem[],
   catalog: OrderCatalog,
