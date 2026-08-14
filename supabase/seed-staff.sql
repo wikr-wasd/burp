@@ -25,45 +25,84 @@ begin
 
   -- Supabase Auth lagrar lösenord som bcrypt i auth.users.encrypted_password.
   -- `crypt(..., gen_salt('bf'))` ger samma format som Auth själv skriver.
-  insert into auth.users (
-    instance_id, id, aud, role, email, encrypted_password,
-    email_confirmed_at, created_at, updated_at,
-    raw_app_meta_data, raw_user_meta_data
-  )
-  values (
-    '00000000-0000-0000-0000-000000000000',
-    gen_random_uuid(), 'authenticated', 'authenticated',
-    'agare@burp.test', crypt('burp1234', gen_salt('bf')),
-    now(), now(), now(),
-    '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Test Ägare"}'::jsonb
-  )
-  on conflict (email) do nothing
-  returning id into v_owner_id;
-
+  --
+  -- Notera: ingen ON CONFLICT (email) här. auth.users har inget vanligt
+  -- unique-constraint på email utan ett *partiellt* unikt index
+  -- (`where is_sso_user = false`), och ett partiellt index kan inte backa en
+  -- ON CONFLICT-specifikation. Vi slår upp först och infogar bara om raden
+  -- saknas — samma idempotens, utan att förlita sig på ett constraint som
+  -- inte finns.
+  select id into v_owner_id from auth.users where email = 'agare@burp.test';
   if v_owner_id is null then
-    select id into v_owner_id from auth.users where email = 'agare@burp.test';
+    insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password,
+      email_confirmed_at, created_at, updated_at,
+      raw_app_meta_data, raw_user_meta_data,
+      -- Utan default och nullbara i schemat, men GoTrue läser dem som vanliga
+      -- strängar. Lämnas de NULL svarar Auth 500 "Database error querying
+      -- schema" på varje inloggningsförsök.
+      confirmation_token, recovery_token, email_change_token_new, email_change
+    )
+    values (
+      '00000000-0000-0000-0000-000000000000',
+      gen_random_uuid(), 'authenticated', 'authenticated',
+      'agare@burp.test', crypt('burp1234', gen_salt('bf')),
+      now(), now(), now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"full_name":"Test Ägare"}'::jsonb,
+      '', '', '', ''
+    )
+    returning id into v_owner_id;
   end if;
 
-  insert into auth.users (
-    instance_id, id, aud, role, email, encrypted_password,
-    email_confirmed_at, created_at, updated_at,
-    raw_app_meta_data, raw_user_meta_data
-  )
-  values (
-    '00000000-0000-0000-0000-000000000000',
-    gen_random_uuid(), 'authenticated', 'authenticated',
-    'kock@burp.test', crypt('burp1234', gen_salt('bf')),
-    now(), now(), now(),
-    '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Test Kock"}'::jsonb
-  )
-  on conflict (email) do nothing
-  returning id into v_kitchen_id;
-
+  select id into v_kitchen_id from auth.users where email = 'kock@burp.test';
   if v_kitchen_id is null then
-    select id into v_kitchen_id from auth.users where email = 'kock@burp.test';
+    insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password,
+      email_confirmed_at, created_at, updated_at,
+      raw_app_meta_data, raw_user_meta_data,
+      -- Utan default och nullbara i schemat, men GoTrue läser dem som vanliga
+      -- strängar. Lämnas de NULL svarar Auth 500 "Database error querying
+      -- schema" på varje inloggningsförsök.
+      confirmation_token, recovery_token, email_change_token_new, email_change
+    )
+    values (
+      '00000000-0000-0000-0000-000000000000',
+      gen_random_uuid(), 'authenticated', 'authenticated',
+      'kock@burp.test', crypt('burp1234', gen_salt('bf')),
+      now(), now(), now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"full_name":"Test Kock"}'::jsonb,
+      '', '', '', ''
+    )
+    returning id into v_kitchen_id;
   end if;
+
+  -- Konton som skapats av en tidigare version av den här filen har NULL i
+  -- token-kolumnerna och kan inte logga in. Städa dem i efterhand.
+  update auth.users
+  set confirmation_token      = coalesce(confirmation_token, ''),
+      recovery_token          = coalesce(recovery_token, ''),
+      email_change_token_new  = coalesce(email_change_token_new, ''),
+      email_change            = coalesce(email_change, '')
+  where id in (v_owner_id, v_kitchen_id);
+
+  -- GoTrue vill ha en identitetsrad per inloggningsmetod. Utan den kan
+  -- lösenordsinloggning nekas, och användarobjektet saknar sina identiteter.
+  insert into auth.identities (
+    provider_id, user_id, identity_data, provider,
+    last_sign_in_at, created_at, updated_at
+  )
+  select
+    u.id::text, u.id,
+    jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
+    'email', now(), now(), now()
+  from auth.users u
+  where u.email in ('agare@burp.test', 'kock@burp.test')
+    and not exists (
+      select 1 from auth.identities i
+      where i.user_id = u.id and i.provider = 'email'
+    );
 
   -- Kopplingen till restaurangen. Det är den här raden RLS frågar efter.
   insert into public.staff (restaurant_id, user_id, role)

@@ -14,7 +14,7 @@
  * Kräver att stacken är igång (`npx supabase start`).
  */
 
-import { execFileSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -26,11 +26,14 @@ const envPath = join(root, "apps", "web", ".env.local");
 let statusOutput;
 try {
   // -o env ger KEY=VALUE-rader i stället för den ramade tabellen.
-  statusOutput = execFileSync("npx", ["--yes", "supabase", "status", "-o", "env"], {
+  // Node 20+ vägrar spawna .cmd-filer utan shell, och npx är en .cmd på
+  // Windows. Kommandot körs därför som en sträng via skalet. Varje argument
+  // är en literal här — ingenting kommer utifrån, så det finns inget att
+  // escapa.
+  statusOutput = execSync("npx --yes supabase status -o env", {
     cwd: root,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-    shell: process.platform === "win32",
   });
 } catch (error) {
   console.error("Kunde inte läsa av den lokala Supabase-stacken.\n");
@@ -89,11 +92,20 @@ for (const [key, value] of Object.entries(updates)) {
   output = pattern.test(output) ? output.replace(pattern, line) : `${output.trimEnd()}\n${line}\n`;
 }
 
-if (!output.startsWith("#")) {
-  output = `# Skriven av scripts/write-local-env.mjs mot den lokala stacken.\n# Gitignorerad — inga riktiga hemligheter här.\n\n${output}`;
-}
+// Den gamla rubriken säger "LOKALA PLATSHÅLLARE" och ber läsaren fylla i
+// nycklar för hand. Efter den här körningen stämmer det inte längre, så
+// ledande kommentarsrader byts ut mot en som beskriver filens faktiska läge.
+const body = output.replace(/^(?:[ \t]*(?:#.*)?\r?\n)+/, "");
+const header = [
+  "# Skriven av scripts/write-local-env.mjs mot den lokala Supabase-stacken.",
+  "# Nycklarna nedan är den lokala stackens välkända demonycklar — de duger",
+  "# bara mot 127.0.0.1 och är inga hemligheter. Filen är gitignorerad.",
+  "#",
+  "# QR_TOKEN_SECRET är utvecklingsnyckel. Byts den slutar redan utskrivna",
+  "# QR-koder att fungera, även seed-bordens.",
+].join("\n");
 
-writeFileSync(envPath, output.trimStart(), "utf8");
+writeFileSync(envPath, `${header}\n\n${body.trimStart()}`, "utf8");
 
 console.log(`Skrev apps/web/.env.local mot ${apiUrl}`);
 console.log("Kör `npm run dev` och sedan `node scripts/print-qr-links.mjs` för bordslänkarna.");
