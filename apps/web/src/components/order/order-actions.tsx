@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { fill, type Dictionary } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import {
   availableEditActions,
@@ -25,12 +26,14 @@ export function OrderActions({
   placedAt,
   policy,
   items,
+  labels,
 }: {
   orderId: string;
   status: OrderStatus;
   placedAt: string | null;
   policy: OrderPolicy;
   items: readonly { id: string; name: string; quantity: number }[];
+  labels: Dictionary["receipt"];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -75,7 +78,7 @@ export function OrderActions({
 
       if (!response.ok) {
         const problem = await response.json().catch(() => null);
-        setError(problem?.detail ?? "Ändringen gick inte igenom.");
+        setError(problem?.detail ?? labels.changeFailed);
         return;
       }
 
@@ -87,13 +90,13 @@ export function OrderActions({
 
   return (
     <section className="mt-6 border border-[var(--rule)] p-4">
-      <h2 className="font-semibold">Ändra beställningen</h2>
+      <h2 className="font-semibold">{labels.editTitle}</h2>
 
       {secondsLeft !== null && allowed.some((action) => action !== "CANCEL") ? (
         <p className="mt-1 text-sm opacity-60">
           {secondsLeft > 0
-            ? `Du kan ändra i ${secondsLeft} sekunder till.`
-            : "Tiden för att ändra har gått ut."}
+            ? fill(labels.editWindow, { n: secondsLeft })
+            : labels.editExpired}
         </p>
       ) : null}
 
@@ -105,7 +108,7 @@ export function OrderActions({
 
       {canRemove ? (
         <div className="mt-3">
-          <p className="text-sm font-medium">Ta bort en rätt</p>
+          <p className="text-sm font-medium">{labels.removeItem}</p>
           <ul className="mt-2 space-y-2">
             {items.map((item) => (
               <li key={item.id} className="flex items-center gap-3">
@@ -118,7 +121,7 @@ export function OrderActions({
                   onClick={() => act({ action: "REMOVE_ITEM", order_item_id: item.id })}
                   className="min-h-11 border border-[var(--rule)] px-4 text-sm disabled:opacity-50"
                 >
-                  Ta bort
+                  {labels.remove}
                 </button>
               </li>
             ))}
@@ -130,7 +133,7 @@ export function OrderActions({
         <div className="mt-4">
           {confirmCancel ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm opacity-70">Hela beställningen avbryts.</span>
+              <span className="text-sm opacity-70">{labels.cancelWarning}</span>
               <button
                 type="button"
                 disabled={pending}
@@ -153,7 +156,7 @@ export function OrderActions({
               onClick={() => setConfirmCancel(true)}
               className="min-h-11 border border-[var(--rule)] px-4"
             >
-              Avbryt beställningen
+              {labels.cancelOrder}
             </button>
           )}
         </div>

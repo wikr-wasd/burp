@@ -75,10 +75,18 @@ function flatten(value: unknown, prefix = ""): Record<string, unknown> {
  * precis det sättet, och såg fungerande ut.
  */
 describe("texter som korsar server/klient-gränsen", () => {
-  for (const section of ["menu", "table"] as const) {
+  for (const section of ["menu", "table", "receipt"] as const) {
     it(`${section} innehåller bara strängar`, () => {
       for (const dict of [sv, en]) {
         for (const [key, value] of Object.entries(dict[section])) {
+          // `receipt.status` är ett nästlat objekt av strängar — kontrollera
+          // dess värden i stället för objektet självt.
+          if (typeof value === "object" && value !== null) {
+            for (const [nested, text] of Object.entries(value)) {
+              expect(typeof text, `${section}.${key}.${nested}`).toBe("string");
+            }
+            continue;
+          }
           expect(typeof value, `${section}.${key} måste vara en sträng`).toBe("string");
         }
       }

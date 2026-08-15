@@ -147,6 +147,53 @@ export const sv = {
     noMenuBody: "Restaurangen har inte publicerat någon meny för den här tiden. Prata med personalen.",
   },
 
+  /**
+   * Kvittot och orderns förlopp.
+   *
+   * Statusetiketterna finns även som `ORDER_STATUS_LABELS` i @burp/core. Där
+   * är de svenska och används av personalytorna, som inte är översatta. Att
+   * duplicera dem här är avsiktligt: gästens och köksskärmens ordval behöver
+   * inte vara samma, och köket ska inte byta språk för att en gäst gjorde det.
+   *
+   * ENBART strängar — objektet passerar till klientkomponenter.
+   */
+  receipt: {
+    title: "Din beställning",
+    table: "Bord {number}",
+    pickup: "Avhämtning",
+    pickupAt: "Hämtas hos",
+    yourBill: "Din nota",
+    foodAndDrink: "Mat och dryck",
+    tip: "Dricks",
+    total: "Totalt",
+    payOnPickup: "Betalning sker på plats vid upphämtning.",
+    payAtTable: "Betalning sker på plats.",
+    backTo: "Tillbaka till {name}",
+    progress: "Orderns förlopp",
+    enjoy: "Smaklig måltid",
+    onTheWay: "Maten är på väg till bordet.",
+    minutesLeft: "Ungefär {n} minuter kvar.",
+    almostReady: "Snart klart.",
+    editTitle: "Ändra beställningen",
+    editWindow: "Du kan ändra i {n} sekunder till.",
+    editExpired: "Tiden för att ändra har gått ut.",
+    removeItem: "Ta bort en rätt",
+    remove: "Ta bort",
+    cancelOrder: "Avbryt beställningen",
+    cancelWarning: "Hela beställningen avbryts.",
+    changeFailed: "Ändringen gick inte igenom.",
+    status: {
+      DRAFT: "Utkast",
+      PLACED: "Lagd",
+      ACCEPTED: "Mottagen",
+      PREPARING: "Tillagas",
+      READY: "Klar",
+      COMPLETED: "Serverad",
+      CANCELLED: "Avbruten",
+      REFUNDED: "Återbetald",
+    },
+  },
+
   directions: {
     copy: "Kopiera adress",
     copied: "Kopierad",

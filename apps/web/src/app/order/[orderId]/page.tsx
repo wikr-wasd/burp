@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Directions } from "@/components/site/directions";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { dictionary, fill, requestLocale } from "@/lib/i18n";
 import { notFound } from "next/navigation";
 import {
   formatMoney,
@@ -38,6 +38,16 @@ interface PageProps {
 }
 
 export default async function PickupOrderPage({ params }: PageProps) {
+
+  /*
+   * Språket kommer från gästens telefon, inte från adressen.
+   *
+   * Kvittot är noindex och behöver därför ingen egen URL per språk. Samma
+   * resonemang som QR-sidan: gästen som just beställt vid ett bord i Sarajevo
+   * ska läsa sin nota på sitt eget språk.
+   */
+  const locale = await requestLocale();
+  const t = dictionary(locale);
   const { orderId } = await params;
 
   // Ordern som inte tillhör den här gästen och ordern som inte finns ska ge
@@ -88,15 +98,16 @@ export default async function PickupOrderPage({ params }: PageProps) {
 
   return (
     <>
-      <SiteHeader locale={DEFAULT_LOCALE} />
+      <SiteHeader locale={locale} />
 
       <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <header className="mb-10">
-        <p className="label-caps">Avhämtning · {restaurant?.name}</p>
-        <h1 className="font-display mt-2 text-5xl">Din beställning</h1>
+        <p className="label-caps">{t.receipt.pickup} · {restaurant?.name}</p>
+        <h1 className="font-display mt-2 text-5xl">{t.receipt.title}</h1>
       </header>
 
       <OrderStatusView
+        labels={t.receipt}
         status={order.status as OrderStatus}
         prepTimeMinutes={policy.prepTimeMinutes}
         placedAt={order.placed_at}
@@ -105,6 +116,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
       {/* Restaurangens egna regler avgör vad som visas. Är allt avstängt
           renderar komponenten ingenting alls. */}
       <OrderActions
+        labels={t.receipt}
         orderId={order.id}
         status={order.status as OrderStatus}
         placedAt={order.placed_at}
@@ -126,11 +138,11 @@ export default async function PickupOrderPage({ params }: PageProps) {
       {restaurant ? (
         <section className="mt-10">
           <hr className="rule" />
-          <h2 className="label-caps mt-5">Hämtas hos</h2>
+          <h2 className="label-caps mt-5">{t.receipt.pickupAt}</h2>
 
           <div className="mt-3">
             <Directions
-              locale={DEFAULT_LOCALE}
+              locale={locale}
               name={restaurant.name}
               streetAddress={restaurant.street_address}
               postalCode={restaurant.postal_code}
@@ -151,7 +163,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
       ) : null}
 
       <hr className="rule mt-10" />
-      <h2 className="label-caps mt-5">Din nota</h2>
+      <h2 className="label-caps mt-5">{t.receipt.yourBill}</h2>
 
       <ul className="mt-3 divide-y divide-[var(--rule)]">
         {(items ?? []).map((item) => (
@@ -177,17 +189,17 @@ export default async function PickupOrderPage({ params }: PageProps) {
 
       <dl className="mt-6 space-y-1.5 border-t border-[var(--foreground)] pt-4 text-sm">
         <div className="flex justify-between">
-          <dt className="text-[var(--muted)]">Mat och dryck</dt>
+          <dt className="text-[var(--muted)]">{t.receipt.foodAndDrink}</dt>
           <dd className="tabular-nums">{formatMoney(order.items_gross_ore, order.currency)}</dd>
         </div>
         {order.tip_ore > 0 ? (
           <div className="flex justify-between">
-            <dt className="text-[var(--muted)]">Dricks</dt>
+            <dt className="text-[var(--muted)]">{t.receipt.tip}</dt>
             <dd className="tabular-nums">{formatMoney(order.tip_ore, order.currency)}</dd>
           </div>
         ) : null}
         <div className="flex justify-between pt-2 text-lg">
-          <dt>Totalt</dt>
+          <dt>{t.receipt.total}</dt>
           <dd className="tabular-nums">{formatMoney(order.total_ore, order.currency)}</dd>
         </div>
       </dl>
@@ -195,17 +207,17 @@ export default async function PickupOrderPage({ params }: PageProps) {
       {/* Betalning finns inte än (öppen fråga 5). Tills den gör det betalar
           gästen på plats, och det ska stå rakt ut i stället för att antydas. */}
       <p className="mt-8 border-l-2 border-burp-600 bg-burp-50 px-4 py-3 text-sm dark:bg-burp-900/40">
-        Betalning sker på plats vid upphämtning.
+        {t.receipt.payOnPickup}
       </p>
 
       {restaurant ? (
         <Link href={`/r/${restaurant.city_slug}/${restaurant.slug}`} className="link mt-10 inline-block text-sm">
-          Tillbaka till {restaurant.name}
+          {fill(t.receipt.backTo, { name: restaurant.name })}
         </Link>
       ) : null}
       </main>
 
-      <SiteFooter locale={DEFAULT_LOCALE} />
+      <SiteFooter locale={locale} />
     </>
   );
 }

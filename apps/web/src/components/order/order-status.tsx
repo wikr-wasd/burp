@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isTerminal, ORDER_STATUS_LABELS, type OrderStatus } from "@burp/core";
+import { isTerminal, type OrderStatus } from "@burp/core";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
  * Statusvyn gästen ser efter att ha beställt.
@@ -24,10 +25,13 @@ export function OrderStatusView({
   status,
   prepTimeMinutes,
   placedAt,
+  labels,
 }: {
   status: OrderStatus;
   prepTimeMinutes: number;
   placedAt: string | null;
+  /** Texterna, färdigvalda av sidan. Klientkod slår inte upp språk själv. */
+  labels: Dictionary["receipt"];
 }) {
   const router = useRouter();
   const [now, setNow] = useState<number | null>(null);
@@ -53,7 +57,7 @@ export function OrderStatusView({
   if (status === "CANCELLED" || status === "REFUNDED") {
     return (
       <div className="border border-[var(--rule)] p-6">
-        <p className="text-lg font-semibold">{ORDER_STATUS_LABELS[status]}</p>
+        <p className="text-lg font-semibold">{labels.status[status]}</p>
         <p className="mt-1 text-sm opacity-70">
           Prata med personalen om du har frågor om beställningen.
         </p>
@@ -66,18 +70,18 @@ export function OrderStatusView({
   return (
     <div className="border border-[var(--rule)] p-6">
       <p className="text-lg font-semibold">
-        {status === "COMPLETED" ? "Smaklig måltid" : ORDER_STATUS_LABELS[status]}
+        {status === "COMPLETED" ? labels.enjoy : labels.status[status]}
       </p>
 
       {status === "READY" ? (
-        <p className="mt-1 text-sm opacity-70">Maten är på väg till bordet.</p>
+        <p className="mt-1 text-sm opacity-70">{labels.onTheWay}</p>
       ) : minutesLeft !== null ? (
         <p className="mt-1 text-sm opacity-70">
-          {minutesLeft > 0 ? `Ungefär ${minutesLeft} minuter kvar.` : "Snart klart."}
+          {minutesLeft > 0 ? fill(labels.minutesLeft, { n: minutesLeft }) : labels.almostReady}
         </p>
       ) : null}
 
-      <ol className="mt-5 flex gap-1.5" aria-label="Orderns förlopp">
+      <ol className="mt-5 flex gap-1.5" aria-label={labels.progress}>
         {steps.map((step, index) => (
           <li
             key={step}
@@ -88,7 +92,7 @@ export function OrderStatusView({
             }`}
           >
             <span className="sr-only">
-              {ORDER_STATUS_LABELS[step]}
+              {labels.status[step]}
               {index <= currentIndex ? " — klart" : ""}
             </span>
           </li>

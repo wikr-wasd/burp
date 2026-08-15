@@ -1,8 +1,8 @@
+import { dictionary, fill, requestLocale } from "@/lib/i18n";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   formatMoney,
-  ORDER_STATUS_LABELS,
   parseOrderPolicy,
   type OrderStatus,
 } from "@burp/core";
@@ -31,6 +31,16 @@ interface PageProps {
 }
 
 export default async function OrderPage({ params }: PageProps) {
+
+  /*
+   * Språket kommer från gästens telefon, inte från adressen.
+   *
+   * Kvittot är noindex och behöver därför ingen egen URL per språk. Samma
+   * resonemang som QR-sidan: gästen som just beställt vid ett bord i Sarajevo
+   * ska läsa sin nota på sitt eget språk.
+   */
+  const locale = await requestLocale();
+  const t = dictionary(locale);
   const { token, orderId } = await params;
 
   const lookup = await lookupTable(token);
@@ -86,14 +96,15 @@ export default async function OrderPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
-      <header className="mb-8">
-        <p className="text-sm font-medium uppercase tracking-wide opacity-60">
-          Bord {lookup.table.tableNumber} · {restaurant?.name}
+      <header className="mb-10">
+        <p className="label-caps">
+          {fill(t.receipt.table, { number: lookup.table.tableNumber })} · {restaurant?.name}
         </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">Din beställning</h1>
+        <h1 className="font-display mt-2 text-5xl">{t.receipt.title}</h1>
       </header>
 
       <OrderStatusView
+        labels={t.receipt}
         status={order.status as OrderStatus}
         prepTimeMinutes={policy.prepTimeMinutes}
         placedAt={order.placed_at}
@@ -102,6 +113,7 @@ export default async function OrderPage({ params }: PageProps) {
       {/* Restaurangens egna regler avgör vad som visas här. Är allt avstängt
           renderar komponenten ingenting alls. */}
       <OrderActions
+        labels={t.receipt}
         orderId={order.id}
         status={order.status as OrderStatus}
         placedAt={order.placed_at}
@@ -142,13 +154,15 @@ export default async function OrderPage({ params }: PageProps) {
           </div>
         ) : null}
         <div className="flex justify-between pt-2 text-base font-semibold">
-          <dt>Totalt</dt>
+          <dt>{t.receipt.total}</dt>
           <dd className="tabular-nums">{formatMoney(order.total_ore, order.currency)}</dd>
         </div>
       </dl>
 
-      <p className="mt-8 text-sm opacity-60">
-        Status: {ORDER_STATUS_LABELS[order.status as OrderStatus]}
+      {/* Betalningen sker på plats tills en betalleverantör är vald
+          (öppen fråga 5). Det ska stå rakt ut, inte antydas. */}
+      <p className="mt-8 border-l-2 border-burp-600 bg-burp-50 px-4 py-3 text-sm dark:bg-burp-900/40">
+        {t.receipt.payAtTable}
       </p>
     </main>
   );
