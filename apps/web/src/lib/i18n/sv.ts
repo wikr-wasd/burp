@@ -37,6 +37,7 @@ export const sv = {
     cuisine: "Kök",
     allCities: "Alla städer",
     allCuisines: "Alla kök",
+    seeAllIn: (city: string) => `Alla i ${city}`,
     allRestaurants: "Alla restauranger",
     hits: (count: number) => (count === 1 ? "1 träff" : `${count} träffar`),
     searchedFor: "Sökning",

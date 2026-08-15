@@ -106,6 +106,29 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
    */
   const showcase = hasFilter ? [] : restaurants.slice(0, 3);
 
+  /*
+   * Ogrupperad lista vid sökning, grupperad per stad annars.
+   *
+   * Alternativet — sektioner som "Högst betyg" och "Nyast" — hade visat samma
+   * restauranger flera gånger. Med ett tjugotal ställen gör upprepning en sajt
+   * tommare, inte fylligare. Staden är den indelning gästen faktiskt bryr sig
+   * om: man äter där man står.
+   *
+   * Vid aktivt filter grupperas inget. Har gästen redan sökt är en rubrik per
+   * stad bara en rad mellan hen och svaret.
+   */
+  const byCity = hasFilter
+    ? []
+    : [...new Map(restaurants.map((r) => [r.citySlug, r.city])).entries()]
+        .map(([slug, name]) => ({
+          slug,
+          name,
+          restaurants: restaurants.filter((r) => r.citySlug === slug),
+        }))
+        // Störst utbud först. En stad med ett enda ställe överst får
+        // marknadsplatsen att se tunnare ut än den är.
+        .sort((a, b) => b.restaurants.length - a.restaurants.length);
+
   return (
     <div className="min-h-screen">
       <SiteHeader locale={locale} path="/" />
@@ -184,16 +207,38 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
 
         {restaurants.length === 0 ? (
           <EmptyState t={t} locale={locale} hasFilter={hasFilter} />
+        ) : byCity.length > 0 ? (
+          byCity.map((group) => (
+            <section key={group.slug} className="mt-12 first:mt-8">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                <h3 className="font-display text-3xl">{group.name}</h3>
+                <Link
+                  href={localePath(locale, `/${group.slug}`)}
+                  className="link text-sm whitespace-nowrap"
+                >
+                  {t.home.seeAllIn(group.name)}
+                </Link>
+              </div>
+
+              <hr className="rule mt-3" />
+
+              <ul className="mt-6 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+                {group.restaurants.map((restaurant) => (
+                  <li key={restaurant.id}>
+                    <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
         ) : (
-          <>
-            <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-              {restaurants.map((restaurant) => (
-                <li key={restaurant.id}>
-                  <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
-                </li>
-              ))}
-            </ul>
-          </>
+          <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {restaurants.map((restaurant) => (
+              <li key={restaurant.id}>
+                <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
+              </li>
+            ))}
+          </ul>
         )}
       </main>
 

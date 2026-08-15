@@ -131,7 +131,7 @@ export function MenuOrder({
    * Dricksen är en andel, inte ett belopp.
    *
    * Fasta belopp fungerade så länge allt var i kronor. 500 minorenheter är
-   * 5,00 KM i Sarajevo och 5 dinarer i Belgrad — det ena är rimlig dricks, det
+   * 5,00 KM i Sarajevo och 5 dinarer i Beograd — det ena är rimlig dricks, det
    * andra är förolämpande. En procentsats betyder samma sak i alla tre
    * länderna.
    */
@@ -516,7 +516,7 @@ function MenuItemCard({
 /**
  * Dricks i baspunkter, inte i belopp.
  *
- * 0, 5, 10 och 15 procent. Samma val fungerar i Sarajevo, Zagreb och Belgrad —
+ * 0, 5, 10 och 15 procent. Samma val fungerar i Sarajevo, Zagreb och Beograd —
  * ett fast belopp gör det inte, eftersom minorenheterna är olika mycket värda.
  */
 const TIP_CHOICES = [0, 500, 1000, 1500] as const;

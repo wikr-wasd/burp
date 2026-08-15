@@ -42,6 +42,7 @@ export const en: Dictionary = {
     cuisine: "Cuisine",
     allCities: "All cities",
     allCuisines: "All cuisines",
+    seeAllIn: (city: string) => `All in ${city}`,
     allRestaurants: "All restaurants",
     hits: (count: number) => (count === 1 ? "1 result" : `${count} results`),
     searchedFor: "Search",
