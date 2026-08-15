@@ -34,13 +34,13 @@ export function RestaurantList({
   return (
     <>
       {error ? (
-        <p role="alert" className="mt-4 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-4 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       ) : null}
 
       {!canWrite ? (
-        <p className="mt-4 rounded-md bg-black/5 px-3 py-2 text-sm opacity-70 dark:bg-white/10">
+        <p className="mt-4 bg-[var(--surface)] px-3 py-2 text-sm opacity-70">
           Du är inloggad som support och kan läsa men inte ändra.
         </p>
       ) : null}
@@ -49,7 +49,7 @@ export function RestaurantList({
         {restaurants.map((restaurant) => (
           <li
             key={restaurant.id}
-            className="rounded-xl border border-black/10 p-4 dark:border-white/15"
+            className="border border-[var(--rule)] p-4"
           >
             <div className="flex flex-wrap items-start gap-3">
               <div className="mr-auto min-w-0">
@@ -79,13 +79,13 @@ export function RestaurantList({
             </div>
 
             {canWrite ? (
-              <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-black/10 pt-4 dark:border-white/15">
+              <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-[var(--rule)] pt-4">
                 {restaurant.status === "PENDING" ? (
                   <button
                     type="button"
                     disabled={pending}
                     onClick={() => run(() => setRestaurantStatus(restaurant.id, "ACTIVE"))}
-                    className="min-h-11 rounded-md bg-burp-600 px-4 font-medium text-white disabled:opacity-50"
+                    className="min-h-11 bg-burp-600 px-4 font-medium text-white disabled:opacity-50"
                   >
                     Godkänn restaurangen
                   </button>
@@ -96,7 +96,7 @@ export function RestaurantList({
                     type="button"
                     disabled={pending}
                     onClick={() => run(() => setRestaurantStatus(restaurant.id, "ACTIVE"))}
-                    className="min-h-11 rounded-md border border-black/15 px-4 disabled:opacity-50 dark:border-white/20"
+                    className="min-h-11 border border-[var(--rule)] px-4 disabled:opacity-50"
                   >
                     Häv avstängningen
                   </button>
@@ -115,14 +115,14 @@ export function RestaurantList({
                           run(() => setRestaurantStatus(restaurant.id, "SUSPENDED"));
                           setConfirmSuspend(null);
                         }}
-                        className="min-h-11 rounded-md bg-red-600 px-4 font-medium text-white disabled:opacity-50"
+                        className="min-h-11 bg-red-600 px-4 font-medium text-white disabled:opacity-50"
                       >
                         Bekräfta
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmSuspend(null)}
-                        className="min-h-11 rounded-md border border-black/15 px-4 dark:border-white/20"
+                        className="min-h-11 border border-[var(--rule)] px-4"
                       >
                         Avbryt
                       </button>
@@ -131,7 +131,7 @@ export function RestaurantList({
                     <button
                       type="button"
                       onClick={() => setConfirmSuspend(restaurant.id)}
-                      className="min-h-11 rounded-md border border-black/15 px-4 dark:border-white/20"
+                      className="min-h-11 border border-[var(--rule)] px-4"
                     >
                       Stäng av
                     </button>
@@ -185,7 +185,7 @@ function FeeField({
             event.currentTarget.blur();
           }
         }}
-        className="mt-1 block w-24 rounded-md border border-black/15 bg-transparent px-3 py-2 text-right tabular-nums dark:border-white/20"
+        className="mt-1 block w-24 border border-[var(--rule)] bg-transparent px-3 py-2 text-right tabular-nums"
       />
     </label>
   );
@@ -195,7 +195,7 @@ function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     ACTIVE: "bg-green-600/15 text-green-700 dark:text-green-400",
     PENDING: "bg-amber-600/20 text-amber-700 dark:text-amber-400",
-    PAUSED: "bg-black/10 opacity-70 dark:bg-white/15",
+    PAUSED: "bg-black/10 opacity-70",
     SUSPENDED: "bg-red-600/15 text-red-700 dark:text-red-400",
   };
 
@@ -208,7 +208,7 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span
-      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${styles[status] ?? ""}`}
+      className={`shrink-0 px-2.5 py-1 text-xs font-medium ${styles[status] ?? ""}`}
     >
       {labels[status] ?? status}
     </span>

@@ -1,7 +1,13 @@
 import Link from "next/link";
 import type { Guest } from "@/lib/guest";
 
-/** Topprad för gästens konto. */
+/**
+ * Topprad för gästens konto.
+ *
+ * Bär samma vinjett som resten av sajten — antikva, inte fet grotesk. En gäst
+ * som klickar sig från restaurangsidan till sina beställningar ska inte känna
+ * att hen bytt produkt på vägen.
+ */
 export function GuestHeader({
   guest,
   current,
@@ -10,13 +16,16 @@ export function GuestHeader({
   current: "bestallningar" | "favoriter" | "adresser";
 }) {
   return (
-    <header className="border-b border-black/10 dark:border-white/15">
+    <header className="border-b border-[var(--rule)]">
       <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-4 sm:px-6">
         <div className="mr-auto">
-          <Link href="/" className="text-xl font-bold tracking-tight">
+          <Link
+            href="/"
+            className="font-display text-2xl leading-none transition-colors duration-[var(--speed)] hover:text-burp-600"
+          >
             Burp
           </Link>
-          <p className="text-sm opacity-60">{guest.fullName ?? guest.email}</p>
+          <p className="label-caps mt-1">{guest.fullName ?? guest.email}</p>
         </div>
 
         <nav className="flex items-center gap-4 text-sm">
@@ -31,7 +40,10 @@ export function GuestHeader({
           </NavLink>
 
           <form action="/logga-ut" method="post">
-            <button type="submit" className="opacity-60 hover:opacity-100">
+            <button
+              type="submit"
+              className="min-h-11 text-[var(--muted)] transition-colors duration-[var(--speed)] hover:text-burp-600"
+            >
               Logga ut
             </button>
           </form>

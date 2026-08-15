@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   availableEditActions,
-  type EditAction,
   type OrderPolicy,
   type OrderStatus,
 } from "@burp/core";
@@ -87,7 +86,7 @@ export function OrderActions({
   const secondsLeft = secondsRemaining(policy, placedAt, now);
 
   return (
-    <section className="mt-6 rounded-xl border border-black/10 p-4 dark:border-white/15">
+    <section className="mt-6 border border-[var(--rule)] p-4">
       <h2 className="font-semibold">Ändra beställningen</h2>
 
       {secondsLeft !== null && allowed.some((action) => action !== "CANCEL") ? (
@@ -99,7 +98,7 @@ export function OrderActions({
       ) : null}
 
       {error ? (
-        <p role="alert" className="mt-3 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-3 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       ) : null}
@@ -117,7 +116,7 @@ export function OrderActions({
                   type="button"
                   disabled={pending}
                   onClick={() => act({ action: "REMOVE_ITEM", order_item_id: item.id })}
-                  className="min-h-11 rounded-md border border-black/15 px-4 text-sm disabled:opacity-50 dark:border-white/20"
+                  className="min-h-11 border border-[var(--rule)] px-4 text-sm disabled:opacity-50"
                 >
                   Ta bort
                 </button>
@@ -136,14 +135,14 @@ export function OrderActions({
                 type="button"
                 disabled={pending}
                 onClick={() => act({ action: "CANCEL" })}
-                className="min-h-11 rounded-md bg-red-600 px-4 font-medium text-white disabled:opacity-50"
+                className="min-h-11 bg-red-600 px-4 font-medium text-white disabled:opacity-50"
               >
                 Ja, avbryt
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmCancel(false)}
-                className="min-h-11 rounded-md border border-black/15 px-4 dark:border-white/20"
+                className="min-h-11 border border-[var(--rule)] px-4"
               >
                 Behåll
               </button>
@@ -152,7 +151,7 @@ export function OrderActions({
             <button
               type="button"
               onClick={() => setConfirmCancel(true)}
-              className="min-h-11 rounded-md border border-black/15 px-4 dark:border-white/20"
+              className="min-h-11 border border-[var(--rule)] px-4"
             >
               Avbryt beställningen
             </button>

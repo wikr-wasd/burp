@@ -136,8 +136,8 @@ function FilterChip({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`min-h-9 rounded-full px-3.5 py-1.5 text-sm ${
-        active ? "bg-burp-600 font-medium text-white" : "border border-black/15 dark:border-white/20"
+      className={`min-h-9 px-3.5 py-1.5 text-sm ${
+        active ? "bg-burp-600 font-medium text-white" : "border border-[var(--rule)]"
       }`}
     >
       {children}

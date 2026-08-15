@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteFooter } from "@/components/site/site-footer";
+import { SiteHeader } from "@/components/site/site-header";
 import { notFound } from "next/navigation";
 import {
   formatMoney,
@@ -83,12 +85,13 @@ export default async function PickupOrderPage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <header className="mb-8">
-        <p className="text-sm font-medium uppercase tracking-wide opacity-60">
-          Avhämtning · {restaurant?.name}
-        </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">Din beställning</h1>
+    <>
+      <SiteHeader />
+
+      <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
+      <header className="mb-10">
+        <p className="label-caps">Avhämtning · {restaurant?.name}</p>
+        <h1 className="font-display mt-2 text-5xl">Din beställning</h1>
       </header>
 
       <OrderStatusView
@@ -112,17 +115,15 @@ export default async function PickupOrderPage({ params }: PageProps) {
       />
 
       {restaurant ? (
-        <section className="mt-8 rounded-xl border border-black/10 p-4 dark:border-white/15">
-          <h2 className="font-semibold">Hämtas hos</h2>
-          <p className="mt-1 text-sm opacity-70">
+        <section className="mt-10">
+          <hr className="rule" />
+          <h2 className="label-caps mt-5">Hämtas hos</h2>
+          <p className="mt-2">
             {restaurant.street_address}, {restaurant.postal_code} {restaurant.city}
           </p>
           {restaurant.phone ? (
-            <p className="mt-2 text-sm">
-              <a
-                href={`tel:${restaurant.phone.replace(/\s/g, "")}`}
-                className="underline underline-offset-4"
-              >
+            <p className="mt-1">
+              <a href={`tel:${restaurant.phone.replace(/\s/g, "")}`} className="link">
                 {restaurant.phone}
               </a>
             </p>
@@ -130,36 +131,43 @@ export default async function PickupOrderPage({ params }: PageProps) {
         </section>
       ) : null}
 
-      <ul className="mt-8 divide-y divide-black/10 dark:divide-white/10">
+      <hr className="rule mt-10" />
+      <h2 className="label-caps mt-5">Din nota</h2>
+
+      <ul className="mt-3 divide-y divide-[var(--rule)]">
         {(items ?? []).map((item) => (
           <li key={item.id} className="flex items-start justify-between gap-4 py-3">
             <div className="min-w-0">
-              <p className="font-medium">
-                <span className="tabular-nums opacity-60">{item.quantity}×</span>{" "}
+              <p>
+                <span className="tabular-nums text-[var(--muted)]">{item.quantity}×</span>{" "}
                 {item.name_snapshot}
               </p>
               {optionsByItem.get(item.id)?.length ? (
-                <p className="text-sm opacity-60">{optionsByItem.get(item.id)!.join(", ")}</p>
+                <p className="text-sm text-[var(--muted)]">
+                  {optionsByItem.get(item.id)!.join(", ")}
+                </p>
               ) : null}
-              {item.note ? <p className="text-sm italic opacity-60">{item.note}</p> : null}
+              {item.note ? (
+                <p className="text-sm text-[var(--muted)] italic">{item.note}</p>
+              ) : null}
             </div>
             <span className="shrink-0 tabular-nums">{formatMoney(item.line_gross_ore, order.currency)}</span>
           </li>
         ))}
       </ul>
 
-      <dl className="mt-6 space-y-1 border-t border-black/10 pt-4 text-sm dark:border-white/10">
+      <dl className="mt-6 space-y-1.5 border-t border-[var(--foreground)] pt-4 text-sm">
         <div className="flex justify-between">
-          <dt className="opacity-60">Mat och dryck</dt>
+          <dt className="text-[var(--muted)]">Mat och dryck</dt>
           <dd className="tabular-nums">{formatMoney(order.items_gross_ore, order.currency)}</dd>
         </div>
         {order.tip_ore > 0 ? (
           <div className="flex justify-between">
-            <dt className="opacity-60">Dricks</dt>
+            <dt className="text-[var(--muted)]">Dricks</dt>
             <dd className="tabular-nums">{formatMoney(order.tip_ore, order.currency)}</dd>
           </div>
         ) : null}
-        <div className="flex justify-between pt-2 text-base font-semibold">
+        <div className="flex justify-between pt-2 text-lg">
           <dt>Totalt</dt>
           <dd className="tabular-nums">{formatMoney(order.total_ore, order.currency)}</dd>
         </div>
@@ -167,18 +175,18 @@ export default async function PickupOrderPage({ params }: PageProps) {
 
       {/* Betalning finns inte än (öppen fråga 5). Tills den gör det betalar
           gästen på plats, och det ska stå rakt ut i stället för att antydas. */}
-      <p className="mt-6 rounded-lg bg-burp-50 px-4 py-3 text-sm dark:bg-burp-900/40">
+      <p className="mt-8 border-l-2 border-burp-600 bg-burp-50 px-4 py-3 text-sm dark:bg-burp-900/40">
         Betalning sker på plats vid upphämtning.
       </p>
 
       {restaurant ? (
-        <Link
-          href={`/r/${restaurant.city_slug}/${restaurant.slug}`}
-          className="mt-8 inline-block text-sm underline underline-offset-4 opacity-70 transition-opacity hover:opacity-100"
-        >
+        <Link href={`/r/${restaurant.city_slug}/${restaurant.slug}`} className="link mt-10 inline-block text-sm">
           Tillbaka till {restaurant.name}
         </Link>
       ) : null}
-    </main>
+      </main>
+
+      <SiteFooter />
+    </>
   );
 }

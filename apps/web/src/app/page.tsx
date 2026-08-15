@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FoodImage } from "@/components/media/food-image";
+import { SiteFooter } from "@/components/site/site-footer";
+import { SiteHeader } from "@/components/site/site-header";
 import {
   listCities,
   listCuisines,
@@ -83,12 +85,11 @@ export default async function HomePage({ searchParams }: PageProps) {
   const showFeature = !hasFilter && restaurants.length >= 3 && featured;
 
   return (
-    <div className="min-h-screen pb-20">
-      <Masthead />
+    <div className="min-h-screen">
+      <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6">
         <Hero
-          params={params}
           city={city}
           cuisine={cuisine}
           query={query}
@@ -172,49 +173,18 @@ export default async function HomePage({ searchParams }: PageProps) {
           </>
         )}
       </main>
+
+      <SiteFooter />
     </div>
   );
 }
 
-/**
- * Tidningshuvudet. Namnet i antikva, marknaden som spärrad versaletikett — det
- * som i en tryckt bilaga hade stått "VOL. 1 · NR 3".
- */
-function Masthead() {
-  return (
-    <header className="border-b border-[var(--rule)]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <Link
-          href="/"
-          className="font-display text-3xl text-[var(--foreground)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burp-600"
-        >
-          Burp
-        </Link>
-
-        <div className="flex items-center gap-5">
-          <span className="label-caps hidden sm:inline">
-            Bosna · Hrvatska · Srbija
-          </span>
-          <Link
-            href="/logga-in"
-            className="min-h-11 content-center text-sm text-[var(--muted)] underline decoration-[var(--rule)] underline-offset-4 transition-colors hover:text-burp-600 hover:decoration-burp-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
-          >
-            För restauranger
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
-
 function Hero({
-  params,
   city,
   cuisine,
   query,
   cityName,
 }: {
-  params: { q?: string; kok?: string; stad?: string };
   city?: string;
   cuisine?: string;
   query?: string;

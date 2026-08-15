@@ -34,14 +34,14 @@ export function MediaQueue({
   return (
     <>
       {error ? (
-        <p role="alert" className="mt-4 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-4 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       ) : null}
 
       <ul className="mt-4 grid gap-4 sm:grid-cols-2">
         {media.map((item) => (
-          <li key={item.id} className="rounded-xl border border-black/10 p-4 dark:border-white/15">
+          <li key={item.id} className="border border-[var(--rule)] p-4">
             <div className="flex items-baseline justify-between gap-3">
               <p className="font-medium">{item.restaurantName}</p>
               <span className="shrink-0 text-xs uppercase tracking-wide opacity-60">
@@ -81,7 +81,7 @@ export function MediaQueue({
                       maxLength={200}
                       autoFocus
                       placeholder="För mörk, visar inte rätten, upphovsrätt…"
-                      className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+                      className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2 text-sm"
                     />
                   </label>
                   <div className="flex gap-2">
@@ -93,7 +93,7 @@ export function MediaQueue({
                         setRejecting(null);
                         setReason("");
                       }}
-                      className="min-h-11 flex-1 rounded-md bg-red-600 font-medium text-white disabled:opacity-50"
+                      className="min-h-11 flex-1 bg-red-600 font-medium text-white disabled:opacity-50"
                     >
                       Avvisa
                     </button>
@@ -103,7 +103,7 @@ export function MediaQueue({
                         setRejecting(null);
                         setReason("");
                       }}
-                      className="min-h-11 rounded-md border border-black/15 px-4 dark:border-white/20"
+                      className="min-h-11 border border-[var(--rule)] px-4"
                     >
                       Avbryt
                     </button>
@@ -115,14 +115,14 @@ export function MediaQueue({
                     type="button"
                     disabled={pending}
                     onClick={() => run(() => moderateMedia(item.id, true))}
-                    className="min-h-11 flex-1 rounded-md bg-burp-600 font-medium text-white disabled:opacity-50"
+                    className="min-h-11 flex-1 bg-burp-600 font-medium text-white disabled:opacity-50"
                   >
                     Godkänn
                   </button>
                   <button
                     type="button"
                     onClick={() => setRejecting(item.id)}
-                    className="min-h-11 rounded-md border border-black/15 px-4 dark:border-white/20"
+                    className="min-h-11 border border-[var(--rule)] px-4"
                   >
                     Avvisa
                   </button>
@@ -141,7 +141,7 @@ function MediaPreview({ item }: { item: ModeratedMedia }) {
 
   if (!url) {
     return (
-      <p className="mt-3 rounded-md bg-black/5 px-3 py-6 text-center text-sm opacity-60 dark:bg-white/10">
+      <p className="mt-3 bg-[var(--surface)] px-3 py-6 text-center text-sm opacity-60">
         Ingen förhandsvisning tillgänglig
       </p>
     );
@@ -151,11 +151,10 @@ function MediaPreview({ item }: { item: ModeratedMedia }) {
   // uppladdning och kan peka på en värd som inte står i next.config.js. En
   // bild som inte visas i granskningskön är värre än en ooptimerad bild.
   return (
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={url}
       alt={item.altText ?? "Media som väntar på granskning"}
-      className="mt-3 aspect-video w-full rounded-md object-cover"
+      className="mt-3 aspect-video w-full object-cover"
       loading="lazy"
     />
   );

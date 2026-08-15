@@ -55,7 +55,8 @@ export default async function AddressesPage() {
       <GuestHeader guest={guest} current="adresser" />
 
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <h1 className="text-2xl font-bold">Adresser</h1>
+        <p className="label-caps">Mitt konto</p>
+        <h1 className="font-display mt-2 text-4xl">Adresser</h1>
         <p className="mt-1 text-sm opacity-70">
           Sparas till leveransbeställningar. Leverans är ännu inte påslaget.
         </p>

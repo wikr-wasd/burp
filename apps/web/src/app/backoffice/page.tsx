@@ -104,10 +104,10 @@ export default async function BackofficePage({ searchParams }: PageProps) {
                 key={key}
                 href={`/backoffice?period=${key}`}
                 aria-current={key === periodKey ? "page" : undefined}
-                className={`min-h-9 rounded-full px-3.5 py-1.5 text-sm ${
+                className={`min-h-9 px-3.5 py-1.5 text-sm ${
                   key === periodKey
                     ? "bg-burp-600 font-medium text-white"
-                    : "border border-black/15 dark:border-white/20"
+                    : "border border-[var(--rule)]"
                 }`}
               >
                 {PERIODS[key].label}
@@ -142,7 +142,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
               Inga genomförda beställningar under perioden.
             </p>
           ) : (
-            <ul className="mt-3 divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+            <ul className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
               {revenue.map((line) => (
                 <li key={line.currency} className="px-4 py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -182,14 +182,14 @@ export default async function BackofficePage({ searchParams }: PageProps) {
 
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Väntar på dig</h2>
-          <ul className="mt-3 divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+          <ul className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
             <li className="flex items-center gap-4 px-4 py-3">
               <span className="mr-auto">Restauranger som väntar på godkännande</span>
               <span className="tabular-nums font-semibold">{pending.length}</span>
               {pending.length > 0 ? (
                 <Link
                   href="/backoffice/restauranger?status=PENDING"
-                  className="rounded-md bg-burp-600 px-3 py-1.5 text-sm font-medium text-white"
+                  className="bg-burp-600 px-3 py-1.5 text-sm font-medium text-white"
                 >
                   Granska
                 </Link>
@@ -206,7 +206,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
               {pending.map((restaurant) => (
                 <li
                   key={restaurant.id}
-                  className="rounded-lg border border-black/10 px-4 py-3 dark:border-white/15"
+                  className="border border-[var(--rule)] px-4 py-3"
                 >
                   <p className="font-medium">{restaurant.name}</p>
                   <p className="text-sm opacity-60">
@@ -230,7 +230,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-xl border border-black/10 p-4 dark:border-white/15">
+    <div className="border border-[var(--rule)] p-4">
       <p className="text-sm opacity-60">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
       {hint ? <p className="mt-0.5 text-xs opacity-50">{hint}</p> : null}

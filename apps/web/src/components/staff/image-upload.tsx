@@ -99,11 +99,10 @@ export function ImageUpload({
   return (
     <div>
       {currentUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={currentUrl}
           alt=""
-          className="mb-2 aspect-video w-full max-w-xs rounded-md object-cover"
+          className="mb-2 aspect-video w-full max-w-xs object-cover"
         />
       ) : null}
 
@@ -118,7 +117,7 @@ export function ImageUpload({
             const file = event.target.files?.[0];
             if (file) void handleFile(file);
           }}
-          className="block w-full text-sm file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-md file:border file:border-black/15 file:bg-transparent file:px-4 file:text-sm file:text-inherit disabled:opacity-50 dark:file:border-white/20"
+          className="block w-full text-sm file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-md file:border file:border-[var(--rule)] file:bg-transparent file:px-4 file:text-sm file:text-inherit disabled:opacity-50 dark:file:border-white/20"
         />
       </label>
 

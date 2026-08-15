@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteHeader } from "@/components/site/site-header";
 import { redirect } from "next/navigation";
 import { getGuest } from "@/lib/guest";
 import { safeNext } from "@/lib/safe-redirect";
@@ -35,20 +36,25 @@ export default async function SignUpPage({ searchParams }: PageProps) {
   if (guest) redirect(safeNext(next) ?? "/konto");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Skapa konto</h1>
-      <p className="mt-2 text-sm opacity-70">
-        Spara dina beställningar, favoriter och adresser. Du kan beställa utan konto också.
-      </p>
+    <>
+      <SiteHeader />
 
-      <SignUpForm next={safeNext(next)} />
+      <main className="mx-auto w-full max-w-sm px-6 py-20 sm:py-28">
+        <p className="label-caps">Gästkonto</p>
+        <h1 className="font-display mt-2 text-4xl">Skapa konto</h1>
+        <p className="mt-3 text-[var(--muted)]">
+          Spara dina beställningar, favoriter och adresser. Du kan beställa utan konto också.
+        </p>
 
-      <p className="mt-6 text-sm opacity-70">
-        Har du redan ett konto?{" "}
-        <Link href="/logga-in" className="underline underline-offset-4">
-          Logga in
-        </Link>
-      </p>
-    </main>
+        <SignUpForm next={safeNext(next)} />
+
+        <p className="mt-10 text-sm text-[var(--muted)]">
+          Har du redan ett konto?{" "}
+          <Link href="/logga-in" className="link">
+            Logga in
+          </Link>
+        </p>
+      </main>
+    </>
   );
 }

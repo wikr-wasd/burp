@@ -32,7 +32,7 @@ export function ReviewForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 min-h-11 rounded-md border border-black/15 px-4 text-sm dark:border-white/20"
+        className="mt-3 min-h-11 border border-[var(--rule)] px-4 text-sm"
       >
         Lämna omdöme
       </button>
@@ -40,7 +40,7 @@ export function ReviewForm({
   }
 
   return (
-    <form action={formAction} className="mt-4 border-t border-black/10 pt-4 dark:border-white/15">
+    <form action={formAction} className="mt-4 border-t border-[var(--rule)] pt-4">
       <input type="hidden" name="order_id" value={orderId} />
       <input type="hidden" name="rating_food" value={food} />
       <input type="hidden" name="rating_service" value={service || ""} />
@@ -54,14 +54,14 @@ export function ReviewForm({
       <Stars value={service} onChange={setService} label="Betyg på servicen" />
 
       <label className="mt-3 block">
-        <span className="text-sm font-medium">
+        <span className="label-caps">
           Kommentar <span className="font-normal opacity-60">valfritt</span>
         </span>
         <textarea
           name="comment"
           rows={2}
           maxLength={2000}
-          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+          className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2 text-sm"
         />
       </label>
 
@@ -76,7 +76,7 @@ export function ReviewForm({
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="min-h-11 rounded-md border border-black/15 px-4 dark:border-white/20"
+          className="min-h-11 border border-[var(--rule)] px-4"
         >
           Avbryt
         </button>
@@ -104,10 +104,10 @@ function Stars({
           aria-pressed={value === star}
           onClick={() => onChange(star)}
           // 44 px minst — det här trycks med tummen på en telefon.
-          className={`h-11 w-11 rounded-md border text-lg ${
+          className={`h-11 w-11 border text-lg ${
             star <= value
               ? "border-transparent bg-burp-600 text-white"
-              : "border-black/15 dark:border-white/20"
+              : "border-[var(--rule)]"
           }`}
         >
           ★
@@ -124,7 +124,7 @@ function Submit({ disabled }: { disabled: boolean }) {
     <button
       type="submit"
       disabled={disabled || pending}
-      className="min-h-11 flex-1 rounded-md bg-burp-600 px-4 font-medium text-white disabled:opacity-50"
+      className="min-h-11 flex-1 bg-burp-600 px-4 font-medium text-white disabled:opacity-50"
     >
       {pending ? "Skickar…" : disabled ? "Välj betyg på maten" : "Skicka omdöme"}
     </button>

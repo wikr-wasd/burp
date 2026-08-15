@@ -40,7 +40,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-md border border-black/15 px-4 py-2 text-sm dark:border-white/20"
+          className="border border-[var(--rule)] px-4 py-2 text-sm"
         >
           Skriv ut alla koder
         </button>
@@ -48,7 +48,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
       </div>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 print:hidden dark:text-red-400">
+        <p role="alert" className="mt-4 bg-red-600/10 px-3 py-2 text-sm text-red-700 print:hidden dark:text-red-400">
           {error}
         </p>
       ) : null}
@@ -57,7 +57,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
         {tables.map((table) => (
           <li
             key={table.id}
-            className="break-inside-avoid rounded-xl border border-black/10 p-4 dark:border-white/15"
+            className="break-inside-avoid border border-[var(--rule)] p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -70,12 +70,12 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
               </div>
 
               {table.hasOpenSession ? (
-                <span className="rounded-full bg-green-600/15 px-2.5 py-1 text-xs font-medium text-green-700 dark:text-green-400">
+                <span className="bg-green-600/15 px-2.5 py-1 text-xs font-medium text-green-700 dark:text-green-400">
                   Öppen nota
                 </span>
               ) : null}
               {table.status === "LOCKED" ? (
-                <span className="rounded-full bg-red-600/15 px-2.5 py-1 text-xs font-medium text-red-700 dark:text-red-400">
+                <span className="bg-red-600/15 px-2.5 py-1 text-xs font-medium text-red-700 dark:text-red-400">
                   Låst
                 </span>
               ) : null}
@@ -96,7 +96,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
                 type="button"
                 disabled={pending}
                 onClick={() => toggleLock(table)}
-                className="flex-1 rounded-md border border-black/15 px-3 py-2 text-sm disabled:opacity-50 dark:border-white/20"
+                className="flex-1 border border-[var(--rule)] px-3 py-2 text-sm disabled:opacity-50"
               >
                 {table.status === "LOCKED" ? "Lås upp" : "Lås bordet"}
               </button>
@@ -107,14 +107,14 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
                     type="button"
                     disabled={pending}
                     onClick={() => archive(table.id)}
-                    className="rounded-md bg-red-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+                    className="bg-red-600 px-3 py-2 text-sm text-white disabled:opacity-50"
                   >
                     Bekräfta
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmArchive(null)}
-                    className="rounded-md border border-black/15 px-3 py-2 text-sm dark:border-white/20"
+                    className="border border-[var(--rule)] px-3 py-2 text-sm"
                   >
                     Avbryt
                   </button>
@@ -123,7 +123,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
                 <button
                   type="button"
                   onClick={() => setConfirmArchive(table.id)}
-                  className="rounded-md border border-black/15 px-3 py-2 text-sm dark:border-white/20"
+                  className="border border-[var(--rule)] px-3 py-2 text-sm"
                 >
                   Ta bort
                 </button>

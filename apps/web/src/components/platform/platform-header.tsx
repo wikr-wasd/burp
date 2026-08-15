@@ -16,16 +16,19 @@ export function PlatformHeader({
   current: "oversikt" | "restauranger" | "media";
 }) {
   return (
-    <header className="border-b border-black/10 bg-burp-900/10 dark:border-white/15 dark:bg-burp-900/30">
+    <header className="border-b border-[var(--rule)] bg-burp-900/10 dark:bg-burp-900/30">
       <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-4 sm:px-6">
         <div className="mr-auto">
-          <p className="font-semibold">
+          <p className="font-display text-2xl leading-none">
             Burp backoffice
-            <span className="ml-2 rounded-full bg-burp-600 px-2 py-0.5 text-xs font-medium text-white">
+            {/* Märkningen är inte dekoration. Den som sitter i backoffice ser
+                alla restaurangers siffror, och ska aldrig kunna tro att hen
+                tittar på sin egen. */}
+            <span className="ml-3 bg-burp-600 px-2 py-0.5 align-middle text-[0.625rem] font-medium tracking-[var(--tracking-label)] text-white uppercase">
               intern
             </span>
           </p>
-          <p className="text-sm opacity-60">
+          <p className="label-caps mt-1">
             {admin.email} · {PLATFORM_ROLE_LABELS[admin.role]}
           </p>
         </div>

@@ -27,7 +27,7 @@ export function OrderPolicyEditor({ initial }: { initial: OrderPolicy }) {
   }
 
   return (
-    <div className="mt-4 space-y-5 rounded-xl border border-black/10 p-4 dark:border-white/15">
+    <div className="mt-4 space-y-5 border border-[var(--rule)] p-4">
       <Toggle
         label="Ta emot beställningar automatiskt"
         hint="Utan detta måste någon trycka Ta emot på varje order innan köket ser den."
@@ -97,7 +97,7 @@ export function OrderPolicyEditor({ initial }: { initial: OrderPolicy }) {
       {feedback ? (
         <p
           role="alert"
-          className={`rounded-md px-3 py-2 text-sm ${
+          className={` px-3 py-2 text-sm ${
             feedback.ok
               ? "bg-green-600/10 text-green-700 dark:text-green-400"
               : "bg-red-600/10 text-red-700 dark:text-red-400"
@@ -119,7 +119,7 @@ export function OrderPolicyEditor({ initial }: { initial: OrderPolicy }) {
             });
           })
         }
-        className="min-h-12 rounded-md bg-burp-600 px-5 font-medium text-white disabled:opacity-50"
+        className="min-h-12 bg-burp-600 px-5 font-medium text-white disabled:opacity-50"
       >
         {pending ? "Sparar…" : dirty ? "Spara orderregler" : "Inget att spara"}
       </button>
@@ -182,7 +182,7 @@ function Number({
           min={min}
           max={max}
           onChange={(event) => onChange(globalThis.Number(event.target.value))}
-          className="min-h-11 w-28 rounded-md border border-black/15 bg-transparent px-3 tabular-nums dark:border-white/20"
+          className="min-h-11 w-28 border border-[var(--rule)] bg-transparent px-3 tabular-nums"
         />
         <span className="text-sm opacity-60">{suffix}</span>
       </span>
@@ -208,7 +208,7 @@ function StatusSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value as OrderStatus)}
-        className="mt-1 min-h-11 rounded-md border border-black/15 bg-transparent px-3 dark:border-white/20"
+        className="mt-1 min-h-11 border border-[var(--rule)] bg-transparent px-3"
       >
         {LIMIT_STATUSES.map((status) => (
           <option key={status} value={status}>

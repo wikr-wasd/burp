@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStaff, ROLE_HOME } from "@/lib/auth";
 import { safeNext } from "@/lib/safe-redirect";
+import { SiteHeader } from "@/components/site/site-header";
 import { LoginForm } from "./login-form";
 
 /**
@@ -32,12 +34,27 @@ export default async function LoginPage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Burp för restauranger</h1>
-      <p className="mt-2 text-sm opacity-70">Logga in för att se order och köksskärm.</p>
+    <>
+      <SiteHeader />
 
-      <LoginForm next={safeNext(next)} />
-    </main>
+      <main className="mx-auto w-full max-w-sm px-6 py-20 sm:py-28">
+        <p className="label-caps">För restauranger</p>
+        <h1 className="font-display mt-2 text-4xl">Logga in</h1>
+        <p className="mt-3 text-[var(--muted)]">
+          Order, köksskärm, meny och statistik för din restaurang.
+        </p>
+
+        <LoginForm next={safeNext(next)} />
+
+        <p className="mt-10 text-sm text-[var(--muted)]">
+          Är du gäst? Du behöver inget konto för att beställa —{" "}
+          <Link href="/" className="link">
+            skanna QR-koden vid bordet
+          </Link>
+          .
+        </p>
+      </main>
+    </>
   );
 }
 

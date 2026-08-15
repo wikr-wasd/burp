@@ -35,12 +35,12 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
   return (
     <div className="mt-4">
       {error ? (
-        <p role="alert" className="mb-3 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mb-3 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       ) : null}
 
-      <ul className="divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+      <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
         {members.map((member) => (
           <li key={member.id} className="flex flex-wrap items-center gap-3 p-4">
             <div className="mr-auto min-w-0">
@@ -62,7 +62,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
                 value={member.role}
                 disabled={pending || member.isSelf}
                 onChange={(event) => run(() => setStaffRole(member.id, event.target.value as StaffRole))}
-                className="min-h-11 rounded-md border border-black/15 bg-transparent px-3 disabled:opacity-50 dark:border-white/20"
+                className="min-h-11 border border-[var(--rule)] bg-transparent px-3 disabled:opacity-50"
               >
                 {STAFF_ROLES.map((role) => (
                   <option key={role} value={role}>
@@ -82,14 +82,14 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
                       run(() => setStaffActive(member.id, false));
                       setConfirmDeactivate(null);
                     }}
-                    className="min-h-11 rounded-md bg-red-600 px-4 text-sm font-medium text-white disabled:opacity-50"
+                    className="min-h-11 bg-red-600 px-4 text-sm font-medium text-white disabled:opacity-50"
                   >
                     Stäng av
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmDeactivate(null)}
-                    className="min-h-11 rounded-md border border-black/15 px-4 text-sm dark:border-white/20"
+                    className="min-h-11 border border-[var(--rule)] px-4 text-sm"
                   >
                     Avbryt
                   </button>
@@ -98,7 +98,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
                 <button
                   type="button"
                   onClick={() => setConfirmDeactivate(member.id)}
-                  className="min-h-11 rounded-md border border-black/15 px-4 text-sm dark:border-white/20"
+                  className="min-h-11 border border-[var(--rule)] px-4 text-sm"
                 >
                   Stäng av
                 </button>
@@ -108,7 +108,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
                 type="button"
                 disabled={pending}
                 onClick={() => run(() => setStaffActive(member.id, true))}
-                className="min-h-11 rounded-md border border-black/15 px-4 text-sm disabled:opacity-50 dark:border-white/20"
+                className="min-h-11 border border-[var(--rule)] px-4 text-sm disabled:opacity-50"
               >
                 Aktivera igen
               </button>
@@ -117,7 +117,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
         ))}
       </ul>
 
-      <form action={formAction} className="mt-4 rounded-xl border border-black/10 p-4 dark:border-white/15">
+      <form action={formAction} className="mt-4 border border-[var(--rule)] p-4">
         <h3 className="font-semibold">Bjud in en medarbetare</h3>
         <p className="mt-1 text-sm opacity-60">
           Har personen redan ett Burp-konto kopplas det direkt. Annars skickas en inbjudan.
@@ -131,7 +131,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
               type="email"
               required
               autoComplete="off"
-              className="mt-1 min-h-11 w-full rounded-md border border-black/15 bg-transparent px-3 dark:border-white/20"
+              className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-transparent px-3"
             />
           </label>
 
@@ -140,7 +140,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
             <select
               name="role"
               defaultValue="staff"
-              className="mt-1 block min-h-11 rounded-md border border-black/15 bg-transparent px-3 dark:border-white/20"
+              className="mt-1 block min-h-11 border border-[var(--rule)] bg-transparent px-3"
             >
               {STAFF_ROLES.map((role) => (
                 <option key={role} value={role}>
@@ -175,7 +175,7 @@ function InviteButton() {
     <button
       type="submit"
       disabled={pending}
-      className="min-h-11 rounded-md bg-burp-600 px-5 font-medium text-white disabled:opacity-60"
+      className="min-h-11 bg-burp-600 px-5 font-medium text-white disabled:opacity-60"
     >
       {pending ? "Bjuder in…" : "Bjud in"}
     </button>

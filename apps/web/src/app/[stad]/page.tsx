@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { listCities, listCuisines, searchRestaurants } from "@/lib/discovery";
 import { publicEnv } from "@/lib/env";
 import { CityRestaurantList } from "@/components/discovery/city-restaurant-list";
+import { SiteFooter } from "@/components/site/site-footer";
+import { SiteHeader } from "@/components/site/site-header";
 import { slugifyCuisine } from "@/app/sitemap";
 import { serializeJsonLd } from "@/lib/seo/jsonld";
 
@@ -87,41 +89,24 @@ export default async function CityPage({ params }: PageProps) {
   };
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-screen">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
-      <header className="border-b border-black/10 dark:border-white/15">
-        <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6">
-          <div className="flex items-baseline justify-between gap-4">
-            <Link href="/" className="text-2xl font-bold tracking-tight">
-              Burp
-            </Link>
-            <Link
-              href="/logga-in"
-              className="text-sm underline underline-offset-4 opacity-70 hover:opacity-100"
-            >
-              För restauranger
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader
+        breadcrumbs={[{ label: "Alla städer", href: "/" }, { label: city.name }]}
+      />
 
-      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
-        <nav aria-label="Brödsmulor" className="text-sm opacity-60">
-          <Link href="/" className="underline-offset-4 hover:underline">
-            Alla städer
-          </Link>
-          <span aria-hidden="true"> / </span>
-          <span>{city.name}</span>
-        </nav>
+      <main className="mx-auto max-w-6xl px-4 pt-12 sm:px-6">
+        <p className="label-caps">Stad</p>
 
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
+        <h1 className="font-display mt-2 text-5xl sm:text-6xl">
           Restauranger i {city.name}
         </h1>
-        <p className="mt-2 opacity-70">
+
+        <p className="mt-4 max-w-xl text-lg leading-relaxed text-[var(--muted)]">
           {restaurants.length === 1
             ? "En restaurang"
             : `${restaurants.length} restauranger`}{" "}
@@ -130,21 +115,28 @@ export default async function CityPage({ params }: PageProps) {
         </p>
 
         {cuisines.length > 0 ? (
-          <nav aria-label="Kök" className="mt-5 flex flex-wrap gap-2">
+          <nav aria-label="Kök" className="mt-8 flex flex-wrap items-center gap-x-1 gap-y-1">
+            {/* Utan etiketten läser raden som brödtext. Gästen ska se på en
+                halv sekund att det är något att klicka på, inte en uppräkning. */}
+            <span className="label-caps mr-3">Kök</span>
             {cuisines.map((cuisine) => (
               <Link
                 key={cuisine}
                 href={`/${city.slug}/${slugifyCuisine(cuisine)}`}
-                className="min-h-9 rounded-full border border-black/15 px-3.5 py-1.5 text-sm hover:border-black/35 dark:border-white/20 dark:hover:border-white/40"
+                className="inline-flex min-h-11 items-center border-b-2 border-[var(--rule)] px-3 text-sm transition-colors duration-[var(--speed)] hover:border-burp-600 hover:text-burp-600"
               >
-                {cuisine} i {city.name}
+                {cuisine}
               </Link>
             ))}
           </nav>
         ) : null}
 
+        <hr className="rule mt-8" />
+
         <CityRestaurantList restaurants={restaurants} />
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

@@ -113,7 +113,7 @@ export default async function OrderPage({ params }: PageProps) {
         }))}
       />
 
-      <ul className="mt-8 divide-y divide-black/10 dark:divide-white/10">
+      <ul className="mt-8 divide-y divide-[var(--rule)]">
         {(items ?? []).map((item) => (
           <li key={item.id} className="flex items-start justify-between gap-4 py-3">
             <div className="min-w-0">
@@ -130,7 +130,7 @@ export default async function OrderPage({ params }: PageProps) {
         ))}
       </ul>
 
-      <dl className="mt-6 space-y-1 border-t border-black/10 pt-4 text-sm dark:border-white/10">
+      <dl className="mt-6 space-y-1 border-t border-[var(--rule)] pt-4 text-sm">
         <div className="flex justify-between">
           <dt className="opacity-60">Mat och dryck</dt>
           <dd className="tabular-nums">{formatMoney(order.items_gross_ore, order.currency)}</dd>

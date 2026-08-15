@@ -31,8 +31,8 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
 
   return (
     <li
-      className={`rounded-xl border p-4 ${
-        isLow ? "border-red-600/40" : "border-black/10 dark:border-white/15"
+      className={` border p-4 ${
+        isLow ? "border-red-600/40" : "border-[var(--rule)]"
       }`}
     >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -55,7 +55,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
         ) : null}
 
         {!review.isPublished ? (
-          <span className="rounded-full bg-black/10 px-2.5 py-1 text-xs dark:bg-white/15">
+          <span className="bg-black/10 px-2.5 py-1 text-xs">
             Dold av Burp
           </span>
         ) : null}
@@ -66,20 +66,20 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
       )}
 
       {error ? (
-        <p role="alert" className="mt-3 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-3 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       ) : null}
 
       {review.response && !editing ? (
-        <div className="mt-3 rounded-lg bg-black/5 p-3 dark:bg-white/10">
+        <div className="mt-3 bg-[var(--surface)] p-3">
           <p className="text-sm font-medium">Ert svar</p>
           <p className="mt-1 text-sm">{review.response}</p>
           <div className="mt-3 flex gap-2">
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="min-h-11 rounded-md border border-black/15 px-4 text-sm dark:border-white/20"
+              className="min-h-11 border border-[var(--rule)] px-4 text-sm"
             >
               Ändra svaret
             </button>
@@ -87,7 +87,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
               type="button"
               disabled={pending}
               onClick={() => run(() => removeResponse(review.id))}
-              className="min-h-11 rounded-md border border-black/15 px-4 text-sm disabled:opacity-50 dark:border-white/20"
+              className="min-h-11 border border-[var(--rule)] px-4 text-sm disabled:opacity-50"
             >
               Ta bort svaret
             </button>
@@ -109,7 +109,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
                   ? "Ett sakligt svar på ett lågt betyg gör mer nytta än inget svar alls."
                   : "Tack för att du beställde…"
               }
-              className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+              className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2 text-sm"
             />
           </label>
 
@@ -118,7 +118,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
               type="button"
               disabled={pending || draft.trim() === ""}
               onClick={() => run(() => respondToReview(review.id, draft))}
-              className="min-h-11 rounded-md bg-burp-600 px-4 text-sm font-medium text-white disabled:opacity-50"
+              className="min-h-11 bg-burp-600 px-4 text-sm font-medium text-white disabled:opacity-50"
             >
               {pending ? "Publicerar…" : "Publicera svaret"}
             </button>
@@ -130,7 +130,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
                   setDraft(review.response ?? "");
                   setEditing(false);
                 }}
-                className="min-h-11 rounded-md border border-black/15 px-4 text-sm dark:border-white/20"
+                className="min-h-11 border border-[var(--rule)] px-4 text-sm"
               >
                 Avbryt
               </button>

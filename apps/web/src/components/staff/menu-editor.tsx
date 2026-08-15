@@ -89,7 +89,7 @@ export function MenuEditor({
     <MenuLocaleContext.Provider value={{ country, currency }}>
     <div className="mt-8">
       {error ? (
-        <p role="alert" className="mb-4 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mb-4 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       ) : null}
@@ -124,7 +124,7 @@ function NewMenuForm() {
           required
           maxLength={120}
           placeholder="Lunch, Kväll, Helg…"
-          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+          className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
         />
       </label>
       <SubmitButton label="Skapa meny" pendingLabel="Skapar…" />
@@ -154,8 +154,8 @@ function MenuCard({
   }
 
   return (
-    <section className="rounded-xl border border-black/10 dark:border-white/15">
-      <header className="flex flex-wrap items-center gap-3 border-b border-black/10 p-4 dark:border-white/15">
+    <section className="border border-[var(--rule)]">
+      <header className="flex flex-wrap items-center gap-3 border-b border-[var(--rule)] p-4">
         <InlineText
           value={menu.name}
           label="Menyns namn"
@@ -164,10 +164,10 @@ function MenuCard({
         />
 
         <span
-          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+          className={` px-2.5 py-1 text-xs font-medium ${
             published
               ? "bg-green-600/15 text-green-700 dark:text-green-400"
-              : "bg-black/10 opacity-70 dark:bg-white/15"
+              : "bg-black/10 opacity-70"
           }`}
         >
           {published ? "Publicerad" : "Utkast"}
@@ -177,7 +177,7 @@ function MenuCard({
           type="button"
           disabled={pending}
           onClick={() => run(() => setMenuStatus(menu.id, !published))}
-          className="rounded-md border border-black/15 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20"
+          className="border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
         >
           {published ? "Avpublicera" : "Publicera"}
         </button>
@@ -188,14 +188,14 @@ function MenuCard({
               type="button"
               disabled={pending}
               onClick={() => run(() => deleteMenu(menu.id))}
-              className="rounded-md bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              className="bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
             >
               Radera allt
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
-              className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+              className="border border-[var(--rule)] px-3 py-1.5 text-sm"
             >
               Avbryt
             </button>
@@ -204,14 +204,14 @@ function MenuCard({
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+            className="border border-[var(--rule)] px-3 py-1.5 text-sm"
           >
             Radera
           </button>
         )}
       </header>
 
-      <div className="border-b border-black/10 p-4 dark:border-white/15">
+      <div className="border-b border-[var(--rule)] p-4">
         <p className="text-sm font-medium">Gäller</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {WEEKDAYS.map((label, day) => (
@@ -220,10 +220,10 @@ function MenuCard({
               type="button"
               disabled={pending}
               onClick={() => toggleDay(day)}
-              className={`rounded-full border px-3 py-1 text-sm disabled:opacity-50 ${
+              className={` border px-3 py-1 text-sm disabled:opacity-50 ${
                 menu.activeDays.includes(day)
                   ? "border-transparent bg-burp-600 text-white"
-                  : "border-black/15 dark:border-white/20"
+                  : "border-[var(--rule)]"
               }`}
             >
               {label}
@@ -279,7 +279,7 @@ function CategoryBlock({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <div className="mb-6 rounded-lg border border-black/10 p-3 dark:border-white/15">
+    <div className="mb-6 border border-[var(--rule)] p-3">
       <div className="flex items-center gap-3">
         <InlineText
           value={category.name}
@@ -297,14 +297,14 @@ function CategoryBlock({
               type="button"
               disabled={pending}
               onClick={() => run(() => deleteCategory(category.id))}
-              className="rounded-md bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              className="bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
             >
               Bekräfta
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
-              className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+              className="border border-[var(--rule)] px-3 py-1.5 text-sm"
             >
               Avbryt
             </button>
@@ -313,7 +313,7 @@ function CategoryBlock({
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+            className="border border-[var(--rule)] px-3 py-1.5 text-sm"
           >
             Ta bort kategori
           </button>
@@ -344,7 +344,7 @@ function AddCategory({ menuId, onError }: { menuId: string; onError: (message: s
           onChange={(event) => setName(event.target.value)}
           maxLength={120}
           placeholder="Pizza, Dryck, Efterrätt…"
-          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+          className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
         />
       </label>
       <button
@@ -354,7 +354,7 @@ function AddCategory({ menuId, onError }: { menuId: string; onError: (message: s
           run(() => createCategory(menuId, name));
           setName("");
         }}
-        className="rounded-md bg-burp-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+        className="bg-burp-600 px-4 py-2 font-medium text-white disabled:opacity-50"
       >
         Lägg till
       </button>
@@ -377,7 +377,7 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
           name="name"
           required
           maxLength={120}
-          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+          className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
         />
       </label>
       <label className="basis-28">
@@ -389,7 +389,7 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
           // Platshållaren visar rätt antal decimaler för valutan. En serbisk
           // ägare som ser "129,00" skriver in ett pris hundra gånger fel.
           placeholder={formatAmountInput(12900, currency)}
-          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+          className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
         />
       </label>
       <SubmitButton label="Lägg till" pendingLabel="Lägger till…" />
@@ -413,7 +413,7 @@ function ItemRow({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <li className="rounded-md border border-black/10 p-3 dark:border-white/15">
+    <li className="border border-[var(--rule)] p-3">
       <div className="flex flex-wrap items-center gap-3">
         <InlineText
           value={item.name}
@@ -434,7 +434,7 @@ function ItemRow({
           type="button"
           disabled={pending}
           onClick={() => run(() => updateMenuItem(item.id, { isAvailable: !item.isAvailable }))}
-          className={`rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-50 ${
+          className={` px-2.5 py-1 text-xs font-medium disabled:opacity-50 ${
             item.isAvailable
               ? "bg-green-600/15 text-green-700 dark:text-green-400"
               : "bg-red-600/15 text-red-700 dark:text-red-400"
@@ -453,7 +453,7 @@ function ItemRow({
               }),
             )
           }
-          className="rounded-md border border-black/15 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20"
+          className="border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
         >
           {item.status === "PUBLISHED" ? "Avpublicera" : "Publicera"}
         </button>
@@ -464,7 +464,7 @@ function ItemRow({
             aria-label={`Flytta ${item.name} uppåt`}
             disabled={pending}
             onClick={() => run(() => moveMenuItem(item.id, "up"))}
-            className="h-8 w-8 rounded-md border border-black/15 disabled:opacity-50 dark:border-white/20"
+            className="h-8 w-8 border border-[var(--rule)] disabled:opacity-50"
           >
             ↑
           </button>
@@ -473,7 +473,7 @@ function ItemRow({
             aria-label={`Flytta ${item.name} nedåt`}
             disabled={pending}
             onClick={() => run(() => moveMenuItem(item.id, "down"))}
-            className="h-8 w-8 rounded-md border border-black/15 disabled:opacity-50 dark:border-white/20"
+            className="h-8 w-8 border border-[var(--rule)] disabled:opacity-50"
           >
             ↓
           </button>
@@ -482,14 +482,14 @@ function ItemRow({
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+          className="border border-[var(--rule)] px-3 py-1.5 text-sm"
         >
           {expanded ? "Dölj" : "Detaljer"}
         </button>
       </div>
 
       {expanded ? (
-        <div className="mt-4 space-y-4 border-t border-black/10 pt-4 dark:border-white/15">
+        <div className="mt-4 space-y-4 border-t border-[var(--rule)] pt-4">
           <label className="block">
             <span className="text-sm font-medium">Beskrivning</span>
             <InlineTextarea
@@ -507,10 +507,10 @@ function ItemRow({
                   type="button"
                   disabled={pending}
                   onClick={() => run(() => updateMenuItem(item.id, { vatRateBps: choice.bps }))}
-                  className={`rounded-md border px-3 py-1.5 text-sm disabled:opacity-50 ${
+                  className={` border px-3 py-1.5 text-sm disabled:opacity-50 ${
                     item.vatRateBps === choice.bps
                       ? "border-transparent bg-burp-600 text-white"
-                      : "border-black/15 dark:border-white/20"
+                      : "border-[var(--rule)]"
                   }`}
                 >
                   {choice.label}
@@ -565,14 +565,14 @@ function ItemRow({
                   type="button"
                   disabled={pending}
                   onClick={() => run(() => deleteMenuItem(item.id))}
-                  className="rounded-md bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                  className="bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
                 >
                   Radera {item.name}
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(false)}
-                  className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+                  className="border border-[var(--rule)] px-3 py-1.5 text-sm"
                 >
                   Avbryt
                 </button>
@@ -581,7 +581,7 @@ function ItemRow({
               <button
                 type="button"
                 onClick={() => setConfirmDelete(true)}
-                className="rounded-md border border-black/15 px-3 py-1.5 text-sm dark:border-white/20"
+                className="border border-[var(--rule)] px-3 py-1.5 text-sm"
               >
                 Ta bort rätten
               </button>
@@ -616,7 +616,7 @@ function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: 
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Välj storlek"
-            className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm dark:border-white/20"
+            className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-1.5 text-sm"
           />
         </label>
         <label className="basis-20">
@@ -626,7 +626,7 @@ function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: 
             min={0}
             value={min}
             onChange={(event) => setMin(event.target.value)}
-            className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-2 py-1.5 text-sm dark:border-white/20"
+            className="mt-1 w-full border border-[var(--rule)] bg-transparent px-2 py-1.5 text-sm"
           />
         </label>
         <label className="basis-20">
@@ -636,7 +636,7 @@ function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: 
             min={1}
             value={max}
             onChange={(event) => setMax(event.target.value)}
-            className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-2 py-1.5 text-sm dark:border-white/20"
+            className="mt-1 w-full border border-[var(--rule)] bg-transparent px-2 py-1.5 text-sm"
           />
         </label>
         <button
@@ -646,7 +646,7 @@ function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: 
             run(() => createOptionGroup(item.id, name, Number(min), Number(max)));
             setName("");
           }}
-          className="rounded-md border border-black/15 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20"
+          className="border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
         >
           Lägg till grupp
         </button>
@@ -668,7 +668,7 @@ function OptionGroupBlock({
   const [price, setPrice] = useState("");
 
   return (
-    <div className="mt-2 rounded-md border border-black/10 p-3 dark:border-white/15">
+    <div className="mt-2 border border-[var(--rule)] p-3">
       <div className="flex items-center gap-3">
         <p className="mr-auto text-sm font-medium">
           {group.name}
@@ -697,7 +697,7 @@ function OptionGroupBlock({
               type="button"
               disabled={pending}
               onClick={() => run(() => setOptionAvailable(option.id, !option.isAvailable))}
-              className={`rounded-full px-2 py-0.5 text-xs disabled:opacity-50 ${
+              className={` px-2 py-0.5 text-xs disabled:opacity-50 ${
                 option.isAvailable
                   ? "bg-green-600/15 text-green-700 dark:text-green-400"
                   : "bg-red-600/15 text-red-700 dark:text-red-400"
@@ -723,14 +723,14 @@ function OptionGroupBlock({
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Nytt tillval"
-          className="flex-1 basis-32 rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm dark:border-white/20"
+          className="flex-1 basis-32 border border-[var(--rule)] bg-transparent px-3 py-1.5 text-sm"
         />
         <input
           value={price}
           onChange={(event) => setPrice(event.target.value)}
           inputMode="decimal"
           placeholder="0,00"
-          className="basis-24 rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm dark:border-white/20"
+          className="basis-24 border border-[var(--rule)] bg-transparent px-3 py-1.5 text-sm"
         />
         <button
           type="button"
@@ -740,7 +740,7 @@ function OptionGroupBlock({
             setName("");
             setPrice("");
           }}
-          className="rounded-md border border-black/15 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20"
+          className="border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
         >
           Lägg till
         </button>
@@ -803,7 +803,7 @@ function InlineText({
           event.currentTarget.blur();
         }
       }}
-      className={`rounded-md border border-transparent bg-transparent px-2 py-1 hover:border-black/15 focus:border-black/30 dark:hover:border-white/20 dark:focus:border-white/40 ${className}`}
+      className={` border border-transparent bg-transparent px-2 py-1 hover:border-[var(--rule)] focus:border-black/30 dark:hover:border-white/20 dark:focus:border-white/40 ${className}`}
     />
   );
 }
@@ -820,7 +820,7 @@ function InlineTextarea({ value, onSave }: { value: string; onSave: (value: stri
       onBlur={() => {
         if (draft !== value) onSave(draft);
       }}
-      className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+      className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2 text-sm"
     />
   );
 }
@@ -842,7 +842,7 @@ function TimeField({
         // Databasen ger "11:00:00"; <input type="time"> vill ha "11:00".
         defaultValue={value ? value.slice(0, 5) : ""}
         onBlur={(event) => onSave(event.target.value)}
-        className="mt-1 block rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+        className="mt-1 block border border-[var(--rule)] bg-transparent px-3 py-2"
       />
     </label>
   );
@@ -855,7 +855,7 @@ function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: st
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-burp-600 px-4 py-2 font-medium text-white disabled:opacity-60"
+      className="bg-burp-600 px-4 py-2 font-medium text-white disabled:opacity-60"
     >
       {pending ? pendingLabel : label}
     </button>

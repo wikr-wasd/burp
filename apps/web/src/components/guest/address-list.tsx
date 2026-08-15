@@ -23,7 +23,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
   return (
     <>
       {error ? (
-        <p role="alert" className="mt-4 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-4 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       ) : null}
@@ -33,7 +33,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
           {addresses.map((address) => (
             <li
               key={address.id}
-              className="flex flex-wrap items-start gap-3 rounded-xl border border-black/10 p-4 dark:border-white/15"
+              className="flex flex-wrap items-start gap-3 border border-[var(--rule)] p-4"
             >
               <div className="mr-auto min-w-0">
                 {address.label ? <p className="font-medium">{address.label}</p> : null}
@@ -50,14 +50,14 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
                     type="button"
                     disabled={pending}
                     onClick={() => remove(address.id)}
-                    className="min-h-11 rounded-md bg-red-600 px-4 text-sm font-medium text-white disabled:opacity-50"
+                    className="min-h-11 bg-red-600 px-4 text-sm font-medium text-white disabled:opacity-50"
                   >
                     Ta bort
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(null)}
-                    className="min-h-11 rounded-md border border-black/15 px-4 text-sm dark:border-white/20"
+                    className="min-h-11 border border-[var(--rule)] px-4 text-sm"
                   >
                     Avbryt
                   </button>
@@ -66,7 +66,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(address.id)}
-                  className="min-h-11 rounded-md border border-black/15 px-4 text-sm dark:border-white/20"
+                  className="min-h-11 border border-[var(--rule)] px-4 text-sm"
                 >
                   Ta bort
                 </button>
@@ -80,7 +80,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
 
       <form
         action={formAction}
-        className="mt-8 rounded-xl border border-black/10 p-4 dark:border-white/15"
+        className="mt-8 border border-[var(--rule)] p-4"
       >
         <h2 className="font-semibold">Ny adress</h2>
 
@@ -126,7 +126,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-medium">
+      <span className="label-caps">
         {label}
         {hint ? <span className="ml-1 font-normal opacity-60">{hint}</span> : null}
       </span>
@@ -136,7 +136,7 @@ function Field({
         placeholder={placeholder}
         inputMode={inputMode}
         maxLength={240}
-        className="mt-1 min-h-11 w-full rounded-md border border-black/15 bg-transparent px-3 dark:border-white/20"
+        className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-transparent px-3"
       />
     </label>
   );
@@ -149,7 +149,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="mt-4 min-h-11 rounded-md bg-burp-600 px-5 font-medium text-white disabled:opacity-60"
+      className="mt-4 min-h-11 bg-burp-600 px-5 font-medium text-white disabled:opacity-60"
     >
       {pending ? "Sparar…" : "Spara adress"}
     </button>

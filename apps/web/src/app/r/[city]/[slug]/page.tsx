@@ -10,6 +10,8 @@ import {
 } from "@burp/core";
 import { FoodImage } from "@/components/media/food-image";
 import { MenuOrder } from "@/components/order/menu-order";
+import { SiteFooter } from "@/components/site/site-footer";
+import { SiteHeader } from "@/components/site/site-header";
 import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
 import { resolveMediaUrl } from "@/lib/media-url";
@@ -161,7 +163,16 @@ export default async function RestaurantPage({ params }: PageProps) {
   });
 
   return (
-    <main className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
+    <>
+      <SiteHeader
+        breadcrumbs={[
+          { label: "Alla städer", href: "/" },
+          { label: restaurant.city, href: `/${city}` },
+          { label: restaurant.name },
+        ]}
+      />
+
+      <main className="mx-auto max-w-5xl px-4 sm:px-6">
       <script
         type="application/ld+json"
         // Innehållet är serialiserat med escapad `<` — se serializeJsonLd.
@@ -263,6 +274,9 @@ export default async function RestaurantPage({ params }: PageProps) {
         ) : null}
         <ReviewList reviews={reviews} />
       </section>
-    </main>
+      </main>
+
+      <SiteFooter />
+    </>
   );
 }

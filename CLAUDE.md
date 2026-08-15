@@ -19,6 +19,39 @@ informerat.
 Detta gäller **om** en funktion ska byggas och **vilken väg** som är rätt. När
 en funktion väl ska byggas gäller grundregeln nedan.
 
+## Designspråket: ett, inte ett per sida
+
+Formspråket är redaktionellt — en tryckt matbilaga, inte en SaaS-produkt.
+Papper i stället för vitt, antikva i rubriker, hårfina linjaler, spärrade
+versaler till metadata. **Inga rundade hörn och inga skuggor.** Det är
+signaturen, och den fungerar bara om den är undantagslös.
+
+Byggstenarna är definierade **en enda gång**, i `apps/web/src/app/globals.css`:
+
+| Klass | Till vad |
+|---|---|
+| `.font-display` | Rubriker. Aldrig under ~1.5rem — antikvan blir oläslig liten. |
+| `.label-caps` | Metadata: stad, kategori, sektionsetikett. |
+| `.rule` | Avdelare mellan sektioner. |
+| `.card` | Yta som ligger på pappret. Ingen skugga. |
+| `.btn` + `.btn-primary` / `.btn-secondary` | Alla knappar. Minst 44 px höga. |
+| `.field` | Alla textfält. Understruken linje, inte ruta. |
+| `.link` | Länk i löpande text. Understruken redan i viloläge. |
+
+Skriv **aldrig** en egen knapp, ett eget fält eller en egen kantlinje i en
+komponent. Varje sida som gör det glider isär från resten, och det är precis
+så produkten en gång kom att tala tre olika designspråk samtidigt:
+startsidan i antikva, stadssidan i fet grotesk, inloggningen i varken eller.
+
+`SiteHeader` och `SiteFooter` (`components/site/`) ligger på varje publik sida.
+Undantaget är QR-sidan vid bordet — där har gästen redan bestämt sig, och varje
+länk bort från menyn är en länk bort från beställningen.
+
+Köksskärmen lyder inte under det här. Den körs på en surfplatta på några meters
+håll i ett stökigt kök, och där går läsbarhet före ton.
+
+---
+
 ## Grundregel: inga halvfärdiga skal
 
 Varje sida och komponent som skapas ska vara fullt implementerad. Inga

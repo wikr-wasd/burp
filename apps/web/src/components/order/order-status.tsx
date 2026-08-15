@@ -52,7 +52,7 @@ export function OrderStatusView({
 
   if (status === "CANCELLED" || status === "REFUNDED") {
     return (
-      <div className="rounded-xl border border-black/10 p-6 dark:border-white/15">
+      <div className="border border-[var(--rule)] p-6">
         <p className="text-lg font-semibold">{ORDER_STATUS_LABELS[status]}</p>
         <p className="mt-1 text-sm opacity-70">
           Prata med personalen om du har frågor om beställningen.
@@ -64,7 +64,7 @@ export function OrderStatusView({
   const minutesLeft = estimateMinutesLeft(placedAt, prepTimeMinutes, now);
 
   return (
-    <div className="rounded-xl border border-black/10 p-6 dark:border-white/15">
+    <div className="border border-[var(--rule)] p-6">
       <p className="text-lg font-semibold">
         {status === "COMPLETED" ? "Smaklig måltid" : ORDER_STATUS_LABELS[status]}
       </p>
@@ -81,7 +81,7 @@ export function OrderStatusView({
         {steps.map((step, index) => (
           <li
             key={step}
-            className={`h-1.5 flex-1 rounded-full ${
+            className={`h-1.5 flex-1 ${
               index <= currentIndex || status === "COMPLETED"
                 ? "bg-burp-600"
                 : "bg-black/10 dark:bg-white/15"

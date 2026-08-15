@@ -329,12 +329,21 @@ export async function moveMenuItem(itemId: string, direction: "up" | "down"): Pr
 
   if (!item) return fail("Rätten hittades inte.");
 
-  const { data: neighbour } = await supabase
+  // Nedåt söker vi nästa högre sort_order, uppåt nästa lägre. Jämförelsen
+  // plockas ut i en variabel — kedjad computed access på egen rad är en
+  // ASI-fälla som fungerar tills någon lägger till en rad ovanför.
+  const comparison = direction === "down" ? "gt" : "lt";
+
+  const neighbourQuery = supabase
     .from("menu_items")
     .select("id, sort_order")
     .eq("category_id", item.category_id)
-    .order("sort_order", { ascending: direction === "down" })
-    [direction === "down" ? "gt" : "lt"]("sort_order", item.sort_order)
+    .order("sort_order", { ascending: direction === "down" });
+
+  const { data: neighbour } = await neighbourQuery[comparison](
+    "sort_order",
+    item.sort_order,
+  )
     .limit(1)
     .maybeSingle();
 

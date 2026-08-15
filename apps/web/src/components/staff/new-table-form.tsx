@@ -11,7 +11,7 @@ export function NewTableForm() {
   return (
     <form
       action={formAction}
-      className="mt-6 rounded-xl border border-black/10 p-4 dark:border-white/15"
+      className="mt-6 border border-[var(--rule)] p-4"
     >
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex-1 basis-32">
@@ -20,7 +20,7 @@ export function NewTableForm() {
             name="table_number"
             required
             maxLength={20}
-            className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+            className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
           />
         </label>
 
@@ -32,7 +32,7 @@ export function NewTableForm() {
             name="zone"
             maxLength={60}
             placeholder="Uteservering"
-            className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+            className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
           />
         </label>
 
@@ -45,7 +45,7 @@ export function NewTableForm() {
             type="number"
             min={1}
             max={100}
-            className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
+            className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
           />
         </label>
 
@@ -55,7 +55,7 @@ export function NewTableForm() {
       {result?.message ? (
         <p
           role="alert"
-          className={`mt-3 rounded-md px-3 py-2 text-sm ${
+          className={`mt-3 px-3 py-2 text-sm ${
             result.ok
               ? "bg-green-600/10 text-green-700 dark:text-green-400"
               : "bg-red-600/10 text-red-700 dark:text-red-400"
@@ -77,7 +77,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-burp-600 px-5 py-2.5 font-medium text-white disabled:opacity-60"
+      className="bg-burp-600 px-5 py-2.5 font-medium text-white disabled:opacity-60"
     >
       {pending ? "Lägger till…" : "Lägg till bord"}
     </button>

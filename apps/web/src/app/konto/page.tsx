@@ -40,10 +40,11 @@ export default async function AccountPage() {
       <GuestHeader guest={guest} current="bestallningar" />
 
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <h1 className="text-2xl font-bold">Mina beställningar</h1>
+        <p className="label-caps">Mitt konto</p>
+        <h1 className="font-display mt-2 text-4xl">Mina beställningar</h1>
 
         {loyalty && loyalty.balance > 0 ? (
-          <div className="mt-4 rounded-xl border border-black/10 p-4 dark:border-white/15">
+          <div className="mt-4 border border-[var(--rule)] p-4">
             <p className="text-sm opacity-60">Poäng</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums">{loyalty.balance}</p>
             {loyalty.expiringSoon > 0 ? (
@@ -55,12 +56,9 @@ export default async function AccountPage() {
         ) : null}
 
         {orders.length === 0 ? (
-          <div className="mt-8 rounded-xl border border-black/10 p-6 dark:border-white/15">
-            <p className="opacity-70">Du har inte beställt något än.</p>
-            <Link
-              href="/"
-              className="mt-3 inline-block rounded-md bg-burp-600 px-4 py-2.5 font-medium text-white"
-            >
+          <div className="mt-10 border-y border-[var(--rule)] py-14 text-center">
+            <p className="font-display text-3xl">Du har inte beställt något än.</p>
+            <Link href="/" className="btn btn-primary mt-6">
               Hitta en restaurang
             </Link>
           </div>
@@ -68,7 +66,8 @@ export default async function AccountPage() {
 
         {active.length > 0 ? (
           <section className="mt-8">
-            <h2 className="text-lg font-semibold">Pågående</h2>
+            <hr className="rule" />
+            <h2 className="label-caps mt-5">Pågående</h2>
             <ul className="mt-3 space-y-3">
               {active.map((order) => (
                 <OrderCard key={order.id} order={order} />
@@ -79,7 +78,8 @@ export default async function AccountPage() {
 
         {past.length > 0 ? (
           <section className="mt-8">
-            <h2 className="text-lg font-semibold">Tidigare</h2>
+            <hr className="rule" />
+            <h2 className="label-caps mt-5">Tidigare</h2>
             <ul className="mt-3 space-y-3">
               {past.map((order) => (
                 <OrderCard key={order.id} order={order} />
@@ -96,7 +96,7 @@ function OrderCard({ order }: { order: Awaited<ReturnType<typeof getGuestOrders>
   const date = order.completedAt ?? order.placedAt;
 
   return (
-    <li className="rounded-xl border border-black/10 p-4 dark:border-white/15">
+    <li className="border border-[var(--rule)] p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         {order.restaurantSlug ? (
           <Link

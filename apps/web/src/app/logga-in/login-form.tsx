@@ -43,9 +43,9 @@ export function LoginForm({ next }: { next?: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+    <form onSubmit={handleSubmit} className="mt-10 space-y-7">
       <label className="block">
-        <span className="text-sm font-medium">E-post</span>
+        <span className="label-caps">E-post</span>
         <input
           type="email"
           value={email}
@@ -53,33 +53,32 @@ export function LoginForm({ next }: { next?: string }) {
           required
           autoComplete="email"
           autoFocus
-          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2.5 dark:border-white/20"
+          className="field mt-1.5"
         />
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium">Lösenord</span>
+        <span className="label-caps">Lösenord</span>
         <input
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
           autoComplete="current-password"
-          className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2.5 dark:border-white/20"
+          className="field mt-1.5"
         />
       </label>
 
       {error ? (
-        <p role="alert" className="rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+        <p
+          role="alert"
+          className="border-l-2 border-burp-600 bg-burp-50 px-3 py-2 text-sm text-burp-700 dark:bg-burp-900/40 dark:text-burp-100"
+        >
           {error}
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full rounded-md bg-burp-600 px-4 py-3 font-medium text-white disabled:opacity-60"
-      >
+      <button type="submit" disabled={submitting} className="btn btn-primary w-full">
         {submitting ? "Loggar in…" : "Logga in"}
       </button>
     </form>

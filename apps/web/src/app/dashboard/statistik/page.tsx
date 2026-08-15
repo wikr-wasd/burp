@@ -55,10 +55,10 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
                 key={key}
                 href={`/dashboard/statistik?period=${key}`}
                 aria-current={key === periodKey ? "page" : undefined}
-                className={`min-h-9 rounded-full px-3.5 py-1.5 text-sm ${
+                className={`min-h-9 px-3.5 py-1.5 text-sm ${
                   key === periodKey
                     ? "bg-burp-600 font-medium text-white"
-                    : "border border-black/15 dark:border-white/20"
+                    : "border border-[var(--rule)]"
                 }`}
               >
                 {PERIODS[key].label}
@@ -68,7 +68,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
         </div>
 
         {summary.ordersCount === 0 ? (
-          <p className="mt-8 rounded-xl border border-black/10 p-6 opacity-70 dark:border-white/15">
+          <p className="mt-8 border border-[var(--rule)] p-6 opacity-70">
             Inga genomförda beställningar i perioden. Statistiken räknar bara order som
             slutförts — en order i kön är inte omsättning.
           </p>
@@ -83,7 +83,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
             <section className="mt-8">
               <h2 className="text-lg font-semibold">Ekonomi</h2>
-              <dl className="mt-3 divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+              <dl className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
                 <Row label="Omsättning inkl. moms" value={formatMoney(summary.itemsGrossOre, staff.currency)} />
                 <Row label="varav moms" value={formatMoney(summary.itemsVatOre, staff.currency)} muted />
                 {stats.vat.map((line) => (
@@ -140,7 +140,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
             {stats.topItems.length > 0 ? (
               <section className="mt-8">
                 <h2 className="text-lg font-semibold">Populärast</h2>
-                <ul className="mt-3 divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+                <ul className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
                   {stats.topItems.map((item) => (
                     <li key={item.name} className="flex items-center gap-4 px-4 py-3">
                       <span className="w-10 shrink-0 tabular-nums opacity-60">{item.quantity}×</span>
@@ -158,7 +158,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
                 <p className="mt-1 text-sm opacity-60">
                   Siffran QR-beställningen finns för att kunna ge. Bord utan order visas som noll.
                 </p>
-                <ul className="mt-3 divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+                <ul className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
                   {stats.tableRevenue.map((table) => (
                     <li key={table.tableNumber} className="flex items-center gap-4 px-4 py-3">
                       <span className="mr-auto">
@@ -183,7 +183,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-xl border border-black/10 p-4 dark:border-white/15">
+    <div className="border border-[var(--rule)] p-4">
       <p className="text-sm opacity-60">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
       {hint ? <p className="mt-0.5 text-xs opacity-50">{hint}</p> : null}

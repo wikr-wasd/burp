@@ -66,7 +66,7 @@ export function SignUpForm({ next }: { next?: string }) {
 
   if (needsConfirmation) {
     return (
-      <p className="mt-8 rounded-md bg-green-600/10 px-4 py-3 text-sm text-green-800 dark:text-green-300">
+      <p className="mt-8 bg-green-600/10 px-4 py-3 text-sm text-green-800 dark:text-green-300">
         Nästan klart. Vi har skickat en bekräftelselänk till {email} — klicka på den så är
         kontot igång.
       </p>
@@ -74,34 +74,34 @@ export function SignUpForm({ next }: { next?: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+    <form onSubmit={handleSubmit} className="mt-10 space-y-7">
       <label className="block">
-        <span className="text-sm font-medium">
-          Namn <span className="font-normal opacity-60">valfritt</span>
+        <span className="label-caps">
+          Namn <span className="normal-case">valfritt</span>
         </span>
         <input
           value={fullName}
           onChange={(event) => setFullName(event.target.value)}
           autoComplete="name"
           maxLength={120}
-          className="mt-1 min-h-11 w-full rounded-md border border-black/15 bg-transparent px-3 dark:border-white/20"
+          className="field mt-1.5"
         />
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium">E-post</span>
+        <span className="label-caps">E-post</span>
         <input
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
           autoComplete="email"
-          className="mt-1 min-h-11 w-full rounded-md border border-black/15 bg-transparent px-3 dark:border-white/20"
+          className="field mt-1.5"
         />
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium">Lösenord</span>
+        <span className="label-caps">Lösenord</span>
         <input
           type="password"
           value={password}
@@ -109,13 +109,13 @@ export function SignUpForm({ next }: { next?: string }) {
           required
           minLength={8}
           autoComplete="new-password"
-          className="mt-1 min-h-11 w-full rounded-md border border-black/15 bg-transparent px-3 dark:border-white/20"
+          className="field mt-1.5"
         />
-        <span className="mt-1 block text-xs opacity-60">Minst 8 tecken.</span>
+        <span className="mt-1.5 block text-xs text-[var(--muted)]">Minst 8 tecken.</span>
       </label>
 
       {error ? (
-        <p role="alert" className="rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="border-l-2 border-burp-600 bg-burp-50 px-3 py-2 text-sm text-burp-700 dark:bg-burp-900/40 dark:text-burp-100">
           {error}
         </p>
       ) : null}
@@ -123,7 +123,7 @@ export function SignUpForm({ next }: { next?: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className="min-h-12 w-full rounded-md bg-burp-600 px-4 font-medium text-white disabled:opacity-60"
+        className="btn btn-primary w-full"
       >
         {submitting ? "Skapar konto…" : "Skapa konto"}
       </button>

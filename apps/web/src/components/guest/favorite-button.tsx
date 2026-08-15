@@ -41,10 +41,10 @@ export function FavoriteButton({
             }
           });
         }}
-        className={`h-11 w-11 rounded-full border text-lg disabled:opacity-50 ${
+        className={`h-11 w-11 border text-lg disabled:opacity-50 ${
           isFavorite
             ? "border-transparent bg-burp-600 text-white"
-            : "border-black/15 dark:border-white/20"
+            : "border-[var(--rule)]"
         }`}
       >
         {isFavorite ? "♥" : "♡"}

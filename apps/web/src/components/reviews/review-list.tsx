@@ -19,7 +19,7 @@ export function ReviewList({ reviews }: { reviews: readonly PublicReview[] }) {
   return (
     <ul className="mt-4 space-y-4">
       {reviews.map((review) => (
-        <li key={review.id} className="rounded-xl border border-black/10 p-4 dark:border-white/15">
+        <li key={review.id} className="border border-[var(--rule)] p-4">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <Stars rating={review.ratingFood} label="Betyg på maten" />
             <span className="text-sm opacity-60">
@@ -39,7 +39,7 @@ export function ReviewList({ reviews }: { reviews: readonly PublicReview[] }) {
           {/* Restaurangens svar. Indraget och märkt, så att det inte går att
               förväxla med gästens egna ord. */}
           {review.response ? (
-            <div className="mt-3 rounded-lg bg-black/5 p-3 dark:bg-white/10">
+            <div className="mt-3 bg-black/5 p-3 dark:bg-white/10">
               <p className="text-sm font-medium">Svar från restaurangen</p>
               <p className="mt-1 text-sm">{review.response}</p>
             </div>

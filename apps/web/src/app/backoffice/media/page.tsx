@@ -114,10 +114,10 @@ export default async function MediaPage({ searchParams }: PageProps) {
               key={choice.value}
               href={`/backoffice/media?status=${choice.value}`}
               aria-current={status === choice.value ? "page" : undefined}
-              className={`min-h-9 rounded-full px-3.5 py-1.5 text-sm ${
+              className={`min-h-9 px-3.5 py-1.5 text-sm ${
                 status === choice.value
                   ? "bg-burp-600 font-medium text-white"
-                  : "border border-black/15 dark:border-white/20"
+                  : "border border-[var(--rule)]"
               }`}
             >
               {choice.label}

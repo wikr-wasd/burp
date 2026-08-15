@@ -8,9 +8,17 @@
  * spärrade versaler till småetiketter. Rött är accenten och används sparsamt —
  * på det som ska tryckas, inte som dekoration.
  *
- * Två ytor lyder inte under det här: köksskärmen och backoffice. Där är
- * läsbarhet på avstånd och täthet viktigare än ton, och de håller sig till
- * grotesken.
+ * Formspråket är kantigt med flit. Inga rundade hörn, inga skuggor. Det är
+ * signaturen: en gäst som sett Burp en gång känner igen den, och igenkänning
+ * är hela skillnaden mellan en sida man minns och en till matapp.
+ *
+ * Klasserna nedan är avsiktligt få. En knapp ska se likadan ut på startsidan,
+ * i kassan och i dashboarden, och det enda sättet att garantera det är att det
+ * bara finns ett ställe där den definieras. Varje sida som skriver sin egen
+ * knapp är en sida som glider isär från resten.
+ *
+ * En yta lyder inte under det här: köksskärmen. Den körs på en surfplatta på
+ * några meters håll i ett stökigt kök, och där går läsbarhet före ton.
  */
 
 @theme {
@@ -40,7 +48,7 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-instrument), "Iowan Old Style", Georgia, serif;
 
-  /* Spärrade versaler till småetiketter — "VOL. 1 · MALMÖ". */
+  /* Spärrade versaler till småetiketter — "VOL. 1 · SARAJEVO". */
   --tracking-label: 0.14em;
 }
 
@@ -50,6 +58,16 @@
   --foreground: var(--color-ink);
   --muted: var(--color-ink-soft);
   --rule: var(--color-rule);
+
+  /*
+   * En enda hastighet och en enda kurva i hela produkten.
+   *
+   * Blandade övergångstider är det som får ett gränssnitt att kännas
+   * hopplockat. `ease-out` för att rörelsen ska bromsa in mot slutet — det
+   * läser som att något landar, inte som att något studsar.
+   */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --speed: 180ms;
 }
 
 /*
@@ -75,6 +93,17 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/*
+ * Ankarhopp får inte lägga rubriken under ett klistrat sidhuvud.
+ *
+ * Gäller globalt i stället för per komponent — annars gäller det bara på de
+ * sidor någon kom ihåg att sätta det, och gästen landar på fel ställe på
+ * resten.
+ */
+:target {
+  scroll-margin-top: 5rem;
 }
 
 /* ── Redaktionella byggstenar ─────────────────────────────────────────── */
@@ -116,6 +145,140 @@ body {
   border: 1px solid var(--rule);
 }
 
+/*
+ * Sektionsrubrik: linjal ovanför, spärrad etikett under.
+ *
+ * Samma mönster på varje sida gör att gästen läser strukturen utan att behöva
+ * tänka på den — det är det som gör en sajt lätt att navigera, inte fler
+ * menyer.
+ */
+.section-rule {
+  border: 0;
+  border-top: 1px solid var(--foreground);
+  opacity: 0.85;
+}
+
+/* ── Kontroller ───────────────────────────────────────────────────────── */
+
+/*
+ * Fokusmarkering.
+ *
+ * En och samma i hela produkten, och alltid synlig. Tangentbordsnavigering är
+ * inte en tillgänglighetsdetalj här — personalen i ett kök tabbar sig igenom
+ * dashboarden med feta fingrar och en surfplatta, och en osynlig fokusram gör
+ * ytan obrukbar.
+ */
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--color-burp-600);
+  outline-offset: 2px;
+}
+
+/*
+ * Knappar.
+ *
+ * 44 px hög som minimum överallt. Det är Apples och Googles gräns för en
+ * träffyta som en tumme klarar, och den gäller lika mycket för en gäst vid ett
+ * bord som för en kock vid en spis.
+ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding-inline: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition:
+    background-color var(--speed) var(--ease),
+    border-color var(--speed) var(--ease),
+    color var(--speed) var(--ease);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn-primary {
+  background: var(--color-burp-600);
+  color: #fff;
+}
+
+.btn-primary:not(:disabled):hover {
+  background: var(--color-burp-700);
+}
+
+.btn-secondary {
+  border-color: var(--rule);
+  color: var(--foreground);
+}
+
+.btn-secondary:not(:disabled):hover {
+  border-color: var(--color-burp-600);
+  color: var(--color-burp-600);
+}
+
+/*
+ * Textfält.
+ *
+ * En understruken linje i stället för en ruta. Rutan är formulärets
+ * standardutseende och gör varje sida till ett formulär; linjen läser som
+ * något att skriva på, vilket är vad det är.
+ */
+.field {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 0.25rem 0.125rem;
+  font-size: 1rem;
+  color: var(--foreground);
+  transition: border-color var(--speed) var(--ease);
+}
+
+.field:hover {
+  border-color: var(--muted);
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--color-burp-600);
+  border-bottom-width: 2px;
+  /* Kompenserar den extra pixeln så att raden under inte hoppar. */
+  padding-bottom: calc(0.25rem - 1px);
+}
+
+.field::placeholder {
+  color: var(--muted);
+}
+
+/*
+ * Länk i löpande text.
+ *
+ * Understruken i vilotillstånd, inte bara vid hover. En länk som ser ut som
+ * text tills man råkar peka på den är en länk gästen aldrig hittar.
+ */
+.link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.25em;
+  transition:
+    color var(--speed) var(--ease),
+    text-decoration-color var(--speed) var(--ease);
+}
+
+.link:hover {
+  color: var(--color-burp-600);
+  text-decoration-color: currentColor;
+}
+
 /* ── Köksskärmen ──────────────────────────────────────────────────────── */
 
 /* Körs på en surfplatta i ett kök. Ingen ska kunna markera text av misstag
@@ -143,7 +306,7 @@ body {
 }
 
 .fade-in {
-  animation: burp-fade-in 0.4s ease-out both;
+  animation: burp-fade-in 0.4s var(--ease) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
