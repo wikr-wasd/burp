@@ -50,6 +50,10 @@ end
 $$;
 
 -- Minimal auth.users. Migrationerna har FK hit och en trigger på insert.
+-- OBS: id har en default här men INTE i Supabase, där den måste anges
+-- explicit vid varje insert. Stubben är alltså mer tillåtande än verkligheten;
+-- ett test som förlitar sig på defaulten passerar lokalt och faller mot en
+-- riktig instans.
 create table if not exists auth.users (
   id                  uuid primary key default gen_random_uuid(),
   email               text,

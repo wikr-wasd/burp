@@ -180,11 +180,7 @@ RESPONSE=$(order_request "{
   \"idempotency_key\": \"$(uuid)\",
   \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
 }")
-if [ "$(tail -1 <<<"$RESPONSE")" = "409" ]; then
-  pass "manipulerad totalsumma avvisas"
-else
-  fail "manipulerad totalsumma accepterades: $(tail -1 <<<"$RESPONSE")"
-fi
+assert_order_status "manipulerad totalsumma avvisas" 409 "$(tail -1 <<<"$RESPONSE")"
 
 # Tillval lånat från en annan rätt: "Utan ost" (-10 kr) hör till Margherita.
 RESPONSE=$(order_request "{
@@ -192,11 +188,7 @@ RESPONSE=$(order_request "{
   \"idempotency_key\": \"$(uuid)\",
   \"items\": [{\"menu_item_id\": \"$DIAVOLA\", \"quantity\": 1, \"options\": [{\"option_id\": \"$UTAN_OST\"}]}]
 }")
-if [ "$(tail -1 <<<"$RESPONSE")" = "400" ]; then
-  pass "tillval från annan rätt avvisas"
-else
-  fail "tillval från annan rätt accepterades: $(tail -1 <<<"$RESPONSE")"
-fi
+assert_order_status "tillval från annan rätt avvisas" 400 "$(tail -1 <<<"$RESPONSE")"
 
 echo "→ Idempotens"
 KEY="$(uuid)"
@@ -205,6 +197,8 @@ FIRST=$(order_request "$PAYLOAD" | sed '$d' | json_field order_id)
 SECOND=$(order_request "$PAYLOAD" | sed '$d' | json_field order_id)
 if [ "$FIRST" = "$SECOND" ] && [ -n "$FIRST" ] && [ "$FIRST" != "null" ]; then
   pass "samma nyckel ger samma order"
+elif [ -z "$FIRST" ] && [ -z "$SECOND" ]; then
+  fail "idempotens: inga order skapades, troligen rate limit. Vänta en minut."
 else
   fail "dubbeltryck gav två order ($FIRST / $SECOND)"
 fi
@@ -519,6 +513,102 @@ else
   fail "$ANON_EARN poängrader skapades för beställningar utan gäst"
 fi
 
+echo "→ Omdömen"
+# Ett omdöme kräver en genomförd order som tillhör en inloggad gäst. Bygger
+# det i databasen: API-vägen kräver en gästsession som curl inte har.
+sql "delete from public.reviews where restaurant_id = '$SEED_RESTAURANT';" > /dev/null
+REVIEW_ORDER=$(sql "
+  with u as (
+    -- id måste anges explicit. auth.users har ingen default i Supabase, till
+    -- skillnad från stubben i verify-schema.sh.
+    insert into auth.users (instance_id, id, aud, role, email, encrypted_password,
+                            email_confirmed_at, created_at, updated_at,
+                            confirmation_token, recovery_token, email_change_token_new, email_change)
+    values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+            'omdome-$(date +%s)@example.com', crypt('burp1234', gen_salt('bf')),
+            now(), now(), now(), '', '', '', '')
+    returning id
+  ), o as (
+    insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key,
+                               items_gross_ore, items_vat_ore, total_ore)
+    select '$SEED_RESTAURANT', u.id, 'PICKUP', 'DRAFT', gen_random_uuid(), 12900, 1382, 12900
+    from u returning id
+  )
+  select id from o;")
+
+for step in PLACED ACCEPTED PREPARING READY COMPLETED; do
+  sql "update public.orders set status = '$step' where id = '$REVIEW_ORDER';" > /dev/null
+done
+
+# INSERT ... RETURNING via `psql -tAc` skriver BÅDE raden och kommandotaggen
+# "INSERT 0 1". Variabeln blir då två rader och oanvändbar som id. Lösningen är
+# att låta den yttersta satsen vara en SELECT.
+REVIEW_ID=$(sql "
+  with r as (
+    insert into public.reviews (order_id, restaurant_id, user_id, rating_food, rating_service, comment)
+    select '$REVIEW_ORDER', '$SEED_RESTAURANT', guest_id, 2, 3, 'Maten var kall nar jag kom hem.'
+    from public.orders where id = '$REVIEW_ORDER'
+    returning id
+  )
+  select id from r;")
+
+if [ -n "$REVIEW_ID" ]; then
+  pass "omdöme kan lämnas på en genomförd order"
+else
+  fail "kunde inte skapa omdömet"
+fi
+
+if curl -s "$BASE/r/malmo/pizzeria-roma" | grep -q "Maten var kall"; then
+  pass "omdömet syns på restaurangsidan"
+else
+  fail "omdömet syns inte publikt"
+fi
+
+# Restaurangen får svara.
+curl -s -o /dev/null -X PATCH "$SUPABASE_URL/rest/v1/reviews?id=eq.$REVIEW_ID" \
+  -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+  -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+  -d '{"response":"Tack for att du sager till. Vi ser over vara emballage."}'
+
+if [ -n "$(sql "select response from public.reviews where id = '$REVIEW_ID';")" ]; then
+  pass "restaurangen kan svara på omdömet"
+else
+  fail "restaurangens svar sparades inte"
+fi
+
+# Men inte ändra betyget. Det är hela grunden för att omdömena går att lita på
+# — och därmed för att AggregateRating får publiceras.
+curl -s -o /dev/null -X PATCH "$SUPABASE_URL/rest/v1/reviews?id=eq.$REVIEW_ID" \
+  -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+  -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+  -d '{"rating_food":5}'
+
+if [ "$(sql "select rating_food from public.reviews where id = '$REVIEW_ID';")" = "2" ]; then
+  pass "restaurangen kan inte ändra betyget"
+else
+  fail "restaurangen ändrade betyget på sitt eget omdöme"
+fi
+
+curl -s -o /dev/null -X PATCH "$SUPABASE_URL/rest/v1/reviews?id=eq.$REVIEW_ID" \
+  -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+  -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+  -d '{"comment":"Allt var utmarkt!"}'
+
+if [ "$(sql "select comment from public.reviews where id = '$REVIEW_ID';")" = "Maten var kall nar jag kom hem." ]; then
+  pass "restaurangen kan inte skriva om gästens text"
+else
+  fail "restaurangen skrev om gästens omdöme"
+fi
+
+# Snittbetyget cachas av trigger och ska spegla det enda omdömet.
+if [ "$(sql "select rating_average from public.restaurants where id = '$SEED_RESTAURANT';")" = "2.0" ]; then
+  pass "snittbetyget cachades"
+else
+  fail "snittbetyget blev $(sql "select rating_average from public.restaurants where id = '$SEED_RESTAURANT';")"
+fi
+
+sql "delete from public.reviews where id = '$REVIEW_ID';" > /dev/null
+
 echo "→ Förbeställningar"
 # Inställningen är avstängd i seed. En förbeställning ska då avvisas, inte tyst
 # behandlas som en vanlig order.
@@ -527,11 +617,7 @@ SCHEDULED=$(order_request "{
   \"scheduled_for\": \"$(node -e 'const d=new Date(Date.now()+3*3600e3); d.setMinutes(0,0,0); console.log(d.toISOString())')\",
   \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
 }")
-if [ "$(tail -1 <<<"$SCHEDULED")" = "409" ]; then
-  pass "förbeställning avvisas när restaurangen stängt av den"
-else
-  fail "förbeställning accepterades trots att den är avstängd: $(tail -1 <<<"$SCHEDULED")"
-fi
+assert_order_status "förbeställning avvisas när restaurangen stängt av den" 409 "$(tail -1 <<<"$SCHEDULED")"
 
 # Slås den på ska en tid i det förflutna fortfarande avvisas — klienten
 # föreslår, servern avgör.
@@ -543,11 +629,7 @@ PAST=$(order_request "{
   \"scheduled_for\": \"$(node -e 'console.log(new Date(Date.now()-3600e3).toISOString())')\",
   \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
 }")
-if [ "$(tail -1 <<<"$PAST")" = "409" ]; then
-  pass "hämttid i det förflutna avvisas"
-else
-  fail "en hämttid som redan passerat accepterades: $(tail -1 <<<"$PAST")"
-fi
+assert_order_status "hämttid i det förflutna avvisas" 409 "$(tail -1 <<<"$PAST")"
 
 # En tid som inte ligger på en kvart ska avvisas oavsett hur långt fram den är.
 ODD=$(order_request "{
@@ -555,11 +637,7 @@ ODD=$(order_request "{
   \"scheduled_for\": \"$(node -e 'const d=new Date(Date.now()+3*3600e3); d.setMinutes(7,0,0); console.log(d.toISOString())')\",
   \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
 }")
-if [ "$(tail -1 <<<"$ODD")" = "409" ]; then
-  pass "hämttid utanför kvartarna avvisas"
-else
-  fail "en godtycklig minut accepterades som hämttid: $(tail -1 <<<"$ODD")"
-fi
+assert_order_status "hämttid utanför kvartarna avvisas" 409 "$(tail -1 <<<"$ODD")"
 
 sql "update public.restaurants set order_policy = jsonb_set(order_policy, '{allow_scheduled_orders}', 'false')
      where id = '$SEED_RESTAURANT';" > /dev/null

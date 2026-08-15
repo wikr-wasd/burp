@@ -95,6 +95,15 @@ export interface LineTotal {
 export const FEE_BASES = ["GROSS_ITEMS", "NET_ITEMS", "GROSS_TOTAL"] as const;
 export type FeeBase = (typeof FEE_BASES)[number];
 
+/**
+ * Betyg som bör fånga uppmärksamhet (avsnitt 7).
+ *
+ * Tröskeln är två av fem. Ett trebetyg är ett medelmåttigt besök; ett tvåa
+ * eller lägre är någon som blev besviken nog att skriva om det, och det är
+ * värt att titta på innan restaurangen tappar fler gäster.
+ */
+export const LOW_RATING_THRESHOLD = 2;
+
 /** Burps standardavgift: 340 baspunkter = 3,40 %. */
 export const DEFAULT_FEE_BPS = 340;
 

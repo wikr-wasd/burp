@@ -6,6 +6,8 @@ import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { getActiveMenu } from "@/lib/menu";
+import { getPublicReviews } from "@/lib/reviews";
+import { ReviewList } from "@/components/reviews/review-list";
 import { restaurantJsonLd, serializeJsonLd } from "@/lib/seo/jsonld";
 import { createClient } from "@/lib/supabase/server";
 
@@ -111,6 +113,8 @@ export default async function RestaurantPage({ params }: PageProps) {
    * erbjuda en tid som servern sedan avvisar — vilket ser ut som en bugg för
    * gästen. Tom lista när förbeställning är avstängd; då visas ingen väljare.
    */
+  const reviews = await getPublicReviews(restaurant.id);
+
   const policy = parseOrderPolicy(restaurant.order_policy);
   const pickupSlots = policy.allowScheduledOrders
     ? availableSlots({
@@ -192,6 +196,21 @@ export default async function RestaurantPage({ params }: PageProps) {
           </p>
         </section>
       )}
+
+      {/* Omdömen sist: gästen ska först kunna beställa, sedan övertygas.
+          Betygen är kopplade till genomförda order, vilket är det som gör att
+          AggregateRating i markupen ovan får publiceras. */}
+      <section className="mt-12">
+        <h2 className="text-xl font-semibold">Omdömen</h2>
+        {restaurant.rating_count > 0 && restaurant.rating_average !== null ? (
+          <p className="mt-1 text-sm opacity-60">
+            {restaurant.rating_average.toFixed(1).replace(".", ",")} av 5 baserat på{" "}
+            {restaurant.rating_count} {restaurant.rating_count === 1 ? "omdöme" : "omdömen"} från
+            genomförda beställningar.
+          </p>
+        ) : null}
+        <ReviewList reviews={reviews} />
+      </section>
     </main>
   );
 }

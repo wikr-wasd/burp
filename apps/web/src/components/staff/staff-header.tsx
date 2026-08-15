@@ -41,6 +41,9 @@ export function StaffHeader({ staff, current }: { staff: StaffContext; current: 
               <Link href="/dashboard/bord" className="opacity-60 hover:opacity-100">
                 Bord
               </Link>
+              <Link href="/dashboard/omdomen" className="opacity-60 hover:opacity-100">
+                Omdömen
+              </Link>
               <Link href="/dashboard/statistik" className="opacity-60 hover:opacity-100">
                 Statistik
               </Link>
