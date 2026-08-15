@@ -253,6 +253,20 @@ går live.
 | Avgiftsbasen är gissad (`GROSS_ITEMS`) | Öppen fråga 1 | Fas 1 |
 | Kassaregisterkravet outrett | Öppen fråga 4 | Fas 2 live |
 | Ingen GDPR-export eller radering | — | Fas 4 |
+| Inga laddningsskelett på publika sidor — se fällan nedan | `app/[locale]/` | — |
+
+### Fällan: `loading.tsx` gör varje `notFound()` till en 200:a
+
+En `loading.tsx` i ett segment öppnar en strömmande respons. Statusraden går då
+iväg innan sidan är färdig, och en sida som senare anropar `notFound()` hinner
+aldrig sätta 404 — svaret blir **200 med 404-sidans innehåll**.
+
+För en sajt som lever på sökträffar är det ett verkligt fel: Google indexerar
+mjuka 404:or som riktigt innehåll, och varje felstavad adress blir en tunn sida
+i sökresultaten. `scripts/smoke.sh` kontrollerar statuskoderna och fångar det —
+lita på testet, inte på hur sidan ser ut i webbläsaren.
+
+Vill någon ha skelett igen: lägg dem bara på segment som aldrig kan 404:a.
 
 ---
 

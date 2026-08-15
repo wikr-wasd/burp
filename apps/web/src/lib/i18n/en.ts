@@ -173,6 +173,18 @@ export const en: Dictionary = {
     },
   },
 
+  errors: {
+    notFoundLabel: "404",
+    notFoundTitle: "This page does not exist.",
+    notFoundBody: "The address may have changed, or the restaurant may have stopped taking orders through Burp. Try one of the cities below.",
+    notFoundAction: "Go to the home page",
+    errorLabel: "Error",
+    errorTitle: "Something went wrong.",
+    errorBody: "That is on us, not on you. Try again — and if it still fails, calling the restaurant directly works just as well.",
+    errorRetry: "Try again",
+    loading: "Loading…",
+  },
+
   directions: {
     copy: "Copy address",
     copied: "Copied",

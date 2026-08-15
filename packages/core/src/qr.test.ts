@@ -3,6 +3,7 @@ import {
   generatePublicId,
   generateTableToken,
   parseToken,
+  PUBLIC_ID_KEYSPACE,
   PUBLIC_ID_LENGTH,
   tableQrUrl,
   TOKEN_LENGTH,
@@ -27,9 +28,44 @@ describe("generatePublicId", () => {
     }
   });
 
-  it("kolliderar inte i praktiken", () => {
-    const ids = new Set(Array.from({ length: 5000 }, generatePublicId));
-    expect(ids.size).toBe(5000);
+  /**
+   * Testet drog tidigare 5000 id och krävde noll kollisioner.
+   *
+   * Med sex tecken ur ett alfabet på 32 är nyckelrymden 32^6 ≈ 1,07 miljarder.
+   * Födelsedagsparadoxen ger då 5000²/(2·1,07e9) ≈ **1,16 %** risk att minst
+   * två av dem sammanfaller. Testet föll alltså ungefär var åttiofemte körning
+   * — inte för att generatorn var trasig utan för att kravet var fel ställt.
+   *
+   * En flaxig testrad är värre än ingen: den lär teamet att köra om i stället
+   * för att läsa. Urvalet är därför litet nog att risken är försumbar
+   * (500²/(2·1,07e9) ≈ 1 på 8500), och skalfrågan prövas separat nedan.
+   */
+  it("ger unika id över ett litet urval", () => {
+    const ids = new Set(Array.from({ length: 500 }, generatePublicId));
+    expect(ids.size).toBe(500);
+  });
+
+  /**
+   * Nyckelrymden räcker inte för hur många som helst, och det är avsiktligt.
+   *
+   * Sex tecken valdes för att koden ska gå att läsa upp i telefon och skrivas
+   * av för hand från en dekal. Priset är att kollisioner blir SANNOLIKA i
+   * skala: vid 100 000 bord är risken att minst två sammanfaller över 99 %.
+   *
+   * Det är därför `tables.qr_public_id` har ett unikt index och varför
+   * `createTable` provar om vid felkod 23505. Sänks längden ytterligare, eller
+   * tas återförsöket bort, går det sönder — den här raden finns för att göra
+   * kopplingen svår att missa.
+   */
+  it("har en nyckelrymd som kräver återförsök vid insert", () => {
+    expect(PUBLIC_ID_KEYSPACE).toBe(32 ** 6);
+
+    const collisionRisk = (tables: number) =>
+      1 - Math.exp((-tables * tables) / (2 * PUBLIC_ID_KEYSPACE));
+
+    // Enstaka restaurang: försumbart. Hela plattformen: nästan säkert.
+    expect(collisionRisk(100)).toBeLessThan(0.00001);
+    expect(collisionRisk(100_000)).toBeGreaterThan(0.99);
   });
 });
 

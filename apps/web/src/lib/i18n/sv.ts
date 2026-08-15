@@ -194,6 +194,19 @@ export const sv = {
     },
   },
 
+  /** Sidor som inte finns, och fel som inte gick att undvika. */
+  errors: {
+    notFoundLabel: "404",
+    notFoundTitle: "Sidan finns inte.",
+    notFoundBody: "Adressen kan ha ändrats, eller så har restaurangen slutat ta emot beställningar via Burp. Prova någon av städerna nedan.",
+    notFoundAction: "Till startsidan",
+    errorLabel: "Fel",
+    errorTitle: "Något gick fel.",
+    errorBody: "Det är vårt fel, inte ditt. Försök igen — funkar det inte heller går det bra att ringa restaurangen direkt.",
+    errorRetry: "Försök igen",
+    loading: "Laddar…",
+  },
+
   directions: {
     copy: "Kopiera adress",
     copied: "Kopierad",

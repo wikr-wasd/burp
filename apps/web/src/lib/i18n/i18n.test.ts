@@ -40,15 +40,28 @@ describe("ordböckerna", () => {
    * lättare att missa än en saknad — den syns inte som ett fel, bara som fel
    * språk.
    */
+  /**
+   * Texter som med rätta är identiska.
+   *
+   * Listan är avsiktligt kort och varje rad har ett skäl. Poängen med testet
+   * är att fånga en text som glömts oöversatt, och en generell uppmjukning —
+   * "hoppa över korta strängar", till exempel — hade släppt igenom precis det.
+   */
+  const SAMMA_PÅ_BÅDA: Record<string, string> = {
+    "errors.notFoundLabel": "En siffra. 404 heter 404 på båda språken.",
+  };
+
   it("är faktiskt översatt", () => {
     const svFlat = flatten(sv);
     const enFlat = flatten(en);
 
     const identical = Object.keys(svFlat).filter(
-      (key) => typeof svFlat[key] === "string" && svFlat[key] === enFlat[key],
+      (key) =>
+        typeof svFlat[key] === "string" &&
+        svFlat[key] === enFlat[key] &&
+        !(key in SAMMA_PÅ_BÅDA),
     );
 
-    // "Meny"/"Menu" skiljer sig; ingenting i ordboken ska vara helt lika.
     expect(identical).toEqual([]);
   });
 });
