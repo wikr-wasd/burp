@@ -54,6 +54,8 @@ export async function registerMedia(input: {
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/dashboard/meny");
+  // Huvudbilden laddas upp från inställningarna, inte från menyn.
+  revalidatePath("/dashboard/installningar");
   return { ok: true };
 }
 
@@ -94,5 +96,7 @@ export async function deletePendingMedia(mediaId: string): Promise<ActionResult>
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/dashboard/meny");
+  // Huvudbilden laddas upp från inställningarna, inte från menyn.
+  revalidatePath("/dashboard/installningar");
   return { ok: true };
 }

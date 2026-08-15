@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  COUNTRY_INFO,
+  normalizePostalCode,
+  parseCoordinates,
   parseOrderPolicy,
+  toWkt,
   serializeOrderPolicy,
   validateOpeningHours,
   WEEKDAY_KEYS,
@@ -219,4 +223,102 @@ export async function inviteStaff(
       ? `${email} är tillagd. Personen kan logga in med sitt befintliga konto.`
       : `Inbjudan skickad till ${email}.`,
   };
+}
+
+/* ── Restaurangens egen sida ─────────────────────────────────────────────── */
+
+export interface PresentationInput {
+  description: string;
+  phone: string;
+  cuisines: string;
+  priceTier: number | null;
+  streetAddress: string;
+  postalCode: string;
+  city: string;
+  /** Koordinater eller en kartlänk. Tom sträng lämnar punkten orörd. */
+  location: string;
+}
+
+/**
+ * Sparar det som utgör restaurangens presentation utåt.
+ *
+ * Fram till nu gick beskrivning, telefon, kökstyper, prisklass och adress bara
+ * att ändra med SQL. En restaurang som inte kan ändra sin egen presentation
+ * har ingen egen sida — den har en katalogpost någon annan skriver.
+ *
+ * Skrivningen går via den vanliga RLS-klienten. `restaurants_update_owner`
+ * (migration 0009) släpper bara igenom ägare och chefer för den egna
+ * restaurangen; service role skulle bara ta bort skyddsnätet.
+ */
+export async function savePresentation(input: PresentationInput): Promise<ActionResult> {
+  const staff = await requireStaff(["owner", "manager"]);
+
+  const street = input.streetAddress.trim();
+  const postal = normalizePostalCode(staff.country, input.postalCode);
+  const city = input.city.trim();
+
+  if (!street) return fail("Gatuadressen får inte vara tom.");
+  if (!city) return fail("Staden får inte vara tom.");
+  if (postal === null) {
+    return fail(
+      `Postnumret ser inte ut att gälla i ${COUNTRY_INFO[staff.country].name}.`,
+    );
+  }
+
+  if (input.priceTier !== null && ![1, 2, 3, 4].includes(input.priceTier)) {
+    return fail("Prisklassen måste vara 1–4.");
+  }
+
+  /*
+   * Kökstyperna kommer som en kommaseparerad rad.
+   *
+   * Dubbletter tas bort och tomma led faller bort, så att "Grill, , grill"
+   * inte blir tre filter på startsidan. Ordningen behålls — den är ägarens
+   * prioritering, och den syns i listan.
+   */
+  const cuisines = [
+    ...new Set(
+      input.cuisines
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  ].slice(0, 8);
+
+  const update: Record<string, unknown> = {
+    description: input.description.trim() || null,
+    phone: input.phone.trim() || null,
+    cuisines,
+    price_tier: input.priceTier,
+    street_address: street,
+    postal_code: postal,
+    city,
+  };
+
+  /*
+   * Punkten skrivs bara när ägaren angett en.
+   *
+   * `latitude` och `longitude` är genererade kolumner (migration 0013) och går
+   * inte att skriva till — punkten sitter i `location`. Ett tomt fält betyder
+   * "rör inte", inte "nollställ": en tom rad ska aldrig kunna radera en
+   * fungerande kartnål.
+   */
+  if (input.location.trim()) {
+    const point = parseCoordinates(input.location);
+    if (!point) {
+      return fail(
+        "Kunde inte läsa någon plats ur det där. Klistra in en länk från Google Maps, " +
+          "eller skriv koordinaterna som \"43.8595, 18.4287\".",
+      );
+    }
+    update["location"] = toWkt(point);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("restaurants")
+    .update(update)
+    .eq("id", staff.restaurantId);
+
+  return error ? fail(error.message) : done();
 }

@@ -8,6 +8,7 @@ import {
 } from "@burp/core";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { OpeningHoursEditor } from "@/components/staff/opening-hours-editor";
+import { PresentationEditor } from "@/components/staff/presentation-editor";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
 import { StaffManager } from "@/components/staff/staff-manager";
 import { requireStaff } from "@/lib/auth";
@@ -45,7 +46,12 @@ export default async function SettingsPage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("opening_hours, order_policy")
+    // En enda literal, inte en hopslagen sträng: Supabase härleder radtypen ur
+    // select-uttrycket, och en konkatenering ger `GenericStringError` i stället
+    // för kolumnerna.
+    .select(
+      "opening_hours, order_policy, description, phone, cuisines, price_tier, street_address, postal_code, city, city_slug, slug, latitude, longitude, hero_image_url",
+    )
     .eq("id", staff.restaurantId)
     .single();
 
@@ -94,38 +100,74 @@ export default async function SettingsPage() {
       <StaffHeader staff={staff} current="dashboard" />
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <h1 className="text-2xl font-bold">Inställningar</h1>
+        <p className="label-caps">{staff.restaurantName}</p>
+        <h1 className="font-display mt-2 text-4xl">Inställningar</h1>
 
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">Öppettider</h2>
-          <p className="mt-1 text-sm opacity-70">
+        {/*
+          Presentationen först.
+
+          Öppettider och orderregler avgör om gäster KAN beställa, men det som
+          avgör om de VILL är hur stället presenterar sig. Den redigeraren låg
+          inte här alls tidigare — beskrivning, bild, kökstyper och adress gick
+          bara att ändra med SQL.
+        */}
+        {restaurant ? (
+          <div className="mt-10">
+            <PresentationEditor
+              restaurantId={staff.restaurantId}
+              restaurantName={staff.restaurantName}
+              country={staff.country}
+              publicPath={`/r/${restaurant.city_slug}/${restaurant.slug}`}
+              initial={{
+                description: restaurant.description,
+                phone: restaurant.phone,
+                cuisines: restaurant.cuisines ?? [],
+                priceTier: restaurant.price_tier,
+                streetAddress: restaurant.street_address,
+                postalCode: restaurant.postal_code,
+                city: restaurant.city,
+                latitude: restaurant.latitude,
+                longitude: restaurant.longitude,
+                heroImageUrl: restaurant.hero_image_url,
+              }}
+            />
+          </div>
+        ) : null}
+
+        <hr className="rule mt-14" />
+
+        <section className="mt-10">
+          <h2 className="font-display text-2xl">Öppettider</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
             Gäster kan bara beställa när ni är öppna. Flera pass per dag för lunch och kväll.
             Pass över midnatt stöds inte än.
           </p>
           <OpeningHoursEditor initial={hours} />
         </section>
 
-        <section className="mt-12">
-          <h2 className="text-lg font-semibold">Orderregler</h2>
-          <p className="mt-1 text-sm opacity-70">
+        <hr className="rule mt-14" />
+
+        <section className="mt-10">
+          <h2 className="font-display text-2xl">Orderregler</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
             Vad gästen får ändra efter att beställningen lagts, och hur länge.
           </p>
           <OrderPolicyEditor initial={policy} />
         </section>
 
         {staff.role === "owner" ? (
-          <section className="mt-12">
-            <h2 className="text-lg font-semibold">Personal</h2>
-            <p className="mt-1 text-sm opacity-70">
+          <section className="mt-14 border-t border-[var(--rule)] pt-10">
+            <h2 className="font-display text-2xl">Personal</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
               Ägare ser allt. Chef sköter drift och meny. Personal tar order och bord. Kock ser
               bara köksskärmen.
             </p>
             <StaffManager members={members} />
           </section>
         ) : (
-          <section className="mt-12">
-            <h2 className="text-lg font-semibold">Personal</h2>
-            <p className="mt-1 text-sm opacity-70">
+          <section className="mt-14 border-t border-[var(--rule)] pt-10">
+            <h2 className="font-display text-2xl">Personal</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
               Bara ägaren kan bjuda in och ändra roller.
             </p>
           </section>

@@ -13,6 +13,7 @@ export * from "./pricing";
 export * from "./order-status";
 export * from "./order-policy";
 export * from "./order-build";
+export * from "./geo";
 export * from "./menu-schedule";
 export * from "./opening-hours";
 export * from "./scheduling";
