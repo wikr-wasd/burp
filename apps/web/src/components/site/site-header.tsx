@@ -32,15 +32,18 @@ export function SiteHeader({ breadcrumbs = [] }: { breadcrumbs?: readonly Breadc
           Burp
         </Link>
 
-        <div className="flex items-center gap-6">
-          {/* Marknaden skriven på sina egna språk. Det är en signal till en
-              gäst i Sarajevo att sajten är byggd för hen, inte översatt. */}
-          <span className="label-caps hidden md:inline">Bosna · Hrvatska · Srbija</span>
+        {/*
+          Ingen landsrad här.
 
-          <Link href="/logga-in" className="link min-h-11 content-center text-sm">
-            För restauranger
-          </Link>
-        </div>
+          Burp listar inte länder, den listar restauranger. Vilket land en
+          restaurang ligger i syns där det spelar roll — i valutan på notan och
+          i momsen på menyraden — och är i övrigt gästens minsta bekymmer.
+          Rubriker som räknar upp marknader talar om plattformen i stället för
+          om maten.
+        */}
+        <Link href="/logga-in" className="link min-h-11 content-center text-sm">
+          För restauranger
+        </Link>
       </div>
 
       {breadcrumbs.length > 0 ? (

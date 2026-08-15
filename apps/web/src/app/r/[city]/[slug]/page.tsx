@@ -11,6 +11,12 @@ import {
 import { FoodImage } from "@/components/media/food-image";
 import { MenuOrder } from "@/components/order/menu-order";
 import { SiteFooter } from "@/components/site/site-footer";
+import { Directions } from "@/components/site/directions";
+import { MapEmbed } from "@/components/site/map-embed";
+import {
+  OpeningHoursWeek,
+  toSchemaOpeningHours,
+} from "@/components/site/opening-hours-week";
 import { SiteHeader } from "@/components/site/site-header";
 import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
@@ -155,7 +161,7 @@ export default async function RestaurantPage({ params }: PageProps) {
     cuisines: restaurant.cuisines ?? [],
     country: restaurant.country,
     currency: restaurant.currency,
-    openingHours: [], // Fylls från `restaurants.opening_hours` när menyvyn byggs.
+    openingHours: toSchemaOpeningHours(restaurant.opening_hours),
     rating:
       restaurant.rating_count > 0 && restaurant.rating_average !== null
         ? { average: restaurant.rating_average, count: restaurant.rating_count }
@@ -231,10 +237,34 @@ export default async function RestaurantPage({ params }: PageProps) {
         {restaurant.description ? (
           <p className="mt-6 max-w-prose text-lg leading-relaxed">{restaurant.description}</p>
         ) : null}
+
+        {/*
+          Restaurangens egen innehållsförteckning.
+
+          En restaurang som fått en sida hos Burp ska kunna skicka länken till
+          den och veta att en gäst hittar menyn, vägen dit och omdömena utan
+          att leta. Ankarlänkar i stället för flikar: allt finns i HTML:en,
+          Google indexerar hela sidan, och ingenting kräver JavaScript.
+        */}
+        <nav aria-label="På den här sidan" className="mt-8 flex flex-wrap gap-x-1">
+          {[
+            { href: "#meny", label: "Meny" },
+            { href: "#hitta-hit", label: "Hitta hit" },
+            { href: "#omdomen", label: "Omdömen" },
+          ].map((entry) => (
+            <a
+              key={entry.href}
+              href={entry.href}
+              className="inline-flex min-h-11 items-center border-b-2 border-[var(--rule)] px-3 text-sm transition-colors duration-[var(--speed)] hover:border-burp-600 hover:text-burp-600"
+            >
+              {entry.label}
+            </a>
+          ))}
+        </nav>
       </header>
 
       {menu && menu.categories.length > 0 ? (
-        <section className="mt-14">
+        <section id="meny" className="mt-14">
           <hr className="rule" />
           <p className="label-caps mt-6">Beställ för avhämtning · {menu.name}</p>
           <div className="mt-6">
@@ -250,7 +280,7 @@ export default async function RestaurantPage({ params }: PageProps) {
           </div>
         </section>
       ) : (
-        <section className="mt-14 border-y border-[var(--rule)] py-12 text-center">
+        <section id="meny" className="mt-14 border-y border-[var(--rule)] py-12 text-center">
           <h2 className="font-display text-2xl">Ingen meny just nu</h2>
           <p className="mx-auto mt-2 max-w-md text-[var(--muted)]">
             {restaurant.name} har inte publicerat någon meny för den här tiden. Ring gärna dit
@@ -259,10 +289,54 @@ export default async function RestaurantPage({ params }: PageProps) {
         </section>
       )}
 
+      <section id="hitta-hit" className="mt-16">
+        <hr className="rule" />
+        <h2 className="font-display mt-6 text-3xl">Hitta hit</h2>
+
+        <div className="mt-6 grid gap-10 lg:grid-cols-2">
+          <div>
+            <Directions
+              name={restaurant.name}
+              streetAddress={restaurant.street_address}
+              postalCode={restaurant.postal_code}
+              city={restaurant.city}
+              latitude={restaurant.latitude}
+              longitude={restaurant.longitude}
+            />
+
+            {restaurant.phone ? (
+              <p className="mt-6">
+                <span className="label-caps block">Telefon</span>
+                <a href={`tel:${restaurant.phone}`} className="link mt-1 inline-block text-lg">
+                  {restaurant.phone}
+                </a>
+              </p>
+            ) : null}
+
+            <div className="mt-8">
+              <h3 className="label-caps">Öppettider</h3>
+              <div className="mt-2">
+                <OpeningHoursWeek hours={restaurant.opening_hours} />
+              </div>
+            </div>
+          </div>
+
+          {/* `self-start` håller kartan vid sin egen höjd. Utan den sträcker
+              rutnätet ramen till kolumnens höjd medan bilden stannar, och
+              gästen ser en tom kant under kartan. */}
+          <MapEmbed
+            latitude={restaurant.latitude}
+            longitude={restaurant.longitude}
+            name={restaurant.name}
+            className="self-start"
+          />
+        </div>
+      </section>
+
       {/* Omdömen sist: gästen ska först kunna beställa, sedan övertygas.
           Betygen är kopplade till genomförda order, vilket är det som gör att
           AggregateRating i markupen ovan får publiceras. */}
-      <section className="mt-16">
+      <section id="omdomen" className="mt-16">
         <hr className="rule" />
         <h2 className="font-display mt-6 text-3xl">Omdömen</h2>
         {restaurant.rating_count > 0 && restaurant.rating_average !== null ? (

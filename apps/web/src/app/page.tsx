@@ -201,14 +201,14 @@ function Hero({
           </>
         ) : (
           <>
-            Ćevapi, burek och allt <span className="text-burp-600">däremellan</span>.
+            Varje restaurang, <span className="text-burp-600">sin egen sida</span>.
           </>
         )}
       </h1>
 
       <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
-        Hitta restauranger i Sarajevo, Zagreb och Belgrad. Skanna QR-koden vid
-        bordet och beställ direkt — ingen app, inget konto.
+        Meny med bilder, öppettider och vägbeskrivning — och beställning direkt
+        från bordet med en QR-kod. Ingen app, inget konto.
       </p>
 
       <form

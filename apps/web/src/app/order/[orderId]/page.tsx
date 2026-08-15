@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Directions } from "@/components/site/directions";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { notFound } from "next/navigation";
@@ -62,7 +63,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
       .eq("order_id", order.id),
     supabase
       .from("restaurants")
-      .select("name, city, city_slug, slug, street_address, postal_code, phone, order_policy")
+      .select("name, city, city_slug, slug, street_address, postal_code, latitude, longitude, phone, order_policy")
       .eq("id", order.restaurant_id)
       .single(),
   ]);
@@ -114,15 +115,31 @@ export default async function PickupOrderPage({ params }: PageProps) {
         }))}
       />
 
+      {/*
+        Vägbeskrivningen hör hemma här mer än någon annanstans.
+
+        Gästen som just lagt en avhämtningsorder ska strax gå eller köra dit,
+        och ska slippa skriva av en adress hen redan har på skärmen. Samma
+        knappar som på restaurangsidan — ett mönster, inte två.
+      */}
       {restaurant ? (
         <section className="mt-10">
           <hr className="rule" />
           <h2 className="label-caps mt-5">Hämtas hos</h2>
-          <p className="mt-2">
-            {restaurant.street_address}, {restaurant.postal_code} {restaurant.city}
-          </p>
+
+          <div className="mt-3">
+            <Directions
+              name={restaurant.name}
+              streetAddress={restaurant.street_address}
+              postalCode={restaurant.postal_code}
+              city={restaurant.city}
+              latitude={restaurant.latitude}
+              longitude={restaurant.longitude}
+            />
+          </div>
+
           {restaurant.phone ? (
-            <p className="mt-1">
+            <p className="mt-5">
               <a href={`tel:${restaurant.phone.replace(/\s/g, "")}`} className="link">
                 {restaurant.phone}
               </a>

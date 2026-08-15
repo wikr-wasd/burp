@@ -24,8 +24,9 @@ export async function SiteFooter() {
           <div>
             <p className="font-display text-3xl">Burp</p>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-[var(--muted)]">
-              Marknadsplats för restauranger i Bosnien, Kroatien och Serbien. Skanna QR-koden
-              vid bordet och beställ — utan app och utan konto.
+              Varje restaurang med sin egen sida: meny, bilder, öppettider och
+              vägbeskrivning. Skanna QR-koden vid bordet och beställ — utan app
+              och utan konto.
             </p>
           </div>
 
@@ -89,7 +90,10 @@ export async function SiteFooter() {
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
           <p className="label-caps">© {new Date().getFullYear()} Burp</p>
-          <p className="label-caps">Sarajevo · Zagreb · Beograd</p>
+          <p className="label-caps">
+            {cities.length} {cities.length === 1 ? "stad" : "städer"} ·{" "}
+            {cuisines.length} {cuisines.length === 1 ? "kök" : "kök"}
+          </p>
         </div>
       </div>
     </footer>
