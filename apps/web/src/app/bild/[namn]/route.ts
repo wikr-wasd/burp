@@ -55,40 +55,103 @@ export async function GET(
   // Vinkeln varieras så att två rätter bredvid varandra inte ser identiska ut.
   const angle = (seed % 4) * 30;
 
+  /*
+   * Motivet: en tallrik sedd uppifrån, med mat på.
+   *
+   * Första versionen var en gradient med rättens initial i 180 punkter. Den
+   * gjorde jobbet — ingen tom ruta — men på startsidan, där tre av dem ligger
+   * bredvid varandra som första intryck, läste de som platshållare snarare än
+   * som mat. En marknadsplats vars förstaskärm ser oifylld ut är svår att ta
+   * på allvar.
+   *
+   * Formerna räknas ur namnet och är därmed desamma varje gång. De ska antyda
+   * mat på en tallrik utan att låtsas vara ett fotografi: en restaurang som
+   * laddat upp en riktig bild ska alltid se bättre ut än en som inte gjort det.
+   */
+  const plate = 250;
+
+  // Fem oregelbundna klickar innanför tallriken. Vinkel och storlek härleds ur
+  // hashen, så samma rätt får samma anrättning.
+  const morsels = Array.from({ length: 5 }, (_, i) => {
+    const angle = ((seed >> (i * 3)) % 360) * (Math.PI / 180);
+    const distance = 60 + ((seed >> (i * 5)) % 90);
+    const radius = 42 + ((seed >> (i * 7)) % 46);
+
+    return {
+      cx: 400 + Math.cos(angle) * distance,
+      cy: 300 + Math.sin(angle) * distance * 0.8,
+      rx: radius,
+      ry: radius * (0.62 + ((seed >> (i * 11)) % 40) / 100),
+      rotate: (seed >> (i * 13)) % 180,
+      opacity: 0.14 + ((seed >> (i * 2)) % 12) / 100,
+    };
+  });
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="${escapeXml(name)}">
   <defs>
     <linearGradient id="g" gradientTransform="rotate(${angle})">
       <stop offset="0%" stop-color="${from}"/>
       <stop offset="100%" stop-color="${to}"/>
     </linearGradient>
+    <radialGradient id="plate">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.16)"/>
+      <stop offset="70%" stop-color="rgba(255,255,255,0.09)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.03)"/>
+    </radialGradient>
     <filter id="grain">
       <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="${seed % 100}"/>
       <feColorMatrix type="saturate" values="0"/>
       <feComponentTransfer><feFuncA type="linear" slope="0.06"/></feComponentTransfer>
     </filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="6"/></filter>
   </defs>
 
   <rect width="800" height="600" fill="url(#g)"/>
 
-  <!-- Korn ovanpå ytan. En helt slät gradient ser digital ut; kornet gör den
-       närmare tryck, vilket är hela designspråkets utgångspunkt. -->
+  <!-- Tallriken. Ljusare i mitten, som porslin under en lampa. -->
+  <circle cx="400" cy="300" r="${plate}" fill="url(#plate)"/>
+  <circle cx="400" cy="300" r="${plate}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+  <circle cx="400" cy="300" r="${plate - 46}" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1.5"/>
+
+  <!-- Maten. Mjuka kanter, för att inget på en tallrik har skarpa. -->
+  <g filter="url(#soft)">
+    ${morsels
+      .map(
+        (m) =>
+          `<ellipse cx="${m.cx.toFixed(1)}" cy="${m.cy.toFixed(1)}" rx="${m.rx}" ry="${m.ry.toFixed(1)}" ` +
+          `transform="rotate(${m.rotate} ${m.cx.toFixed(1)} ${m.cy.toFixed(1)})" ` +
+          `fill="rgba(255,255,255,${m.opacity.toFixed(2)})"/>`,
+      )
+      .join(" ")}
+  </g>
+
+  <!-- Korn ovanpå alltihop. En slät gradient ser digital ut; kornet drar den
+       närmare tryck, vilket är designspråkets utgångspunkt. -->
   <rect width="800" height="600" filter="url(#grain)"/>
 
-  <!-- Två tallriksringar, svagt antydda. Ger bilden ett motiv utan att låtsas
-       vara ett fotografi av något den inte är. -->
-  <circle cx="400" cy="300" r="200" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="2"/>
-  <circle cx="400" cy="300" r="150" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="2"/>
-
-  <text x="400" y="300" text-anchor="middle" dominant-baseline="central"
-        font-family="Georgia, 'Iowan Old Style', serif" font-size="180"
-        fill="rgba(255,255,255,0.92)">${escapeXml(initial)}</text>
+  <!-- Initialen som liten märkning nere till vänster, inte som motiv. Den ska
+       hjälpa den som letar i en lång lista, inte dominera bilden. -->
+  <text x="46" y="554" font-family="Georgia, 'Iowan Old Style', serif" font-size="64"
+        fill="rgba(255,255,255,0.30)">${escapeXml(initial)}</text>
 </svg>`;
 
   return new Response(svg, {
     headers: {
       "Content-Type": "image/svg+xml; charset=utf-8",
-      // Bilden är ren funktion av namnet och ändras aldrig. Cacha hårt.
-      "Cache-Control": "public, max-age=31536000, immutable",
+      /*
+       * Cachas hårt men inte för evigt.
+       *
+       * Stod tidigare som `immutable` i ett år, med motiveringen att bilden är
+       * en ren funktion av namnet. Det stämmer för ett givet motiv — men inte
+       * över tid: när motivet gjordes om från en bokstavsplatta till en
+       * tallrik hade varje återvändande besökare fortsatt se den gamla i upp
+       * till ett år, utan något sätt att tvinga fram den nya.
+       *
+       * Ett dygn med `stale-while-revalidate` ger samma snabbhet i praktiken —
+       * bilden hämtas om i bakgrunden, aldrig i gästens väg — och gör en
+       * framtida omgörning möjlig utan att byta URL.
+       */
+      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
     },
   });
 }

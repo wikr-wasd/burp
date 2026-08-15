@@ -94,8 +94,17 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
   // Den högst betygsatta restaurangen får uppslaget. Är listan filtrerad ner
   // till en handfull träffar vore det udda att lyfta ut en av dem — då är
   // rutnätet ärligare.
-  const [featured, ...rest] = restaurants;
-  const showFeature = !hasFilter && restaurants.length >= 3 && featured;
+  /*
+   * Collaget i hjälten ersätter det tidigare "utvalda" uppslaget.
+   *
+   * Två stora bildblock före rutnätet blev för mycket — gästen fick scrolla
+   * förbi bilder för att komma till listan med bilder. Hjälten gör nu jobbet
+   * att locka, och rutnätet jobbet att låta välja.
+   *
+   * Döljs vid filtrering: har gästen redan sökt är tre godtyckliga bilder i
+   * vägen för svaret.
+   */
+  const showcase = hasFilter ? [] : restaurants.slice(0, 3);
 
   return (
     <div className="min-h-screen">
@@ -104,6 +113,8 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
       <main className="mx-auto max-w-6xl px-4 sm:px-6">
         <Hero
           t={t}
+          locale={locale}
+          showcase={showcase}
           city={city}
           cuisine={cuisine}
           query={query}
@@ -175,10 +186,8 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
           <EmptyState t={t} locale={locale} hasFilter={hasFilter} />
         ) : (
           <>
-            {showFeature ? <FeaturedCard t={t} locale={locale} restaurant={featured} /> : null}
-
             <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-              {(showFeature ? rest : restaurants).map((restaurant) => (
+              {restaurants.map((restaurant) => (
                 <li key={restaurant.id}>
                   <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
                 </li>
@@ -193,73 +202,126 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
   );
 }
 
+/**
+ * Förstaskärmen.
+ *
+ * Sidan var textbaserad ända tills gästen scrollade — rubrik, ingress,
+ * sökfält. Det är svagast möjliga första intryck för en matmarknadsplats:
+ * det som säljer mat är bilder på mat, och de låg alla under vikningen.
+ *
+ * Nu ligger tre restauranger som ett förskjutet collage bredvid rubriken, och
+ * ovanför den på mobilen. Bilderna är riktiga länkar till riktiga
+ * restauranger, inte dekor — den som lockas av en bild ska kunna klicka på
+ * den. Förskjutningen är avsiktlig: tre lika stora rutor i rad läser som en
+ * annons, tre i otakt läser som ett uppslag.
+ */
 function Hero({
   t,
+  locale,
   city,
   cuisine,
   query,
   cityName,
+  showcase,
 }: {
   t: Dictionary;
+  locale: Locale;
   city?: string;
   cuisine?: string;
   query?: string;
   cityName?: string;
+  /** Restauranger att visa i collaget. Tom lista döljer det helt. */
+  showcase: readonly DiscoveryRestaurant[];
 }) {
   return (
     <section className="pt-10 sm:pt-14">
-      <p className="label-caps">{t.home.label}</p>
+      <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+        {/* Bilderna först i DOM:en på mobil, men textkolumnen först på stora
+            skärmar. `order` flyttar dem visuellt utan att röra läsordningen
+            för skärmläsare mer än nödvändigt. */}
+        {showcase.length > 0 ? (
+          <div className="order-first grid grid-cols-3 gap-3 lg:order-last lg:gap-4">
+            {showcase.map((restaurant, index) => (
+              <Link
+                key={restaurant.id}
+                href={localePath(locale, `/r/${restaurant.citySlug}/${restaurant.slug}`)}
+                className={`group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burp-600 ${
+                  // Mittenbilden sjunker ned, de yttre lyfts. Otakten är det
+                  // som gör det till ett uppslag i stället för en bannerrad.
+                  index === 1 ? "mt-8 lg:mt-12" : ""
+                }`}
+              >
+                <FoodImage
+                  src={restaurantImage(
+                    restaurant.name,
+                    restaurant.city,
+                    restaurant.heroImageUrl,
+                  )}
+                  alt=""
+                  ratio="aspect-[3/4]"
+                  priority={index === 0}
+                />
+                <span className="label-caps mt-2 block truncate group-hover:text-burp-600">
+                  {restaurant.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : null}
 
-      <h1 className="font-display mt-3 max-w-3xl text-[2.75rem] leading-[1.02] sm:text-6xl lg:text-7xl">
-        {cityName ? (
-          t.home.headlineCity(cityName)
-        ) : (
-          <>
-            {t.home.headline[0]}{" "}
-            <span className="text-burp-600">{t.home.headline[1]}</span>.
-          </>
-        )}
-      </h1>
+        <div>
+          <p className="label-caps">{t.home.label}</p>
 
-      <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
-        {t.home.intro}
-      </p>
+          <h1 className="font-display mt-3 text-[2.75rem] leading-[1.02] sm:text-6xl">
+            {cityName ? (
+              t.home.headlineCity(cityName)
+            ) : (
+              <>
+                {t.home.headline[0]}{" "}
+                <span className="text-burp-600">{t.home.headline[1]}</span>.
+              </>
+            )}
+          </h1>
 
-      <form
-        action="/"
-        method="get"
-        role="search"
-        className="mt-8 flex max-w-xl gap-0 border-b-2 border-[var(--foreground)] pb-1"
-      >
-        {/* Sökningen ska inte tappa vald stad eller kökstyp. */}
-        {city ? <input type="hidden" name="stad" value={city} /> : null}
-        {cuisine ? <input type="hidden" name="kok" value={cuisine} /> : null}
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
+            {t.home.intro}
+          </p>
 
-        <label htmlFor="q" className="sr-only">
-          {t.home.searchLabel}
-        </label>
-        <input
-          id="q"
-          name="q"
-          type="search"
-          defaultValue={query ?? ""}
-          placeholder={t.home.searchPlaceholder}
-          autoComplete="off"
-          className="min-h-12 flex-1 bg-transparent text-lg outline-none placeholder:text-[var(--muted)] focus-visible:placeholder:opacity-60"
-        />
-        <button
-          type="submit"
-          className="min-h-12 shrink-0 px-2 text-sm font-medium tracking-[var(--tracking-label)] uppercase transition-colors hover:text-burp-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
-        >
-          {t.home.searchButton}
-        </button>
-      </form>
+          <form
+            action={localePath(locale, "/")}
+            method="get"
+            role="search"
+            className="mt-8 flex max-w-xl gap-0 border-b-2 border-[var(--foreground)] pb-1"
+          >
+            {/* Sökningen ska inte tappa vald stad eller kökstyp. */}
+            {city ? <input type="hidden" name="stad" value={city} /> : null}
+            {cuisine ? <input type="hidden" name="kok" value={cuisine} /> : null}
 
-      {/* Ligger kvar även när formuläret är tomt — utan den ser fältet ut att
-          söka i något odefinierat. */}
-      <p className="mt-2 max-w-xl text-xs text-[var(--muted)]">
-        {t.home.searchHint}
-      </p>
+            <label htmlFor="q" className="sr-only">
+              {t.home.searchLabel}
+            </label>
+            <input
+              id="q"
+              name="q"
+              type="search"
+              defaultValue={query ?? ""}
+              placeholder={t.home.searchPlaceholder}
+              autoComplete="off"
+              className="min-h-12 flex-1 bg-transparent text-lg outline-none placeholder:text-[var(--muted)] focus-visible:placeholder:opacity-60"
+            />
+            <button
+              type="submit"
+              className="min-h-12 shrink-0 px-2 text-sm font-medium tracking-[var(--tracking-label)] uppercase transition-colors hover:text-burp-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
+            >
+              {t.home.searchButton}
+            </button>
+          </form>
+
+          {/* Ligger kvar även när formuläret är tomt — utan den ser fältet ut
+              att söka i något odefinierat. */}
+          <p className="mt-2 max-w-xl text-xs text-[var(--muted)]">{t.home.searchHint}</p>
+        </div>
+      </div>
     </section>
   );
 }
@@ -337,58 +399,6 @@ function Rating({ t, restaurant }: { t: Dictionary; restaurant: DiscoveryRestaur
         {t.home.ratingSummary(restaurant.ratingAverage.toFixed(1), restaurant.ratingCount)}
       </span>
     </span>
-  );
-}
-
-/** Uppslaget: bild till vänster, text till höger på breda skärmar. */
-function FeaturedCard({
-  t,
-  locale,
-  restaurant,
-}: {
-  t: Dictionary;
-  locale: Locale;
-  restaurant: DiscoveryRestaurant;
-}) {
-  const hours = todaysHours(restaurant.openingHours, restaurant.timeZone);
-
-  return (
-    <Link
-      href={localePath(locale, `/r/${restaurant.citySlug}/${restaurant.slug}`)}
-      className="group mt-8 grid gap-6 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burp-600 lg:grid-cols-2 lg:items-center lg:gap-10"
-    >
-      <FoodImage
-        src={restaurantImage(restaurant.name, restaurant.city, restaurant.heroImageUrl)}
-        alt=""
-        ratio="aspect-[3/2]"
-        priority
-      />
-
-      <div>
-        <p className="label-caps text-burp-600">{t.home.featured}</p>
-
-        <h3 className="font-display mt-2 text-4xl sm:text-5xl">{restaurant.name}</h3>
-
-        <p className="mt-3 text-sm text-[var(--muted)]">{meta(restaurant)}</p>
-
-        {restaurant.description ? (
-          <p className="mt-4 max-w-prose leading-relaxed text-[var(--muted)]">
-            {restaurant.description}
-          </p>
-        ) : null}
-
-        <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <Rating t={t} restaurant={restaurant} />
-          <span className="text-[var(--muted)]">
-            {hours ? t.home.todayHours(hours) : t.home.closedToday}
-          </span>
-        </p>
-
-        <span className="mt-6 inline-block border-b-2 border-burp-600 pb-0.5 text-sm font-medium tracking-[var(--tracking-label)] text-burp-600 uppercase">
-          {t.home.seeMenu}
-        </span>
-      </div>
-    </Link>
   );
 }
 
