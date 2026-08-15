@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import {
+  availabilityState,
+  COUNTRY_INFO,
   assertClientTotalMatches,
   buildPricedLines,
   calculateFee,
@@ -12,6 +14,7 @@ import {
   SCHEDULE_PROBLEM_MESSAGES,
   statusAfterPlacement,
   validateScheduledFor,
+  type CountryCode,
 } from "@burp/core";
 import { serverEnv } from "@/lib/env";
 import { rememberGuestOrder } from "@/lib/guest-orders";
@@ -135,6 +138,57 @@ export async function POST(request: Request) {
     return problem(500, "Menyn kunde inte läsas", "Försök igen.");
   }
 
+  /*
+   * Schemalagd otillgänglighet gäller även här.
+   *
+   * `is_available` är dagens av/på-knapp; `item_availability` bär reglerna som
+   * släcker sig själva ("slut till fredag"). Menyvyn respekterar båda — men
+   * menyvyn är klientkod, och den som anropar API:t direkt har aldrig sett
+   * den. Utan kontrollen här går en schemalagt slutsåld rätt att beställa,
+   * och köket får en biljett på något de inte har.
+   */
+  const { data: availabilityRows, error: availabilityError } = await supabase
+    .from("item_availability")
+    .select("menu_item_id, available_from, available_to, weekday, reason")
+    .in("menu_item_id", menuItemIds);
+
+  if (availabilityError) {
+    return problem(500, "Menyn kunde inte läsas", "Försök igen.");
+  }
+
+  /*
+   * Tidszonen är restaurangens, inte serverns.
+   *
+   * Veckodagen i en tillgänglighetsregel måste räknas där restaurangen står:
+   * 00:30 i Sarajevo är fortfarande föregående dag i UTC, och på Vercel kör
+   * servern i UTC. En fredagsregel hade då gällt en timme in på lördagen.
+   * Restaurangen är känd via menyraderna även för avhämtning, där `restaurantId`
+   * ännu är tom.
+   */
+  const { data: catalogRestaurant } = await supabase
+    .from("restaurants")
+    .select("country")
+    .eq("id", menuItems[0]!.restaurant_id)
+    .maybeSingle();
+
+  const timeZone = COUNTRY_INFO[
+    (catalogRestaurant?.country as CountryCode | undefined) ?? "BA"
+  ].timeZone;
+  const scheduledOut = new Set(
+    menuItemIds.filter((id) => {
+      const rules = (availabilityRows ?? [])
+        .filter((row) => row.menu_item_id === id)
+        .map((row) => ({
+          availableFrom: row.available_from,
+          availableTo: row.available_to,
+          weekday: row.weekday,
+          reason: row.reason,
+        }));
+
+      return !availabilityState(rules, timeZone).isAvailable;
+    }),
+  );
+
   /* ── 3. Räkna om priset från menyn, inte från klienten ─────────────────── */
 
   const built = buildPricedLines(input.items, {
@@ -144,7 +198,7 @@ export async function POST(request: Request) {
       name: row.name,
       priceOre: row.price_ore,
       vatRateBps: row.vat_rate_bps,
-      isAvailable: row.is_available,
+      isAvailable: row.is_available && !scheduledOut.has(row.id),
       status: row.status,
     })),
     optionGroups: optionGroups.map((row) => ({

@@ -453,3 +453,68 @@ export async function deleteOption(optionId: string): Promise<ActionResult> {
 
   return error ? fail(error.message) : done();
 }
+
+/* ── Schemalagd tillgänglighet ───────────────────────────────────────────── */
+
+/**
+ * Markerar en rätt som slut fram till en tidpunkt.
+ *
+ * Skild från av/på-knappen, som är omedelbar och måste stängas av för hand.
+ * Den här slutar gälla av sig själv — och det är hela poängen: en kock som
+ * släcker en rätt manuellt måste också tända den igen, och det steget är det
+ * som glöms. Rätten ligger kvar som slutsåld i en vecka och ingen märker det
+ * förrän en gäst frågar.
+ *
+ * Befintliga regler för rätten ersätts. Två överlappande "slut till"-regler
+ * betyder i praktiken den senare av dem, och att låta båda ligga kvar gör
+ * bara listan obegriplig för nästa person som tittar.
+ */
+export async function setItemUnavailableUntil(
+  itemId: string,
+  until: string,
+  reason: string,
+): Promise<ActionResult> {
+  const staff = await requireStaff(EDITOR_ROLES);
+
+  const at = new Date(until);
+  if (Number.isNaN(at.getTime())) return fail("Tiden gick inte att tolka.");
+  if (at.getTime() <= Date.now()) {
+    return fail("Tidpunkten måste ligga i framtiden — annars är rätten redan tillgänglig.");
+  }
+
+  const supabase = await createClient();
+
+  const { error: clearError } = await supabase
+    .from("item_availability")
+    .delete()
+    .eq("menu_item_id", itemId);
+
+  if (clearError) return fail(clearError.message);
+
+  const { error } = await supabase.from("item_availability").insert({
+    menu_item_id: itemId,
+    restaurant_id: staff.restaurantId,
+    // Rätten är tillgänglig FRÅN tidpunkten. Att uttrycka "slut till fredag"
+    // som ett fönster som börjar på fredagen är samma sak, och slipper en
+    // andra tolkning av vad raden betyder.
+    available_from: at.toISOString(),
+    available_to: null,
+    weekday: null,
+    reason: reason.trim().slice(0, 200) || null,
+  });
+
+  return error ? fail(error.message) : done();
+}
+
+/** Tar bort schemalagd otillgänglighet och gör rätten valbar igen. */
+export async function clearItemAvailability(itemId: string): Promise<ActionResult> {
+  await requireStaff(EDITOR_ROLES);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("item_availability")
+    .delete()
+    .eq("menu_item_id", itemId);
+
+  return error ? fail(error.message) : done();
+}

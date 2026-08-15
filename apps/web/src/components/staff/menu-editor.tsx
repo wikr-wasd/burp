@@ -11,6 +11,7 @@ import {
 } from "@burp/core";
 import {
   createCategory,
+  clearItemAvailability,
   createMenu,
   createMenuItem,
   createOption,
@@ -25,6 +26,7 @@ import {
   setMenuStatus,
   setOptionAvailable,
   updateMenu,
+  setItemUnavailableUntil,
   updateMenuItem,
   type ActionResult,
 } from "@/app/dashboard/meny/actions";
@@ -490,6 +492,8 @@ function ItemRow({
 
       {expanded ? (
         <div className="mt-4 space-y-4 border-t border-[var(--rule)] pt-4">
+          <UnavailableUntil item={item} onError={onError} />
+
           <label className="block">
             <span className="text-sm font-medium">Beskrivning</span>
             <InlineTextarea
@@ -872,5 +876,105 @@ function Feedback({ result }: { result: ActionResult }) {
     >
       {result.message}
     </p>
+  );
+}
+
+/* ── Slut till ───────────────────────────────────────────────────────────── */
+
+/**
+ * "Slut till fredag" — otillgänglighet som släcker sig själv.
+ *
+ * Skild från av/på-knappen ovanför, som är omedelbar och måste stängas av för
+ * hand. Skillnaden är inte akademisk: en kock som släcker en rätt manuellt
+ * måste också tända den igen, och det steget är precis det som glöms. Rätten
+ * ligger kvar som slutsåld i en vecka och ingen märker det förrän en gäst
+ * frågar efter den.
+ *
+ * Skälet visas för gästen. "Slut till fredag" får hen att komma tillbaka;
+ * "slut för dagen" gör det inte.
+ */
+function UnavailableUntil({
+  item,
+  onError,
+}: {
+  item: EditorItem;
+  onError: (message: string) => void;
+}) {
+  const [pending, run] = useAction(onError);
+  const [until, setUntil] = useState("");
+  const [reason, setReason] = useState("");
+
+  if (item.unavailableUntil) {
+    const at = new Date(item.unavailableUntil);
+
+    return (
+      <div className="border-l-2 border-burp-600 bg-burp-50 px-3 py-2 dark:bg-burp-900/40">
+        <p className="text-sm">
+          Slut till{" "}
+          <span className="font-medium">
+            {at.toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" })}
+          </span>
+          {item.unavailableReason ? ` — "${item.unavailableReason}"` : null}
+        </p>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => clearItemAvailability(item.id))}
+          className="mt-2 border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
+        >
+          Gör tillgänglig igen
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <label className="basis-52">
+        <span className="text-sm font-medium">Slut till</span>
+        <input
+          type="datetime-local"
+          value={until}
+          onChange={(event) => setUntil(event.target.value)}
+          className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-transparent px-3"
+        />
+      </label>
+
+      <label className="flex-1 basis-40">
+        <span className="text-sm font-medium">Skäl för gästen</span>
+        <input
+          type="text"
+          value={reason}
+          maxLength={200}
+          onChange={(event) => setReason(event.target.value)}
+          placeholder="T.ex. Slut till fredag"
+          className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-transparent px-3"
+        />
+      </label>
+
+      <button
+        type="button"
+        disabled={pending || !until}
+        onClick={() =>
+          run(async () => {
+            const result = await setItemUnavailableUntil(
+              item.id,
+              // datetime-local saknar tidszon. Webbläsarens egen används, vilket
+              // är personalens — de står i restaurangen när de fyller i det.
+              new Date(until).toISOString(),
+              reason,
+            );
+            if (result.ok) {
+              setUntil("");
+              setReason("");
+            }
+            return result;
+          })
+        }
+        className="min-h-11 border border-[var(--rule)] px-4 text-sm disabled:opacity-50"
+      >
+        Markera slut
+      </button>
+    </div>
   );
 }

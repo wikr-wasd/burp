@@ -369,7 +369,11 @@ function MenuItemCard({
         <div className="relative">
           <FoodImage src={dishImage(item.name, item.imageUrl)} alt="" ratio="aspect-[4/3]" />
           <span className="absolute inset-0 grid place-items-center bg-[var(--background)]/70">
-            <span className="label-caps bg-[var(--background)] px-3 py-1.5">Slut för dagen</span>
+            {/* Restaurangens eget skäl om det finns. "Slut till fredag" får
+                gästen att komma tillbaka; "slut för dagen" gör det inte. */}
+            <span className="label-caps bg-[var(--background)] px-3 py-1.5 text-center">
+              {item.unavailableReason ?? "Slut för dagen"}
+            </span>
           </span>
         </div>
         <h3 className="font-display mt-3 text-xl line-through">{item.name}</h3>

@@ -47,6 +47,14 @@ export interface EditorItem {
   imageUrl: string | null;
   /** Bilder som väntar på Burps granskning. */
   pendingMedia: number;
+  /**
+   * Schemalagd otillgänglighet: ISO-tid då rätten blir valbar igen.
+   *
+   * Null när ingen regel finns. Skild från `isAvailable`, som är dagens
+   * av/på-knapp och måste stängas av för hand.
+   */
+  unavailableUntil: string | null;
+  unavailableReason: string | null;
   optionGroups: EditorOptionGroup[];
 }
 
@@ -99,6 +107,26 @@ export default async function MenuPage() {
     : { data: [] };
 
   const itemIds = (items ?? []).map((item) => item.id);
+
+  const { data: availability } = itemIds.length
+    ? await supabase
+        .from("item_availability")
+        .select("menu_item_id, available_from, reason")
+        .in("menu_item_id", itemIds)
+        .order("available_from", { ascending: false })
+    : { data: [] };
+
+  // Senaste regeln per rätt. Redigeraren sätter bara en i taget, men en
+  // databas som råkat få två ska visa den som gäller längst.
+  const availabilityByItem = new Map<string, { until: string | null; reason: string | null }>();
+  for (const row of availability ?? []) {
+    if (!availabilityByItem.has(row.menu_item_id)) {
+      availabilityByItem.set(row.menu_item_id, {
+        until: row.available_from,
+        reason: row.reason,
+      });
+    }
+  }
 
   const { data: groups } = itemIds.length
     ? await supabase
@@ -161,6 +189,8 @@ export default async function MenuPage() {
         status: item.status,
         imageUrl: item.image_url,
         pendingMedia: pendingByItem.get(item.id) ?? 0,
+        unavailableUntil: availabilityByItem.get(item.id)?.until ?? null,
+        unavailableReason: availabilityByItem.get(item.id)?.reason ?? null,
         optionGroups: (groupsByItem.get(item.id) ?? []).map((row) => ({
           id: row.id,
           name: row.name,

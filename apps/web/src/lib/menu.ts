@@ -1,6 +1,6 @@
 import "server-only";
 
-import { pickMenuForNow, type Ore } from "@burp/core";
+import { availabilityState, pickMenuForNow, type AvailabilityRule, type Ore } from "@burp/core";
 import { resolveMediaUrl } from "./media-url";
 import { createAdminClient } from "./supabase/admin";
 
@@ -39,6 +39,13 @@ export interface MenuItem {
   allergens: string[];
   imageUrl: string | null;
   isAvailable: boolean;
+  /**
+   * Varför rätten inte går att beställa, när restaurangen skrivit ett skäl.
+   *
+   * "Slut till fredag" hjälper gästen att komma tillbaka; "slut för dagen"
+   * gör det inte. Null när rätten är tillgänglig eller när inget skäl angetts.
+   */
+  unavailableReason: string | null;
   optionGroups: MenuOptionGroup[];
 }
 
@@ -119,6 +126,35 @@ export async function getActiveMenu(
 
   const itemIds = (items ?? []).map((item) => item.id);
 
+  /*
+   * Schemalagd tillgänglighet (`item_availability`).
+   *
+   * Skild från `is_available`, som är dagens av/på-knapp. Den här bär regler
+   * som ska sluta gälla av sig själva — "slut till fredag", "bara till lunch"
+   * — så att ingen behöver komma ihåg att tända rätten igen.
+   *
+   * Reglerna läses här och avgörs i @burp/core, inte i SQL. Samma bedömning
+   * måste kunna göras i appen, och en regel som bara finns i en where-sats
+   * går inte att återanvända.
+   */
+  const { data: availability } = itemIds.length
+    ? await supabase
+        .from("item_availability")
+        .select("menu_item_id, available_from, available_to, weekday, reason")
+        .in("menu_item_id", itemIds)
+    : { data: [] };
+
+  const rulesByItem = groupBy(
+    (availability ?? []).map((row) => ({
+      menu_item_id: row.menu_item_id,
+      availableFrom: row.available_from,
+      availableTo: row.available_to,
+      weekday: row.weekday,
+      reason: row.reason,
+    })),
+    (row) => row.menu_item_id,
+  );
+
   const { data: groups } = itemIds.length
     ? await supabase
         .from("option_groups")
@@ -149,7 +185,14 @@ export async function getActiveMenu(
         id: category.id,
         name: category.name,
         description: category.description,
-        items: (itemsByCategory.get(category.id) ?? []).map((item) => ({
+        items: (itemsByCategory.get(category.id) ?? []).map((item) => {
+          const scheduled = availabilityState(
+            (rulesByItem.get(item.id) ?? []) as AvailabilityRule[],
+            timeZone,
+            now,
+          );
+
+          return {
           id: item.id,
           name: item.name,
           description: item.description,
@@ -157,7 +200,10 @@ export async function getActiveMenu(
           vatRateBps: item.vat_rate_bps,
           allergens: item.allergens ?? [],
           imageUrl: resolveMediaUrl(item.image_url),
-          isAvailable: item.is_available,
+          // Båda måste släppa igenom. Av/på-knappen är personalens omedelbara
+          // beslut och ska aldrig kunna kringgås av ett schema.
+          isAvailable: item.is_available && scheduled.isAvailable,
+          unavailableReason: scheduled.isAvailable ? null : scheduled.reason,
           optionGroups: (groupsByItem.get(item.id) ?? []).map((group) => ({
             id: group.id,
             name: group.name,
@@ -170,7 +216,8 @@ export async function getActiveMenu(
               isAvailable: option.is_available,
             })),
           })),
-        })),
+          };
+        }),
       }))
       // Tomma kategorier ska inte visas för gästen.
       .filter((category) => category.items.length > 0),
