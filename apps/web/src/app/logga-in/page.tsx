@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getStaff, ROLE_HOME } from "@/lib/auth";
 import { safeNext } from "@/lib/safe-redirect";
 import { SiteHeader } from "@/components/site/site-header";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { LoginForm } from "./login-form";
 
 /**
@@ -35,7 +36,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader locale={DEFAULT_LOCALE} />
 
       <main className="mx-auto w-full max-w-sm px-6 py-20 sm:py-28">
         <p className="label-caps">För restauranger</p>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Directions } from "@/components/site/directions";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { notFound } from "next/navigation";
 import {
   formatMoney,
@@ -87,7 +88,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader locale={DEFAULT_LOCALE} />
 
       <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <header className="mb-10">
@@ -129,6 +130,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
 
           <div className="mt-3">
             <Directions
+              locale={DEFAULT_LOCALE}
               name={restaurant.name}
               streetAddress={restaurant.street_address}
               postalCode={restaurant.postal_code}
@@ -203,7 +205,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
       ) : null}
       </main>
 
-      <SiteFooter />
+      <SiteFooter locale={DEFAULT_LOCALE} />
     </>
   );
 }

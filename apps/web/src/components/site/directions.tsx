@@ -1,3 +1,4 @@
+import { dictionary, type Locale } from "@/lib/i18n";
 import { CopyAddress } from "./copy-address";
 
 /**
@@ -20,6 +21,7 @@ import { CopyAddress } from "./copy-address";
  */
 
 export interface DirectionsProps {
+  locale: Locale;
   name: string;
   streetAddress: string;
   postalCode: string;
@@ -29,6 +31,7 @@ export interface DirectionsProps {
 }
 
 export function Directions({
+  locale,
   name,
   streetAddress,
   postalCode,
@@ -36,6 +39,7 @@ export function Directions({
   latitude,
   longitude,
 }: DirectionsProps) {
+  const t = dictionary(locale);
   const coordinates = `${latitude},${longitude}`;
   const label = encodeURIComponent(name);
   const fullAddress = `${streetAddress}, ${postalCode} ${city}`;
@@ -78,11 +82,18 @@ export function Directions({
             className="btn btn-secondary"
           >
             {link.name}
-            <span className="sr-only"> — öppnar vägbeskrivning i ny flik</span>
+            <span className="sr-only">{t.directions.opensInNewTab}</span>
           </a>
         ))}
 
-        <CopyAddress address={`${name}, ${fullAddress}`} />
+        <CopyAddress
+          address={`${name}, ${fullAddress}`}
+          labels={{
+            copy: t.directions.copy,
+            copied: t.directions.copied,
+            notice: t.directions.copiedNotice,
+          }}
+        />
       </div>
     </div>
   );

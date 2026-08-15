@@ -88,17 +88,22 @@ trap 'rm -f "$COOKIES"' EXIT
 # sorts vilseledning som rate limiten gav innan den särskildes.
 printf '→ Värmer upp rutterna'
 for path in / /logga-in /dashboard /kok /dashboard/bord /dashboard/meny \
-            /backoffice /backoffice/restauranger /konto /sarajevo /api/health; do
+            /backoffice /backoffice/restauranger /konto /sv /sv/sarajevo /api/health; do
   curl -s -o /dev/null --max-time 60 "$BASE$path"
   printf '.'
 done
 echo ""
 
 echo "→ Publika sidor"
-check_status "startsidan"            "/"                          200
+# Roten har inget eget innehåll längre — den väljer språk och skickar vidare
+# till /sv eller /en beroende på Accept-Language.
+check_status "roten väljer språk"    "/"                          307
+check_status "svensk startsida"      "/sv"                        200
+check_status "engelsk startsida"     "/en"                        200
+check_status "okänt språk 404:ar"    "/de"                        404
 check_status "hälsokontroll"         "/api/health"                200
-check_status "restaurangsida (SEO)"  "/r/sarajevo/cevabdzinica-zeljo"     200
-check_status "okänd restaurang"      "/r/sarajevo/finns-inte"        404
+check_status "restaurangsida (SEO)"  "/sv/r/sarajevo/cevabdzinica-zeljo"     200
+check_status "okänd restaurang"      "/sv/r/sarajevo/finns-inte"        404
 check_status "påhittat bordstoken"   "/t/AAAAAAAAAA"              404
 
 if curl -s "$BASE/api/health" | grep -q '"database":"ok"'; then
@@ -109,7 +114,7 @@ else
   exit 1
 fi
 
-if curl -s "$BASE/r/sarajevo/cevabdzinica-zeljo" | grep -q '"@type":"Restaurant"'; then
+if curl -s "$BASE/sv/r/sarajevo/cevabdzinica-zeljo" | grep -q '"@type":"Restaurant"'; then
   pass "schema.org-markup finns"
 else
   fail "schema.org-markup saknas på restaurangsidan"
@@ -690,7 +695,7 @@ else
   fail "kunde inte skapa omdömet"
 fi
 
-if curl -s "$BASE/r/sarajevo/cevabdzinica-zeljo" | grep -q "Hrana je bila hladna"; then
+if curl -s "$BASE/sv/r/sarajevo/cevabdzinica-zeljo" | grep -q "Hrana je bila hladna"; then
   pass "omdömet syns på restaurangsidan"
 else
   fail "omdömet syns inte publikt"
@@ -858,10 +863,10 @@ fi
 sql "delete from public.media where menu_item_id = '$CEVAPI_ID';" > /dev/null
 
 echo "→ Google-synlighet"
-check_status "stadssida"          "/sarajevo"            200
-check_status "kökssida"           "/sarajevo/grill"      200
+check_status "stadssida"          "/sv/sarajevo"            200
+check_status "kökssida"           "/sv/sarajevo/grill"      200
 check_status "okänd stad 404:ar"  "/finns-inte-alls"  404
-check_status "okänt kök 404:ar"   "/sarajevo/rymdmat"    404
+check_status "okänt kök 404:ar"   "/sv/sarajevo/rymdmat"    404
 check_status "sitemap"            "/sitemap.xml"      200
 check_status "robots"             "/robots.txt"       200
 
@@ -873,7 +878,7 @@ else
   fail "robots.txt stänger inte ute /t/ — bordskoder kan indexeras"
 fi
 
-if curl -s "$BASE/sitemap.xml" | grep -q "/r/sarajevo/cevabdzinica-zeljo"; then
+if curl -s "$BASE/sitemap.xml" | grep -q "/sv/r/sarajevo/cevabdzinica-zeljo"; then
   pass "restaurangsidor finns i sitemap"
 else
   fail "sitemap saknar restaurangsidorna"
@@ -887,7 +892,7 @@ else
   pass "sitemap innehåller bara publika sidor"
 fi
 
-if curl -s "$BASE/sarajevo" | grep -q '"@type":"ItemList"'; then
+if curl -s "$BASE/sv/sarajevo" | grep -q '"@type":"ItemList"'; then
   pass "stadssidan har ItemList-markup"
 else
   fail "stadssidan saknar strukturerad data"

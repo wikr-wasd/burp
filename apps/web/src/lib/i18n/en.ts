@@ -1,0 +1,114 @@
+import type { Dictionary } from "./sv";
+
+/**
+ * English copy.
+ *
+ * Typed as `Dictionary`, which is derived from the Swedish file. A key added
+ * there and forgotten here fails the build — a missing translation must never
+ * reach a guest as an empty string.
+ *
+ * This is a translation, not a transliteration. Swedish "Hitta hit" is two
+ * words that mean "find your way here"; the English heading is "Getting here",
+ * because that is what an English speaker expects to see above a map.
+ */
+export const en: Dictionary = {
+  site: {
+    forRestaurants: "For restaurants",
+    home: "Burp — home",
+    tagline:
+      "Every restaurant with a page of its own: menu, photos, opening hours and directions. Scan the QR code at your table and order — no app, no account.",
+    cities: "Cities",
+    cuisines: "Cuisines",
+    restaurantsIn: (city: string) => `Restaurants in ${city}`,
+    logIn: "Log in",
+    createAccount: "Create guest account",
+    myOrders: "My orders",
+    breadcrumbs: "Breadcrumbs",
+    allCities: "All cities",
+    language: "Language",
+  },
+
+  home: {
+    label: "Food marketplace",
+    headline: ["Every restaurant,", "a page of its own"],
+    headlineCity: (city: string) => `Eat your way through ${city}.`,
+    intro:
+      "Menus with photos, opening hours and directions — and ordering straight from your table with a QR code. No app, no account.",
+    searchLabel: "Search for a restaurant or dish",
+    searchPlaceholder: "Search restaurant, dish or cuisine",
+    searchButton: "Search",
+    searchHint: "Searches restaurant names and descriptions.",
+    city: "City",
+    cuisine: "Cuisine",
+    allCities: "All cities",
+    allCuisines: "All cuisines",
+    allRestaurants: "All restaurants",
+    hits: (count: number) => (count === 1 ? "1 result" : `${count} results`),
+    searchedFor: "Search",
+    featured: "Featured",
+    seeMenu: "See the menu",
+    noRatings: "No reviews yet",
+    ratingSummary: (average: string, count: number) =>
+      `${average} out of 5 on average, ${count} reviews`,
+    todayHours: (hours: string) => `Today ${hours}`,
+    closedToday: "Closed today",
+    emptyTitle: "No restaurants matched.",
+    emptyFiltered: "Try another search, another city, or clear the filters.",
+    emptyAll: "There are no active restaurants to show right now.",
+    showAll: "Show all restaurants",
+  },
+
+  city: {
+    label: "City",
+    title: (city: string) => `Restaurants in ${city}`,
+    intro: (count: number, city: string) =>
+      `${count === 1 ? "One restaurant takes" : `${count} restaurants take`} orders through Burp in ${city}. Order for pickup, or scan the QR code at your table.`,
+    cuisineLabel: (city: string) => `Cuisines in ${city}`,
+    cuisineTitle: (cuisine: string, city: string) => `${cuisine} in ${city}`,
+    cuisineIntro: (count: number, cuisine: string, city: string) =>
+      `${count === 1 ? "One restaurant serves" : `${count} restaurants serve`} ${cuisine.toLowerCase()} in ${city}.`,
+    cuisineMeta: (cuisine: string, city: string) =>
+      `Order ${cuisine.toLowerCase()} in ${city}. Pickup, or order straight from your table — no app needed.`,
+    otherCuisines: (city: string) => `Other cuisines in ${city}`,
+    emptyTitle: "No restaurants here yet.",
+    emptyBody: "Do you run a restaurant nearby?",
+    emptyAction: "List your restaurant",
+  },
+
+  restaurant: {
+    onThisPage: "On this page",
+    menu: "Menu",
+    findUs: "Getting here",
+    reviews: "Reviews",
+    orderForPickup: "Order for pickup",
+    noMenuTitle: "No menu right now",
+    noMenuBody: (name: string) =>
+      `${name} has not published a menu for this time of day. Give them a call.`,
+    openToday: (hours: string) => `Open today ${hours}`,
+    closedToday: "Closed today",
+    phone: "Phone",
+    openingHours: "Opening hours",
+    noOpeningHours: "No opening hours listed.",
+    closed: "Closed",
+    reviewSummary: (average: string, count: number) =>
+      `${average} out of 5 based on ${count} ${count === 1 ? "review" : "reviews"} from completed orders.`,
+  },
+
+  directions: {
+    copy: "Copy address",
+    copied: "Copied",
+    copiedNotice: "The address has been copied to your clipboard.",
+    opensInNewTab: " — opens directions in a new tab",
+    mapOf: (name: string) => `Map showing ${name}`,
+  },
+
+  weekday: {
+    mon: "Monday",
+    tue: "Tuesday",
+    wed: "Wednesday",
+    thu: "Thursday",
+    fri: "Friday",
+    sat: "Saturday",
+    sun: "Sunday",
+  },
+};

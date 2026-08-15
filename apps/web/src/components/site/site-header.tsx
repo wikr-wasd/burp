@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { dictionary, localePath, LOCALE_LABELS, LOCALES, type Locale } from "@/lib/i18n";
 
 /**
  * Sidhuvudet — ett enda, på varje publik sida.
@@ -20,13 +21,24 @@ export interface Breadcrumb {
   href?: string;
 }
 
-export function SiteHeader({ breadcrumbs = [] }: { breadcrumbs?: readonly Breadcrumb[] }) {
+export function SiteHeader({
+  locale,
+  breadcrumbs = [],
+  /** Sökvägen utan språkprefix, så språkväljaren kan peka på samma sida. */
+  path = "/",
+}: {
+  locale: Locale;
+  breadcrumbs?: readonly Breadcrumb[];
+  path?: string;
+}) {
+  const t = dictionary(locale);
+
   return (
     <header className="border-b border-[var(--rule)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link
-          href="/"
-          aria-label="Burp — till startsidan"
+          href={localePath(locale, "/")}
+          aria-label={t.site.home}
           className="font-display text-3xl leading-none text-[var(--foreground)] transition-colors duration-[var(--speed)] hover:text-burp-600"
         >
           Burp
@@ -41,15 +53,39 @@ export function SiteHeader({ breadcrumbs = [] }: { breadcrumbs?: readonly Breadc
           Rubriker som räknar upp marknader talar om plattformen i stället för
           om maten.
         */}
-        <Link href="/logga-in" className="link min-h-11 content-center text-sm">
-          För restauranger
-        </Link>
+        <div className="flex items-center gap-5">
+          {/* Språkvalet pekar på SAMMA sida i det andra språket, inte på
+              startsidan. En växlare som kastar gästen till roten mitt i ett
+              besök är värre än ingen växlare. */}
+          <nav aria-label={t.site.language} className="flex items-center gap-2">
+            {LOCALES.map((entry) => (
+              <Link
+                key={entry}
+                href={localePath(entry, path)}
+                hrefLang={entry}
+                aria-current={entry === locale ? "true" : undefined}
+                className={`label-caps min-h-11 content-center ${
+                  entry === locale ? "text-burp-600" : "hover:text-[var(--foreground)]"
+                }`}
+              >
+                {LOCALE_LABELS[entry]}
+              </Link>
+            ))}
+          </nav>
+
+          <Link
+            href="/logga-in"
+            className="link min-h-11 content-center text-sm"
+          >
+            {t.site.forRestaurants}
+          </Link>
+        </div>
       </div>
 
       {breadcrumbs.length > 0 ? (
         <div className="border-t border-[var(--rule)]">
           <nav
-            aria-label="Brödsmulor"
+            aria-label={t.site.breadcrumbs}
             className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-2 px-4 py-2.5 sm:px-6"
           >
             {breadcrumbs.map((crumb, index) => (

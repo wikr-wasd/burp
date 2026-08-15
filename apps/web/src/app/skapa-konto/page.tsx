@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { redirect } from "next/navigation";
 import { getGuest } from "@/lib/guest";
 import { safeNext } from "@/lib/safe-redirect";
@@ -37,7 +38,7 @@ export default async function SignUpPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader locale={DEFAULT_LOCALE} />
 
       <main className="mx-auto w-full max-w-sm px-6 py-20 sm:py-28">
         <p className="label-caps">Gästkonto</p>

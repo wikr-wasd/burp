@@ -16,17 +16,22 @@
  * ingen annan.
  */
 
+import { dictionary, DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
+
 export function MapEmbed({
+  locale = DEFAULT_LOCALE,
   latitude,
   longitude,
   name,
   className = "",
 }: {
+  locale?: Locale;
   latitude: number;
   longitude: number;
   name: string;
   className?: string;
 }) {
+  const t = dictionary(locale);
   /*
    * Rutan runt punkten, i grader.
    *
@@ -51,7 +56,7 @@ export function MapEmbed({
     <div className={`border border-[var(--rule)] ${className}`}>
       <iframe
         src={src}
-        title={`Karta över ${name}`}
+        title={t.directions.mapOf(name)}
         loading="lazy"
         // Kartan behöver inte veta var gästen är, inte spela upp något och
         // inte köra i helskärm. Allt som inte behövs stängs av.

@@ -10,7 +10,14 @@ import { useEffect, useState } from "react";
  * webbläsaren faktiskt kan kopiera: `navigator.clipboard` kräver en säker
  * kontext, och en knapp som inte gör något är värre än ingen knapp.
  */
-export function CopyAddress({ address }: { address: string }) {
+export function CopyAddress({
+  address,
+  labels,
+}: {
+  address: string;
+  /** Texterna skickas in — komponenten är klientkod och ska inte veta om språk. */
+  labels: { copy: string; copied: string; notice: string };
+}) {
   const [supported, setSupported] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -44,11 +51,11 @@ export function CopyAddress({ address }: { address: string }) {
         }
       }}
     >
-      {copied ? "Kopierad" : "Kopiera adress"}
+      {copied ? labels.copied : labels.copy}
       {/* Skärmläsare får besked om att något hänt; den visuella texten byts
           bara ut, vilket inte alltid läses upp. */}
       <span aria-live="polite" className="sr-only">
-        {copied ? "Adressen är kopierad till urklipp." : ""}
+        {copied ? labels.notice : ""}
       </span>
     </button>
   );

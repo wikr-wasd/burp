@@ -1,4 +1,5 @@
 import type { DayKey, OpeningHours } from "@/lib/discovery-format";
+import { dictionary, type Locale } from "@/lib/i18n";
 
 /**
  * Veckans öppettider, alla sju dagar.
@@ -10,15 +11,8 @@ import type { DayKey, OpeningHours } from "@/lib/discovery-format";
  * någon glömt fylla i, inte som att det är stängt.
  */
 
-const DAYS: readonly { key: DayKey; label: string }[] = [
-  { key: "mon", label: "Måndag" },
-  { key: "tue", label: "Tisdag" },
-  { key: "wed", label: "Onsdag" },
-  { key: "thu", label: "Torsdag" },
-  { key: "fri", label: "Fredag" },
-  { key: "sat", label: "Lördag" },
-  { key: "sun", label: "Söndag" },
-];
+/** Måndag först — så läser man ett veckoschema, oavsett vad Postgres tycker. */
+const DAYS: readonly DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 /** Namn enligt schema.org, för `openingHoursSpecification`. */
 export const SCHEMA_DAY: Record<DayKey, string> = {
@@ -43,7 +37,7 @@ export function toSchemaOpeningHours(
 ): { dayOfWeek: string; opens: string; closes: string }[] {
   if (!hours) return [];
 
-  return DAYS.flatMap(({ key }) =>
+  return DAYS.flatMap((key) =>
     (hours[key] ?? []).map((span) => ({
       dayOfWeek: SCHEMA_DAY[key],
       opens: span.opens,
@@ -53,20 +47,24 @@ export function toSchemaOpeningHours(
 }
 
 export function OpeningHoursWeek({
+  locale,
   hours,
   /** Dagens nyckel, så att raden går att markera. Utelämnas på cachade sidor. */
   today,
 }: {
+  locale: Locale;
   hours: OpeningHours | null;
   today?: DayKey;
 }) {
+  const t = dictionary(locale);
+
   if (!hours) {
-    return <p className="text-[var(--muted)]">Öppettider saknas.</p>;
+    return <p className="text-[var(--muted)]">{t.restaurant.noOpeningHours}</p>;
   }
 
   return (
     <dl className="divide-y divide-[var(--rule)]">
-      {DAYS.map(({ key, label }) => {
+      {DAYS.map((key) => {
         const spans = hours[key] ?? [];
         const isToday = key === today;
 
@@ -75,10 +73,10 @@ export function OpeningHoursWeek({
             key={key}
             className={`flex justify-between gap-4 py-2.5 ${isToday ? "text-burp-600" : ""}`}
           >
-            <dt className={isToday ? "font-medium" : ""}>{label}</dt>
+            <dt className={isToday ? "font-medium" : ""}>{t.weekday[key]}</dt>
             <dd className={`tabular-nums ${isToday ? "" : "text-[var(--muted)]"}`}>
               {spans.length === 0
-                ? "Stängt"
+                ? t.restaurant.closed
                 : spans.map((span) => `${span.opens}–${span.closes}`).join(", ")}
             </dd>
           </div>

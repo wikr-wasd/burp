@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FoodImage } from "@/components/media/food-image";
 import { priceTierLabel, todaysHours, type DiscoveryRestaurant } from "@/lib/discovery";
+import { dictionary, localePath, type Locale } from "@/lib/i18n";
 import { restaurantImage } from "@/lib/placeholder";
 
 /**
@@ -14,20 +15,24 @@ import { restaurantImage } from "@/lib/placeholder";
  * likadana ut — annars läser gästen dem som två olika produkter.
  */
 export function CityRestaurantList({
+  locale,
   restaurants,
 }: {
+  locale: Locale;
   restaurants: readonly DiscoveryRestaurant[];
 }) {
+  const t = dictionary(locale);
+
   if (restaurants.length === 0) {
     return (
       <div className="mt-8 border-y border-[var(--rule)] py-14 text-center">
-        <p className="font-display text-2xl">Inga restauranger här än.</p>
-        <p className="mt-2 text-[var(--muted)]">Driver du en restaurang i området?</p>
+        <p className="font-display text-2xl">{t.city.emptyTitle}</p>
+        <p className="mt-2 text-[var(--muted)]">{t.city.emptyBody}</p>
         <Link
           href="/logga-in"
           className="mt-6 inline-flex min-h-11 items-center bg-burp-600 px-6 text-sm font-medium tracking-[var(--tracking-label)] text-white uppercase transition-colors hover:bg-burp-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
         >
-          Anslut din restaurang
+          {t.city.emptyAction}
         </Link>
       </div>
     );
@@ -47,7 +52,7 @@ export function CityRestaurantList({
         return (
           <li key={restaurant.id}>
             <Link
-              href={`/r/${restaurant.citySlug}/${restaurant.slug}`}
+              href={localePath(locale, `/r/${restaurant.citySlug}/${restaurant.slug}`)}
               className="group flex h-full flex-col focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burp-600"
             >
               <FoodImage

@@ -18,6 +18,7 @@ import {
   toSchemaOpeningHours,
 } from "@/components/site/opening-hours-week";
 import { SiteHeader } from "@/components/site/site-header";
+import { dictionary, isLocale, localePath, type Locale } from "@/lib/i18n";
 import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
 import { resolveMediaUrl } from "@/lib/media-url";
@@ -45,7 +46,7 @@ import { createClient } from "@/lib/supabase/server";
 export const revalidate = 3600;
 
 interface PageProps {
-  params: Promise<{ city: string; slug: string }>;
+  params: Promise<{ locale: string; city: string; slug: string }>;
 }
 
 interface RestaurantRow {
@@ -86,12 +87,12 @@ async function getRestaurant(city: string, slug: string): Promise<RestaurantRow 
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { city, slug } = await params;
+  const { locale, city, slug } = await params;
   const restaurant = await getRestaurant(city, slug);
 
-  if (!restaurant) return { title: "Restaurangen hittades inte" };
+  if (!restaurant) return { title: "404" };
 
-  const canonical = `/r/${city}/${slug}`;
+  const canonical = localePath(locale as Locale, `/r/${city}/${slug}`);
   const description =
     restaurant.description ??
     `Beställ mat från ${restaurant.name} i ${restaurant.city}. Avhämtning, leverans eller beställning vid bordet.`;
@@ -113,7 +114,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function RestaurantPage({ params }: PageProps) {
-  const { city, slug } = await params;
+  const { locale: raw, city, slug } = await params;
+  const locale: Locale = isLocale(raw) ? raw : "sv";
+  const t = dictionary(locale);
   const restaurant = await getRestaurant(city, slug);
 
   if (!restaurant) notFound();
@@ -171,9 +174,11 @@ export default async function RestaurantPage({ params }: PageProps) {
   return (
     <>
       <SiteHeader
+        locale={locale}
+        path={`/r/${city}/${slug}`}
         breadcrumbs={[
-          { label: "Alla städer", href: "/" },
-          { label: restaurant.city, href: `/${city}` },
+          { label: t.site.allCities, href: localePath(locale, "/") },
+          { label: restaurant.city, href: localePath(locale, `/${city}`) },
           { label: restaurant.name },
         ]}
       />
@@ -219,10 +224,10 @@ export default async function RestaurantPage({ params }: PageProps) {
               <span className="text-[var(--muted)]"> ({restaurant.rating_count})</span>
             </span>
           ) : (
-            <span className="text-[var(--muted)]">Inga omdömen än</span>
+            <span className="text-[var(--muted)]">{t.home.noRatings}</span>
           )}
 
-          <span className="text-[var(--muted)]">{hours ? `Öppet idag ${hours}` : "Stängt idag"}</span>
+          <span className="text-[var(--muted)]">{hours ? t.restaurant.openToday(hours) : t.restaurant.closedToday}</span>
 
           {restaurant.phone ? (
             <a
@@ -246,11 +251,11 @@ export default async function RestaurantPage({ params }: PageProps) {
           att leta. Ankarlänkar i stället för flikar: allt finns i HTML:en,
           Google indexerar hela sidan, och ingenting kräver JavaScript.
         */}
-        <nav aria-label="På den här sidan" className="mt-8 flex flex-wrap gap-x-1">
+        <nav aria-label={t.restaurant.onThisPage} className="mt-8 flex flex-wrap gap-x-1">
           {[
-            { href: "#meny", label: "Meny" },
-            { href: "#hitta-hit", label: "Hitta hit" },
-            { href: "#omdomen", label: "Omdömen" },
+            { href: "#meny", label: t.restaurant.menu },
+            { href: "#hitta-hit", label: t.restaurant.findUs },
+            { href: "#omdomen", label: t.restaurant.reviews },
           ].map((entry) => (
             <a
               key={entry.href}
@@ -266,7 +271,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       {menu && menu.categories.length > 0 ? (
         <section id="meny" className="mt-14">
           <hr className="rule" />
-          <p className="label-caps mt-6">Beställ för avhämtning · {menu.name}</p>
+          <p className="label-caps mt-6">{t.restaurant.orderForPickup} · {menu.name}</p>
           <div className="mt-6">
             <MenuOrder
               menu={menu}
@@ -281,21 +286,21 @@ export default async function RestaurantPage({ params }: PageProps) {
         </section>
       ) : (
         <section id="meny" className="mt-14 border-y border-[var(--rule)] py-12 text-center">
-          <h2 className="font-display text-2xl">Ingen meny just nu</h2>
+          <h2 className="font-display text-2xl">{t.restaurant.noMenuTitle}</h2>
           <p className="mx-auto mt-2 max-w-md text-[var(--muted)]">
-            {restaurant.name} har inte publicerat någon meny för den här tiden. Ring gärna dit
-            och fråga.
+            {t.restaurant.noMenuBody(restaurant.name)}
           </p>
         </section>
       )}
 
       <section id="hitta-hit" className="mt-16">
         <hr className="rule" />
-        <h2 className="font-display mt-6 text-3xl">Hitta hit</h2>
+        <h2 className="font-display mt-6 text-3xl">{t.restaurant.findUs}</h2>
 
         <div className="mt-6 grid gap-10 lg:grid-cols-2">
           <div>
             <Directions
+              locale={locale}
               name={restaurant.name}
               streetAddress={restaurant.street_address}
               postalCode={restaurant.postal_code}
@@ -306,7 +311,7 @@ export default async function RestaurantPage({ params }: PageProps) {
 
             {restaurant.phone ? (
               <p className="mt-6">
-                <span className="label-caps block">Telefon</span>
+                <span className="label-caps block">{t.restaurant.phone}</span>
                 <a href={`tel:${restaurant.phone}`} className="link mt-1 inline-block text-lg">
                   {restaurant.phone}
                 </a>
@@ -314,9 +319,9 @@ export default async function RestaurantPage({ params }: PageProps) {
             ) : null}
 
             <div className="mt-8">
-              <h3 className="label-caps">Öppettider</h3>
+              <h3 className="label-caps">{t.restaurant.openingHours}</h3>
               <div className="mt-2">
-                <OpeningHoursWeek hours={restaurant.opening_hours} />
+                <OpeningHoursWeek locale={locale} hours={restaurant.opening_hours} />
               </div>
             </div>
           </div>
@@ -325,6 +330,7 @@ export default async function RestaurantPage({ params }: PageProps) {
               rutnätet ramen till kolumnens höjd medan bilden stannar, och
               gästen ser en tom kant under kartan. */}
           <MapEmbed
+            locale={locale}
             latitude={restaurant.latitude}
             longitude={restaurant.longitude}
             name={restaurant.name}
@@ -338,19 +344,20 @@ export default async function RestaurantPage({ params }: PageProps) {
           AggregateRating i markupen ovan får publiceras. */}
       <section id="omdomen" className="mt-16">
         <hr className="rule" />
-        <h2 className="font-display mt-6 text-3xl">Omdömen</h2>
+        <h2 className="font-display mt-6 text-3xl">{t.restaurant.reviews}</h2>
         {restaurant.rating_count > 0 && restaurant.rating_average !== null ? (
           <p className="mt-1 text-sm text-[var(--muted)]">
-            {restaurant.rating_average.toFixed(1).replace(".", ",")} av 5 baserat på{" "}
-            {restaurant.rating_count} {restaurant.rating_count === 1 ? "omdöme" : "omdömen"} från
-            genomförda beställningar.
+            {t.restaurant.reviewSummary(
+              restaurant.rating_average.toFixed(1).replace(".", ","),
+              restaurant.rating_count,
+            )}
           </p>
         ) : null}
         <ReviewList reviews={reviews} />
       </section>
       </main>
 
-      <SiteFooter />
+      <SiteFooter locale={locale} />
     </>
   );
 }

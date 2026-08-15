@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listCities, listCuisines } from "@/lib/discovery";
+import { dictionary, localePath, type Locale } from "@/lib/i18n";
 
 /**
  * Sidfoten — marknadsplatsens karta.
@@ -13,7 +14,8 @@ import { listCities, listCuisines } from "@/lib/discovery";
  * ska dyka upp i foten samma dag den första restaurangen där öppnar — inte
  * nästa gång någon råkar redigera den här filen.
  */
-export async function SiteFooter() {
+export async function SiteFooter({ locale }: { locale: Locale }) {
+  const t = dictionary(locale);
   const cities = await listCities();
   const cuisines = await listCuisines();
 
@@ -22,23 +24,23 @@ export async function SiteFooter() {
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="font-display text-3xl">Burp</p>
+            <Link href={localePath(locale, "/")} className="font-display text-3xl">
+              Burp
+            </Link>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-[var(--muted)]">
-              Varje restaurang med sin egen sida: meny, bilder, öppettider och
-              vägbeskrivning. Skanna QR-koden vid bordet och beställ — utan app
-              och utan konto.
+              {t.site.tagline}
             </p>
           </div>
 
           <nav aria-labelledby="footer-stader">
             <p id="footer-stader" className="label-caps">
-              Städer
+              {t.site.cities}
             </p>
             <ul className="mt-4 space-y-2.5">
               {cities.map((city) => (
                 <li key={city.slug}>
-                  <Link href={`/${city.slug}`} className="link text-sm">
-                    Restauranger i {city.name}
+                  <Link href={localePath(locale, `/${city.slug}`)} className="link text-sm">
+                    {t.site.restaurantsIn(city.name)}
                   </Link>
                 </li>
               ))}
@@ -47,14 +49,17 @@ export async function SiteFooter() {
 
           <nav aria-labelledby="footer-kok">
             <p id="footer-kok" className="label-caps">
-              Kök
+              {t.site.cuisines}
             </p>
             <ul className="mt-4 space-y-2.5">
               {/* Åtta räcker. En fot med trettio länkar är en fot ingen läser,
                   och Google fördelar länkvärdet tunnare ju fler det blir. */}
               {cuisines.slice(0, 8).map((cuisine) => (
                 <li key={cuisine}>
-                  <Link href={`/?kok=${encodeURIComponent(cuisine)}`} className="link text-sm">
+                  <Link
+                    href={localePath(locale, `/?kok=${encodeURIComponent(cuisine)}`)}
+                    className="link text-sm"
+                  >
                     {cuisine}
                   </Link>
                 </li>
@@ -64,22 +69,22 @@ export async function SiteFooter() {
 
           <nav aria-labelledby="footer-restauranger">
             <p id="footer-restauranger" className="label-caps">
-              För restauranger
+              {t.site.forRestaurants}
             </p>
             <ul className="mt-4 space-y-2.5">
               <li>
                 <Link href="/logga-in" className="link text-sm">
-                  Logga in
+                  {t.site.logIn}
                 </Link>
               </li>
               <li>
                 <Link href="/skapa-konto" className="link text-sm">
-                  Skapa gästkonto
+                  {t.site.createAccount}
                 </Link>
               </li>
               <li>
                 <Link href="/konto" className="link text-sm">
-                  Mina beställningar
+                  {t.site.myOrders}
                 </Link>
               </li>
             </ul>

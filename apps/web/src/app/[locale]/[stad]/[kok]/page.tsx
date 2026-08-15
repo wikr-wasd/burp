@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { listCities, listCuisines, searchRestaurants } from "@/lib/discovery";
 import { publicEnv } from "@/lib/env";
 import { CityRestaurantList } from "@/components/discovery/city-restaurant-list";
+import { dictionary, isLocale, localePath, type Locale } from "@/lib/i18n";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { slugifyCuisine } from "@/app/sitemap";
@@ -25,7 +26,7 @@ import { serializeJsonLd } from "@/lib/seo/jsonld";
 export const revalidate = 3600;
 
 interface PageProps {
-  params: Promise<{ stad: string; kok: string }>;
+  params: Promise<{ locale: string; stad: string; kok: string }>;
 }
 
 async function resolve(citySlug: string, cuisineSlug: string) {
@@ -41,7 +42,9 @@ async function resolve(citySlug: string, cuisineSlug: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { stad, kok } = await params;
+  const { locale: raw, stad, kok } = await params;
+  const locale: Locale = isLocale(raw) ? raw : "sv";
+  const t = dictionary(locale);
   const resolved = await resolve(stad, kok);
 
   if (!resolved) return { title: "Sidan hittades inte" };
@@ -49,20 +52,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { city, cuisine } = resolved;
 
   return {
-    title: `${cuisine} i ${city.name}`,
-    description: `Beställ ${cuisine.toLowerCase()} i ${city.name}. Avhämtning eller beställning direkt vid bordet — utan app.`,
-    alternates: { canonical: `/${city.slug}/${kok}` },
+    title: t.city.cuisineTitle(cuisine, city.name),
+    description: t.city.cuisineMeta(cuisine, city.name),
+    alternates: { canonical: localePath(locale, `/${city.slug}/${kok}`) },
     openGraph: {
-      title: `${cuisine} i ${city.name} | Burp`,
-      description: `Restauranger som serverar ${cuisine.toLowerCase()} i ${city.name}.`,
-      url: `/${city.slug}/${kok}`,
+      title: `${t.city.cuisineTitle(cuisine, city.name)} | Burp`,
+      description: t.city.cuisineMeta(cuisine, city.name),
+      url: localePath(locale, `/${city.slug}/${kok}`),
       type: "website",
     },
   };
 }
 
 export default async function CuisinePage({ params }: PageProps) {
-  const { stad, kok } = await params;
+  const { locale: raw, stad, kok } = await params;
+  const locale: Locale = isLocale(raw) ? raw : "sv";
+  const t = dictionary(locale);
   const resolved = await resolve(stad, kok);
 
   if (!resolved) notFound();
@@ -101,42 +106,41 @@ export default async function CuisinePage({ params }: PageProps) {
       />
 
       <SiteHeader
+        locale={locale}
+        path={`/${city.slug}/${kok}`}
         breadcrumbs={[
-          { label: "Alla städer", href: "/" },
-          { label: city.name, href: `/${city.slug}` },
+          { label: t.site.allCities, href: localePath(locale, "/") },
+          { label: city.name, href: localePath(locale, `/${city.slug}`) },
           { label: cuisine },
         ]}
       />
 
       <main className="mx-auto max-w-6xl px-4 pt-12 sm:px-6">
-        <p className="label-caps">Kök i {city.name}</p>
+        <p className="label-caps">{t.city.cuisineLabel(city.name)}</p>
 
         <h1 className="font-display mt-2 text-5xl sm:text-6xl">
-          {cuisine} i {city.name}
+          {t.city.cuisineTitle(cuisine, city.name)}
         </h1>
 
         <p className="mt-4 max-w-xl text-lg leading-relaxed text-[var(--muted)]">
-          {restaurants.length === 1
-            ? "En restaurang"
-            : `${restaurants.length} restauranger`}{" "}
-          serverar {cuisine.toLowerCase()} i {city.name}.
+          {t.city.cuisineIntro(restaurants.length, cuisine, city.name)}
         </p>
 
         <hr className="rule mt-8" />
 
-        <CityRestaurantList restaurants={restaurants} />
+        <CityRestaurantList locale={locale} restaurants={restaurants} />
 
         {allCuisines.length > 1 ? (
-          <nav aria-label="Andra kök" className="mt-16">
+          <nav aria-label={t.city.otherCuisines(city.name)} className="mt-16">
             <hr className="rule" />
-            <h2 className="label-caps mt-6">Andra kök i {city.name}</h2>
+            <h2 className="label-caps mt-6">{t.city.otherCuisines(city.name)}</h2>
             <div className="mt-3 flex flex-wrap gap-x-1">
               {allCuisines
                 .filter((entry) => entry !== cuisine)
                 .map((entry) => (
                   <Link
                     key={entry}
-                    href={`/${city.slug}/${slugifyCuisine(entry)}`}
+                    href={localePath(locale, `/${city.slug}/${slugifyCuisine(entry)}`)}
                     className="inline-flex min-h-11 items-center border-b-2 border-transparent px-3 text-sm text-[var(--muted)] transition-colors duration-[var(--speed)] hover:border-burp-600 hover:text-burp-600"
                   >
                     {entry}
@@ -147,7 +151,7 @@ export default async function CuisinePage({ params }: PageProps) {
         ) : null}
       </main>
 
-      <SiteFooter />
+      <SiteFooter locale={locale} />
     </div>
   );
 }

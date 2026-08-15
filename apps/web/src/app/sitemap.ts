@@ -1,3 +1,4 @@
+import { localePath, LOCALES, LOCALE_TAGS } from "@/lib/i18n";
 import type { MetadataRoute } from "next";
 import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -30,38 +31,63 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const cities = [...new Set(rows.map((row) => row.city_slug))];
   const cuisines = [...new Set(rows.flatMap((row) => row.cuisines ?? []))];
 
-  return [
-    {
-      url: base,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 1,
-    },
+  /*
+   * Varje sida en gång per språk, med `alternates` som knyter ihop dem.
+   *
+   * Utan `hreflang` läser Google de två språkversionerna som dubblerat
+   * innehåll och väljer själv vilken som får synas — ofta fel. Med den vet den
+   * att `/sv/sarajevo` och `/en/sarajevo` är samma sida på två språk, och kan
+   * visa rätt version för rätt användare.
+   */
+  const languages = (path: string) =>
+    Object.fromEntries(
+      LOCALES.map((locale) => [LOCALE_TAGS[locale], `${base}${localePath(locale, path)}`]),
+    );
 
-    // Stadssidorna är landningssidorna för "sushi malmö"-sökningar och är
-    // därför viktigare än enskilda restauranger.
-    ...cities.map((city) => ({
-      url: `${base}/${city}`,
+  const forEachLocale = <T extends Record<string, unknown>>(
+    path: string,
+    rest: T,
+  ) =>
+    LOCALES.map((locale) => ({
+      url: `${base}${localePath(locale, path)}`,
+      alternates: { languages: languages(path) },
+      ...rest,
+    }));
+
+  return [
+    ...forEachLocale("/", {
       lastModified: new Date(),
       changeFrequency: "daily" as const,
-      priority: 0.9,
-    })),
+      priority: 1,
+    }),
 
+    // Stadssidorna är landningssidorna för "ćevapi sarajevo"-sökningar och är
+    // därför viktigare än enskilda restauranger.
     ...cities.flatMap((city) =>
-      cuisines.map((cuisine) => ({
-        url: `${base}/${city}/${slugifyCuisine(cuisine)}`,
+      forEachLocale(`/${city}`, {
         lastModified: new Date(),
-        changeFrequency: "weekly" as const,
-        priority: 0.7,
-      })),
+        changeFrequency: "daily" as const,
+        priority: 0.9,
+      }),
     ),
 
-    ...rows.map((row) => ({
-      url: `${base}/r/${row.city_slug}/${row.slug}`,
-      lastModified: new Date(row.updated_at),
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    })),
+    ...cities.flatMap((city) =>
+      cuisines.flatMap((cuisine) =>
+        forEachLocale(`/${city}/${slugifyCuisine(cuisine)}`, {
+          lastModified: new Date(),
+          changeFrequency: "weekly" as const,
+          priority: 0.7,
+        }),
+      ),
+    ),
+
+    ...rows.flatMap((row) =>
+      forEachLocale(`/r/${row.city_slug}/${row.slug}`, {
+        lastModified: new Date(row.updated_at),
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      }),
+    ),
   ];
 }
 
