@@ -435,7 +435,7 @@ function Rating({ t, restaurant }: { t: Dictionary; restaurant: DiscoveryRestaur
 
   return (
     <span>
-      <span aria-hidden="true" className="text-burp-600">
+      <span aria-hidden="true" className="text-[var(--star)]">
         ★
       </span>{" "}
       <span className="tabular-nums">{restaurant.ratingAverage.toFixed(1)}</span>

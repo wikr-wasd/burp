@@ -215,7 +215,7 @@ export default async function RestaurantPage({ params }: PageProps) {
         <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
           {restaurant.rating_count > 0 && restaurant.rating_average !== null ? (
             <span>
-              <span aria-hidden="true" className="text-burp-600">
+              <span aria-hidden="true" className="text-[var(--star)]">
                 ★
               </span>{" "}
               <span className="tabular-nums">

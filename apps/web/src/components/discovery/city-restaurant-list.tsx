@@ -70,7 +70,7 @@ export function CityRestaurantList({
                 </h2>
                 {restaurant.ratingCount > 0 && restaurant.ratingAverage !== null ? (
                   <span className="shrink-0 text-sm tabular-nums">
-                    <span aria-hidden="true" className="text-burp-600">
+                    <span aria-hidden="true" className="text-[var(--star)]">
                       ★
                     </span>{" "}
                     {restaurant.ratingAverage.toFixed(1).replace(".", ",")}

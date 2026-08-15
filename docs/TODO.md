@@ -1,0 +1,80 @@
+# Att göra
+
+Listan följs uppifrån. Flytta en rad till **Klart** först när den är verifierad
+enligt `CLAUDE.md` — inte när koden är skriven.
+
+En rad som blockeras av ett beslut ligger kvar under **Väntar på beslut** tills
+beslutet är fattat. Att bygga vidare på en gissning är hur man bygger fel sak
+snabbt.
+
+---
+
+## Väntar på beslut — William
+
+Ingenting går vidare här utan svar. Båda blockerar lansering.
+
+- [ ] **Betalväg.** Se `OPEN-QUESTIONS.md` fråga 5. Det svåra är utbetalningar
+      till restauranger i Bosnien och Serbien, som ligger utanför EU/EES — inte
+      att ta emot kort. Betalning på plats fungerar idag och är möjligen rätt
+      v1; det avgör om frågan blockerar lansering eller bara intäktsmodellen.
+- [ ] **Supabase och Vercel i molnet.** Kräver inloggning. Supabase-orgen har
+      två projektplatser på gratisnivån och båda är upptagna av 123Connect —
+      antingen uppgradering eller ett frigjort projekt.
+- [ ] **Fiskalisering.** `OPEN-QUESTIONS.md` fråga 4. Kroatien och Serbien
+      kräver realtidsrapportering av kvitton. Tre länder, tre lokala jurister.
+
+---
+
+## Näst på tur
+
+- [ ] **Riktiga bilder i seed-datan.** Platshållaren är så bra den kan bli;
+      nästa steg kräver fotografier. Utan dem går det inte att bedöma hur
+      sajten faktiskt ser ut för en gäst.
+- [ ] **Mobilvyn sedd på riktigt.** Verifierad strukturellt (inget element
+      utan radbrytning är bredare än 390 px) men aldrig sedd. QR-flödet lever
+      på telefon.
+- [ ] **Köksskärmen på en surfplatta.** Byggd för det, aldrig provad på en.
+- [ ] **Personalytorna genomgångna sida för sida i webbläsaren**, som
+      gästytorna. Meny, omdömen, inställningar, backoffice.
+
+---
+
+## Kända begränsningar
+
+Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
+
+| Vad | Var | Före |
+|---|---|---|
+| Rate limiter i processminnet — fungerar inte över flera Vercel-instanser | `lib/rate-limit.ts` | Fas 2 live |
+| Öppettider stödjer inte pass över midnatt | `is_restaurant_open()`, migration 0004 | Nattöppet |
+| Avgiftsbasen gissad (`GROSS_ITEMS`) | Öppen fråga 1 | Fas 1 |
+| Ingen GDPR-export eller radering | — | Fas 4 |
+| Personalytorna är enbart svenska | — | Medvetet. Köket ska inte byta språk för att en gäst gjorde det |
+| `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
+| Inga laddningsskelett på publika sidor | — | `loading.tsx` gör varje `notFound()` till en 200:a. Se CLAUDE.md |
+
+---
+
+## Klart
+
+Fas 1 i sin helhet, utom det som väntar på beslut ovan.
+
+- [x] Monorepo, `@burp/core`, Next.js-app, Supabase-migrationer med RLS
+- [x] QR-beställning vid bordet — meny, varukorg, kassa, kvitto
+- [x] Orderns livscykel, statusmaskin, orderredigering för gästen
+- [x] Köksskärm, dashboard, menyhantering, bordshantering, statistik
+- [x] Backoffice för plattformen, mediamoderering
+- [x] Kundpanel, lojalitetspoäng, omdömen med restaurangsvar
+- [x] Google-synlighet: sitemap med hreflang, robots, landningssidor per stad
+      och kök, schema.org med öppettider
+- [x] **Land och valuta per restaurang** — BA, HR, RS, SE. Valutan fryses på
+      ordern; belopp från olika valutor summeras aldrig
+- [x] **Restaurangens egen sida**, redigerbar av restaurangen: presentation,
+      bild, kökstyper, prisklass, adress, kartnål
+- [x] **Kartor** — Google Maps, Apple Kartor, Waze, plus karta via OSM
+- [x] **Två språk** — svenska och engelska, språket i URL:en för indexerade
+      ytor och via Accept-Language för QR och kvitton
+- [x] **Ett designspråk** i hela produkten, med mätt kontrast
+- [x] Schemalagd tillgänglighet (`item_availability`) — skriv, läs och
+      kontroll i API:t
+- [x] Egen 404 och felsida
