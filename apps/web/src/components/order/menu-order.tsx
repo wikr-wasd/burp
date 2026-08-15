@@ -11,6 +11,7 @@ import {
   type PricedLine,
 } from "@burp/core";
 import { FoodImage } from "@/components/media/food-image";
+import { fill, type Dictionary } from "@/lib/i18n";
 import type { Menu, MenuItem } from "@/lib/menu";
 import { dishImage } from "@/lib/placeholder";
 
@@ -52,6 +53,14 @@ interface Props {
   menu: Menu;
   restaurantName: string;
   context: OrderContext;
+  /**
+   * Texterna, färdigvalda av den som renderar.
+   *
+   * QR-sidan väljer språk på Accept-Language, restaurangsidan får sitt ur
+   * URL:en. Komponenten ska inte behöva veta vilket — bara skriva ut det den
+   * fått.
+   */
+  labels: Dictionary["menu"];
   /** Restaurangens valuta. Avgör hur varenda summa på sidan skrivs. */
   currency: CurrencyCode;
   /**
@@ -77,6 +86,7 @@ export function MenuOrder({
   menu,
   restaurantName,
   context,
+  labels,
   currency,
   timeZone,
   pickupSlots = [],
@@ -202,7 +212,7 @@ export function MenuOrder({
       const body = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setError(body?.detail ?? "Beställningen kunde inte läggas. Försök igen.");
+        setError(body?.detail ?? labels.orderFailed);
         return;
       }
 
@@ -215,7 +225,7 @@ export function MenuOrder({
           : `/order/${body.order_id}`,
       );
     } catch {
-      setError("Ingen kontakt med servern. Kontrollera nätet och försök igen.");
+      setError(labels.noConnection);
     } finally {
       setSubmitting(false);
     }
@@ -230,7 +240,9 @@ export function MenuOrder({
       {showHeading ? (
         <header className="mb-10">
           <p className="label-caps">
-            {context.kind === "TABLE" ? `Bord ${context.tableNumber}` : "Avhämtning"}
+            {context.kind === "TABLE"
+              ? fill(labels.table, { number: context.tableNumber })
+              : labels.pickup}
           </p>
           <h1 className="font-display mt-2 text-4xl sm:text-5xl">{restaurantName}</h1>
           <p className="mt-2 text-[var(--muted)]">{menu.name}</p>
@@ -243,7 +255,7 @@ export function MenuOrder({
       */}
       {menu.categories.length > 1 ? (
         <nav
-          aria-label="Menyns avdelningar"
+          aria-label={labels.sections}
           className="sticky top-0 z-10 -mx-4 mb-8 flex gap-1 overflow-x-auto border-b border-[var(--rule)] bg-[var(--background)]/95 px-4 py-1 backdrop-blur [scrollbar-width:none] sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden"
         >
           {menu.categories.map((category) => (
@@ -276,6 +288,7 @@ export function MenuOrder({
               <MenuItemCard
                 key={item.id}
                 item={item}
+                labels={labels}
                 money={money}
                 isOpen={openItemId === item.id}
                 onToggle={() => setOpenItemId(openItemId === item.id ? null : item.id)}
@@ -291,6 +304,7 @@ export function MenuOrder({
           cart={cart}
           totals={totals}
           itemCount={itemCount}
+          labels={labels}
           money={money}
           tipBps={tipBps}
           tipOre={tipOre}
@@ -313,12 +327,14 @@ export function MenuOrder({
 
 function MenuItemCard({
   item,
+  labels,
   money,
   isOpen,
   onToggle,
   onAdd,
 }: {
   item: MenuItem;
+  labels: Dictionary["menu"];
   money: (amount: Ore) => string;
   isOpen: boolean;
   onToggle: () => void;
@@ -372,7 +388,7 @@ function MenuItemCard({
             {/* Restaurangens eget skäl om det finns. "Slut till fredag" får
                 gästen att komma tillbaka; "slut för dagen" gör det inte. */}
             <span className="label-caps bg-[var(--background)] px-3 py-1.5 text-center">
-              {item.unavailableReason ?? "Slut för dagen"}
+              {item.unavailableReason ?? labels.soldOut}
             </span>
           </span>
         </div>
@@ -407,7 +423,7 @@ function MenuItemCard({
         ) : null}
 
         <span className="mt-2 block text-sm font-medium text-burp-600">
-          {hasOptions ? (isOpen ? "Dölj tillval" : "Välj tillval") : "Lägg till"}
+          {hasOptions ? (isOpen ? labels.hideOptions : labels.chooseOptions) : labels.add}
         </span>
       </button>
 
@@ -418,9 +434,14 @@ function MenuItemCard({
               <legend className="label-caps">
                 {group.name}
                 <span className="ml-2 normal-case">
-                  {group.minSelect > 0
-                    ? `välj ${group.minSelect === group.maxSelect ? group.minSelect : `${group.minSelect}–${group.maxSelect}`}`
-                    : `välj upp till ${group.maxSelect}`}
+                  {group.minSelect === 0
+                    ? fill(labels.chooseUpTo, { n: group.maxSelect })
+                    : group.minSelect === group.maxSelect
+                      ? fill(labels.chooseExactly, { n: group.minSelect })
+                      : fill(labels.chooseBetween, {
+                          min: group.minSelect,
+                          max: group.maxSelect,
+                        })}
                 </span>
               </legend>
 
@@ -447,7 +468,7 @@ function MenuItemCard({
                           {money(Math.abs(option.priceOre))}
                         </span>
                       ) : null}
-                      {!option.isAvailable ? <span className="ml-1.5">(slut)</span> : null}
+                      {!option.isAvailable ? <span className="ml-1.5">{labels.optionSoldOut}</span> : null}
                     </button>
                   );
                 })}
@@ -456,13 +477,13 @@ function MenuItemCard({
           ))}
 
           <label className="mt-5 block">
-            <span className="label-caps">Meddelande till köket</span>
+            <span className="label-caps">{labels.noteToKitchen}</span>
             <input
               type="text"
               value={note}
               maxLength={280}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="T.ex. utan lök"
+              placeholder={labels.notePlaceholder}
               className="mt-1.5 min-h-11 w-full border-b border-[var(--rule)] bg-transparent px-1 text-sm outline-none focus-visible:border-burp-600"
             />
           </label>
@@ -477,7 +498,7 @@ function MenuItemCard({
             }}
             className="mt-5 flex min-h-12 w-full items-center justify-between bg-burp-600 px-4 text-sm font-medium tracking-[var(--tracking-label)] text-white uppercase transition-colors hover:bg-burp-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <span>{unmetGroup ? `Välj i "${unmetGroup.name}" först` : "Lägg till"}</span>
+            <span>{unmetGroup ? fill(labels.chooseFirst, { group: unmetGroup.name }) : labels.add}</span>
             {!unmetGroup ? (
               <span className="tabular-nums normal-case">
                 {money(item.priceOre + optionsDeltaOre)}
@@ -504,6 +525,7 @@ function CartBar({
   cart,
   totals,
   itemCount,
+  labels,
   money,
   tipBps,
   tipOre,
@@ -520,6 +542,7 @@ function CartBar({
   cart: CartLine[];
   totals: ReturnType<typeof calculateOrderTotals>;
   itemCount: number;
+  labels: Dictionary["menu"];
   money: (amount: Ore) => string;
   tipBps: number;
   tipOre: Ore;
@@ -573,7 +596,7 @@ function CartBar({
                   <div className="flex shrink-0 items-center gap-3">
                     <button
                       type="button"
-                      aria-label={`Ta bort en ${line.item.name}`}
+                      aria-label={fill(labels.removeOne, { name: line.item.name })}
                       onClick={() => onQuantityChange(line.key, -1)}
                       className="grid h-11 w-11 place-items-center border border-[var(--rule)] text-lg transition-colors hover:border-burp-600"
                     >
@@ -582,7 +605,7 @@ function CartBar({
                     <span className="w-4 text-center tabular-nums">{line.quantity}</span>
                     <button
                       type="button"
-                      aria-label={`Lägg till en ${line.item.name}`}
+                      aria-label={fill(labels.addOne, { name: line.item.name })}
                       onClick={() => onQuantityChange(line.key, 1)}
                       className="grid h-11 w-11 place-items-center border border-[var(--rule)] text-lg transition-colors hover:border-burp-600"
                     >
@@ -595,7 +618,7 @@ function CartBar({
 
             {pickupSlots.length > 0 ? (
               <label className="mt-5 block">
-                <span className="label-caps">När vill du hämta?</span>
+                <span className="label-caps">{labels.pickupTime}</span>
                 <select
                   value={scheduledFor}
                   onChange={(event) => onScheduleChange(event.target.value)}
@@ -603,7 +626,7 @@ function CartBar({
                 >
                   {/* Tom sträng betyder "så snart som möjligt". Att göra det
                       till förstaval är avsiktligt: de flesta vill äta nu. */}
-                  <option value="">Så snart som möjligt</option>
+                  <option value="">{labels.asSoonAsPossible}</option>
                   {pickupSlots.map((slot) => (
                     <option key={slot} value={slot}>
                       {slotTime.format(new Date(slot))}
@@ -614,7 +637,7 @@ function CartBar({
             ) : null}
 
             <div className="mt-5">
-              <p className="label-caps">Dricks</p>
+              <p className="label-caps">{labels.tip}</p>
               <div className="mt-2 flex gap-2">
                 {TIP_CHOICES.map((choice) => (
                   <button
@@ -628,7 +651,7 @@ function CartBar({
                         : "border-[var(--rule)] hover:border-burp-600"
                     }`}
                   >
-                    {choice === 0 ? "Ingen" : `${choice / 100} %`}
+                    {choice === 0 ? labels.noTip : `${choice / 100} %`}
                   </button>
                 ))}
               </div>
@@ -636,17 +659,17 @@ function CartBar({
 
             <dl className="mt-5 space-y-1 text-sm">
               <div className="flex justify-between">
-                <dt className="text-[var(--muted)]">Mat och dryck</dt>
+                <dt className="text-[var(--muted)]">{labels.foodAndDrink}</dt>
                 <dd className="tabular-nums">{money(totals.itemsGrossOre)}</dd>
               </div>
               {tipOre > 0 ? (
                 <div className="flex justify-between">
-                  <dt className="text-[var(--muted)]">Dricks</dt>
+                  <dt className="text-[var(--muted)]">{labels.tip}</dt>
                   <dd className="tabular-nums">{money(tipOre)}</dd>
                 </div>
               ) : null}
               <div className="flex justify-between text-[var(--muted)]">
-                <dt>varav moms</dt>
+                <dt>{labels.ofWhichVat}</dt>
                 <dd className="tabular-nums">{money(totals.itemsVatOre)}</dd>
               </div>
             </dl>
@@ -666,7 +689,7 @@ function CartBar({
             onClick={() => setExpanded(!expanded)}
             className="min-h-12 border border-[var(--rule)] px-4 text-sm transition-colors hover:border-burp-600"
           >
-            {expanded ? "Dölj" : `${itemCount} st`}
+            {expanded ? labels.hide : fill(labels.itemCount, { n: itemCount })}
           </button>
 
           <button
@@ -675,7 +698,7 @@ function CartBar({
             disabled={submitting}
             className="flex min-h-12 flex-1 items-center justify-between bg-burp-600 px-4 font-medium text-white transition-colors hover:bg-burp-700 disabled:opacity-60"
           >
-            <span>{submitting ? "Skickar…" : "Beställ"}</span>
+            <span>{submitting ? labels.sending : labels.order}</span>
             <span className="tabular-nums">{money(totals.totalOre)}</span>
           </button>
         </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LOCALE, isLocale, LOCALES, localePath, pickLocale } from "./index";
+import { DEFAULT_LOCALE, fill, isLocale, LOCALES, localePath, pickLocale } from "./index";
 import { en } from "./en";
 import { sv } from "./sv";
 
@@ -64,6 +64,43 @@ function flatten(value: unknown, prefix = ""): Record<string, unknown> {
     return acc;
   }, {});
 }
+
+/**
+ * Avsnitten som skickas vidare till klientkomponenter måste vara rena strängar.
+ *
+ * `labels`-objektet passerar server/klient-gränsen, och React kan inte
+ * serialisera en funktion — sidan svarar 500. Felet syns varken i
+ * typkontrollen eller i ett grep av HTML:en: sidan returnerar en felpayload
+ * som ändå innehåller de strängar man letar efter. QR-sidan var trasig på
+ * precis det sättet, och såg fungerande ut.
+ */
+describe("texter som korsar server/klient-gränsen", () => {
+  for (const section of ["menu", "table"] as const) {
+    it(`${section} innehåller bara strängar`, () => {
+      for (const dict of [sv, en]) {
+        for (const [key, value] of Object.entries(dict[section])) {
+          expect(typeof value, `${section}.${key} måste vara en sträng`).toBe("string");
+        }
+      }
+    });
+  }
+});
+
+describe("fill", () => {
+  it("fyller i variabler", () => {
+    expect(fill("Bord {number}", { number: "3" })).toBe("Bord 3");
+    expect(fill("välj {min}–{max}", { min: 1, max: 3 })).toBe("välj 1–3");
+  });
+
+  /**
+   * En saknad variabel lämnas synlig. Ett `{name}` i gränssnittet är en bugg
+   * någon rättar; ordet "undefined" mitt i en mening ser ut som ett systemfel
+   * för gästen.
+   */
+  it("lämnar okända variabler orörda", () => {
+    expect(fill("Ta bort en {name}", {})).toBe("Ta bort en {name}");
+  });
+});
 
 describe("pickLocale", () => {
   it("väljer det högst rankade språket vi har", () => {

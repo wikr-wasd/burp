@@ -91,6 +91,62 @@ export const sv = {
       `${average} av 5 baserat på ${count} ${count === 1 ? "omdöme" : "omdömen"} från genomförda beställningar.`,
   },
 
+  /**
+   * Menyn och varukorgen.
+   *
+   * Skickas som ett `labels`-objekt till klientkomponenten i stället för att
+   * den slår upp språket själv. Klientkod ska inte behöva veta att språk
+   * finns — och QR-sidan väljer sitt språk på Accept-Language medan
+   * restaurangsidan får sitt ur URL:en, så uppslaget kan inte ligga i
+   * komponenten.
+   *
+   * ENBART strängar här, aldrig funktioner. Objektet passerar server/klient-
+   * gränsen, och React kan inte serialisera en funktion — sidan svarar 500.
+   * Variabler skrivs som `{namn}` och fylls i av `fill()` på klientsidan.
+   */
+  menu: {
+    table: "Bord {number}",
+    pickup: "Avhämtning",
+    sections: "Menyns avdelningar",
+    soldOut: "Slut för dagen",
+    chooseOptions: "Välj tillval",
+    hideOptions: "Dölj tillval",
+    add: "Lägg till",
+    chooseExactly: "välj {n}",
+    chooseBetween: "välj {min}–{max}",
+    chooseUpTo: "välj upp till {n}",
+    optionSoldOut: "(slut)",
+    chooseFirst: 'Välj i "{group}" först',
+    noteToKitchen: "Meddelande till köket",
+    notePlaceholder: "T.ex. utan lök",
+    pickupTime: "När vill du hämta?",
+    asSoonAsPossible: "Så snart som möjligt",
+    tip: "Dricks",
+    noTip: "Ingen",
+    foodAndDrink: "Mat och dryck",
+    ofWhichVat: "varav moms",
+    hide: "Dölj",
+    itemCount: "{n} st",
+    order: "Beställ",
+    sending: "Skickar…",
+    removeOne: "Ta bort en {name}",
+    addOne: "Lägg till en {name}",
+    orderFailed: "Beställningen kunde inte läggas. Försök igen.",
+    noConnection: "Ingen kontakt med servern. Kontrollera nätet och försök igen.",
+  },
+
+  /** Meddelanden på QR-sidan innan menyn visas. */
+  table: {
+    tooManyTitle: "För många försök",
+    tooManyBody: "Vänta en stund och skanna koden igen.",
+    lockedTitle: "Bordet tar inte emot beställningar",
+    lockedBody: "Prata med personalen så hjälper de dig.",
+    closedTitle: "Restaurangen är stängd",
+    closedBody: "Beställningar går bara att lägga under öppettiderna.",
+    noMenuTitle: "Ingen meny just nu",
+    noMenuBody: "Restaurangen har inte publicerat någon meny för den här tiden. Prata med personalen.",
+  },
+
   directions: {
     copy: "Kopiera adress",
     copied: "Kopierad",

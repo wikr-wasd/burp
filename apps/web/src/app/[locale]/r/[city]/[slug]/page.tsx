@@ -276,6 +276,7 @@ export default async function RestaurantPage({ params }: PageProps) {
             <MenuOrder
               menu={menu}
               restaurantName={restaurant.name}
+              labels={t.menu}
               currency={restaurant.currency}
               timeZone={timeZone}
               context={{ kind: "PICKUP" }}

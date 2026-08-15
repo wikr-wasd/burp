@@ -5,6 +5,7 @@ import { getActiveMenu } from "@/lib/menu";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { lookupTable } from "@/lib/table-session";
 import { MenuOrder } from "@/components/order/menu-order";
+import { dictionary, requestLocale } from "@/lib/i18n";
 
 /**
  * QR-landningssidan — burp.se/t/R7K2M9X4TB (avsnitt 4.2).
@@ -36,10 +37,20 @@ interface PageProps {
 export default async function TablePage({ params }: PageProps) {
   const { token } = await params;
 
+  /*
+   * Språket kommer från gästens telefon, inte från adressen.
+   *
+   * Sidan är noindex och ska aldrig hamna i en sökträff, så den behöver ingen
+   * egen URL per språk. Och QR-beställning används av turister — en
+   * engelsktalande gäst i Sarajevo ska inte mötas av svenska för att
+   * produkten råkar vara byggd i Sverige.
+   */
+  const t = dictionary(await requestLocale());
+
   const requestHeaders = await headers();
   const limit = rateLimit(`qr:${clientIp(requestHeaders)}`, RATE_LIMITS.qrLookup);
   if (!limit.success) {
-    return <TableMessage title="För många försök" body="Vänta en stund och skanna koden igen." />;
+    return <TableMessage title={t.table.tooManyTitle} body={t.table.tooManyBody} />;
   }
 
   const lookup = await lookupTable(token);
@@ -54,18 +65,12 @@ export default async function TablePage({ params }: PageProps) {
 
     if (lookup.reason === "TABLE_LOCKED") {
       return (
-        <TableMessage
-          title="Bordet tar inte emot beställningar"
-          body="Prata med personalen så hjälper de dig."
-        />
+        <TableMessage title={t.table.lockedTitle} body={t.table.lockedBody} />
       );
     }
 
     return (
-      <TableMessage
-        title="Restaurangen är stängd"
-        body="Beställningar går bara att lägga under öppettiderna."
-      />
+      <TableMessage title={t.table.closedTitle} body={t.table.closedBody} />
     );
   }
 
@@ -78,10 +83,7 @@ export default async function TablePage({ params }: PageProps) {
 
   if (!menu || menu.categories.length === 0) {
     return (
-      <TableMessage
-        title="Ingen meny just nu"
-        body="Restaurangen har inte publicerat någon meny för den här tiden. Prata med personalen."
-      />
+      <TableMessage title={t.table.noMenuTitle} body={t.table.noMenuBody} />
     );
   }
 
@@ -90,6 +92,7 @@ export default async function TablePage({ params }: PageProps) {
       <MenuOrder
         menu={menu}
         restaurantName={table.restaurantName}
+        labels={t.menu}
         currency={table.currency}
         timeZone={table.timeZone}
         context={{
