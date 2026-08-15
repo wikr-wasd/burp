@@ -63,6 +63,20 @@ check_status_as_guest() {
 
 trap 'rm -f "$COOKIES"' EXIT
 
+# Värm upp rutterna innan något mäts.
+#
+# `next dev` kompilerar varje rutt vid första anropet. En kall server svarar
+# därför något annat än den skulle gjort — en skyddad sida redirectar inte, en
+# order faller på timeout — och testet rapporterar det som produktfel. Samma
+# sorts vilseledning som rate limiten gav innan den särskildes.
+printf '→ Värmer upp rutterna'
+for path in / /logga-in /dashboard /kok /dashboard/bord /dashboard/meny \
+            /backoffice /backoffice/restauranger /konto /malmo /api/health; do
+  curl -s -o /dev/null --max-time 60 "$BASE$path"
+  printf '.'
+done
+echo ""
+
 echo "→ Publika sidor"
 check_status "startsidan"            "/"                          200
 check_status "hälsokontroll"         "/api/health"                200
