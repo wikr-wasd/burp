@@ -60,37 +60,88 @@ kommer läggs en kolumn `funded_by` till — loggen behöver inte skrivas om.
 
 ---
 
-## 4. Krävs certifierat kassaregister för QR-flödet?
+## 4. Vilka krav på kassaregister gäller i Bosnien, Kroatien och Serbien?
 
 **Status:** obesvarad · **Kan blockera lansering av Fas 2**
 
-Sverige har krav på certifierat kassaregister vid försäljning på plats. Hur det
-slår mot ett flöde där gästen betalar i sin egen telefon vid bordet är inte
-utrett. **Detta är en fråga för Skatteverket eller en skattejurist, inte för
-utvecklingsteamet.**
+> Frågan gällde tidigare Skatteverkets krav på certifierat kassaregister.
+> Marknaden är en annan nu, och alla tre länderna har egna regler — Kroatien
+> och Serbien har dessutom system för **fiskalisering** där varje kvitto ska
+> rapporteras i realtid till skattemyndigheten och förses med en signatur.
+> Det är en tyngre integration än det svenska kassaregisterkravet, och den
+> skiljer sig mellan länderna.
+
+Hur det slår mot ett flöde där gästen beställer i sin egen telefon vid bordet
+är inte utrett. **Detta är en fråga för en lokal skattejurist i varje land,
+inte för utvecklingsteamet** — och sannolikt tre olika svar.
 
 `register_receipts` finns i schemat så att en integration kan läggas till utan
 ombyggnad. Tabellen fylls inte av någon kod idag.
 
 ---
 
-## 5. Vilken betalleverantör och vilka betalsätt i Sverige?
+## 5. Hur tas betalt i Bosnien, Kroatien och Serbien?
 
-**Status:** obesvarad · **Blockerar:** Fas 1
+**Status:** obesvarad · **Blockerar:** kortbetalning, men troligen inte lansering
 
-| Leverantör | För | Emot |
+> Frågan var tidigare ställd för Sverige, med Swish och Klarna som alternativ.
+> Den formuleringen var kvar från innan marknaden bestämdes och hade skickat
+> arbetet åt fel håll. Det här är omskrivningen.
+
+### Det svåra är utbetalningarna, inte korten
+
+Att ta emot ett kort är den enkla delen. Burp är en marknadsplats: pengarna
+kommer från gästen, Burp behåller sin avgift och resten ska till restaurangen.
+Att förmedla pengar åt någon annan är reglerad verksamhet, och regleringen är
+nationell. **Kroatien ligger i EU/EES, Bosnien och Serbien gör det inte** — och
+det är den skiljelinjen som avgör vilka leverantörer som ens är möjliga.
+
+### Tre vägar
+
+| Väg | Innebörd | Kostnad |
 |---|---|---|
-| Stripe Connect | Enklast att komma igång. Application fee dras automatiskt. Bra dokumentation | Svagare på lokala nordiska betalsätt |
-| Adyen for Platforms | Starkare i Norden, bättre lokala betalsätt | Tyngre onboarding, högre tröskel |
-| Klarna | Stark i Sverige | Mindre byggd för marknadsplatsutbetalningar |
+| **A. Burp rör aldrig pengarna** | Varje restaurang har eget avtal med sin inlösare. Burp fakturerar sin avgift separat, i efterhand | Enklast juridiskt, tyngst att sälja in — restaurangen måste ordna eget avtal |
+| **B. Marknadsplatsmodell** | En leverantör med tillstånd i varje land delar betalningen automatiskt | Enklast för restaurangen, kräver en leverantör som täcker alla tre |
+| **C. Betalning på plats** | Gästen betalar i lokalen, Burp fakturerar avgiften | Fungerar idag, noll integration |
 
-**Swish:** kontrollera direkt med leverantören vad de stödjer just nu. Läget
-ändras och det går inte att lita på andrahandsuppgifter här.
+### Om väg C
 
-Schemat är leverantörsneutralt: `payments.provider` + `provider_reference`
-räcker för alla tre utan schemaändring.
+Det är läget just nu, och det bör inte avfärdas som ett provisorium.
+Kontantbetalning är fortfarande utbredd i restaurangledet i Bosnien och
+Serbien, och QR-beställningens värde — slippa vänta på en servitör för att
+beställa — finns kvar även när notan betalas i kassan.
 
----
+Det gör att **kortbetalning sannolikt inte blockerar en lansering**, bara en
+del av intäktsmodellen. Det ändrar frågans brådska, inte dess vikt.
+
+### Innan någon leverantör väljs
+
+Följande måste kontrolleras **direkt hos leverantören**, inte i
+andrahandskällor. Utbudet i just de här tre länderna ändras, och en uppgift som
+var sann förra året kan vara fel idag:
+
+1. Stödjer leverantören **utbetalning** till företag i Bosnien respektive
+   Serbien — inte bara mottagning av kort från gäster där?
+2. Klarar den **marknadsplatsupplägg** (split payout, application fee) i
+   samtliga tre länder, eller bara i det som ligger i EU?
+3. Tar den emot **inhemska kort**? DinaCard i Serbien är en betydande andel av
+   korten och accepteras inte av alla internationella leverantörer. En lösning
+   som bara tar Visa och Mastercard utestänger en del av gästerna.
+4. Vad kostar en utbetalning i **BAM och RSD**, och vem bär växlingskostnaden
+   om leverantören avräknar i euro?
+
+Punkt 3 och 4 är de som brukar glömmas och som avgör om lösningen fungerar i
+praktiken snarare än på papperet.
+
+### Vad koden redan tål
+
+Schemat är leverantörsneutralt: `payments.provider` och `provider_reference`
+räcker för vilken som helst av vägarna utan schemaändring. `orders.currency`
+är fryst per order (migration 0020), så en utbetalning kan alltid härledas till
+rätt valuta i efterhand.
+
+Ingen kod behöver skrivas om beroende på vilket svar frågan får. Det som
+tillkommer är en webhook-hanterare och en statusövergång — inte en ommöblering.
 
 ## 6. Ska Burp ta betalt av gästen också, eller bara av restaurangen?
 
