@@ -738,4 +738,81 @@ begin
 end
 $$;
 
+\echo '   borttagen rad räknar om summa och avgift'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_order_id uuid;
+  v_rad_a    uuid;
+  v_rad_b    uuid;
+  v_total    integer;
+  v_gross    integer;
+  v_fee      integer;
+  v_vat      integer;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, items_vat_ore, vat_by_rate, tip_ore, total_ore)
+  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(),
+          27800, 2979, jsonb_build_object('1200', 2979), 1000, 28800)
+  returning id into v_order_id;
+
+  insert into public.order_items (order_id, restaurant_id, name_snapshot, unit_price_ore,
+                                  vat_rate_bps, quantity, line_gross_ore)
+  values (v_order_id, v_rest_id, 'Margherita', 12900, 1200, 1, 12900)
+  returning id into v_rad_a;
+
+  insert into public.order_items (order_id, restaurant_id, name_snapshot, unit_price_ore,
+                                  vat_rate_bps, quantity, line_gross_ore)
+  values (v_order_id, v_rest_id, 'Diavola', 14900, 1200, 1, 14900)
+  returning id into v_rad_b;
+
+  insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
+  values (v_order_id, v_rest_id, 'GROSS_ITEMS', 27800, 340, 945);
+
+  update public.orders set status = 'PLACED' where id = v_order_id;
+
+  perform public.remove_order_item(v_order_id, v_rad_b);
+
+  select items_gross_ore, total_ore, items_vat_ore into v_gross, v_total, v_vat
+  from public.orders where id = v_order_id;
+
+  if v_gross <> 12900 then
+    raise exception 'FEL: summan blev % efter borttagning, väntade 12900', v_gross;
+  end if;
+
+  -- Dricksen ligger kvar; den är gästens pengar och rörs inte av att en rätt
+  -- tas bort.
+  if v_total <> 13900 then
+    raise exception 'FEL: totalen blev %, väntade 13900 (12900 + 1000 dricks)', v_total;
+  end if;
+
+  if v_vat <> 1382 then
+    raise exception 'FEL: momsen blev % öre, väntade 1382', v_vat;
+  end if;
+
+  -- Avgiften måste följa med. Görs den inte det tar Burp betalt för mat som
+  -- togs bort — och det upptäcks först i restaurangens bokföring.
+  select fee_ore into v_fee from public.fees where order_id = v_order_id;
+  if v_fee <> 439 then
+    raise exception 'FEL: avgiften blev % öre, väntade 439 (3,40 %% av 12900)', v_fee;
+  end if;
+
+  if not exists (
+    select 1 from public.order_events
+    where order_id = v_order_id and event_type = 'ITEM_REMOVED'
+  ) then
+    raise exception 'FEL: borttagningen loggades inte';
+  end if;
+
+  -- Sista raden ska vägras. En tom order är en avbruten order.
+  begin
+    perform public.remove_order_item(v_order_id, v_rad_a);
+    raise exception 'FEL: sista raden gick att ta bort';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
 rollback;

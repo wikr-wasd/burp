@@ -6,6 +6,7 @@ import {
   parseOrderPolicy,
   type OrderStatus,
 } from "@burp/core";
+import { OrderActions } from "@/components/order/order-actions";
 import { OrderStatusView } from "@/components/order/order-status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { currentTableSessionId, lookupTable } from "@/lib/table-session";
@@ -96,6 +97,20 @@ export default async function OrderPage({ params }: PageProps) {
         status={order.status as OrderStatus}
         prepTimeMinutes={policy.prepTimeMinutes}
         placedAt={order.placed_at}
+      />
+
+      {/* Restaurangens egna regler avgör vad som visas här. Är allt avstängt
+          renderar komponenten ingenting alls. */}
+      <OrderActions
+        orderId={order.id}
+        status={order.status as OrderStatus}
+        placedAt={order.placed_at}
+        policy={policy}
+        items={(items ?? []).map((item) => ({
+          id: item.id,
+          name: item.name_snapshot,
+          quantity: item.quantity,
+        }))}
       />
 
       <ul className="mt-8 divide-y divide-black/10 dark:divide-white/10">

@@ -513,6 +513,105 @@ else
   fail "$ANON_EARN poängrader skapades för beställningar utan gäst"
 fi
 
+echo "→ Orderredigering"
+# Egen order med två rader. Att återanvända en tidigare gör testet beroende av
+# vad andra sektioner hunnit göra med den — statistiksektionen driver till
+# exempel alla lagda order till COMPLETED, och en genomförd order är inte
+# längre ändringsbar.
+EDIT_ORDER=$(order_request "{
+  \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"idempotency_key\": \"$(uuid)\",
+  \"items\": [
+    {\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []},
+    {\"menu_item_id\": \"$DIAVOLA\", \"quantity\": 1, \"options\": []}
+  ]
+}" | sed '$d' | json_field order_id)
+
+if [ -n "$EDIT_ORDER" ]; then
+  # Ett gissat order-id ska ge samma svar som en order som inte finns —
+  # annars går endpointen att använda för att kartlägga vilka id som existerar.
+  GUESSED=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH \
+    "$BASE/api/orders/00000000-0000-0000-0000-000000000000" \
+    -H "Content-Type: application/json" -d '{"action":"CANCEL"}')
+  if [ "$GUESSED" = "404" ]; then
+    pass "gissat order-id ger 404"
+  else
+    fail "gissat order-id gav $GUESSED"
+  fi
+
+  # Utan bordssessionens cookie är ordern inte gästens.
+  NO_COOKIE=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$BASE/api/orders/$EDIT_ORDER" \
+    -H "Content-Type: application/json" -d '{"action":"CANCEL"}')
+  if [ "$NO_COOKIE" = "404" ]; then
+    pass "order går inte att ändra utan session"
+  else
+    fail "en främling kunde nå ordern ($NO_COOKIE)"
+  fi
+
+  # Med två rader ska den första gå att ta bort.
+  FIRST_ITEM=$(sql "select id from public.order_items where order_id = '$EDIT_ORDER' order by created_at limit 1;")
+  REMOVED=$(curl -s -o /dev/null -b "$COOKIES" -w '%{http_code}' -X PATCH \
+    "$BASE/api/orders/$EDIT_ORDER" -H "Content-Type: application/json" \
+    -d "{\"action\":\"REMOVE_ITEM\",\"order_item_id\":\"$FIRST_ITEM\"}")
+  if [ "$REMOVED" = "200" ]; then
+    pass "gästen kan ta bort en rad"
+  else
+    fail "borttagning gav $REMOVED"
+  fi
+
+  # Summan och avgiften ska ha räknats om. Görs inte det tar Burp betalt för
+  # mat som togs bort — och det upptäcks först i restaurangens bokföring.
+  GROSS_AFTER=$(sql "select items_gross_ore from public.orders where id = '$EDIT_ORDER';")
+  if [ "$GROSS_AFTER" = "14900" ]; then
+    pass "summan räknades om efter borttagning"
+  else
+    fail "summan blev $GROSS_AFTER, väntade 14900"
+  fi
+
+  FEE_AFTER=$(sql "select fee_ore from public.fees where order_id = '$EDIT_ORDER';")
+  if [ "$FEE_AFTER" = "507" ]; then
+    pass "Burps avgift räknades om"
+  else
+    fail "avgiften blev $FEE_AFTER, väntade 507"
+  fi
+
+  # Sista raden ska vägras — en tom order är en avbruten order.
+  LAST_ITEM=$(sql "select id from public.order_items where order_id = '$EDIT_ORDER' limit 1;")
+  LAST_ROW=$(curl -s -o /dev/null -b "$COOKIES" -w '%{http_code}' -X PATCH \
+    "$BASE/api/orders/$EDIT_ORDER" -H "Content-Type: application/json" \
+    -d "{\"action\":\"REMOVE_ITEM\",\"order_item_id\":\"$LAST_ITEM\"}")
+  if [ "$LAST_ROW" = "409" ]; then
+    pass "sista raden kan inte tas bort"
+  else
+    fail "sista raden gick att ta bort: $LAST_ROW"
+  fi
+
+  # Avbokning ska gå igenom med rätt session.
+  CANCELLED=$(curl -s -o /dev/null -b "$COOKIES" -w '%{http_code}' -X PATCH \
+    "$BASE/api/orders/$EDIT_ORDER" \
+    -H "Content-Type: application/json" -d '{"action":"CANCEL"}')
+  if [ "$CANCELLED" = "200" ]; then
+    pass "gästen kan avbryta sin order"
+  else
+    fail "avbokning gav $CANCELLED"
+  fi
+
+  if [ "$(sql "select status from public.orders where id = '$EDIT_ORDER';")" = "CANCELLED" ]; then
+    pass "statusen är avbruten i databasen"
+  else
+    fail "statusen ändrades inte"
+  fi
+
+  # En redan avbruten order är i ett slutläge och ska inte gå att röra igen.
+  AGAIN=$(curl -s -o /dev/null -b "$COOKIES" -w '%{http_code}' -X PATCH \
+    "$BASE/api/orders/$EDIT_ORDER" \
+    -H "Content-Type: application/json" -d '{"action":"CANCEL"}')
+  if [ "$AGAIN" = "409" ]; then
+    pass "en avbruten order kan inte avbrytas igen"
+  else
+    fail "en avbruten order gick att ändra ($AGAIN)"
+  fi
+fi
+
 echo "→ Omdömen"
 # Ett omdöme kräver en genomförd order som tillhör en inloggad gäst. Bygger
 # det i databasen: API-vägen kräver en gästsession som curl inte har.
