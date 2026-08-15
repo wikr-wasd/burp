@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { CurrencyCode } from "@burp/core";
+
 import { redirect } from "next/navigation";
 import { calculateBalance, type LoyaltyTransaction } from "@burp/core";
 import { createClient } from "./supabase/server";
@@ -54,6 +56,8 @@ export interface GuestOrder {
   status: string;
   type: string;
   totalOre: number;
+  /** Valutan ordern lades i, fryst vid orderläggning (migration 0020). */
+  currency: CurrencyCode;
   placedAt: string | null;
   completedAt: string | null;
   restaurantId: string;
@@ -69,7 +73,7 @@ export async function getGuestOrders(userId: string, limit = 30): Promise<GuestO
 
   const { data: orders } = await supabase
     .from("orders")
-    .select("id, status, type, total_ore, placed_at, completed_at, restaurant_id")
+    .select("id, status, type, total_ore, currency, placed_at, completed_at, restaurant_id")
     .eq("guest_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -105,6 +109,7 @@ export async function getGuestOrders(userId: string, limit = 30): Promise<GuestO
       status: order.status,
       type: order.type,
       totalOre: order.total_ore,
+      currency: order.currency as CurrencyCode,
       placedAt: order.placed_at,
       completedAt: order.completed_at,
       restaurantId: order.restaurant_id,

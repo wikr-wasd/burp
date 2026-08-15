@@ -1,3 +1,4 @@
+import { COUNTRY_INFO, type CountryCode, type CurrencyCode } from "@burp/core";
 import { sanitizeQuery, type OpeningHours } from "@/lib/discovery-format";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { createClient } from "@/lib/supabase/server";
@@ -27,6 +28,16 @@ export interface DiscoveryRestaurant {
   ratingCount: number;
   heroImageUrl: string | null;
   openingHours: OpeningHours | null;
+  country: CountryCode;
+  currency: CurrencyCode;
+  /**
+   * Restaurangens tidszon, härledd ur landet.
+   *
+   * Ligger med i objektet i stället för att slås upp i varje komponent. En
+   * komponent som gör uppslaget själv kommer förr eller senare att glömma det
+   * och falla tillbaka på serverns tidszon — vilket på Vercel är UTC.
+   */
+  timeZone: string;
 }
 
 export interface DiscoveryFilters {
@@ -39,7 +50,7 @@ export interface DiscoveryFilters {
 }
 
 const COLUMNS =
-  "id, name, slug, city, city_slug, description, street_address, cuisines, price_tier, rating_average, rating_count, hero_image_url, opening_hours";
+  "id, name, slug, city, city_slug, description, street_address, cuisines, price_tier, rating_average, rating_count, hero_image_url, opening_hours, country, currency";
 
 interface RestaurantRow {
   id: string;
@@ -55,6 +66,8 @@ interface RestaurantRow {
   rating_count: number | null;
   hero_image_url: string | null;
   opening_hours: OpeningHours | null;
+  country: CountryCode;
+  currency: CurrencyCode;
 }
 
 function toRestaurant(row: RestaurantRow): DiscoveryRestaurant {
@@ -72,6 +85,9 @@ function toRestaurant(row: RestaurantRow): DiscoveryRestaurant {
     ratingCount: row.rating_count ?? 0,
     heroImageUrl: resolveMediaUrl(row.hero_image_url),
     openingHours: row.opening_hours,
+    country: row.country,
+    currency: row.currency,
+    timeZone: COUNTRY_INFO[row.country].timeZone,
   };
 }
 

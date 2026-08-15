@@ -25,7 +25,11 @@ export default async function KitchenPage() {
       <main className="mx-auto max-w-6xl px-6 py-6">
         {/* Köket ser bara det som ska lagas nu. Förbeställningar dyker upp
             när tillagningstiden återstår — de listas i dashboarden så länge. */}
-        <KitchenBoard initialOrders={due} restaurantId={staff.restaurantId} />
+        <KitchenBoard
+          initialOrders={due}
+          restaurantId={staff.restaurantId}
+          currency={staff.currency}
+        />
 
         {upcoming.length > 0 ? (
           <p className="mt-8 text-center opacity-50">

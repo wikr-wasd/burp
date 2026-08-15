@@ -31,6 +31,25 @@ export interface CurrencyInfo {
   symbol: string;
 }
 
+/**
+ * Locale som styr tusentals- och decimaltecken för valutan.
+ *
+ * `bs-BA` står medvetet INTE här, trots att det är Bosniens språktagg.
+ * Körtiderna är oense om den: Chrome formaterar 1234,5 som "1,234.50" och Node
+ * som "1.234,50". Samma nota fick alltså olika utseende på servern och i
+ * webbläsaren — vilket både ser fel ut för gästen i Sarajevo och ger en
+ * hydreringsavvikelse i React.
+ *
+ * `hr-HR` är oomtvistad i båda och följer samma skrivsätt som faktiskt används
+ * i Bosnien: punkt som tusentalsavgränsare, komma som decimaltecken.
+ */
+export const CURRENCY_LOCALE: Record<CurrencyCode, string> = {
+  BAM: "hr-HR",
+  EUR: "hr-HR",
+  RSD: "sr-RS",
+  SEK: "sv-SE",
+};
+
 export const CURRENCY_INFO: Record<CurrencyCode, CurrencyInfo> = {
   BAM: { code: "BAM", decimalDigits: 2, symbol: "KM" },
   EUR: { code: "EUR", decimalDigits: 2, symbol: "€" },
@@ -150,4 +169,29 @@ export function normalizeOrgNumber(country: CountryCode, input: string): string 
 export function normalizePostalCode(country: CountryCode, input: string): string | null {
   const cleaned = input.replace(/\s/g, "");
   return COUNTRY_INFO[country].postalCodePattern.test(cleaned) ? cleaned : null;
+}
+
+/**
+ * Momssatserna en restaurang i landet får välja, med etikett.
+ *
+ * Menyredigeraren hade "12 % mat" och "25 % alkohol" hårdkodat — svenska
+ * satser, som databastriggern i migration 0019 numera avvisar för en bosnisk
+ * restaurang. Etiketten kommer härifrån så att formuläret och regeln inte kan
+ * glida isär.
+ *
+ * Bosnien får en enda knapp, eftersom landet har en enda sats. Ett val mellan
+ * två identiska satser är inget val.
+ */
+export function vatRateOptions(country: CountryCode): { bps: number; label: string }[] {
+  const { reduced, standard } = COUNTRY_INFO[country].vat;
+  const percent = (bps: number) => `${bps / 100} %`.replace(".", ",");
+
+  if (reduced === standard) {
+    return [{ bps: reduced, label: percent(reduced) }];
+  }
+
+  return [
+    { bps: reduced, label: `${percent(reduced)} mat` },
+    { bps: standard, label: `${percent(standard)} standard` },
+  ];
 }

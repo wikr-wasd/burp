@@ -584,6 +584,85 @@ begin
 end
 $$;
 
+\echo '   valutan fryses på ordern och blandas aldrig i statistiken'
+
+do $$
+declare
+  v_bosnisk  uuid := '11111111-1111-1111-1111-111111111111';
+  v_kroatisk uuid;
+  v_order    uuid;
+  v_currency public.currency_code;
+  v_rader    integer;
+  v_gmv      bigint;
+begin
+  -- Valutan sätts av triggern, inte av den som skriver raden. Vi försöker
+  -- skicka med fel valuta för att se att den skrivs över.
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             currency, items_gross_ore, total_ore)
+  values (v_bosnisk, 'PICKUP', 'DRAFT', gen_random_uuid(), 'SEK', 1200, 1200)
+  returning id into v_order;
+
+  select currency into v_currency from public.orders where id = v_order;
+  if v_currency <> 'BAM' then
+    raise exception 'FEL: ordern fick valutan % i stället för restaurangens BAM', v_currency;
+  end if;
+
+  -- En kroatisk restaurang med en genomförd order i euro.
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Konoba Valuta', 'konoba-valuta', '88800011122',
+          'Ilica 5', '10000', 'Zagreb', 'ACTIVE', 'HR', 'EUR')
+  returning id into v_kroatisk;
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, total_ore)
+  values (v_kroatisk, 'PICKUP', 'DRAFT', gen_random_uuid(), 5000, 5000)
+  returning id into v_order;
+
+  for i in 1..1 loop
+    update public.orders set status = 'PLACED'    where id = v_order;
+    update public.orders set status = 'ACCEPTED'  where id = v_order;
+    update public.orders set status = 'PREPARING' where id = v_order;
+    update public.orders set status = 'READY'     where id = v_order;
+    update public.orders set status = 'COMPLETED' where id = v_order;
+  end loop;
+
+  update public.orders set completed_at = '2021-06-15 12:00:00+02' where id = v_order;
+
+  /*
+   * Poängen med hela uppdelningen: en rad per valuta.
+   *
+   * Den gamla platform_summary lade ihop items_gross_ore över alla order i
+   * plattformen. Med bosniska fening, euro-cent och dinarer i samma summa blev
+   * det ett tal som ser ut som pengar men inte är det.
+   */
+  select count(*) into v_rader
+  from public.platform_revenue_by_currency('2021-01-01 00:00:00+01', '2021-12-31 00:00:00+01');
+
+  if v_rader <> 1 then
+    raise exception 'FEL: väntade en valutarad för perioden, fick %', v_rader;
+  end if;
+
+  select gmv_ore into v_gmv
+  from public.platform_revenue_by_currency('2021-01-01 00:00:00+01', '2021-12-31 00:00:00+01')
+  where currency = 'EUR';
+
+  if v_gmv <> 5000 then
+    raise exception 'FEL: EUR-omsättningen blev %, väntade 5000', v_gmv;
+  end if;
+
+  -- Och att beloppen inte längre går att få ut som en enda klump.
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and column_name = 'gmv_ore'
+      and table_name = 'platform_summary'
+  ) then
+    raise exception 'FEL: platform_summary har fått tillbaka ett belopp som spänner över valutor';
+  end if;
+end
+$$;
+
 \echo '   lojalitetspoäng delas ut vid slutförd order'
 
 do $$

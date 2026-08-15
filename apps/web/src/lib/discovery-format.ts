@@ -1,4 +1,4 @@
-import { stockholmNow } from "@burp/core";
+import { CURRENCY_INFO, zonedNow, type CurrencyCode } from "@burp/core";
 
 /**
  * De rena delarna av upptäcktsytan: formatering och indatasanering.
@@ -13,7 +13,7 @@ export type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 export type OpeningHours = Partial<Record<DayKey, { opens: string; closes: string }[]>>;
 
 /**
- * Söndag först — `stockholmNow().dayIndex` räknar från söndag, inte måndag.
+ * Söndag först — `zonedNow().dayIndex` räknar från söndag, inte måndag.
  * Med måndag först hamnar varje dag ett steg fel och sidan visar gårdagens
  * tider hela veckan.
  */
@@ -39,10 +39,14 @@ export function sanitizeQuery(raw: string): string {
  * ska aldrig besvaras här, eftersom två svar på samma fråga garanterat glider
  * isär. Här visas bara vad som står i schemat för dagen.
  */
-export function todaysHours(hours: OpeningHours | null, now: Date = new Date()): string | null {
+export function todaysHours(
+  hours: OpeningHours | null,
+  timeZone: string,
+  now: Date = new Date(),
+): string | null {
   if (!hours) return null;
 
-  const key = DAY_KEYS[stockholmNow(now).dayIndex];
+  const key = DAY_KEYS[zonedNow(now, timeZone).dayIndex];
   const spans = key ? hours[key] : undefined;
 
   if (!spans || spans.length === 0) return null;
@@ -50,8 +54,19 @@ export function todaysHours(hours: OpeningHours | null, now: Date = new Date()):
   return spans.map((span) => `${span.opens}–${span.closes}`).join(", ");
 }
 
-/** Prisklass som kronsymboler: 2 → "kr kr". Null när restaurangen saknar klass. */
-export function priceTierLabel(tier: number | null): string | null {
+/**
+ * Prisklass som upprepad valutasymbol: 2 i Sarajevo → "KM KM".
+ *
+ * Symbolen kommer från restaurangens valuta, inte från koden. En restaurang i
+ * Sarajevo visade "kr kr" innan — vilket ser ut som ett fel för gästen och ÄR
+ * ett fel, eftersom det antyder att notan kommer i kronor.
+ *
+ * Null när restaurangen saknar prisklass. Då visas ingenting alls, hellre än
+ * en gissad klass.
+ */
+export function priceTierLabel(tier: number | null, currency: CurrencyCode): string | null {
   if (tier === null || !Number.isFinite(tier) || tier < 1) return null;
-  return Array.from({ length: Math.min(Math.floor(tier), 4) }, () => "kr").join(" ");
+
+  const { symbol } = CURRENCY_INFO[currency];
+  return Array.from({ length: Math.min(Math.floor(tier), 4) }, () => symbol).join(" ");
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { formatOre } from "@burp/core";
+import { formatMoney } from "@burp/core";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { requireStaff } from "@/lib/auth";
 import { getStatistics, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
@@ -75,30 +75,30 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
         ) : (
           <>
             <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Stat label="Omsättning" value={formatOre(summary.itemsGrossOre)} hint="inkl. moms" />
+              <Stat label="Omsättning" value={formatMoney(summary.itemsGrossOre, staff.currency)} hint="inkl. moms" />
               <Stat label="Beställningar" value={String(summary.ordersCount)} />
-              <Stat label="Snittnota" value={formatOre(summary.avgOrderOre)} />
-              <Stat label="Dricks" value={formatOre(summary.tipsOre)} hint="går till personalen" />
+              <Stat label="Snittnota" value={formatMoney(summary.avgOrderOre, staff.currency)} />
+              <Stat label="Dricks" value={formatMoney(summary.tipsOre, staff.currency)} hint="går till personalen" />
             </section>
 
             <section className="mt-8">
               <h2 className="text-lg font-semibold">Ekonomi</h2>
               <dl className="mt-3 divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/15">
-                <Row label="Omsättning inkl. moms" value={formatOre(summary.itemsGrossOre)} />
-                <Row label="varav moms" value={formatOre(summary.itemsVatOre)} muted />
+                <Row label="Omsättning inkl. moms" value={formatMoney(summary.itemsGrossOre, staff.currency)} />
+                <Row label="varav moms" value={formatMoney(summary.itemsVatOre, staff.currency)} muted />
                 {stats.vat.map((line) => (
                   <Row
                     key={line.vatRateBps}
                     label={`varav ${(line.vatRateBps / 100).toFixed(0)} %`}
-                    value={formatOre(line.vatOre)}
+                    value={formatMoney(line.vatOre, staff.currency)}
                     muted
                     indented
                   />
                 ))}
-                <Row label="Netto exkl. moms" value={formatOre(summary.itemsNetOre)} />
+                <Row label="Netto exkl. moms" value={formatMoney(summary.itemsNetOre, staff.currency)} />
                 <Row
                   label="Burps avgift"
-                  value={`−${formatOre(summary.feesOre)}`}
+                  value={`−${formatMoney(summary.feesOre, staff.currency)}`}
                   hint={
                     summary.itemsGrossOre > 0
                       ? // Svenskt decimalkomma. toFixed ger punkt, och en punkt
@@ -109,8 +109,8 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
                       : undefined
                   }
                 />
-                <Row label="Dricks" value={`+${formatOre(summary.tipsOre)}`} />
-                <Row label="Till utbetalning" value={formatOre(payoutOre)} strong />
+                <Row label="Dricks" value={`+${formatMoney(summary.tipsOre, staff.currency)}`} />
+                <Row label="Till utbetalning" value={formatMoney(payoutOre, staff.currency)} strong />
               </dl>
 
               <p className="mt-3 text-sm opacity-60">
@@ -145,7 +145,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
                     <li key={item.name} className="flex items-center gap-4 px-4 py-3">
                       <span className="w-10 shrink-0 tabular-nums opacity-60">{item.quantity}×</span>
                       <span className="mr-auto">{item.name}</span>
-                      <span className="tabular-nums">{formatOre(item.grossOre)}</span>
+                      <span className="tabular-nums">{formatMoney(item.grossOre, staff.currency)}</span>
                     </li>
                   ))}
                 </ul>
@@ -168,7 +168,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
                       <span className="tabular-nums opacity-60">
                         {table.ordersCount} {table.ordersCount === 1 ? "order" : "order"}
                       </span>
-                      <span className="w-24 text-right tabular-nums">{formatOre(table.grossOre)}</span>
+                      <span className="w-24 text-right tabular-nums">{formatMoney(table.grossOre, staff.currency)}</span>
                     </li>
                   ))}
                 </ul>

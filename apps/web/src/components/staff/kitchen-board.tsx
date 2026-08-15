@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   allowedTransitions,
-  formatOre,
+  formatMoney,
   ORDER_STATUS_LABELS,
+  type CurrencyCode,
   type OrderStatus,
 } from "@burp/core";
 import { createClient } from "@/lib/supabase/client";
@@ -44,12 +45,15 @@ export function KitchenBoard({
   canCancel = false,
   /** Dashboarden visar belopp; köket har ingen nytta av dem. */
   showTotals = false,
+  currency,
 }: {
   initialOrders: KitchenOrder[];
   restaurantId: string;
   title?: string;
   canCancel?: boolean;
   showTotals?: boolean;
+  /** Restaurangens valuta. Krävs så fort belopp visas. */
+  currency: CurrencyCode;
 }) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
@@ -189,6 +193,7 @@ export function KitchenBoard({
               onAdvance={advance}
               canCancel={canCancel}
               showTotals={showTotals}
+              currency={currency}
             />
           ))}
         </div>
@@ -203,12 +208,14 @@ function OrderCard({
   onAdvance,
   canCancel,
   showTotals,
+  currency,
 }: {
   order: KitchenOrder;
   pending: boolean;
   onAdvance: (order: KitchenOrder, to: OrderStatus) => void;
   canCancel: boolean;
   showTotals: boolean;
+  currency: CurrencyCode;
 }) {
   const step = NEXT_STEP[order.status];
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -259,7 +266,7 @@ function OrderCard({
 
       {showTotals ? (
         <p className="mt-3 text-right text-lg font-semibold tabular-nums">
-          {formatOre(order.totalOre)}
+          {formatMoney(order.totalOre, currency)}
         </p>
       ) : null}
 

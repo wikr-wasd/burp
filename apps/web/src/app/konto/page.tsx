@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { formatOre, ORDER_STATUS_LABELS, type OrderStatus } from "@burp/core";
+import { formatMoney, ORDER_STATUS_LABELS, type OrderStatus } from "@burp/core";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { ReviewForm } from "@/components/guest/review-form";
 import { getGuestOrders, getLoyalty, requireGuest } from "@/lib/guest";
@@ -108,7 +108,7 @@ function OrderCard({ order }: { order: Awaited<ReturnType<typeof getGuestOrders>
         ) : (
           <span className="font-semibold">{order.restaurantName}</span>
         )}
-        <span className="tabular-nums">{formatOre(order.totalOre)}</span>
+        <span className="tabular-nums">{formatMoney(order.totalOre, order.currency)}</span>
       </div>
 
       <p className="mt-1 text-sm opacity-60">

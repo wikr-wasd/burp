@@ -1,11 +1,17 @@
 import Link from "next/link";
+import { FoodImage } from "@/components/media/food-image";
 import { priceTierLabel, todaysHours, type DiscoveryRestaurant } from "@/lib/discovery";
+import { restaurantImage } from "@/lib/placeholder";
 
 /**
  * Restauranglistan på stads- och kökssidorna.
  *
  * Serverkomponent utan klientstate. Sidorna finns för Googles skull, och en
  * lista som kräver JavaScript för att synas är en lista som inte indexeras.
+ *
+ * Samma redaktionella form som startsidan: bild överst, namn i antikva,
+ * metadata som spärrad versaletikett. Två listor som visar samma sak ska se
+ * likadana ut — annars läser gästen dem som två olika produkter.
  */
 export function CityRestaurantList({
   restaurants,
@@ -14,13 +20,12 @@ export function CityRestaurantList({
 }) {
   if (restaurants.length === 0) {
     return (
-      <div className="mt-6 rounded-xl border border-black/10 p-6 dark:border-white/15">
-        <p className="opacity-70">
-          Inga restauranger här än. Driver du en restaurang i området?
-        </p>
+      <div className="mt-8 border-y border-[var(--rule)] py-14 text-center">
+        <p className="font-display text-2xl">Inga restauranger här än.</p>
+        <p className="mt-2 text-[var(--muted)]">Driver du en restaurang i området?</p>
         <Link
           href="/logga-in"
-          className="mt-3 inline-block rounded-md bg-burp-600 px-4 py-2.5 font-medium text-white"
+          className="mt-6 inline-flex min-h-11 items-center bg-burp-600 px-6 text-sm font-medium tracking-[var(--tracking-label)] text-white uppercase transition-colors hover:bg-burp-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
         >
           Anslut din restaurang
         </Link>
@@ -29,40 +34,55 @@ export function CityRestaurantList({
   }
 
   return (
-    <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+    <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
       {restaurants.map((restaurant) => {
-        const hours = todaysHours(restaurant.openingHours);
+        const hours = todaysHours(restaurant.openingHours, restaurant.timeZone);
+        const meta = [
+          restaurant.cuisines.join(" · ") || null,
+          priceTierLabel(restaurant.priceTier, restaurant.currency),
+        ]
+          .filter(Boolean)
+          .join(" · ");
 
         return (
           <li key={restaurant.id}>
             <Link
               href={`/r/${restaurant.citySlug}/${restaurant.slug}`}
-              className="block h-full rounded-xl border border-black/10 p-4 transition-colors hover:border-black/30 dark:border-white/15 dark:hover:border-white/35"
+              className="group flex h-full flex-col focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burp-600"
             >
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="font-semibold">{restaurant.name}</h2>
+              <FoodImage
+                src={restaurantImage(
+                  restaurant.name,
+                  restaurant.city,
+                  restaurant.heroImageUrl,
+                )}
+                alt=""
+              />
+
+              <div className="mt-4 flex items-baseline justify-between gap-3">
+                <h2 className="font-display text-2xl group-hover:text-burp-600">
+                  {restaurant.name}
+                </h2>
                 {restaurant.ratingCount > 0 && restaurant.ratingAverage !== null ? (
-                  <span className="shrink-0 text-sm tabular-nums opacity-70">
+                  <span className="shrink-0 text-sm tabular-nums">
+                    <span aria-hidden="true" className="text-burp-600">
+                      ★
+                    </span>{" "}
                     {restaurant.ratingAverage.toFixed(1).replace(".", ",")}
-                    <span className="opacity-70"> ({restaurant.ratingCount})</span>
+                    <span className="text-[var(--muted)]"> ({restaurant.ratingCount})</span>
                   </span>
                 ) : null}
               </div>
 
-              <p className="mt-1 text-sm opacity-60">
-                {[
-                  restaurant.cuisines.join(", ") || null,
-                  priceTierLabel(restaurant.priceTier),
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
+              {meta ? <p className="label-caps mt-1.5">{meta}</p> : null}
 
               {restaurant.description ? (
-                <p className="mt-2 line-clamp-2 text-sm opacity-70">{restaurant.description}</p>
+                <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
+                  {restaurant.description}
+                </p>
               ) : null}
 
-              <p className="mt-2 text-sm opacity-60">
+              <p className="mt-auto pt-3 text-sm text-[var(--muted)]">
                 {restaurant.streetAddress}
                 {hours ? ` · idag ${hours}` : ""}
               </p>

@@ -8,8 +8,8 @@ import { createAdminClient } from "./supabase/admin";
  * Hämtar den meny som gäller just nu för en restaurang.
  *
  * En restaurang kan ha flera menyer med olika giltighetstider — lunch, kväll,
- * helg. Vilken som visas avgörs av veckodag och klockslag i svensk tid, inte
- * av gästens telefon.
+ * helg. Vilken som visas avgörs av veckodag och klockslag i RESTAURANGENS
+ * tidszon, inte av gästens telefon och inte av serverns.
  *
  * Läsningen går via service role eftersom QR-gästen är anonym och saknar
  * `auth.uid()`. Frågorna filtrerar därför explicit på restaurant_id.
@@ -55,8 +55,18 @@ export interface Menu {
   categories: MenuCategory[];
 }
 
-/** Returnerar null om restaurangen inte har någon publicerad meny som gäller nu. */
-export async function getActiveMenu(restaurantId: string, now = new Date()): Promise<Menu | null> {
+/**
+ * Returnerar null om restaurangen inte har någon publicerad meny som gäller nu.
+ *
+ * `timeZone` är obligatorisk och kommer från restaurangens land. Ett
+ * standardvärde här hade betytt att en restaurang i fel tidszon fick fel meny
+ * utan att någon märkte det förrän en gäst beställde lunch klockan nio.
+ */
+export async function getActiveMenu(
+  restaurantId: string,
+  timeZone: string,
+  now = new Date(),
+): Promise<Menu | null> {
   const supabase = createAdminClient();
 
   const { data: menus } = await supabase
@@ -77,6 +87,7 @@ export async function getActiveMenu(restaurantId: string, now = new Date()): Pro
       activeFrom: row.active_from,
       activeUntil: row.active_until,
     })),
+    timeZone,
     now,
   );
   if (!menu) return null;

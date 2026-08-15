@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  formatOre,
+  formatMoney,
   parseOrderPolicy,
   type OrderStatus,
 } from "@burp/core";
@@ -45,7 +45,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, type, status, total_ore, items_gross_ore, tip_ore, placed_at, restaurant_id")
+    .select("id, type, status, total_ore, currency, items_gross_ore, tip_ore, placed_at, restaurant_id")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -143,7 +143,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
               ) : null}
               {item.note ? <p className="text-sm italic opacity-60">{item.note}</p> : null}
             </div>
-            <span className="shrink-0 tabular-nums">{formatOre(item.line_gross_ore)}</span>
+            <span className="shrink-0 tabular-nums">{formatMoney(item.line_gross_ore, order.currency)}</span>
           </li>
         ))}
       </ul>
@@ -151,17 +151,17 @@ export default async function PickupOrderPage({ params }: PageProps) {
       <dl className="mt-6 space-y-1 border-t border-black/10 pt-4 text-sm dark:border-white/10">
         <div className="flex justify-between">
           <dt className="opacity-60">Mat och dryck</dt>
-          <dd className="tabular-nums">{formatOre(order.items_gross_ore)}</dd>
+          <dd className="tabular-nums">{formatMoney(order.items_gross_ore, order.currency)}</dd>
         </div>
         {order.tip_ore > 0 ? (
           <div className="flex justify-between">
             <dt className="opacity-60">Dricks</dt>
-            <dd className="tabular-nums">{formatOre(order.tip_ore)}</dd>
+            <dd className="tabular-nums">{formatMoney(order.tip_ore, order.currency)}</dd>
           </div>
         ) : null}
         <div className="flex justify-between pt-2 text-base font-semibold">
           <dt>Totalt</dt>
-          <dd className="tabular-nums">{formatOre(order.total_ore)}</dd>
+          <dd className="tabular-nums">{formatMoney(order.total_ore, order.currency)}</dd>
         </div>
       </dl>
 

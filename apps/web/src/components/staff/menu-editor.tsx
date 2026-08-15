@@ -1,8 +1,14 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { createContext, useActionState, useContext, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import { formatKronorInput, formatOre, VAT_ALCOHOL_BPS, VAT_FOOD_BPS } from "@burp/core";
+import {
+  formatAmountInput,
+  formatMoney,
+  vatRateOptions,
+  type CountryCode,
+  type CurrencyCode,
+} from "@burp/core";
 import {
   createCategory,
   createMenu,
@@ -41,16 +47,46 @@ import { ImageUpload } from "@/components/staff/image-upload";
 
 const WEEKDAYS = ["Sön", "Mån", "Tis", "Ons", "Tors", "Fre", "Lör"] as const;
 
+/**
+ * Restaurangens land och valuta, tillgängligt i hela redigeraren.
+ *
+ * En kontext i stället för att skicka två props genom MenuCard →
+ * CategoryBlock → ItemRow → OptionGroups → OptionGroupBlock. Varje nivå som
+ * bara vidarebefordrar ett värde är en nivå där någon glömmer att göra det, och
+ * priserna hamnar i fel valuta i just den vy där det inte upptäcks.
+ */
+interface MenuLocale {
+  country: CountryCode;
+  currency: CurrencyCode;
+}
+
+const MenuLocaleContext = createContext<MenuLocale | null>(null);
+
+function useMenuLocale(): MenuLocale {
+  const value = useContext(MenuLocaleContext);
+  if (!value) {
+    throw new Error("Menyredigeraren måste ligga inuti MenuLocaleContext.");
+  }
+  return value;
+}
+
 export function MenuEditor({
   menus,
   restaurantId,
+  country,
+  currency,
 }: {
   menus: EditorMenu[];
   restaurantId: string;
+  /** Restaurangens land. Avgör vilka momssatser som får väljas. */
+  country: CountryCode;
+  /** Restaurangens valuta. Avgör hur priser skrivs och tolkas. */
+  currency: CurrencyCode;
 }) {
   const [error, setError] = useState<string | null>(null);
 
   return (
+    <MenuLocaleContext.Provider value={{ country, currency }}>
     <div className="mt-8">
       {error ? (
         <p role="alert" className="mb-4 rounded-md bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
@@ -70,6 +106,7 @@ export function MenuEditor({
         </div>
       )}
     </div>
+    </MenuLocaleContext.Provider>
   );
 }
 
@@ -328,6 +365,7 @@ function AddCategory({ menuId, onError }: { menuId: string; onError: (message: s
 /* ── Rätt ────────────────────────────────────────────────────────────────── */
 
 function AddItemForm({ categoryId }: { categoryId: string }) {
+  const { currency } = useMenuLocale();
   const [result, formAction] = useActionState<ActionResult | null, FormData>(createMenuItem, null);
 
   return (
@@ -343,12 +381,14 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
         />
       </label>
       <label className="basis-28">
-        <span className="text-sm font-medium">Pris</span>
+        <span className="text-sm font-medium">Pris ({currency})</span>
         <input
           name="price"
           required
           inputMode="decimal"
-          placeholder="129,00"
+          // Platshållaren visar rätt antal decimaler för valutan. En serbisk
+          // ägare som ser "129,00" skriver in ett pris hundra gånger fel.
+          placeholder={formatAmountInput(12900, currency)}
           className="mt-1 w-full rounded-md border border-black/15 bg-transparent px-3 py-2 dark:border-white/20"
         />
       </label>
@@ -367,6 +407,7 @@ function ItemRow({
   restaurantId: string;
   onError: (message: string) => void;
 }) {
+  const { country, currency } = useMenuLocale();
   const [pending, run] = useAction(onError);
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -382,8 +423,8 @@ function ItemRow({
         />
 
         <InlineText
-          value={formatKronorInput(item.priceOre)}
-          label="Pris i kronor"
+          value={formatAmountInput(item.priceOre, currency)}
+          label={`Pris i ${currency}`}
           className="w-24 text-right tabular-nums"
           inputMode="decimal"
           onSave={(price) => run(() => updateMenuItem(item.id, { price }))}
@@ -460,10 +501,7 @@ function ItemRow({
           <div>
             <span className="text-sm font-medium">Moms</span>
             <div className="mt-1 flex gap-2">
-              {[
-                { bps: VAT_FOOD_BPS, label: "12 % mat" },
-                { bps: VAT_ALCOHOL_BPS, label: "25 % alkohol" },
-              ].map((choice) => (
+              {vatRateOptions(country).map((choice) => (
                 <button
                   key={choice.bps}
                   type="button"
@@ -624,6 +662,7 @@ function OptionGroupBlock({
   group: EditorOptionGroup;
   onError: (message: string) => void;
 }) {
+  const { currency } = useMenuLocale();
   const [pending, run] = useAction(onError);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -652,7 +691,7 @@ function OptionGroupBlock({
           <li key={option.id} className="flex items-center gap-3 text-sm">
             <span className="mr-auto">{option.name}</span>
             <span className="tabular-nums opacity-70">
-              {option.priceOre === 0 ? "±0" : formatOre(option.priceOre)}
+              {option.priceOre === 0 ? "±0" : formatMoney(option.priceOre, currency)}
             </span>
             <button
               type="button"

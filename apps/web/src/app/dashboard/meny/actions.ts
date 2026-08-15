@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { parseKronor, VAT_ALCOHOL_BPS, VAT_FOOD_BPS } from "@burp/core";
+import { allowedVatRates, COUNTRY_INFO, parseAmount } from "@burp/core";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -200,8 +200,10 @@ export async function createMenuItem(
   if (!categoryId) return fail("Ingen kategori vald.");
   if (!name) return fail("Rätten behöver ett namn.");
 
-  const priceOre = parseKronor(priceInput);
-  if (priceOre === null) return fail(`"${priceInput}" är inte ett giltigt pris.`);
+  const priceOre = parseAmount(priceInput, staff.currency);
+  if (priceOre === null) {
+    return fail(`"${priceInput}" är inte ett giltigt pris i ${staff.currency}.`);
+  }
   if (priceOre < 0) return fail("Priset kan inte vara negativt.");
 
   const supabase = await createClient();
@@ -219,7 +221,9 @@ export async function createMenuItem(
     restaurant_id: staff.restaurantId,
     name,
     price_ore: priceOre,
-    vat_rate_bps: VAT_FOOD_BPS,
+    // Matmomsen i restaurangens land. Bosnien har bara en sats; där är
+    // "reducerad" och "standard" samma tal, vilket är avsiktligt.
+    vat_rate_bps: COUNTRY_INFO[staff.country].vat.reduced,
     status: "DRAFT",
     sort_order: (last?.sort_order ?? -1) + 1,
   });
@@ -238,7 +242,7 @@ export interface MenuItemPatch {
 }
 
 export async function updateMenuItem(itemId: string, patch: MenuItemPatch): Promise<ActionResult> {
-  await requireStaff(EDITOR_ROLES);
+  const staff = await requireStaff(EDITOR_ROLES);
 
   const update: Record<string, unknown> = {};
 
@@ -253,18 +257,23 @@ export async function updateMenuItem(itemId: string, patch: MenuItemPatch): Prom
   }
 
   if (patch.price !== undefined) {
-    const priceOre = parseKronor(patch.price);
-    if (priceOre === null) return fail(`"${patch.price}" är inte ett giltigt pris.`);
+    const priceOre = parseAmount(patch.price, staff.currency);
+    if (priceOre === null) {
+      return fail(`"${patch.price}" är inte ett giltigt pris i ${staff.currency}.`);
+    }
     if (priceOre < 0) return fail("Priset kan inte vara negativt.");
     update["price_ore"] = priceOre;
   }
 
   if (patch.vatRateBps !== undefined) {
-    // Bara de två satser som är aktuella i svensk restaurangverksamhet.
-    // Vill någon ha en tredje ska det vara ett medvetet beslut, inte ett fritt
-    // fält där en felskrivning blir en momsavvikelse.
-    if (patch.vatRateBps !== VAT_FOOD_BPS && patch.vatRateBps !== VAT_ALCOHOL_BPS) {
-      return fail("Momssatsen måste vara 12 % eller 25 %.");
+    // Bara satserna som gäller i restaurangens land. Ett fritt fält gör en
+    // felskrivning till en momsavvikelse, och den upptäcks i bokföringen.
+    // Databasen kontrollerar samma sak (migration 0019); det här är för att ge
+    // ett begripligt fel i stället för ett constraint-brott.
+    const allowed = allowedVatRates(staff.country);
+    if (!allowed.includes(patch.vatRateBps)) {
+      const readable = allowed.map((bps) => `${bps / 100} %`).join(" eller ");
+      return fail(`Momssatsen måste vara ${readable} i ${staff.country}.`);
     }
     update["vat_rate_bps"] = patch.vatRateBps;
   }
@@ -387,10 +396,12 @@ export async function createOption(
   const trimmed = name.trim();
   if (!trimmed) return fail("Tillvalet behöver ett namn.");
 
-  // Negativa tillval är tillåtna ("utan ost, −10 kr"). Att raden i sin helhet
+  // Negativa tillval är tillåtna ("bez luka, −1,00 KM"). Att raden i sin helhet
   // inte kan bli negativ kontrolleras av @burp/core vid beställning.
-  const priceOre = parseKronor(priceInput || "0");
-  if (priceOre === null) return fail(`"${priceInput}" är inte ett giltigt pris.`);
+  const priceOre = parseAmount(priceInput || "0", staff.currency);
+  if (priceOre === null) {
+    return fail(`"${priceInput}" är inte ett giltigt pris i ${staff.currency}.`);
+  }
 
   const supabase = await createClient();
 

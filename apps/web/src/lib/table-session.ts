@@ -1,7 +1,12 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { verifyTableToken } from "@burp/core";
+import {
+  COUNTRY_INFO,
+  verifyTableToken,
+  type CountryCode,
+  type CurrencyCode,
+} from "@burp/core";
 import { createAdminClient } from "./supabase/admin";
 import { serverEnv } from "./env";
 
@@ -29,6 +34,10 @@ export interface TableContext {
   restaurantName: string;
   restaurantSlug: string;
   city: string;
+  /** Restaurangens land, valuta och tidszon — styr priser och meny vid bordet. */
+  country: CountryCode;
+  currency: CurrencyCode;
+  timeZone: string;
   isOpen: boolean;
   isLocked: boolean;
 }
@@ -63,7 +72,9 @@ export async function lookupTable(token: string): Promise<TableLookup> {
         name,
         slug,
         city,
-        status
+        status,
+        country,
+        currency
       )
     `,
     )
@@ -80,6 +91,8 @@ export async function lookupTable(token: string): Promise<TableLookup> {
     slug: string;
     city: string;
     status: string;
+    country: CountryCode;
+    currency: CurrencyCode;
   };
 
   if (data.status === "LOCKED") {
@@ -101,6 +114,9 @@ export async function lookupTable(token: string): Promise<TableLookup> {
       restaurantName: restaurant.name,
       restaurantSlug: restaurant.slug,
       city: restaurant.city,
+      country: restaurant.country,
+      currency: restaurant.currency,
+      timeZone: COUNTRY_INFO[restaurant.country].timeZone,
       isOpen,
       isLocked: false,
     },

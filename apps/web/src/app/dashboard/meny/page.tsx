@@ -185,7 +185,12 @@ export default async function MenuPage() {
         <p className="mt-1 text-sm opacity-70">
           Bara publicerade menyer och rätter syns för gästen. Priser anges inklusive moms.
         </p>
-        <MenuEditor menus={tree} restaurantId={staff.restaurantId} />
+        <MenuEditor
+          menus={tree}
+          restaurantId={staff.restaurantId}
+          country={staff.country}
+          currency={staff.currency}
+        />
       </main>
     </>
   );

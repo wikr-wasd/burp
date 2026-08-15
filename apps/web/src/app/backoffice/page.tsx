@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { formatOre } from "@burp/core";
+import { formatMoney, type CurrencyCode } from "@burp/core";
 import { PlatformHeader } from "@/components/platform/platform-header";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
@@ -38,8 +38,14 @@ export default async function BackofficePage({ searchParams }: PageProps) {
 
   const supabase = await createClient();
 
-  const [summaryResult, pendingResult, mediaResult] = await Promise.all([
+  const [summaryResult, revenueResult, pendingResult, mediaResult] = await Promise.all([
     supabase.rpc("platform_summary", {
+      p_from: period.from.toISOString(),
+      p_to: period.to.toISOString(),
+    }),
+    // Pengarna hämtas separat och per valuta. Se migration 0020: en summa över
+    // BAM, EUR och RSD är inte ett belopp, den bara ser ut som ett.
+    supabase.rpc("platform_revenue_by_currency", {
       p_from: period.from.toISOString(),
       p_to: period.to.toISOString(),
     }),
@@ -60,10 +66,27 @@ export default async function BackofficePage({ searchParams }: PageProps) {
     restaurantsActive: Number(row?.restaurants_active ?? 0),
     restaurantsPending: Number(row?.restaurants_pending ?? 0),
     ordersCount: Number(row?.orders_count ?? 0),
-    gmvOre: Number(row?.gmv_ore ?? 0),
-    burpRevenueOre: Number(row?.burp_revenue_ore ?? 0),
-    tipsOre: Number(row?.tips_ore ?? 0),
   };
+
+  interface RevenueRow {
+    currency: CurrencyCode;
+    ordersCount: number;
+    gmvOre: number;
+    burpRevenueOre: number;
+    tipsOre: number;
+  }
+
+  const revenue: RevenueRow[] = (
+    (revenueResult.data as Record<string, unknown>[] | null) ?? []
+  ).map((line) => ({
+    currency: line.currency as CurrencyCode,
+    ordersCount: Number(line.orders_count ?? 0),
+    gmvOre: Number(line.gmv_ore ?? 0),
+    burpRevenueOre: Number(line.burp_revenue_ore ?? 0),
+    tipsOre: Number(line.tips_ore ?? 0),
+  }));
+
+  const tipsTotal = revenue.filter((line) => line.tipsOre > 0);
 
   const pending = pendingResult.data ?? [];
   const pendingMedia = mediaResult.count ?? 0;
@@ -93,17 +116,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
           </nav>
         </div>
 
-        <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat
-            label="Omsättning på plattformen"
-            value={formatOre(summary.gmvOre)}
-            hint="det gästerna betalade"
-          />
-          <Stat
-            label="Burps intäkt"
-            value={formatOre(summary.burpRevenueOre)}
-            hint="avgifter, exkl. kortavgift"
-          />
+        <section className="mt-6 grid gap-3 sm:grid-cols-2">
           <Stat label="Beställningar" value={String(summary.ordersCount)} />
           <Stat
             label="Aktiva restauranger"
@@ -112,12 +125,58 @@ export default async function BackofficePage({ searchParams }: PageProps) {
           />
         </section>
 
+        {/*
+          En rad per valuta, aldrig en totalsumma.
+
+          Burp finns i Bosnien, Kroatien och Serbien. Bosniska fening, euro-cent
+          och dinarer går inte att lägga ihop utan en växelkurs, och en kurs som
+          plockas ur luften gör siffran sämre än ingen siffra alls. Behövs ett
+          samlat tal krävs ett beslut om vilken kurs som gäller och när den
+          låstes — se docs/OPEN-QUESTIONS.md.
+        */}
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">Omsättning per valuta</h2>
+
+          {revenue.length === 0 ? (
+            <p className="mt-3 text-sm opacity-60">
+              Inga genomförda beställningar under perioden.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-black/10 rounded-xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+              {revenue.map((line) => (
+                <li key={line.currency} className="px-4 py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <span className="font-semibold">{line.currency}</span>
+                    <span className="text-sm opacity-60">
+                      {line.ordersCount}{" "}
+                      {line.ordersCount === 1 ? "beställning" : "beställningar"}
+                    </span>
+                  </div>
+                  <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                    <div className="flex justify-between">
+                      <dt className="opacity-60">Omsättning</dt>
+                      <dd className="tabular-nums">{formatMoney(line.gmvOre, line.currency)}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="opacity-60">Burps intäkt</dt>
+                      <dd className="tabular-nums">
+                        {formatMoney(line.burpRevenueOre, line.currency)}
+                      </dd>
+                    </div>
+                  </dl>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         {/* Dricksen syns här enbart för att den passerar plattformen. Den är
             personalens pengar och ingår varken i GMV eller i Burps intäkt. */}
-        {summary.tipsOre > 0 ? (
+        {tipsTotal.length > 0 ? (
           <p className="mt-3 text-sm opacity-60">
-            Dricks som passerat plattformen: {formatOre(summary.tipsOre)}. Går oavkortat till
-            restaurangernas personal och ingår inte i siffrorna ovan.
+            Dricks som passerat plattformen:{" "}
+            {tipsTotal.map((line) => formatMoney(line.tipsOre, line.currency)).join(" · ")}. Går
+            oavkortat till restaurangernas personal och ingår inte i siffrorna ovan.
           </p>
         ) : null}
 

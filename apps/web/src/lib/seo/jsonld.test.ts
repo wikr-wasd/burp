@@ -3,20 +3,22 @@ import { menuJsonLd, restaurantJsonLd, serializeJsonLd } from "./jsonld";
 
 function input(overrides: Partial<Parameters<typeof restaurantJsonLd>[0]> = {}) {
   return {
-    name: "Pizzeria Roma",
-    description: "Vedugnsbakad pizza",
-    url: "https://burp.se/r/malmo/pizzeria-roma",
+    name: "Ćevabdžinica Željo",
+    description: "Ćevapi i sarajevska somun",
+    url: "https://burp.se/r/sarajevo/cevabdzinica-zeljo",
     imageUrl: null,
-    streetAddress: "Bergsgatan 12",
-    postalCode: "21422",
-    city: "Malmö",
-    latitude: 55.5906,
-    longitude: 13.0007,
+    streetAddress: "Kundurdžiluk 19",
+    postalCode: "71000",
+    city: "Sarajevo",
+    latitude: 43.8586,
+    longitude: 18.4298,
     phone: null,
     priceTier: 2,
-    cuisines: ["Pizza"],
+    cuisines: ["Bosniskt"],
     openingHours: [],
     rating: null,
+    country: "BA" as const,
+    currency: "BAM" as const,
     ...overrides,
   };
 }
@@ -26,13 +28,13 @@ describe("restaurantJsonLd", () => {
     const jsonLd = restaurantJsonLd(input());
 
     expect(jsonLd["@type"]).toBe("Restaurant");
-    expect(jsonLd["currenciesAccepted"]).toBe("SEK");
+    expect(jsonLd["currenciesAccepted"]).toBe("BAM");
     expect(jsonLd["address"]).toMatchObject({
       "@type": "PostalAddress",
-      addressCountry: "SE",
-      addressLocality: "Malmö",
+      addressCountry: "BA",
+      addressLocality: "Sarajevo",
     });
-    expect(jsonLd["geo"]).toMatchObject({ latitude: 55.5906, longitude: 13.0007 });
+    expect(jsonLd["geo"]).toMatchObject({ latitude: 43.8586, longitude: 18.4298 });
   });
 
   it("utelämnar fält som saknas i stället för att skriva null", () => {
@@ -73,23 +75,51 @@ describe("restaurantJsonLd", () => {
   });
 });
 
+describe("restaurantJsonLd — land och valuta", () => {
+  /**
+   * Google läser markupen bokstavligt. Stod "SE" och "SEK" hårdkodat påstod
+   * varje restaurang i Sarajevo att den låg i Sverige — fel data i ett index
+   * som är svårt att rätta i efterhand.
+   */
+  it("följer restaurangens land, inte kodens", () => {
+    const kroatisk = restaurantJsonLd(input({ country: "HR", currency: "EUR" }));
+
+    expect(kroatisk["currenciesAccepted"]).toBe("EUR");
+    expect(kroatisk["address"]).toMatchObject({ addressCountry: "HR" });
+  });
+});
+
 describe("menuJsonLd", () => {
-  it("anger priser i kronor med två decimaler", () => {
-    const jsonLd = menuJsonLd({
-      restaurantUrl: "https://burp.se/r/malmo/pizzeria-roma",
+  function menu(currency: "BAM" | "RSD", priceOre: number) {
+    return menuJsonLd({
+      restaurantUrl: "https://burp.se/r/sarajevo/cevabdzinica-zeljo",
+      currency,
       sections: [
         {
-          name: "Pizza",
+          name: "Sa roštilja",
           description: null,
-          items: [{ name: "Margherita", description: null, priceOre: 12900 }],
+          items: [{ name: "Ćevapi 10 kom", description: null, priceOre }],
         },
       ],
     });
+  }
 
+  function offer(jsonLd: Record<string, unknown>) {
     const section = (jsonLd["hasMenuSection"] as Record<string, unknown>[])[0]!;
     const item = (section["hasMenuItem"] as Record<string, unknown>[])[0]!;
+    return item["offers"];
+  }
 
-    expect(item["offers"]).toMatchObject({ price: "129.00", priceCurrency: "SEK" });
+  it("anger priset i restaurangens valuta", () => {
+    expect(offer(menu("BAM", 1200))).toMatchObject({ price: "12.00", priceCurrency: "BAM" });
+  });
+
+  /**
+   * Dinar har inga decimaler i praktiken. Med två skulle 1200 lagrade enheter
+   * skrivas som "12.00 RSD" — tolv dinarer i stället för tolv hundra.
+   */
+  it("skriver dinar utan decimaler", () => {
+    expect(offer(menu("RSD", 120000))).toMatchObject({ price: "1200", priceCurrency: "RSD" });
   });
 });
 

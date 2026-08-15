@@ -5,9 +5,14 @@
  * helg. Valet måste göras likadant i webben, i appen och på servern, annars
  * kan en gäst se ett lunchpris klockan 19.
  *
- * Tiden räknas alltid i svensk lokaltid. En restaurang i Malmö öppnar 11:00
- * svensk tid oavsett var servern står eller vilken tidszon gästens telefon
- * påstår sig ha.
+ * Tiden räknas i RESTAURANGENS tidszon, som följer av dess land
+ * (`COUNTRY_INFO[...].timeZone`). En restaurang i Sarajevo öppnar 11:00
+ * bosnisk tid oavsett var servern står eller vad gästens telefon påstår.
+ *
+ * Tidszonen är ett obligatoriskt argument med flit. Funktionen hette förut
+ * `stockholmNow` och hade Europe/Stockholm inbakat — vilket råkade ge rätt
+ * svar, eftersom alla fyra länderna ligger i CET, men bara råkade. Ett
+ * standardvärde här hade gömt nästa land som inte gör det.
  */
 
 export interface ScheduledMenu {
@@ -19,7 +24,16 @@ export interface ScheduledMenu {
   activeUntil: string | null;
 }
 
-const WEEKDAY_ORDER = ["sön", "mån", "tis", "ons", "tors", "fre", "lör"] as const;
+/**
+ * Engelska förkortningar, inte svenska.
+ *
+ * Den tidigare versionen läste `sv-SE` och matchade mot "sön", "mån", … Vilka
+ * förkortningar en körtid ger för ett språk är inte garanterat: Node med full
+ * ICU, Node med small-icu och en webbläsare kan skilja sig, och en punkt för
+ * mycket gav `indexOf` värdet -1 — alltså söndagens meny på en tisdag. `en-US`
+ * ger "Sun"…"Sat" överallt.
+ */
+const WEEKDAY_ORDER = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 /**
  * Väljer meny.
@@ -30,9 +44,10 @@ const WEEKDAY_ORDER = ["sön", "mån", "tis", "ons", "tors", "fre", "lör"] as c
  */
 export function pickMenuForNow<T extends ScheduledMenu>(
   menus: readonly T[],
+  timeZone: string,
   now: Date = new Date(),
 ): T | null {
-  const { dayIndex, minutes } = stockholmNow(now);
+  const { dayIndex, minutes } = zonedNow(now, timeZone);
 
   const candidates = menus.filter((menu) => {
     if (menu.activeDays && menu.activeDays.length > 0 && !menu.activeDays.includes(dayIndex)) {
@@ -48,10 +63,16 @@ export function pickMenuForNow<T extends ScheduledMenu>(
   return candidates.find((menu) => menu.activeFrom !== null || menu.activeUntil !== null) ?? candidates[0]!;
 }
 
-/** Veckodag och minuter sedan midnatt i Europe/Stockholm. */
-export function stockholmNow(now: Date): { dayIndex: number; minutes: number } {
-  const parts = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Stockholm",
+/**
+ * Veckodag och minuter sedan midnatt i en given IANA-tidszon.
+ *
+ * `dayIndex` räknar från söndag = 0, samma numrering som Postgres
+ * `extract(dow)` — så att en regel skriven i SQL och samma regel skriven här
+ * betyder samma sak.
+ */
+export function zonedNow(now: Date, timeZone: string): { dayIndex: number; minutes: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
     weekday: "short",
     hour: "2-digit",
     minute: "2-digit",
@@ -60,8 +81,14 @@ export function stockholmNow(now: Date): { dayIndex: number; minutes: number } {
 
   const value = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
 
-  const weekday = value("weekday").replace(".", "").toLowerCase();
+  const weekday = value("weekday").slice(0, 3).toLowerCase();
   const dayIndex = WEEKDAY_ORDER.indexOf(weekday as (typeof WEEKDAY_ORDER)[number]);
+
+  if (dayIndex < 0) {
+    throw new Error(
+      `Kunde inte läsa veckodag ur tidszonen "${timeZone}" — fick "${value("weekday")}".`,
+    );
+  }
 
   // Intl kan ge "24" för midnatt i vissa körtider. Normalisera till 0.
   const hour = Number(value("hour")) % 24;

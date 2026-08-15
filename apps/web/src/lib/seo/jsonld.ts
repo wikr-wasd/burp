@@ -1,4 +1,9 @@
-import { oreToKronor, type Ore } from "@burp/core";
+import {
+  CURRENCY_INFO,
+  type CountryCode,
+  type CurrencyCode,
+  type Ore,
+} from "@burp/core";
 
 /**
  * Strukturerad data enligt schema.org (avsnitt 9.2).
@@ -29,6 +34,15 @@ export interface RestaurantJsonLdInput {
   cuisines: readonly string[];
   openingHours: readonly OpeningHoursSpec[];
   rating: { average: number; count: number } | null;
+  /**
+   * Restaurangens land och valuta.
+   *
+   * Stod som "SE" och "SEK" hårdkodat. Google läser markupen bokstavligt: en
+   * restaurang i Sarajevo påstod sig ligga i Sverige och ta betalt i kronor,
+   * vilket är fel data i ett index som är svårt att korrigera i efterhand.
+   */
+  country: CountryCode;
+  currency: CurrencyCode;
 }
 
 export interface OpeningHoursSpec {
@@ -51,14 +65,14 @@ export function restaurantJsonLd(input: RestaurantJsonLdInput): Record<string, u
       streetAddress: input.streetAddress,
       postalCode: input.postalCode,
       addressLocality: input.city,
-      addressCountry: "SE",
+      addressCountry: input.country,
     },
     geo: {
       "@type": "GeoCoordinates",
       latitude: input.latitude,
       longitude: input.longitude,
     },
-    currenciesAccepted: "SEK",
+    currenciesAccepted: input.currency,
   };
 
   if (input.description) jsonLd["description"] = input.description;
@@ -93,6 +107,7 @@ export function restaurantJsonLd(input: RestaurantJsonLdInput): Record<string, u
 
 export interface MenuJsonLdInput {
   restaurantUrl: string;
+  currency: CurrencyCode;
   sections: readonly {
     name: string;
     description: string | null;
@@ -101,6 +116,10 @@ export interface MenuJsonLdInput {
 }
 
 export function menuJsonLd(input: MenuJsonLdInput): Record<string, unknown> {
+  // Antalet decimaler följer valutan: dinar skrivs utan, euro och konvertibel
+  // mark med två. "1200.00 RSD" hade läst som tolv gånger för mycket.
+  const decimals = CURRENCY_INFO[input.currency].decimalDigits;
+
   return {
     "@context": "https://schema.org",
     "@type": "Menu",
@@ -115,8 +134,8 @@ export function menuJsonLd(input: MenuJsonLdInput): Record<string, unknown> {
         ...(item.description ? { description: item.description } : {}),
         offers: {
           "@type": "Offer",
-          price: oreToKronor(item.priceOre).toFixed(2),
-          priceCurrency: "SEK",
+          price: (item.priceOre / 100).toFixed(decimals),
+          priceCurrency: input.currency,
         },
       })),
     })),

@@ -1,4 +1,4 @@
-import { CURRENCY_INFO, type CurrencyCode } from "./country";
+import { CURRENCY_INFO, CURRENCY_LOCALE, type CurrencyCode } from "./country";
 
 /**
  * Pengar i Burp lagras och räknas ALLTID i heltal av valutans minsta enhet —
@@ -75,32 +75,54 @@ export function applyBasisPoints(amount: Ore, bps: number): Ore {
 }
 
 /**
- * Tolkar ett pris som en människa skrivit in.
+ * Tolkar ett pris som en restaurangägare skrivit in, i sin egen valuta.
  *
- * Restaurangen skriver "149,50" i dashboarden — svenskt decimalkomma, ibland
- * med mellanslag som tusentalsavgränsare och ibland med "kr" efter. Att låta
- * `Number()` tolka det ger NaN på komma och tyst fel pris på "1 495".
+ * Samma jobb som `parseKronor`, men antalet decimaler följer valutan. En
+ * serbisk dinar har inga i praktiken: "1200" i ett prisfält i Belgrad betyder
+ * 1200 dinarer, alltså 120000 lagrade enheter — inte 12 dinarer. Med den
+ * svenska tolkningen hade varje serbiskt menypris blivit hundra gånger för
+ * lågt, och felet hade synts först i restaurangens redovisning.
  *
- * Returnerar null vid allt som inte otvetydigt är ett belopp. Anropande kod
- * ska visa ett fel, aldrig gissa — ett felgissat menypris debiteras gäster.
+ * Returnerar null vid allt som inte otvetydigt är ett belopp i valutan.
+ * Anropande kod ska visa ett fel, aldrig gissa.
  */
-export function parseKronor(input: string): Ore | null {
+export function parseAmount(input: string, currency: CurrencyCode): Ore | null {
   if (typeof input !== "string") return null;
+
+  const { decimalDigits, symbol } = CURRENCY_INFO[currency];
 
   const cleaned = input
     .trim()
     .replace(/\s| /g, "") // vanliga och hårda mellanslag
-    .replace(/kr$/i, "")
+    // Symbolen får stå efter beloppet: "12,00 KM", "1.200 дин.".
+    .replace(new RegExp(`${escapeRegExp(symbol)}$`, "i"), "")
     .replace(",", ".");
 
-  if (cleaned === "" || !/^-?\d+(\.\d{1,2})?$/.test(cleaned)) return null;
+  const pattern =
+    decimalDigits > 0
+      ? new RegExp(`^-?\\d+(\\.\\d{1,${decimalDigits}})?$`)
+      : /^-?\d+$/;
 
-  return kronorToOre(Number(cleaned));
+  if (cleaned === "" || !pattern.test(cleaned)) return null;
+
+  return Math.round(Number(cleaned) * ORE_PER_KRONA);
 }
 
-/** Formaterar öre som ett redigerbart tal utan valuta: 14950 → "149,50". */
-export function formatKronorInput(ore: Ore): string {
-  return oreToKronor(ore).toFixed(2).replace(".", ",");
+/**
+ * Formaterar ett belopp som ett redigerbart tal UTAN valutasymbol.
+ *
+ * Symbolen hör hemma bredvid fältet, inte i det: ett fält som innehåller
+ * "12,00 KM" tvingar den som redigerar att markera runt symbolen för att byta
+ * siffra.
+ */
+export function formatAmountInput(amount: Ore, currency: CurrencyCode): string {
+  const { decimalDigits } = CURRENCY_INFO[currency];
+  return (amount / ORE_PER_KRONA).toFixed(decimalDigits).replace(".", ",");
+}
+
+/** Escapar reguljäruttryckstecken i en valutasymbol, t.ex. punkten i "дин.". */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -112,6 +134,16 @@ export function formatKronorInput(ore: Ore): string {
  *
  * Valutan kommer från restaurangen, inte från gästens webbläsare. En gäst med
  * svensk telefon som beställer i Zagreb ska se euro, inte kronor.
+ *
+ * Symbolen sätts av oss, inte av `style: "currency"`.
+ *
+ * Intl:s valutadata skiljer sig mellan körtider: Chrome skrev "BAM 12.00" där
+ * Node skrev "12,00 KM" för samma anrop. Med `style: "decimal"` och vår egen
+ * symbol blir resultatet identiskt på servern och i webbläsaren — vilket både
+ * ger gästen rätt utseende och håller React:s hydrering tyst.
+ *
+ * Alla fyra valutorna skrivs med symbolen efter beloppet: "12,00 KM",
+ * "12,00 €", "1.200 RSD", "149,00 kr".
  */
 export function formatMoney(
   amount: Ore,
@@ -120,23 +152,11 @@ export function formatMoney(
 ): string {
   const info = CURRENCY_INFO[currency];
 
-  return new Intl.NumberFormat(locale ?? "en-150", {
-    style: "currency",
-    currency,
+  const number = new Intl.NumberFormat(locale ?? CURRENCY_LOCALE[currency], {
     minimumFractionDigits: info.decimalDigits,
     maximumFractionDigits: info.decimalDigits,
-  }).format(amount / 100);
+  }).format(amount / ORE_PER_KRONA);
+
+  return `${number} ${info.symbol}`;
 }
 
-/**
- * Formaterar i svenska kronor.
- *
- * Kvar för de ytor som ännu inte fått en valuta att formatera med. Nya anrop
- * ska använda `formatMoney` — den här försvinner när sista SEK-antagandet är
- * borta ur gränssnittet.
- *
- * @deprecated Använd formatMoney med restaurangens valuta.
- */
-export function formatOre(ore: Ore, locale = "sv-SE"): string {
-  return formatMoney(ore, "SEK", locale);
-}

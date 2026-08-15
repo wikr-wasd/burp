@@ -9,10 +9,10 @@ import {
 } from "./pricing";
 import {
   applyBasisPoints,
-  formatKronorInput,
-  formatOre,
+  formatAmountInput,
+  formatMoney,
   kronorToOre,
-  parseKronor,
+  parseAmount,
   roundHalfEven,
 } from "./money";
 import { VAT_ALCOHOL_BPS, VAT_FOOD_BPS, type PricedLine } from "./types";
@@ -216,61 +216,85 @@ describe("assertClientTotalMatches", () => {
   });
 });
 
-describe("parseKronor", () => {
-  it("tolkar svenskt decimalkomma", () => {
-    expect(parseKronor("149,50")).toBe(14950);
-    expect(parseKronor("0,05")).toBe(5);
+describe("parseAmount", () => {
+  it("tolkar decimalkomma", () => {
+    expect(parseAmount("149,50", "BAM")).toBe(14950);
+    expect(parseAmount("0,05", "BAM")).toBe(5);
   });
 
   it("tolkar punkt lika gärna", () => {
-    expect(parseKronor("149.50")).toBe(14950);
+    expect(parseAmount("149.50", "EUR")).toBe(14950);
   });
 
   it("tolkar heltal", () => {
-    expect(parseKronor("129")).toBe(12900);
+    expect(parseAmount("129", "BAM")).toBe(12900);
   });
 
-  it("tål mellanslag och kr-suffix", () => {
-    expect(parseKronor(" 1 495,00 kr ")).toBe(149500);
-    expect(parseKronor("1 495")).toBe(149500);
+  it("tål mellanslag och valutasymbol efter beloppet", () => {
+    expect(parseAmount(" 1 495,00 KM ", "BAM")).toBe(149500);
+    expect(parseAmount("1 495", "BAM")).toBe(149500);
+    expect(parseAmount("1495 kr", "SEK")).toBe(149500);
   });
 
   it("tillåter negativa belopp för tillval som drar av", () => {
-    expect(parseKronor("-10")).toBe(-1000);
+    expect(parseAmount("-10", "BAM")).toBe(-1000);
   });
 
-  it("avvisar mer än två decimaler — öre är minsta enhet", () => {
-    expect(parseKronor("149,555")).toBeNull();
+  it("avvisar fler decimaler än valutan har", () => {
+    expect(parseAmount("149,555", "BAM")).toBeNull();
+  });
+
+  /**
+   * Dinar har inga decimaler i praktiken. "1200" i ett serbiskt prisfält
+   * betyder 1200 dinarer — inte 12. Med den svenska tolkningen hade varje
+   * serbiskt menypris blivit hundra gånger för lågt.
+   */
+  it("läser dinar som hela enheter", () => {
+    expect(parseAmount("1200", "RSD")).toBe(120000);
+    expect(parseAmount("1200,50", "RSD")).toBeNull();
   });
 
   it("avvisar allt som inte otvetydigt är ett belopp", () => {
-    for (const bad of ["", "  ", "abc", "12abc", "1,2,3", "1..5", "--5", "kr"]) {
-      expect(parseKronor(bad)).toBeNull();
+    for (const bad of ["", "  ", "abc", "12abc", "1,2,3", "1..5", "--5", "KM"]) {
+      expect(parseAmount(bad, "BAM")).toBeNull();
     }
   });
 
   it("avvisar värden som inte är strängar", () => {
-    expect(parseKronor(149 as unknown as string)).toBeNull();
+    expect(parseAmount(149 as unknown as string, "BAM")).toBeNull();
   });
 });
 
-describe("formatKronorInput", () => {
+describe("formatAmountInput", () => {
   it("ger ett redigerbart tal utan valuta", () => {
-    expect(formatKronorInput(14950)).toBe("149,50");
-    expect(formatKronorInput(12900)).toBe("129,00");
-    expect(formatKronorInput(-1000)).toBe("-10,00");
+    expect(formatAmountInput(14950, "BAM")).toBe("149,50");
+    expect(formatAmountInput(12900, "EUR")).toBe("129,00");
+    expect(formatAmountInput(-1000, "SEK")).toBe("-10,00");
+    expect(formatAmountInput(120000, "RSD")).toBe("1200");
   });
 
   it("överlever en tur fram och tillbaka", () => {
-    for (const ore of [0, 5, 12900, 149500, -1000]) {
-      expect(parseKronor(formatKronorInput(ore))).toBe(ore);
+    for (const amount of [0, 5, 12900, 149500, -1000]) {
+      expect(parseAmount(formatAmountInput(amount, "BAM"), "BAM")).toBe(amount);
+    }
+    for (const amount of [0, 100, 120000, -1000]) {
+      expect(parseAmount(formatAmountInput(amount, "RSD"), "RSD")).toBe(amount);
     }
   });
 });
 
-describe("formatOre", () => {
-  it("formaterar som svenska kronor", () => {
+describe("formatMoney", () => {
+  it("formaterar i restaurangens valuta", () => {
     // Intl använder smalt mellanslag (U+00A0/U+202F) — normalisera före jämförelse.
-    expect(formatOre(14900).replace(/\s/g, " ")).toBe("149,00 kr");
+    const normalize = (value: string) => value.replace(/\s/g, " ");
+
+    expect(normalize(formatMoney(1200, "BAM"))).toBe("12,00 KM");
+    expect(normalize(formatMoney(1200, "EUR"))).toBe("12,00 €");
+    expect(normalize(formatMoney(14900, "SEK"))).toBe("149,00 kr");
+  });
+
+  it("skriver dinar utan decimaler", () => {
+    const normalize = (value: string) => value.replace(/\s/g, " ");
+    expect(normalize(formatMoney(120000, "RSD"))).toBe("1.200 дин.");
   });
 });

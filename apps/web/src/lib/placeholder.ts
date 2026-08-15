@@ -15,6 +15,21 @@ export function dishImage(name: string, uploaded: string | null | undefined): st
 }
 
 /**
+ * Bild att visa för en restaurang.
+ *
+ * Samma resonemang som för rätterna, men platshållaren härleds ur namnet plus
+ * staden. Två restauranger som heter "Pekara" i olika städer ska inte få
+ * identiska plattor i samma lista — det ser ut som en bugg.
+ */
+export function restaurantImage(
+  name: string,
+  city: string,
+  uploaded: string | null | undefined,
+): string {
+  return resolveMediaUrl(uploaded) ?? `/bild/${encodeURIComponent(`${name} ${city}`)}`;
+}
+
+/**
  * Är bilden en platshållare?
  *
  * Används för att låta bli att skryta med en bild som inte är restaurangens

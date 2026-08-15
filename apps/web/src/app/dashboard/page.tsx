@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { formatOre } from "@burp/core";
+import { formatMoney } from "@burp/core";
 import { KitchenBoard } from "@/components/staff/kitchen-board";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { requireStaff } from "@/lib/auth";
@@ -36,6 +36,7 @@ export default async function DashboardPage() {
           title="Order live"
           canCancel
           showTotals
+          currency={staff.currency}
         />
 
         {/* Förbeställningar visas här men inte på köksskärmen. Personalen ska
@@ -60,7 +61,7 @@ export default async function DashboardPage() {
                   <span className="mr-auto">
                     {order.items.map((item) => `${item.quantity}× ${item.name}`).join(", ")}
                   </span>
-                  <span className="tabular-nums opacity-60">{formatOre(order.totalOre)}</span>
+                  <span className="tabular-nums opacity-60">{formatMoney(order.totalOre, staff.currency)}</span>
                 </li>
               ))}
             </ul>

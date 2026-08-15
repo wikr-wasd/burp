@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { availableSlots, parseOpeningHours, parseOrderPolicy } from "@burp/core";
+import {
+  availableSlots,
+  COUNTRY_INFO,
+  parseOpeningHours,
+  parseOrderPolicy,
+  type CountryCode,
+  type CurrencyCode,
+} from "@burp/core";
+import { FoodImage } from "@/components/media/food-image";
 import { MenuOrder } from "@/components/order/menu-order";
 import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
@@ -9,6 +17,7 @@ import { getActiveMenu } from "@/lib/menu";
 import { getPublicReviews } from "@/lib/reviews";
 import { ReviewList } from "@/components/reviews/review-list";
 import { restaurantJsonLd, serializeJsonLd } from "@/lib/seo/jsonld";
+import { restaurantImage } from "@/lib/placeholder";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -49,6 +58,8 @@ interface RestaurantRow {
   rating_count: number;
   opening_hours: OpeningHours | null;
   order_policy: unknown;
+  country: CountryCode;
+  currency: CurrencyCode;
 }
 
 async function getRestaurant(city: string, slug: string): Promise<RestaurantRow | null> {
@@ -56,7 +67,7 @@ async function getRestaurant(city: string, slug: string): Promise<RestaurantRow 
   const { data } = await supabase
     .from("restaurants")
     .select(
-      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, rating_average, rating_count, opening_hours, order_policy",
+      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, rating_average, rating_count, opening_hours, order_policy, country, currency",
     )
     .eq("slug", slug)
     .eq("city_slug", city)
@@ -99,13 +110,14 @@ export default async function RestaurantPage({ params }: PageProps) {
 
   if (!restaurant) notFound();
 
-  const menu = await getActiveMenu(restaurant.id);
+  const timeZone = COUNTRY_INFO[restaurant.country].timeZone;
+  const menu = await getActiveMenu(restaurant.id, timeZone);
 
   // Öppettiderna visas, men om restaurangen tar emot order just nu avgörs inte
   // här. Sidan är cachad en timme för SEO:ns skull, och ett "öppet nu" som är
   // upp till en timme gammalt vore värre än inget. Regeln körs i stället på
   // servern när ordern läggs — `is_restaurant_open()` i POST /api/orders.
-  const hours = todaysHours(restaurant.opening_hours);
+  const hours = todaysHours(restaurant.opening_hours, timeZone);
 
   /*
    * Hämttider räknas på servern, inte i klienten. Öppettiderna och
@@ -139,6 +151,8 @@ export default async function RestaurantPage({ params }: PageProps) {
     phone: restaurant.phone,
     priceTier: restaurant.price_tier,
     cuisines: restaurant.cuisines ?? [],
+    country: restaurant.country,
+    currency: restaurant.currency,
     openingHours: [], // Fylls från `restaurants.opening_hours` när menyvyn byggs.
     rating:
       restaurant.rating_count > 0 && restaurant.rating_average !== null
@@ -147,50 +161,87 @@ export default async function RestaurantPage({ params }: PageProps) {
   });
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
+    <main className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
       <script
         type="application/ld+json"
         // Innehållet är serialiserat med escapad `<` — se serializeJsonLd.
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
-      <h1 className="text-4xl font-bold tracking-tight">{restaurant.name}</h1>
-      <p className="mt-2 opacity-70">
-        {restaurant.street_address}, {restaurant.postal_code} {restaurant.city}
-      </p>
+      {/* Hjältebilden ligger överst och i fullbredd. Det är det första en gäst
+          som kommer från en Google-träff ser, och en restaurangsida utan bild
+          läser som en katalogpost snarare än ett ställe att äta på. */}
+      <FoodImage
+        src={restaurantImage(restaurant.name, restaurant.city, resolveMediaUrl(restaurant.hero_image_url))}
+        alt=""
+        ratio="aspect-[16/9] sm:aspect-[21/9]"
+        className="mt-6"
+        priority
+      />
 
-      {restaurant.description ? (
-        <p className="mt-6 text-lg leading-relaxed">{restaurant.description}</p>
-      ) : null}
-
-      {restaurant.rating_count > 0 && restaurant.rating_average !== null ? (
-        <p className="mt-4 text-sm opacity-70">
-          {restaurant.rating_average.toFixed(1)} av 5 · {restaurant.rating_count} omdömen
+      <header className="mt-8">
+        <p className="label-caps">
+          {[restaurant.cuisines?.join(" · "), restaurant.city].filter(Boolean).join(" · ")}
         </p>
-      ) : null}
 
-      {hours ? (
-        <p className="mt-4 text-sm opacity-70">Öppet idag {hours}</p>
-      ) : (
-        <p className="mt-4 text-sm opacity-70">Stängt idag</p>
-      )}
+        <h1 className="font-display mt-2 text-5xl sm:text-6xl">{restaurant.name}</h1>
+
+        <p className="mt-3 text-[var(--muted)]">
+          {restaurant.street_address}, {restaurant.postal_code} {restaurant.city}
+        </p>
+
+        <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+          {restaurant.rating_count > 0 && restaurant.rating_average !== null ? (
+            <span>
+              <span aria-hidden="true" className="text-burp-600">
+                ★
+              </span>{" "}
+              <span className="tabular-nums">
+                {restaurant.rating_average.toFixed(1).replace(".", ",")}
+              </span>
+              <span className="text-[var(--muted)]"> ({restaurant.rating_count})</span>
+            </span>
+          ) : (
+            <span className="text-[var(--muted)]">Inga omdömen än</span>
+          )}
+
+          <span className="text-[var(--muted)]">{hours ? `Öppet idag ${hours}` : "Stängt idag"}</span>
+
+          {restaurant.phone ? (
+            <a
+              href={`tel:${restaurant.phone}`}
+              className="underline decoration-[var(--rule)] underline-offset-4 transition-colors hover:text-burp-600"
+            >
+              {restaurant.phone}
+            </a>
+          ) : null}
+        </p>
+
+        {restaurant.description ? (
+          <p className="mt-6 max-w-prose text-lg leading-relaxed">{restaurant.description}</p>
+        ) : null}
+      </header>
 
       {menu && menu.categories.length > 0 ? (
-        <section className="mt-10">
-          <h2 className="text-xl font-semibold">Beställ för avhämtning</h2>
-          <p className="mt-1 mb-6 text-sm opacity-60">{menu.name}</p>
-          <MenuOrder
-            menu={menu}
-            restaurantName={restaurant.name}
-            context={{ kind: "PICKUP" }}
-            pickupSlots={pickupSlots}
-            showHeading={false}
-          />
+        <section className="mt-14">
+          <hr className="rule" />
+          <p className="label-caps mt-6">Beställ för avhämtning · {menu.name}</p>
+          <div className="mt-6">
+            <MenuOrder
+              menu={menu}
+              restaurantName={restaurant.name}
+              currency={restaurant.currency}
+              timeZone={timeZone}
+              context={{ kind: "PICKUP" }}
+              pickupSlots={pickupSlots}
+              showHeading={false}
+            />
+          </div>
         </section>
       ) : (
-        <section className="mt-10 rounded-xl border border-black/10 p-6 dark:border-white/15">
-          <h2 className="font-semibold">Ingen meny just nu</h2>
-          <p className="mt-2 text-sm opacity-70">
+        <section className="mt-14 border-y border-[var(--rule)] py-12 text-center">
+          <h2 className="font-display text-2xl">Ingen meny just nu</h2>
+          <p className="mx-auto mt-2 max-w-md text-[var(--muted)]">
             {restaurant.name} har inte publicerat någon meny för den här tiden. Ring gärna dit
             och fråga.
           </p>
@@ -200,10 +251,11 @@ export default async function RestaurantPage({ params }: PageProps) {
       {/* Omdömen sist: gästen ska först kunna beställa, sedan övertygas.
           Betygen är kopplade till genomförda order, vilket är det som gör att
           AggregateRating i markupen ovan får publiceras. */}
-      <section className="mt-12">
-        <h2 className="text-xl font-semibold">Omdömen</h2>
+      <section className="mt-16">
+        <hr className="rule" />
+        <h2 className="font-display mt-6 text-3xl">Omdömen</h2>
         {restaurant.rating_count > 0 && restaurant.rating_average !== null ? (
-          <p className="mt-1 text-sm opacity-60">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             {restaurant.rating_average.toFixed(1).replace(".", ",")} av 5 baserat på{" "}
             {restaurant.rating_count} {restaurant.rating_count === 1 ? "omdöme" : "omdömen"} från
             genomförda beställningar.

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
-import type { StaffRole } from "@burp/core";
+import { COUNTRY_INFO, type CountryCode, type CurrencyCode, type StaffRole } from "@burp/core";
 import { createClient } from "./supabase/server";
 
 /**
@@ -25,6 +25,17 @@ export interface StaffContext {
   restaurantName: string;
   restaurantSlug: string;
   role: StaffRole;
+  /**
+   * Restaurangens land, valuta och tidszon.
+   *
+   * Ligger på sessionen därför att varenda personalyta behöver det: notan i
+   * dashboarden, statistiken, köksskärmen. En yta som hämtar det själv kommer
+   * förr eller senare att låta bli, och då visas beloppen i fel valuta —
+   * vilket är precis vad som hände när Burp bara fanns i Sverige.
+   */
+  country: CountryCode;
+  currency: CurrencyCode;
+  timeZone: string;
 }
 
 /** Vart varje roll skickas efter inloggning. */
@@ -55,14 +66,20 @@ export async function getStaff(): Promise<StaffContext | null> {
 
   const { data } = await supabase
     .from("staff")
-    .select("role, restaurant_id, restaurants!inner (id, name, slug)")
+    .select("role, restaurant_id, restaurants!inner (id, name, slug, country, currency)")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .maybeSingle();
 
   if (!data) return null;
 
-  const restaurant = data.restaurants as unknown as { id: string; name: string; slug: string };
+  const restaurant = data.restaurants as unknown as {
+    id: string;
+    name: string;
+    slug: string;
+    country: CountryCode;
+    currency: CurrencyCode;
+  };
 
   return {
     userId: user.id,
@@ -71,6 +88,9 @@ export async function getStaff(): Promise<StaffContext | null> {
     restaurantName: restaurant.name,
     restaurantSlug: restaurant.slug,
     role: data.role as StaffRole,
+    country: restaurant.country,
+    currency: restaurant.currency,
+    timeZone: COUNTRY_INFO[restaurant.country].timeZone,
   };
 }
 

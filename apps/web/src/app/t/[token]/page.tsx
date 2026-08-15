@@ -74,7 +74,7 @@ export default async function TablePage({ params }: PageProps) {
   // Ingen bordssession skapas här. Den kräver en cookie-skrivning, och det får
   // bara ske i en route handler — POST /api/orders gör det när gästen faktiskt
   // beställer.
-  const menu = await getActiveMenu(table.restaurantId);
+  const menu = await getActiveMenu(table.restaurantId, table.timeZone);
 
   if (!menu || menu.categories.length === 0) {
     return (
@@ -90,6 +90,8 @@ export default async function TablePage({ params }: PageProps) {
       <MenuOrder
         menu={menu}
         restaurantName={table.restaurantName}
+        currency={table.currency}
+        timeZone={table.timeZone}
         context={{
           kind: "TABLE",
           tableToken: token.toUpperCase(),
@@ -105,8 +107,8 @@ export default async function TablePage({ params }: PageProps) {
 function TableMessage({ title, body }: { title: string; body: string }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-3 px-6 text-center">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="opacity-70">{body}</p>
+      <h1 className="font-display text-3xl">{title}</h1>
+      <p className="text-[var(--muted)]">{body}</p>
     </main>
   );
 }
