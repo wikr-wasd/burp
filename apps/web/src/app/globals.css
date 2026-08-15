@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
-@theme {
-  /* Burps palett. Varmt och matnära — inte det blå som alla SaaS-produkter har. */
-  --color-burp-50: oklch(0.97 0.02 45);
-  --color-burp-100: oklch(0.94 0.04 45);
-  --color-burp-500: oklch(0.67 0.19 40);
-  --color-burp-600: oklch(0.59 0.19 38);
-  --color-burp-700: oklch(0.49 0.16 36);
-  --color-burp-900: oklch(0.28 0.09 34);
+/*
+ * Burps designspråk — redaktionellt, varmt, matnära.
+ *
+ * Utgångspunkten är en tryckt matbilaga snarare än en SaaS-produkt: papper i
+ * stället för vitt, en display-antikva till rubriker, tunna linjaler och
+ * spärrade versaler till småetiketter. Rött är accenten och används sparsamt —
+ * på det som ska tryckas, inte som dekoration.
+ *
+ * Två ytor lyder inte under det här: köksskärmen och backoffice. Där är
+ * läsbarhet på avstånd och täthet viktigare än ton, och de håller sig till
+ * grotesken.
+ */
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+@theme {
+  /* ── Rött ──────────────────────────────────────────────────────────────
+     Ett djupt, varmt rött. Inte signalröd larmfärg utan färgen på tomat och
+     paprika — den ska göra mat aptitlig, inte varna. */
+  --color-burp-50: oklch(0.97 0.015 30);
+  --color-burp-100: oklch(0.93 0.035 30);
+  --color-burp-200: oklch(0.86 0.07 30);
+  --color-burp-400: oklch(0.65 0.17 28);
+  --color-burp-500: oklch(0.57 0.19 27);
+  --color-burp-600: oklch(0.50 0.19 27);
+  --color-burp-700: oklch(0.42 0.16 27);
+  --color-burp-900: oklch(0.26 0.09 27);
+
+  /* ── Papper och bläck ──────────────────────────────────────────────────
+     Bakgrunden är varmt benvit, inte ren vit. Ren vit får mat att se blek ut;
+     papperstonen gör att bilderna ser varmare ut utan att röra bilderna. */
+  --color-paper: oklch(0.972 0.008 85);
+  --color-paper-raised: oklch(0.988 0.006 85);
+  --color-ink: oklch(0.22 0.015 55);
+  --color-ink-soft: oklch(0.46 0.02 55);
+  --color-rule: oklch(0.86 0.012 75);
+
+  /* Variablerna sätts av next/font i layout.tsx. Reserverna gäller tills
+     typsnitten laddats — och om de aldrig gör det. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-instrument), "Iowan Old Style", Georgia, serif;
+
+  /* Spärrade versaler till småetiketter — "VOL. 1 · MALMÖ". */
+  --tracking-label: 0.14em;
 }
 
 :root {
-  --background: oklch(0.99 0.005 80);
-  --foreground: oklch(0.2 0.02 40);
+  --background: var(--color-paper);
+  --surface: var(--color-paper-raised);
+  --foreground: var(--color-ink);
+  --muted: var(--color-ink-soft);
+  --rule: var(--color-rule);
 }
 
+/*
+ * Mörkt läge är inte pappret inverterat.
+ *
+ * En rak invertering ger grått som ser smutsigt ut bakom matbilder. Här är
+ * botten varm och nästan svart, ytorna en aning ljusare, och rött lyfts en
+ * nivå för att hålla kontrasten mot den mörka botten.
+ */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.17 0.015 40);
-    --foreground: oklch(0.95 0.01 80);
+    --background: oklch(0.16 0.012 45);
+    --surface: oklch(0.21 0.014 45);
+    --foreground: oklch(0.94 0.008 85);
+    --muted: oklch(0.72 0.012 75);
+    --rule: oklch(0.32 0.014 50);
   }
 }
 
@@ -29,11 +74,87 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Köksskärmen körs på surfplatta i ett kök. Ingen ska kunna markera text av
-   misstag med blöta fingrar mitt i en lunchrush. */
+/* ── Redaktionella byggstenar ─────────────────────────────────────────── */
+
+/*
+ * Display-antikvan. Instrument Serif har hög kontrast och tät sättning, vilket
+ * är vackert i stora grader och oläsligt i små — därför bara på rubriker.
+ */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+}
+
+/* Spärrad versaletikett. Bär metadata: stad, kategori, sektionsnummer. */
+.label-caps {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Hårfin linjal. Tunnare än en border, som en tryckt regel. */
+.rule {
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+
+/*
+ * Kort som ligger på pappret.
+ *
+ * Ingen skugga. Skuggor får en yta att sväva; här ska allt ligga platt på
+ * sidan som tryck, och skiljas åt av linjaler och luft i stället.
+ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+/* ── Köksskärmen ──────────────────────────────────────────────────────── */
+
+/* Körs på en surfplatta i ett kök. Ingen ska kunna markera text av misstag
+   med blöta fingrar mitt i en lunchrush. */
 .kds-screen {
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* ── Rörelse ──────────────────────────────────────────────────────────── */
+
+/*
+ * Bilder tonas in när de laddats. En matbild som slår in hårt känns billig;
+ * en som tonar upp känns som att sidan sätter sig.
+ */
+@keyframes burp-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade-in {
+  animation: burp-fade-in 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

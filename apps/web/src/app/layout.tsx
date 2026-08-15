@@ -1,6 +1,27 @@
 import type { Metadata, Viewport } from "next";
+import { Instrument_Serif, Inter } from "next/font/google";
 import { publicEnv } from "@/lib/env";
 import "./globals.css";
+
+/*
+ * Typsnitten laddas via next/font, som självvärdar filerna och bakar in dem i
+ * bygget. Ingen request till Google vid körning: en extra DNS-uppslagning och
+ * TLS-handskakning innan texten kan ritas är precis det man inte vill ha på en
+ * QR-sida där gästen står och väntar med telefonen i handen.
+ */
+const inter = Inter({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+// Display-antikvan. Bara en vikt — den används enbart till rubriker.
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-instrument",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(publicEnv.NEXT_PUBLIC_SITE_URL),
@@ -26,7 +47,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#c2410c",
+  // Papperstonen, inte den röda accenten. Färgen ramar in appen i telefonens
+  // systemgränssnitt och ska smälta in i sidan, inte konkurrera med den.
+  themeColor: "#f7f3ec",
   width: "device-width",
   initialScale: 1,
   // Gästen sitter vid bordet med en meny på skärmen. Zoom får aldrig låsas —
@@ -36,7 +59,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="sv">
+    <html lang="sv" className={`${inter.variable} ${instrumentSerif.variable}`}>
       <body>{children}</body>
     </html>
   );
