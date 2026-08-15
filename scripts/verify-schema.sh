@@ -50,12 +50,13 @@ end
 $$;
 
 -- Minimal auth.users. Migrationerna har FK hit och en trigger på insert.
--- OBS: id har en default här men INTE i Supabase, där den måste anges
--- explicit vid varje insert. Stubben är alltså mer tillåtande än verkligheten;
--- ett test som förlitar sig på defaulten passerar lokalt och faller mot en
--- riktig instans.
+--
+-- `id` har medvetet INGEN default, precis som i Supabase där GoTrue sätter
+-- den. Stubben hade en förut, och då passerade tester som utelämnade id:t här
+-- men föll mot en riktig instans. En stub som är mer tillåtande än
+-- verkligheten är värre än ingen stub alls — den ger falskt grönt.
 create table if not exists auth.users (
-  id                  uuid primary key default gen_random_uuid(),
+  id                  uuid primary key,
   email               text,
   raw_user_meta_data  jsonb not null default '{}'::jsonb
 );

@@ -106,8 +106,12 @@ node scripts/print-qr-links.mjs   # QR-länkar för seed-borden
 
 ### 1. Pengar är heltal öre
 
-Aldrig float, aldrig `numeric` i schemat, aldrig kronor i mellanled. 149,50 kr
-är `14950`. Konvertera till kronor först vid presentation.
+Aldrig float, aldrig `numeric` i schemat, aldrig hela valutaenheter i
+mellanled. 12,00 KM är `1200`, 149,50 kr är `14950`. Konvertera först vid
+presentation, och gör det med `formatMoney()` — den kan valutorna.
+
+Serbiska dinarer har **noll** decimaler. `1200` RSD är 1200 dinarer, inte 12.
+`CURRENCY_INFO[...].decimalDigits` avgör; hårdkoda aldrig division med 100.
 
 Procentsatser är baspunkter: 340 = 3,40 %.
 
@@ -150,10 +154,26 @@ sina transaktioner; en summa över loggen kan det inte.
 Egen tabell, egen rad, aldrig i avgiftsunderlaget. Dricks är gästens pengar till
 personalen.
 
-### 9. Svensk marknad
+### 9. Balkanmarknaden — landet avgör, inte koden
 
-Alla priser i **SEK (kr)**, aldrig USD. Moms 12 % på mat, 25 % på alkohol —
-satsen sitter per menyrad, inte hårdkodad. Alla texter i gränssnittet på svenska.
+Marknaden är **Bosnien, Kroatien och Serbien**. Landet är en egenskap hos
+restaurangen och styr valuta, momssatser, organisationsnummerformat och
+tidszon. Allt ligger i `packages/core/src/country.ts` och speglas av
+`allowed_vat_rates()` i migration 0019 — ändras den ena måste den andra följa
+med.
+
+| Land | Valuta | Moms | Org.nr |
+|---|---|---|---|
+| Bosnien (BA) | BAM (fening) | 17 % — **en enda sats** | JIB, 13 siffror |
+| Kroatien (HR) | EUR (cent) | 13 % / 25 % | OIB, 11 siffror |
+| Serbien (RS) | RSD (para) | 10 % / 20 % | PIB, 9 siffror |
+| Sverige (SE) | SEK (öre) | 12 % / 25 % | 10 siffror |
+
+Att Bosnien har samma sats för reducerad och standard är avsiktligt, inte ett
+kopieringsfel.
+
+Gränssnittsspråk: **engelska och svenska**. Skriv aldrig in ett land eller en
+valuta i en komponent — läs restaurangens.
 
 ### 10. QR_TOKEN_SECRET byts aldrig i produktion
 

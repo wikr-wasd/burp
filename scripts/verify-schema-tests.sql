@@ -127,14 +127,14 @@ begin
     'lines', jsonb_build_array(
       jsonb_build_object(
         'menu_item_id', '44444444-4444-4444-4444-444444444441',
-        'name_snapshot', 'Margherita',
+        'name_snapshot', 'Ćevapi 10 kom',
         'unit_price_ore', 12900,
         'vat_rate_bps', 1200,
         'quantity', 1,
         'line_gross_ore', 14400,
         'note', 'utan basilika',
         'options', jsonb_build_array(
-          jsonb_build_object('option_id', null, 'name_snapshot', 'Extra ost', 'price_ore', 1500)
+          jsonb_build_object('option_id', null, 'name_snapshot', 'Extra kajmak', 'price_ore', 1500)
         )
       )
     )
@@ -290,13 +290,13 @@ do $$
 declare
   v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
 begin
-  -- Seed-restaurangen har lunch 11–14 på tisdagar. 2026-08-11 är en tisdag.
+  -- Seed-restaurangen i Sarajevo har öppet 08–22 på tisdagar.
   if not public.is_restaurant_open(v_rest_id, '2026-08-11 12:00:00+02'::timestamptz) then
-    raise exception 'FEL: restaurangen räknades som stängd mitt i lunchen';
+    raise exception 'FEL: restaurangen räknades som stängd mitt på dagen';
   end if;
 
-  if public.is_restaurant_open(v_rest_id, '2026-08-11 15:00:00+02'::timestamptz) then
-    raise exception 'FEL: restaurangen räknades som öppen mellan lunch och kväll';
+  if public.is_restaurant_open(v_rest_id, '2026-08-11 23:30:00+02'::timestamptz) then
+    raise exception 'FEL: restaurangen räknades som öppen efter stängning';
   end if;
 
   if public.is_restaurant_open(v_rest_id, '2026-08-11 03:00:00+02'::timestamptz) then
@@ -337,8 +337,8 @@ begin
   select city_slug into v_slug from public.restaurants
   where id = '11111111-1111-1111-1111-111111111111';
 
-  if v_slug <> 'malmo' then
-    raise exception 'FEL: city_slug blev "%" i stället för "malmo"', v_slug;
+  if v_slug <> 'sarajevo' then
+    raise exception 'FEL: city_slug blev "%" i stället för "sarajevo"', v_slug;
   end if;
 end
 $$;
@@ -350,7 +350,7 @@ declare
   v_account_id uuid;
   v_user_id    uuid;
 begin
-  insert into auth.users (email) values ('test@example.com') returning id into v_user_id;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'test@example.com') returning id into v_user_id;
 
   insert into public.loyalty_accounts (user_id) values (v_user_id) returning id into v_account_id;
   insert into public.loyalty_transactions (account_id, kind, points) values (v_account_id, 'EARN', 100);
@@ -370,8 +370,8 @@ do $$
 declare
   v_user_id uuid;
 begin
-  insert into auth.users (email, raw_user_meta_data)
-  values ('ny@example.com', '{"full_name": "Ny Gäst"}'::jsonb)
+  insert into auth.users (id, email, raw_user_meta_data)
+  values (gen_random_uuid(), 'ny@example.com', '{"full_name": "Ny Gäst"}'::jsonb)
   returning id into v_user_id;
 
   if not exists (
@@ -407,7 +407,7 @@ begin
     )
     values (
       v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(),
-      10000, 1071, jsonb_build_object('1200', 1071), 500, 10500
+      10000, 1453, jsonb_build_object('1700', 1453), 500, 10500
     )
     returning id into v_order_id;
 
@@ -415,7 +415,7 @@ begin
       order_id, restaurant_id, name_snapshot, unit_price_ore,
       vat_rate_bps, quantity, line_gross_ore
     )
-    values (v_order_id, v_rest_id, 'Testrört', 10000, 1200, 1, 10000);
+    values (v_order_id, v_rest_id, 'Testrört', 10000, 1700, 1, 10000);
 
     insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
     values (v_order_id, v_rest_id, 'GROSS_ITEMS', 10000, 340, 340);
@@ -451,7 +451,7 @@ begin
   if v_summary.items_gross_ore <> 10000 then
     raise exception 'FEL: omsättningen blev % öre, väntade 10000', v_summary.items_gross_ore;
   end if;
-  if v_summary.items_net_ore <> 10000 - 1071 then
+  if v_summary.items_net_ore <> 10000 - 1453 then
     raise exception 'FEL: nettot blev % öre', v_summary.items_net_ore;
   end if;
   if v_summary.tips_ore <> 500 then
@@ -498,17 +498,18 @@ declare
 begin
   select vat_ore into v_mat
   from public.restaurant_vat_breakdown(v_rest_id, '2020-01-01 00:00:00+01', '2020-02-01 00:00:00+01')
-  where vat_rate_bps = 1200;
+  where vat_rate_bps = 1700;
 
   if coalesce(v_mat, 0) = 0 then
-    raise exception 'FEL: momsen för 12 %% saknas i uppdelningen';
+    raise exception 'FEL: momsen för 17 %% saknas i uppdelningen';
   end if;
 
   select vat_ore into v_alkohol
   from public.restaurant_vat_breakdown(v_rest_id, '2020-01-01 00:00:00+01', '2020-02-01 00:00:00+01')
   where vat_rate_bps = 2500;
 
-  -- Ingen alkohol i testdatan — satsen ska då inte dyka upp alls, inte som noll.
+  -- Ingen omsättning på den satsen i testdatan — den ska då inte dyka upp alls,
+  -- inte som en nolla. En sats med noll kronor bakom sig är brus i redovisningen.
   if v_alkohol is not null then
     raise exception 'FEL: en momssats utan omsättning listades ändå';
   end if;
@@ -522,8 +523,8 @@ declare
   v_burp_user  uuid;
   v_staff_user uuid;
 begin
-  insert into auth.users (email) values ('backoffice@burp.test') returning id into v_burp_user;
-  insert into auth.users (email) values ('personal@restaurang.test') returning id into v_staff_user;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'backoffice@burp.test') returning id into v_burp_user;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'personal@restaurang.test') returning id into v_staff_user;
 
   insert into public.platform_admins (user_id, role) values (v_burp_user, 'owner');
 
@@ -593,7 +594,7 @@ declare
   v_points   integer;
   v_expires  timestamptz;
 begin
-  insert into auth.users (email) values ('poang@example.com') returning id into v_user_id;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'poang@example.com') returning id into v_user_id;
 
   insert into public.orders (
     restaurant_id, guest_id, type, status, idempotency_key,
@@ -754,17 +755,17 @@ begin
   insert into public.orders (restaurant_id, type, status, idempotency_key,
                              items_gross_ore, items_vat_ore, vat_by_rate, tip_ore, total_ore)
   values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(),
-          27800, 2979, jsonb_build_object('1200', 2979), 1000, 28800)
+          27800, 4039, jsonb_build_object('1700', 4039), 1000, 28800)
   returning id into v_order_id;
 
   insert into public.order_items (order_id, restaurant_id, name_snapshot, unit_price_ore,
                                   vat_rate_bps, quantity, line_gross_ore)
-  values (v_order_id, v_rest_id, 'Margherita', 12900, 1200, 1, 12900)
+  values (v_order_id, v_rest_id, 'Ćevapi 10 kom', 12900, 1700, 1, 12900)
   returning id into v_rad_a;
 
   insert into public.order_items (order_id, restaurant_id, name_snapshot, unit_price_ore,
                                   vat_rate_bps, quantity, line_gross_ore)
-  values (v_order_id, v_rest_id, 'Diavola', 14900, 1200, 1, 14900)
+  values (v_order_id, v_rest_id, 'Pljeskavica', 14900, 1700, 1, 14900)
   returning id into v_rad_b;
 
   insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
@@ -787,8 +788,9 @@ begin
     raise exception 'FEL: totalen blev %, väntade 13900 (12900 + 1000 dricks)', v_total;
   end if;
 
-  if v_vat <> 1382 then
-    raise exception 'FEL: momsen blev % öre, väntade 1382', v_vat;
+  -- 17 % av 12900 brutto = 12900 - 12900/1,17 = 1874.
+  if v_vat <> 1874 then
+    raise exception 'FEL: momsen blev % öre, väntade 1874', v_vat;
   end if;
 
   -- Avgiften måste följa med. Görs den inte det tar Burp betalt för mat som
@@ -826,7 +828,7 @@ begin
   insert into public.restaurants (
     name, slug, org_number, street_address, postal_code, city, status, country, currency
   )
-  values ('Konoba Adriatica', 'konoba-adriatica', '12345678901',
+  values ('Konoba Adriatica', 'konoba-adriatica', '99900011122',
           'Ilica 1', '10000', 'Zagreb', 'ACTIVE', 'HR', 'EUR')
   returning id into v_kroatien;
 

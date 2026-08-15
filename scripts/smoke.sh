@@ -61,6 +61,23 @@ check_status_as_guest() {
   if [ "$actual" = "$expected" ]; then pass "$label ($actual)"; else fail "$label: fick $actual, väntade $expected"; fi
 }
 
+# Kontrollerar en orderstatus, men skiljer ut rate limiten.
+#
+# /api/orders är strypt per IP. Kör man testet flera gånger i rad börjar den
+# svara 429, och då säger svaret ingenting om det som testas. Utan den här
+# skillnaden rapporterades varje strypt förfrågan som ett produktfel — testet
+# ljög om vad som var trasigt, vilket är värre än att inte testa alls.
+assert_order_status() {
+  local label="$1" expected="$2" actual="$3"
+  if [ "$actual" = "$expected" ]; then
+    pass "$label ($actual)"
+  elif [ "$actual" = "429" ]; then
+    printf '  \033[33mhopp\033[0m  %s — rate limiten slog till, inte avgjort\n' "$label"
+  else
+    fail "$label: fick $actual, väntade $expected"
+  fi
+}
+
 trap 'rm -f "$COOKIES"' EXIT
 
 # Värm upp rutterna innan något mäts.
@@ -71,7 +88,7 @@ trap 'rm -f "$COOKIES"' EXIT
 # sorts vilseledning som rate limiten gav innan den särskildes.
 printf '→ Värmer upp rutterna'
 for path in / /logga-in /dashboard /kok /dashboard/bord /dashboard/meny \
-            /backoffice /backoffice/restauranger /konto /malmo /api/health; do
+            /backoffice /backoffice/restauranger /konto /sarajevo /api/health; do
   curl -s -o /dev/null --max-time 60 "$BASE$path"
   printf '.'
 done
@@ -80,8 +97,8 @@ echo ""
 echo "→ Publika sidor"
 check_status "startsidan"            "/"                          200
 check_status "hälsokontroll"         "/api/health"                200
-check_status "restaurangsida (SEO)"  "/r/malmo/pizzeria-roma"     200
-check_status "okänd restaurang"      "/r/malmo/finns-inte"        404
+check_status "restaurangsida (SEO)"  "/r/sarajevo/cevabdzinica-zeljo"     200
+check_status "okänd restaurang"      "/r/sarajevo/finns-inte"        404
 check_status "påhittat bordstoken"   "/t/AAAAAAAAAA"              404
 
 if curl -s "$BASE/api/health" | grep -q '"database":"ok"'; then
@@ -92,7 +109,7 @@ else
   exit 1
 fi
 
-if curl -s "$BASE/r/malmo/pizzeria-roma" | grep -q '"@type":"Restaurant"'; then
+if curl -s "$BASE/r/sarajevo/cevabdzinica-zeljo" | grep -q '"@type":"Restaurant"'; then
   pass "schema.org-markup finns"
 else
   fail "schema.org-markup saknas på restaurangsidan"
@@ -124,8 +141,8 @@ fi
 pass "bordstoken genererat ($TOKEN)"
 
 QR_PAGE=$(curl -s -c "$COOKIES" "$BASE/t/$TOKEN")
-if grep -q "Margherita" <<<"$QR_PAGE"; then pass "menyn renderas vid bordet"; else fail "menyn saknas på QR-sidan"; fi
-if grep -q "Extra tillbehör" <<<"$QR_PAGE"; then pass "tillvalsgrupper renderas"; else fail "tillvalsgrupper saknas"; fi
+if grep -q "Ćevapi" <<<"$QR_PAGE"; then pass "menyn renderas vid bordet"; else fail "menyn saknas på QR-sidan"; fi
+if grep -q "Dodaci" <<<"$QR_PAGE"; then pass "tillvalsgrupper renderas"; else fail "tillvalsgrupper saknas"; fi
 
 # Ingen bordssession ska ha skapats av att sidan bara lästes. Notan öppnas
 # när gästen beställer — inte när någon råkar skanna koden i förbifarten.
@@ -136,21 +153,22 @@ else
 fi
 
 echo "→ Beställning"
-MARGHERITA="44444444-4444-4444-4444-444444444441"
-EXTRA_OST=$(sql "select id from public.options where name = 'Extra ost';")
-UTAN_OST=$(sql "select id from public.options where name = 'Utan ost';")
-DIAVOLA="44444444-4444-4444-4444-444444444442"
+CEVAPI="44444444-4444-4444-4444-444444444441"
+EXTRA_KAJMAK=$(sql "select id from public.options where name = 'Extra kajmak';")
+BEZ_LUKA=$(sql "select id from public.options where name = 'Bez luka';")
+PLJESKAVICA="44444444-4444-4444-4444-444444444442"
 
 order_request() {
   curl -s -b "$COOKIES" -c "$COOKIES" -X POST "$BASE/api/orders" \
     -H "Content-Type: application/json" -d "$1" -w '\n%{http_code}'
 }
 
-# 129,00 + 15,00 extra ost = 144,00 kr, plus 10 kr dricks = 154,00
+# Ćevapi 12,00 KM + extra kajmak 2,00 = 14,00 KM, plus 10,00 dricks = 24,00 KM.
+# Bosnien har EN momssats på 17 %, även på dryck.
 RESPONSE=$(order_request "{
   \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"tip_ore\": 1000,
-  \"client_total_ore\": 15400, \"idempotency_key\": \"$(uuid)\",
-  \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": [{\"option_id\": \"$EXTRA_OST\"}], \"note\": \"utan basilika\"}]
+  \"client_total_ore\": 2400, \"idempotency_key\": \"$(uuid)\",
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": [{\"option_id\": \"$EXTRA_KAJMAK\"}], \"note\": \"utan basilika\"}]
 }")
 STATUS=$(tail -1 <<<"$RESPONSE")
 BODY=$(sed '$d' <<<"$RESPONSE")
@@ -169,10 +187,10 @@ else
   fail "ingen bordssession efter beställning"
 fi
 
-# Avgiften ska ha skrivits: 3,40 % av 14400 = 490 öre.
+# Avgiften ska ha skrivits: 3,40 % av 1400 = 47,6 → 48 fening.
 if [ -n "$ORDER_ID" ]; then
   FEE=$(sql "select fee_ore from public.fees where order_id = '$ORDER_ID';")
-  if [ "$FEE" = "490" ]; then pass "Burps avgift beräknad och sparad (490 öre)"; else fail "avgiften blev '$FEE', väntade 490"; fi
+  if [ "$FEE" = "48" ]; then pass "Burps avgift beräknad och sparad (48 fening)"; else fail "avgiften blev '$FEE', väntade 48"; fi
 
   TIP=$(sql "select amount_ore from public.tips where order_id = '$ORDER_ID';")
   if [ "$TIP" = "1000" ]; then pass "dricksen sparad separat"; else fail "dricksen blev '$TIP', väntade 1000"; fi
@@ -192,21 +210,22 @@ echo "→ Prisvalidering"
 RESPONSE=$(order_request "{
   \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"client_total_ore\": 1,
   \"idempotency_key\": \"$(uuid)\",
-  \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
 }")
 assert_order_status "manipulerad totalsumma avvisas" 409 "$(tail -1 <<<"$RESPONSE")"
 
-# Tillval lånat från en annan rätt: "Utan ost" (-10 kr) hör till Margherita.
+# Tillval lånat från en annan rätt: "Bez luka" hör till ćevapi, inte till
+# pljeskavican. Servern ska vägra i stället för att tyst dra av rabatten.
 RESPONSE=$(order_request "{
   \"type\": \"TABLE\", \"table_token\": \"$TOKEN\",
   \"idempotency_key\": \"$(uuid)\",
-  \"items\": [{\"menu_item_id\": \"$DIAVOLA\", \"quantity\": 1, \"options\": [{\"option_id\": \"$UTAN_OST\"}]}]
+  \"items\": [{\"menu_item_id\": \"$PLJESKAVICA\", \"quantity\": 1, \"options\": [{\"option_id\": \"$BEZ_LUKA\"}]}]
 }")
 assert_order_status "tillval från annan rätt avvisas" 400 "$(tail -1 <<<"$RESPONSE")"
 
 echo "→ Idempotens"
 KEY="$(uuid)"
-PAYLOAD="{\"type\":\"TABLE\",\"table_token\":\"$TOKEN\",\"idempotency_key\":\"$KEY\",\"items\":[{\"menu_item_id\":\"$MARGHERITA\",\"quantity\":1,\"options\":[]}]}"
+PAYLOAD="{\"type\":\"TABLE\",\"table_token\":\"$TOKEN\",\"idempotency_key\":\"$KEY\",\"items\":[{\"menu_item_id\":\"$CEVAPI\",\"quantity\":1,\"options\":[]}]}"
 FIRST=$(order_request "$PAYLOAD" | sed '$d' | json_field order_id)
 SECOND=$(order_request "$PAYLOAD" | sed '$d' | json_field order_id)
 if [ "$FIRST" = "$SECOND" ] && [ -n "$FIRST" ] && [ "$FIRST" != "null" ]; then
@@ -535,8 +554,8 @@ echo "→ Orderredigering"
 EDIT_ORDER=$(order_request "{
   \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"idempotency_key\": \"$(uuid)\",
   \"items\": [
-    {\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []},
-    {\"menu_item_id\": \"$DIAVOLA\", \"quantity\": 1, \"options\": []}
+    {\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []},
+    {\"menu_item_id\": \"$PLJESKAVICA\", \"quantity\": 1, \"options\": []}
   ]
 }" | sed '$d' | json_field order_id)
 
@@ -575,17 +594,17 @@ if [ -n "$EDIT_ORDER" ]; then
   # Summan och avgiften ska ha räknats om. Görs inte det tar Burp betalt för
   # mat som togs bort — och det upptäcks först i restaurangens bokföring.
   GROSS_AFTER=$(sql "select items_gross_ore from public.orders where id = '$EDIT_ORDER';")
-  if [ "$GROSS_AFTER" = "14900" ]; then
+  if [ "$GROSS_AFTER" = "1400" ]; then
     pass "summan räknades om efter borttagning"
   else
-    fail "summan blev $GROSS_AFTER, väntade 14900"
+    fail "summan blev $GROSS_AFTER, väntade 1400"
   fi
 
   FEE_AFTER=$(sql "select fee_ore from public.fees where order_id = '$EDIT_ORDER';")
-  if [ "$FEE_AFTER" = "507" ]; then
+  if [ "$FEE_AFTER" = "48" ]; then
     pass "Burps avgift räknades om"
   else
-    fail "avgiften blev $FEE_AFTER, väntade 507"
+    fail "avgiften blev $FEE_AFTER, väntade 48"
   fi
 
   # Sista raden ska vägras — en tom order är en avbruten order.
@@ -659,7 +678,7 @@ done
 REVIEW_ID=$(sql "
   with r as (
     insert into public.reviews (order_id, restaurant_id, user_id, rating_food, rating_service, comment)
-    select '$REVIEW_ORDER', '$SEED_RESTAURANT', guest_id, 2, 3, 'Maten var kall nar jag kom hem.'
+    select '$REVIEW_ORDER', '$SEED_RESTAURANT', guest_id, 2, 3, 'Hrana je bila hladna.'
     from public.orders where id = '$REVIEW_ORDER'
     returning id
   )
@@ -671,7 +690,7 @@ else
   fail "kunde inte skapa omdömet"
 fi
 
-if curl -s "$BASE/r/malmo/pizzeria-roma" | grep -q "Maten var kall"; then
+if curl -s "$BASE/r/sarajevo/cevabdzinica-zeljo" | grep -q "Hrana je bila hladna"; then
   pass "omdömet syns på restaurangsidan"
 else
   fail "omdömet syns inte publikt"
@@ -707,7 +726,7 @@ curl -s -o /dev/null -X PATCH "$SUPABASE_URL/rest/v1/reviews?id=eq.$REVIEW_ID" \
   -H "Content-Type: application/json" -H "Prefer: return=minimal" \
   -d '{"comment":"Allt var utmarkt!"}'
 
-if [ "$(sql "select comment from public.reviews where id = '$REVIEW_ID';")" = "Maten var kall nar jag kom hem." ]; then
+if [ "$(sql "select comment from public.reviews where id = '$REVIEW_ID';")" = "Hrana je bila hladna." ]; then
   pass "restaurangen kan inte skriva om gästens text"
 else
   fail "restaurangen skrev om gästens omdöme"
@@ -728,7 +747,7 @@ echo "→ Förbeställningar"
 SCHEDULED=$(order_request "{
   \"type\": \"PICKUP\", \"idempotency_key\": \"$(uuid)\",
   \"scheduled_for\": \"$(node -e 'const d=new Date(Date.now()+3*3600e3); d.setMinutes(0,0,0); console.log(d.toISOString())')\",
-  \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
 }")
 assert_order_status "förbeställning avvisas när restaurangen stängt av den" 409 "$(tail -1 <<<"$SCHEDULED")"
 
@@ -740,7 +759,7 @@ sql "update public.restaurants set order_policy = jsonb_set(order_policy, '{allo
 PAST=$(order_request "{
   \"type\": \"PICKUP\", \"idempotency_key\": \"$(uuid)\",
   \"scheduled_for\": \"$(node -e 'console.log(new Date(Date.now()-3600e3).toISOString())')\",
-  \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
 }")
 assert_order_status "hämttid i det förflutna avvisas" 409 "$(tail -1 <<<"$PAST")"
 
@@ -748,7 +767,7 @@ assert_order_status "hämttid i det förflutna avvisas" 409 "$(tail -1 <<<"$PAST
 ODD=$(order_request "{
   \"type\": \"PICKUP\", \"idempotency_key\": \"$(uuid)\",
   \"scheduled_for\": \"$(node -e 'const d=new Date(Date.now()+3*3600e3); d.setMinutes(7,0,0); console.log(d.toISOString())')\",
-  \"items\": [{\"menu_item_id\": \"$MARGHERITA\", \"quantity\": 1, \"options\": []}]
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
 }")
 assert_order_status "hämttid utanför kvartarna avvisas" 409 "$(tail -1 <<<"$ODD")"
 
@@ -807,42 +826,42 @@ rm -f "$IMAGE_FILE"
 # Hela modereringsslingan: uppladdad bild är PENDING och osynlig, godkännande
 # publicerar den, tillbakadraget godkännande tar bort den igen. Utan sista
 # steget vore moderering en knapp utan effekt.
-MARGHERITA_ID="44444444-4444-4444-4444-444444444441"
-sql "delete from public.media where menu_item_id = '$MARGHERITA_ID';" > /dev/null
-sql "update public.menu_items set image_url = null where id = '$MARGHERITA_ID';" > /dev/null
+CEVAPI_ID="44444444-4444-4444-4444-444444444441"
+sql "delete from public.media where menu_item_id = '$CEVAPI_ID';" > /dev/null
+sql "update public.menu_items set image_url = null where id = '$CEVAPI_ID';" > /dev/null
 sql "insert into public.media (restaurant_id, menu_item_id, kind, storage_path)
-     values ('$SEED_RESTAURANT', '$MARGHERITA_ID', 'IMAGE', '$OWN_PATH');" > /dev/null
+     values ('$SEED_RESTAURANT', '$CEVAPI_ID', 'IMAGE', '$OWN_PATH');" > /dev/null
 
-BEFORE_APPROVAL=$(sql "select coalesce(image_url, 'INGEN') from public.menu_items where id = '$MARGHERITA_ID';")
+BEFORE_APPROVAL=$(sql "select coalesce(image_url, 'INGEN') from public.menu_items where id = '$CEVAPI_ID';")
 if [ "$BEFORE_APPROVAL" = "INGEN" ]; then
   pass "ogranskad bild syns inte för gästen"
 else
   fail "en ogranskad bild publicerades direkt: $BEFORE_APPROVAL"
 fi
 
-sql "update public.media set status = 'APPROVED' where menu_item_id = '$MARGHERITA_ID';" > /dev/null
-AFTER_APPROVAL=$(sql "select coalesce(image_url, 'INGEN') from public.menu_items where id = '$MARGHERITA_ID';")
+sql "update public.media set status = 'APPROVED' where menu_item_id = '$CEVAPI_ID';" > /dev/null
+AFTER_APPROVAL=$(sql "select coalesce(image_url, 'INGEN') from public.menu_items where id = '$CEVAPI_ID';")
 if [ "${AFTER_APPROVAL#INGEN}" = "$AFTER_APPROVAL" ] && [ -n "$AFTER_APPROVAL" ]; then
   pass "godkännande publicerar bilden"
 else
   fail "godkännandet publicerade ingen bild"
 fi
 
-sql "update public.media set status = 'REJECTED' where menu_item_id = '$MARGHERITA_ID';" > /dev/null
-AFTER_REJECT=$(sql "select coalesce(image_url, 'INGEN') from public.menu_items where id = '$MARGHERITA_ID';")
+sql "update public.media set status = 'REJECTED' where menu_item_id = '$CEVAPI_ID';" > /dev/null
+AFTER_REJECT=$(sql "select coalesce(image_url, 'INGEN') from public.menu_items where id = '$CEVAPI_ID';")
 if [ "$AFTER_REJECT" = "INGEN" ]; then
   pass "tillbakadraget godkännande tar bort bilden"
 else
   fail "en tillbakadragen bild låg kvar i menyn"
 fi
 
-sql "delete from public.media where menu_item_id = '$MARGHERITA_ID';" > /dev/null
+sql "delete from public.media where menu_item_id = '$CEVAPI_ID';" > /dev/null
 
 echo "→ Google-synlighet"
-check_status "stadssida"          "/malmo"            200
-check_status "kökssida"           "/malmo/tacos"      200
+check_status "stadssida"          "/sarajevo"            200
+check_status "kökssida"           "/sarajevo/grill"      200
 check_status "okänd stad 404:ar"  "/finns-inte-alls"  404
-check_status "okänt kök 404:ar"   "/malmo/rymdmat"    404
+check_status "okänt kök 404:ar"   "/sarajevo/rymdmat"    404
 check_status "sitemap"            "/sitemap.xml"      200
 check_status "robots"             "/robots.txt"       200
 
@@ -854,7 +873,7 @@ else
   fail "robots.txt stänger inte ute /t/ — bordskoder kan indexeras"
 fi
 
-if curl -s "$BASE/sitemap.xml" | grep -q "/r/malmo/pizzeria-roma"; then
+if curl -s "$BASE/sitemap.xml" | grep -q "/r/sarajevo/cevabdzinica-zeljo"; then
   pass "restaurangsidor finns i sitemap"
 else
   fail "sitemap saknar restaurangsidorna"
@@ -868,7 +887,7 @@ else
   pass "sitemap innehåller bara publika sidor"
 fi
 
-if curl -s "$BASE/malmo" | grep -q '"@type":"ItemList"'; then
+if curl -s "$BASE/sarajevo" | grep -q '"@type":"ItemList"'; then
   pass "stadssidan har ItemList-markup"
 else
   fail "stadssidan saknar strukturerad data"

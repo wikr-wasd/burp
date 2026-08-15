@@ -15,6 +15,16 @@ port = 54322
 shadow_port = 54320
 major_version = 17
 
+# Båda filerna, i den här ordningen. seed-staff.sql skapar personalkontona i
+# auth.users och kördes förut för hand — vilket betydde att varje `db reset`
+# tyst tog bort inloggningarna och fjorton kontroller i smoke.sh föll utan att
+# något var fel på produkten. En lokal miljö ska vara komplett efter en reset.
+#
+# Filerna körs aldrig mot ett fjärrprojekt; `db push` skjuter bara migrationer.
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql", "./seed-staff.sql"]
+
 [studio]
 enabled = true
 port = 54323
