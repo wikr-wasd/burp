@@ -120,13 +120,13 @@ function NewMenuForm() {
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-3">
       <label className="flex-1 basis-48">
-        <span className="text-sm font-medium">Ny meny</span>
+        <span className="label-caps">Ny meny</span>
         <input
           name="name"
           required
           maxLength={120}
           placeholder="Lunch, Kväll, Helg…"
-          className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
+          className="field mt-1.5"
         />
       </label>
       <SubmitButton label="Skapa meny" pendingLabel="Skapar…" />
@@ -340,7 +340,7 @@ function AddCategory({ menuId, onError }: { menuId: string; onError: (message: s
   return (
     <div className="flex flex-wrap items-end gap-3">
       <label className="flex-1 basis-48">
-        <span className="text-sm font-medium">Ny kategori</span>
+        <span className="label-caps">Ny kategori</span>
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -374,16 +374,16 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
     <form action={formAction} className="mt-3 flex flex-wrap items-end gap-3">
       <input type="hidden" name="category_id" value={categoryId} />
       <label className="flex-1 basis-40">
-        <span className="text-sm font-medium">Ny rätt</span>
+        <span className="label-caps">Ny rätt</span>
         <input
           name="name"
           required
           maxLength={120}
-          className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
+          className="field mt-1.5"
         />
       </label>
       <label className="basis-28">
-        <span className="text-sm font-medium">Pris ({currency})</span>
+        <span className="label-caps">Pris ({currency})</span>
         <input
           name="price"
           required
@@ -391,7 +391,7 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
           // Platshållaren visar rätt antal decimaler för valutan. En serbisk
           // ägare som ser "129,00" skriver in ett pris hundra gånger fel.
           placeholder={formatAmountInput(12900, currency)}
-          className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
+          className="field mt-1.5"
         />
       </label>
       <SubmitButton label="Lägg till" pendingLabel="Lägger till…" />
@@ -495,7 +495,7 @@ function ItemRow({
           <UnavailableUntil item={item} onError={onError} />
 
           <label className="block">
-            <span className="text-sm font-medium">Beskrivning</span>
+            <span className="label-caps">Beskrivning</span>
             <InlineTextarea
               value={item.description ?? ""}
               onSave={(description) => run(() => updateMenuItem(item.id, { description }))}
@@ -503,7 +503,7 @@ function ItemRow({
           </label>
 
           <div>
-            <span className="text-sm font-medium">Moms</span>
+            <span className="label-caps">Moms</span>
             <div className="mt-1 flex gap-2">
               {vatRateOptions(country).map((choice) => (
                 <button
@@ -524,7 +524,7 @@ function ItemRow({
           </div>
 
           <label className="block">
-            <span className="text-sm font-medium">
+            <span className="label-caps">
               Allergener <span className="font-normal opacity-60">kommaseparerade</span>
             </span>
             <InlineText
@@ -840,7 +840,7 @@ function TimeField({
 }) {
   return (
     <label>
-      <span className="text-sm font-medium">{label}</span>
+      <span className="label-caps">{label}</span>
       <input
         type="time"
         // Databasen ger "11:00:00"; <input type="time"> vill ha "11:00".
@@ -931,7 +931,7 @@ function UnavailableUntil({
   return (
     <div className="flex flex-wrap items-end gap-3">
       <label className="basis-52">
-        <span className="text-sm font-medium">Slut till</span>
+        <span className="label-caps">Slut till</span>
         <input
           type="datetime-local"
           value={until}
@@ -941,7 +941,7 @@ function UnavailableUntil({
       </label>
 
       <label className="flex-1 basis-40">
-        <span className="text-sm font-medium">Skäl för gästen</span>
+        <span className="label-caps">Skäl för gästen</span>
         <input
           type="text"
           value={reason}

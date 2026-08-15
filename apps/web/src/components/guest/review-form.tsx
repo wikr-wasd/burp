@@ -49,13 +49,13 @@ export function ReviewForm({
       <Stars value={food} onChange={setFood} label="Betyg på maten" />
 
       <p className="mt-3 text-sm font-medium">
-        Service <span className="font-normal opacity-60">valfritt</span>
+        Service <span className="normal-case whitespace-nowrap">valfritt</span>
       </p>
       <Stars value={service} onChange={setService} label="Betyg på servicen" />
 
       <label className="mt-3 block">
         <span className="label-caps">
-          Kommentar <span className="font-normal opacity-60">valfritt</span>
+          Kommentar <span className="normal-case whitespace-nowrap">valfritt</span>
         </span>
         <textarea
           name="comment"

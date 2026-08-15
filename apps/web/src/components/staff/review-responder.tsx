@@ -96,7 +96,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
       ) : editing || !review.response ? (
         <div className="mt-3">
           <label className="block">
-            <span className="text-sm font-medium">
+            <span className="label-caps">
               {review.response ? "Ändra svaret" : "Svara publikt"}
             </span>
             <textarea

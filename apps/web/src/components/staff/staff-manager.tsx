@@ -125,22 +125,22 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
 
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="flex-1 basis-56">
-            <span className="text-sm font-medium">E-post</span>
+            <span className="label-caps">E-post</span>
             <input
               name="email"
               type="email"
               required
               autoComplete="off"
-              className="mt-1 min-h-11 w-full border border-[var(--rule-control)] bg-transparent px-3"
+              className="field mt-1.5"
             />
           </label>
 
           <label>
-            <span className="text-sm font-medium">Roll</span>
+            <span className="label-caps">Roll</span>
             <select
               name="role"
               defaultValue="staff"
-              className="mt-1 block min-h-11 border border-[var(--rule-control)] bg-transparent px-3"
+              className="field mt-1.5"
             >
               {STAFF_ROLES.map((role) => (
                 <option key={role} value={role}>

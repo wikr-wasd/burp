@@ -77,7 +77,7 @@ export function SignUpForm({ next }: { next?: string }) {
     <form onSubmit={handleSubmit} className="mt-10 space-y-7">
       <label className="block">
         <span className="label-caps">
-          Namn <span className="normal-case">valfritt</span>
+          Namn <span className="normal-case whitespace-nowrap">valfritt</span>
         </span>
         <input
           value={fullName}

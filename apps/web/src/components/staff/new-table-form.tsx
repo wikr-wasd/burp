@@ -15,37 +15,37 @@ export function NewTableForm() {
     >
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex-1 basis-32">
-          <span className="text-sm font-medium">Bordsnummer</span>
+          <span className="label-caps">Bordsnummer</span>
           <input
             name="table_number"
             required
             maxLength={20}
-            className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
+            className="field mt-1.5"
           />
         </label>
 
         <label className="flex-1 basis-40">
-          <span className="text-sm font-medium">
-            Zon <span className="font-normal opacity-60">valfritt</span>
+          <span className="label-caps">
+            Zon <span className="normal-case whitespace-nowrap">valfritt</span>
           </span>
           <input
             name="zone"
             maxLength={60}
             placeholder="Uteservering"
-            className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
+            className="field mt-1.5"
           />
         </label>
 
         <label className="basis-28">
-          <span className="text-sm font-medium">
-            Platser <span className="font-normal opacity-60">valfritt</span>
+          <span className="label-caps">
+            Platser <span className="normal-case whitespace-nowrap">valfritt</span>
           </span>
           <input
             name="capacity"
             type="number"
             min={1}
             max={100}
-            className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
+            className="field mt-1.5"
           />
         </label>
 
