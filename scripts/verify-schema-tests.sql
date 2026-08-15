@@ -815,4 +815,66 @@ begin
 end
 $$;
 
+\echo '   momssatsen måste gälla i restaurangens land'
+
+do $$
+declare
+  v_kroatien uuid;
+  v_kategori uuid;
+  v_meny     uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Konoba Adriatica', 'konoba-adriatica', '12345678901',
+          'Ilica 1', '10000', 'Zagreb', 'ACTIVE', 'HR', 'EUR')
+  returning id into v_kroatien;
+
+  insert into public.menus (restaurant_id, name, status)
+  values (v_kroatien, 'Meni', 'PUBLISHED') returning id into v_meny;
+
+  insert into public.menu_categories (menu_id, restaurant_id, name)
+  values (v_meny, v_kroatien, 'Riba') returning id into v_kategori;
+
+  -- Kroatisk matmoms är 13 %, inte svenska 12 %. Utan triggern hade den
+  -- svenska satsen glidit in obemärkt och landat i bokföringen.
+  begin
+    insert into public.menu_items (category_id, restaurant_id, name, price_ore, vat_rate_bps)
+    values (v_kategori, v_kroatien, 'Riblja plata', 18900, 1200);
+    raise exception 'FEL: svensk momssats accepterades i Kroatien';
+  exception
+    when check_violation then null;
+  end;
+
+  insert into public.menu_items (category_id, restaurant_id, name, price_ore, vat_rate_bps)
+  values (v_kategori, v_kroatien, 'Riblja plata', 18900, 1300);
+
+  -- Ett svenskt organisationsnummer har tio siffror och duger inte som OIB.
+  begin
+    insert into public.restaurants (
+      name, slug, org_number, street_address, postal_code, city, status, country, currency
+    )
+    values ('Fel OIB', 'fel-oib', '5566778899', 'Ilica 2', '10000', 'Zagreb', 'ACTIVE', 'HR', 'EUR');
+    raise exception 'FEL: tiosiffrigt organisationsnummer accepterades som OIB';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
+\echo '   bosnisk moms har en enda sats'
+
+do $$
+begin
+  if public.allowed_vat_rates('BA') <> array[1700] then
+    raise exception 'FEL: Bosnien fick % i stället för en enda sats på 17 %%',
+      public.allowed_vat_rates('BA');
+  end if;
+
+  if public.allowed_vat_rates('RS') <> array[1000, 2000] then
+    raise exception 'FEL: serbiska momssatser blev %', public.allowed_vat_rates('RS');
+  end if;
+end
+$$;
+
 rollback;

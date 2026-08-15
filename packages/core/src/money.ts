@@ -1,5 +1,8 @@
+import { CURRENCY_INFO, type CurrencyCode } from "./country";
+
 /**
- * Pengar i Burp lagras och räknas ALLTID i heltal öre. Aldrig float.
+ * Pengar i Burp lagras och räknas ALLTID i heltal av valutans minsta enhet —
+ * öre, cent, fening, para. Aldrig float.
  *
  * 149,50 kr → 14950. Anledningen är att flyttal inte kan representera
  * decimaltal exakt: 0.1 + 0.2 !== 0.3. På en avgift som räknas per order
@@ -100,11 +103,40 @@ export function formatKronorInput(ore: Ore): string {
   return oreToKronor(ore).toFixed(2).replace(".", ",");
 }
 
-/** Formaterar öre som svensk valutasträng, t.ex. "149,50 kr". */
-export function formatOre(ore: Ore, locale = "sv-SE"): string {
-  return new Intl.NumberFormat(locale, {
+/**
+ * Formaterar ett belopp i sin valuta.
+ *
+ * Beloppet lagras alltid som heltal i valutans hundradelar — öre, cent,
+ * fening, para. Det som skiljer valutorna åt är hur många decimaler som visas:
+ * dinar visas utan, eftersom para i praktiken slutat användas.
+ *
+ * Valutan kommer från restaurangen, inte från gästens webbläsare. En gäst med
+ * svensk telefon som beställer i Zagreb ska se euro, inte kronor.
+ */
+export function formatMoney(
+  amount: Ore,
+  currency: CurrencyCode,
+  locale?: string,
+): string {
+  const info = CURRENCY_INFO[currency];
+
+  return new Intl.NumberFormat(locale ?? "en-150", {
     style: "currency",
-    currency: "SEK",
-    minimumFractionDigits: 2,
-  }).format(oreToKronor(ore));
+    currency,
+    minimumFractionDigits: info.decimalDigits,
+    maximumFractionDigits: info.decimalDigits,
+  }).format(amount / 100);
+}
+
+/**
+ * Formaterar i svenska kronor.
+ *
+ * Kvar för de ytor som ännu inte fått en valuta att formatera med. Nya anrop
+ * ska använda `formatMoney` — den här försvinner när sista SEK-antagandet är
+ * borta ur gränssnittet.
+ *
+ * @deprecated Använd formatMoney med restaurangens valuta.
+ */
+export function formatOre(ore: Ore, locale = "sv-SE"): string {
+  return formatMoney(ore, "SEK", locale);
 }
