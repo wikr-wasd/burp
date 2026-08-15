@@ -99,7 +99,7 @@ export default async function MediaPage({ searchParams }: PageProps) {
       <PlatformHeader admin={admin} current="media" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        <h1 className="text-2xl font-bold">Media</h1>
+        <h1 className="font-display text-4xl">Media</h1>
         <p className="mt-1 text-sm opacity-70">
           Ingenting syns för gästen förrän det godkänts här.
         </p>

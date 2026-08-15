@@ -31,7 +31,7 @@ export default async function ReviewsPage() {
       <StaffHeader staff={staff} current="dashboard" />
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <h1 className="text-2xl font-bold">Omdömen</h1>
+        <h1 className="font-display text-4xl">Omdömen</h1>
         <p className="mt-1 text-sm opacity-70">
           Betyg kan bara lämnas av gäster som genomfört en beställning. Du kan svara offentligt,
           men inte ändra betyget eller texten.

@@ -83,7 +83,7 @@ export default async function TablesPage() {
       <StaffHeader staff={staff} current="dashboard" />
 
       <main className="mx-auto max-w-4xl px-6 py-8">
-        <h1 className="text-2xl font-bold">Bord och QR-koder</h1>
+        <h1 className="font-display text-4xl">Bord och QR-koder</h1>
         <p className="mt-1 text-sm opacity-70">
           Skriv ut koden och sätt den på bordet. Koden är statisk och behöver aldrig bytas.
         </p>

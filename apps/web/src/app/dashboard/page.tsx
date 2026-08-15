@@ -43,7 +43,7 @@ export default async function DashboardPage() {
             kunna se vad som är på gång utan att köket börjar laga för tidigt. */}
         {upcoming.length > 0 ? (
           <section className="mt-10">
-            <h2 className="text-lg font-semibold">Kommande</h2>
+            <h2 className="font-display text-2xl">Kommande</h2>
             <p className="mt-1 text-sm opacity-60">
               Släpps till köket när tillagningstiden återstår.
             </p>

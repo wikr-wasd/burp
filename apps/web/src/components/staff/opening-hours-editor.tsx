@@ -149,7 +149,7 @@ export function OpeningHoursEditor({ initial }: { initial: OpeningHours }) {
         type="button"
         disabled={pending || !dirty}
         onClick={save}
-        className="mt-4 min-h-12 bg-burp-600 px-5 font-medium text-white disabled:opacity-50"
+        className="btn btn-primary mt-4"
       >
         {pending ? "Sparar…" : dirty ? "Spara öppettider" : "Inget att spara"}
       </button>

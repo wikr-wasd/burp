@@ -92,7 +92,7 @@ export default async function PlatformRestaurantsPage({ searchParams }: PageProp
       <PlatformHeader admin={admin} current="restauranger" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        <h1 className="text-2xl font-bold">Restauranger</h1>
+        <h1 className="font-display text-4xl">Restauranger</h1>
         <p className="mt-1 text-sm opacity-70">
           Standardavgift {(DEFAULT_FEE_BPS / 100).toFixed(2).replace(".", ",")} %. En restaurang
           utan egen avgift följer med när standarden ändras.

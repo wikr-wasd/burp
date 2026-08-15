@@ -97,7 +97,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h1 className="text-2xl font-bold">Översikt</h1>
+          <h1 className="font-display text-4xl">Översikt</h1>
           <nav className="flex gap-2" aria-label="Period">
             {(Object.keys(PERIODS) as PeriodKey[]).map((key) => (
               <Link
@@ -135,7 +135,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
           låstes — se docs/OPEN-QUESTIONS.md.
         */}
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">Omsättning per valuta</h2>
+          <h2 className="font-display text-2xl">Omsättning per valuta</h2>
 
           {revenue.length === 0 ? (
             <p className="mt-3 text-sm opacity-60">
@@ -181,7 +181,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
         ) : null}
 
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">Väntar på dig</h2>
+          <h2 className="font-display text-2xl">Väntar på dig</h2>
           <ul className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
             <li className="flex items-center gap-4 px-4 py-3">
               <span className="mr-auto">Restauranger som väntar på godkännande</span>
@@ -189,7 +189,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
               {pending.length > 0 ? (
                 <Link
                   href="/backoffice/restauranger?status=PENDING"
-                  className="bg-burp-600 px-3 py-1.5 text-sm font-medium text-white"
+                  className="btn btn-primary"
                 >
                   Granska
                 </Link>

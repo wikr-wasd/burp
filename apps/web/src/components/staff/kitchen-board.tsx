@@ -232,7 +232,7 @@ function OrderCard({
       }`}
     >
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-2xl font-bold">
+        <h2 className="font-display text-4xl">
           {order.tableNumber ? `Bord ${order.tableNumber}` : orderTypeLabel(order.type)}
         </h2>
         <Elapsed since={order.placedAt} />

@@ -48,7 +48,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h1 className="text-2xl font-bold">Statistik</h1>
+          <h1 className="font-display text-4xl">Statistik</h1>
           <nav className="flex gap-2" aria-label="Period">
             {(Object.keys(PERIODS) as PeriodKey[]).map((key) => (
               <Link
@@ -82,7 +82,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
             </section>
 
             <section className="mt-8">
-              <h2 className="text-lg font-semibold">Ekonomi</h2>
+              <h2 className="font-display text-2xl">Ekonomi</h2>
               <dl className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
                 <Row label="Omsättning inkl. moms" value={formatMoney(summary.itemsGrossOre, staff.currency)} />
                 <Row label="varav moms" value={formatMoney(summary.itemsVatOre, staff.currency)} muted />
@@ -121,7 +121,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
             {stats.prepTimes.measuredOrders > 0 ? (
               <section className="mt-8">
-                <h2 className="text-lg font-semibold">Tid till klar mat</h2>
+                <h2 className="font-display text-2xl">Tid till klar mat</h2>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <Stat
                     label="Median"
@@ -139,7 +139,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
             {stats.topItems.length > 0 ? (
               <section className="mt-8">
-                <h2 className="text-lg font-semibold">Populärast</h2>
+                <h2 className="font-display text-2xl">Populärast</h2>
                 <ul className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
                   {stats.topItems.map((item) => (
                     <li key={item.name} className="flex items-center gap-4 px-4 py-3">
@@ -154,7 +154,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
             {stats.tableRevenue.length > 0 ? (
               <section className="mt-8">
-                <h2 className="text-lg font-semibold">Omsättning per bord</h2>
+                <h2 className="font-display text-2xl">Omsättning per bord</h2>
                 <p className="mt-1 text-sm opacity-60">
                   Siffran QR-beställningen finns för att kunna ge. Bord utan order visas som noll.
                 </p>

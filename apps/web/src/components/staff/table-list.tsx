@@ -61,7 +61,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-lg font-semibold">Bord {table.tableNumber}</p>
+                <p className="font-display text-2xl">Bord {table.tableNumber}</p>
                 <p className="text-sm opacity-60">
                   {[table.zone, table.capacity ? `${table.capacity} platser` : null]
                     .filter(Boolean)
