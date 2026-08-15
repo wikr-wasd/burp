@@ -38,6 +38,14 @@ Byggstenarna är definierade **en enda gång**, i `apps/web/src/app/globals.css`
 | `.field` | Alla textfält. Understruken linje, inte ruta. |
 | `.link` | Länk i löpande text. Understruken redan i viloläge. |
 
+**Två linjaler, inte en.** `--rule` är dekor — avdelare mellan sektioner, som
+inte behöver kontrast. `--rule-control` är kanten på något man kan trycka på
+eller skriva i, och håller 3:1 mot bakgrunden i båda lägena. Kravet kommer från
+WCAG 1.4.11, men det är inte formalia: fälten ritade sin enda avgränsning med
+`--rule` och gav 1,41:1 mot pappret, alltså i praktiken osynliga tills de
+fokuserades. Använd `--rule-control` på varje `button`, `input`, `select` och
+`textarea` som ritar en egen kant.
+
 Skriv **aldrig** en egen knapp, ett eget fält eller en egen kantlinje i en
 komponent. Varje sida som gör det glider isär från resten, och det är precis
 så produkten en gång kom att tala tre olika designspråk samtidigt:

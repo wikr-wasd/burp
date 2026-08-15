@@ -131,7 +131,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
               type="email"
               required
               autoComplete="off"
-              className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-transparent px-3"
+              className="mt-1 min-h-11 w-full border border-[var(--rule-control)] bg-transparent px-3"
             />
           </label>
 
@@ -140,7 +140,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
             <select
               name="role"
               defaultValue="staff"
-              className="mt-1 block min-h-11 border border-[var(--rule)] bg-transparent px-3"
+              className="mt-1 block min-h-11 border border-[var(--rule-control)] bg-transparent px-3"
             >
               {STAFF_ROLES.map((role) => (
                 <option key={role} value={role}>

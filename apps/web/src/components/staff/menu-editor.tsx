@@ -126,7 +126,7 @@ function NewMenuForm() {
           required
           maxLength={120}
           placeholder="Lunch, Kväll, Helg…"
-          className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
+          className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
         />
       </label>
       <SubmitButton label="Skapa meny" pendingLabel="Skapar…" />
@@ -379,7 +379,7 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
           name="name"
           required
           maxLength={120}
-          className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
+          className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
         />
       </label>
       <label className="basis-28">
@@ -391,7 +391,7 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
           // Platshållaren visar rätt antal decimaler för valutan. En serbisk
           // ägare som ser "129,00" skriver in ett pris hundra gånger fel.
           placeholder={formatAmountInput(12900, currency)}
-          className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
+          className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
         />
       </label>
       <SubmitButton label="Lägg till" pendingLabel="Lägger till…" />

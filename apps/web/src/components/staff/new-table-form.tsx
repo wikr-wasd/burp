@@ -20,7 +20,7 @@ export function NewTableForm() {
             name="table_number"
             required
             maxLength={20}
-            className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
+            className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
           />
         </label>
 
@@ -32,7 +32,7 @@ export function NewTableForm() {
             name="zone"
             maxLength={60}
             placeholder="Uteservering"
-            className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
+            className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
           />
         </label>
 
@@ -45,7 +45,7 @@ export function NewTableForm() {
             type="number"
             min={1}
             max={100}
-            className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
+            className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2"
           />
         </label>
 

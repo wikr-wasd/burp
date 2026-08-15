@@ -136,7 +136,7 @@ function Field({
         placeholder={placeholder}
         inputMode={inputMode}
         maxLength={240}
-        className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-transparent px-3"
+        className="mt-1 min-h-11 w-full border border-[var(--rule-control)] bg-transparent px-3"
       />
     </label>
   );

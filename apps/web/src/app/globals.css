@@ -60,6 +60,21 @@
   --rule: var(--color-rule);
 
   /*
+   * Kant på en KONTROLL, till skillnad från en avdelare.
+   *
+   * `--rule` är en tryckt linjal — dekor, och behöver ingen kontrast. Men
+   * textfälten och sekundärknapparna använde den som sin enda synliga
+   * avgränsning, och mot pappret ger den 1,41:1. WCAG 1.4.11 kräver 3:1 för
+   * det som behövs för att urskilja en kontroll, och kravet är inte
+   * formalia här: fälten på inloggningssidan var i praktiken osynliga tills
+   * de fokuserades.
+   *
+   * 0,60 ger 3,63:1 mot pappret — över kravet med marginal utan att bli en
+   * ruta, vilket hade brutit formspråket.
+   */
+  --rule-control: oklch(0.60 0.02 60);
+
+  /*
    * En enda hastighet och en enda kurva i hela produkten.
    *
    * Blandade övergångstider är det som får ett gränssnitt att kännas
@@ -84,6 +99,8 @@
     --foreground: oklch(0.94 0.008 85);
     --muted: oklch(0.72 0.012 75);
     --rule: oklch(0.32 0.014 50);
+    /* 3,51:1 mot den mörka botten. Samma resonemang som i ljust läge. */
+    --rule-control: oklch(0.52 0.015 50);
   }
 }
 
@@ -213,7 +230,7 @@ body {
 }
 
 .btn-secondary {
-  border-color: var(--rule);
+  border-color: var(--rule-control);
   color: var(--foreground);
 }
 
@@ -235,7 +252,7 @@ body {
   min-height: 2.75rem;
   background: transparent;
   border: 0;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule-control);
   padding: 0.25rem 0.125rem;
   font-size: 1rem;
   color: var(--foreground);

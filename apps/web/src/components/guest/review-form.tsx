@@ -61,7 +61,7 @@ export function ReviewForm({
           name="comment"
           rows={2}
           maxLength={2000}
-          className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2 text-sm"
+          className="mt-1 w-full border border-[var(--rule-control)] bg-transparent px-3 py-2 text-sm"
         />
       </label>
 
