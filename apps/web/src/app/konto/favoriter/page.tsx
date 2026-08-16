@@ -44,13 +44,13 @@ export default async function FavoritesPage() {
         <h1 className="font-display mt-2 text-4xl">Favoriter</h1>
 
         {ordered.length === 0 ? (
-          <div className="mt-6 border border-[var(--rule)] p-6">
+          <div className="card mt-6 p-6">
             <p className="opacity-70">
               Inga favoriter än. Spara en restaurang så hittar du tillbaka snabbare.
             </p>
             <Link
               href="/"
-              className="mt-3 inline-block bg-burp-600 px-4 py-2.5 font-medium text-white"
+              className="btn btn-primary mt-3"
             >
               Bläddra bland restauranger
             </Link>
@@ -60,7 +60,7 @@ export default async function FavoritesPage() {
             {ordered.map((restaurant) => (
               <li
                 key={restaurant.id}
-                className="flex flex-wrap items-start gap-3 border border-[var(--rule)] p-4"
+                className="card flex flex-wrap items-start gap-3  p-4"
               >
                 <div className="mr-auto min-w-0">
                   <Link

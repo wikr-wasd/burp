@@ -56,7 +56,7 @@ export function OrderStatusView({
 
   if (status === "CANCELLED" || status === "REFUNDED") {
     return (
-      <div className="border border-[var(--rule)] p-6">
+      <div className="card p-6">
         <p className="text-lg font-semibold">{labels.status[status]}</p>
         <p className="mt-1 text-sm opacity-70">
           Prata med personalen om du har frågor om beställningen.
@@ -68,7 +68,7 @@ export function OrderStatusView({
   const minutesLeft = estimateMinutesLeft(placedAt, prepTimeMinutes, now);
 
   return (
-    <div className="border border-[var(--rule)] p-6">
+    <div className="card p-6">
       <p className="text-lg font-semibold">
         {status === "COMPLETED" ? labels.enjoy : labels.status[status]}
       </p>

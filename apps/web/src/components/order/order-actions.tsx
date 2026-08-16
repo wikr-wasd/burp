@@ -89,7 +89,7 @@ export function OrderActions({
   const secondsLeft = secondsRemaining(policy, placedAt, now);
 
   return (
-    <section className="mt-6 border border-[var(--rule)] p-4">
+    <section className="card mt-6  p-4">
       <h2 className="font-semibold">{labels.editTitle}</h2>
 
       {secondsLeft !== null && allowed.some((action) => action !== "CANCEL") ? (
@@ -119,7 +119,7 @@ export function OrderActions({
                   type="button"
                   disabled={pending}
                   onClick={() => act({ action: "REMOVE_ITEM", order_item_id: item.id })}
-                  className="min-h-11 border border-[var(--rule)] px-4 text-sm disabled:opacity-50"
+                  className="card min-h-11  px-4 text-sm disabled:opacity-50"
                 >
                   {labels.remove}
                 </button>
@@ -145,7 +145,7 @@ export function OrderActions({
               <button
                 type="button"
                 onClick={() => setConfirmCancel(false)}
-                className="min-h-11 border border-[var(--rule)] px-4"
+                className="card min-h-11  px-4"
               >
                 Behåll
               </button>
@@ -154,7 +154,7 @@ export function OrderActions({
             <button
               type="button"
               onClick={() => setConfirmCancel(true)}
-              className="min-h-11 border border-[var(--rule)] px-4"
+              className="card min-h-11  px-4"
             >
               {labels.cancelOrder}
             </button>

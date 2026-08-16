@@ -44,7 +44,7 @@ export default async function AccountPage() {
         <h1 className="font-display mt-2 text-4xl">Mina beställningar</h1>
 
         {loyalty && loyalty.balance > 0 ? (
-          <div className="mt-4 border border-[var(--rule)] p-4">
+          <div className="card mt-4 p-4">
             <p className="text-sm opacity-60">Poäng</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums">{loyalty.balance}</p>
             {loyalty.expiringSoon > 0 ? (
@@ -66,7 +66,6 @@ export default async function AccountPage() {
 
         {active.length > 0 ? (
           <section className="mt-8">
-            <hr className="rule" />
             <h2 className="label-caps mt-5">Pågående</h2>
             <ul className="mt-3 space-y-3">
               {active.map((order) => (
@@ -78,7 +77,6 @@ export default async function AccountPage() {
 
         {past.length > 0 ? (
           <section className="mt-8">
-            <hr className="rule" />
             <h2 className="label-caps mt-5">Tidigare</h2>
             <ul className="mt-3 space-y-3">
               {past.map((order) => (
@@ -96,7 +94,7 @@ function OrderCard({ order }: { order: Awaited<ReturnType<typeof getGuestOrders>
   const date = order.completedAt ?? order.placedAt;
 
   return (
-    <li className="border border-[var(--rule)] p-4">
+    <li className="card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         {order.restaurantSlug ? (
           <Link

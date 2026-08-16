@@ -137,7 +137,6 @@ export default async function PickupOrderPage({ params }: PageProps) {
       */}
       {restaurant ? (
         <section className="mt-10">
-          <hr className="rule" />
           <h2 className="label-caps mt-5">{t.receipt.pickupAt}</h2>
 
           <div className="mt-3">
@@ -161,8 +160,6 @@ export default async function PickupOrderPage({ params }: PageProps) {
           ) : null}
         </section>
       ) : null}
-
-      <hr className="rule mt-10" />
       <h2 className="label-caps mt-5">{t.receipt.yourBill}</h2>
 
       <ul className="mt-3 divide-y divide-[var(--rule)]">

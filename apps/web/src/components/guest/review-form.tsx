@@ -32,7 +32,7 @@ export function ReviewForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 min-h-11 border border-[var(--rule)] px-4 text-sm"
+        className="card mt-3 min-h-11  px-4 text-sm"
       >
         Lämna omdöme
       </button>
@@ -76,7 +76,7 @@ export function ReviewForm({
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="min-h-11 border border-[var(--rule)] px-4"
+          className="card min-h-11  px-4"
         >
           Avbryt
         </button>

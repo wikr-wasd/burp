@@ -19,7 +19,7 @@ export function ReviewList({ reviews }: { reviews: readonly PublicReview[] }) {
   return (
     <ul className="mt-4 space-y-4">
       {reviews.map((review) => (
-        <li key={review.id} className="border border-[var(--rule)] p-4">
+        <li key={review.id} className="card p-4">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <Stars rating={review.ratingFood} label="Betyg på maten" />
             <span className="text-sm opacity-60">

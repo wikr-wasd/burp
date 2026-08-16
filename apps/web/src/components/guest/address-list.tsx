@@ -33,7 +33,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
           {addresses.map((address) => (
             <li
               key={address.id}
-              className="flex flex-wrap items-start gap-3 border border-[var(--rule)] p-4"
+              className="card flex flex-wrap items-start gap-3  p-4"
             >
               <div className="mr-auto min-w-0">
                 {address.label ? <p className="font-medium">{address.label}</p> : null}
@@ -57,7 +57,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(null)}
-                    className="min-h-11 border border-[var(--rule)] px-4 text-sm"
+                    className="card min-h-11  px-4 text-sm"
                   >
                     Avbryt
                   </button>
@@ -66,7 +66,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(address.id)}
-                  className="min-h-11 border border-[var(--rule)] px-4 text-sm"
+                  className="card min-h-11  px-4 text-sm"
                 >
                   Ta bort
                 </button>
@@ -80,7 +80,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
 
       <form
         action={formAction}
-        className="mt-8 border border-[var(--rule)] p-4"
+        className="card mt-8  p-4"
       >
         <h2 className="font-semibold">Ny adress</h2>
 
