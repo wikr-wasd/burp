@@ -17,14 +17,18 @@
 export const dynamic = "force-static";
 
 /**
- * Paletten är matnära och varm: tomat, saffran, oliv, aubergine, bränd lera.
- * Inga blå eller gröna toner som får mat att se kall ut.
+ * Paletten är matnära och varm: tomat, saffran, paprika, kanel, rödbeta.
+ *
+ * Inga blå eller gröna toner. Oliv fanns här från början och såg rimlig ut i
+ * en lista — men på startsidans collage, tre bilder bredvid varandra, blev en
+ * grön tallrik omedelbart det öga fastnade på, och den läste som möglig. Grönt
+ * fungerar som ingrediens i ett fotografi och inte alls som hel yta.
  */
 const PALETTE: readonly [string, string][] = [
   ["#c2410c", "#7c2d12"], // bränd apelsin
   ["#b91c1c", "#7f1d1d"], // tomat
   ["#a16207", "#713f12"], // saffran
-  ["#4d7c0f", "#365314"], // oliv
+  ["#92400e", "#5c2a08"], // brynt smör
   ["#9a3412", "#601a0a"], // paprika
   ["#78350f", "#451a03"], // kanel
   ["#831843", "#500724"], // rödbeta

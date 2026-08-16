@@ -38,6 +38,9 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
       fel: sju ifyllda röda veckodagsknappar, och en navigering som markerade
       "Order" på varje undersida. Backoffice återstår.
 - [ ] **Backoffice genomgången i webbläsaren.** Översikt, restauranger, media.
+      Påbörjad men inte gjord: utloggningen kräver POST, så mitt kontobyte tog
+      inte och jag granskade fel roll. Logga in som `burp@burp.test` via
+      formuläret, inte genom att navigera till `/logga-ut`.
 
 ---
 
