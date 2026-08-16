@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown, ShoppingBag } from "lucide-react";
 import {
   calculateOrderTotals,
   formatMoney,
@@ -691,7 +692,13 @@ function CartBar({
             onClick={() => setExpanded(!expanded)}
             className="btn btn-secondary"
           >
+            <ShoppingBag size={16} aria-hidden="true" />
             {expanded ? labels.hide : fill(labels.itemCount, { n: itemCount })}
+            <ChevronDown
+              size={14}
+              aria-hidden="true"
+              className={expanded ? "rotate-180 transition-transform" : "transition-transform"}
+            />
           </button>
 
           <button

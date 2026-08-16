@@ -1,4 +1,14 @@
 import Link from "next/link";
+import {
+  BookOpen,
+  ChefHat,
+  LayoutGrid,
+  LogOut,
+  MessageSquare,
+  QrCode,
+  Settings,
+  TrendingUp,
+} from "lucide-react";
 import { STAFF_ROLE_LABELS } from "@burp/core";
 import type { StaffContext } from "@/lib/auth";
 
@@ -59,6 +69,7 @@ export function StaffHeader({
               href="/dashboard"
               className={navClass(current === "dashboard")}
             >
+              <LayoutGrid size={16} aria-hidden="true" />
               Order
             </Link>
           ) : null}
@@ -67,24 +78,30 @@ export function StaffHeader({
             href="/kok"
             className={navClass(current === "kok")}
           >
+            <ChefHat size={16} aria-hidden="true" />
             Köksskärm
           </Link>
 
           {staff.role === "owner" || staff.role === "manager" ? (
             <>
               <Link href="/dashboard/meny" className={navClass(current === "meny")}>
+                <BookOpen size={16} aria-hidden="true" />
                 Meny
               </Link>
               <Link href="/dashboard/bord" className={navClass(current === "bord")}>
+                <QrCode size={16} aria-hidden="true" />
                 Bord
               </Link>
               <Link href="/dashboard/omdomen" className={navClass(current === "omdomen")}>
+                <MessageSquare size={16} aria-hidden="true" />
                 Omdömen
               </Link>
               <Link href="/dashboard/statistik" className={navClass(current === "statistik")}>
+                <TrendingUp size={16} aria-hidden="true" />
                 Statistik
               </Link>
               <Link href="/dashboard/installningar" className={navClass(current === "installningar")}>
+                <Settings size={16} aria-hidden="true" />
                 Inställningar
               </Link>
             </>
@@ -92,6 +109,7 @@ export function StaffHeader({
 
           <form action="/logga-ut" method="post">
             <button type="submit" className={navClass(false)}>
+              <LogOut size={16} aria-hidden="true" />
               Logga ut
             </button>
           </form>
@@ -110,7 +128,7 @@ export function StaffHeader({
  */
 function navClass(active: boolean): string {
   return [
-    "inline-flex min-h-11 items-center border-b-2 transition-colors duration-[var(--speed)]",
+    "inline-flex min-h-11 items-center gap-1.5 border-b-2 transition-colors duration-[var(--speed)]",
     active
       ? "border-burp-600 font-medium text-burp-600"
       : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]",

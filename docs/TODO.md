@@ -27,9 +27,9 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 
 ## Näst på tur
 
-- [ ] **Ikoner (Lucide) på resten av ytorna.** Klart: sökknapp, betyg,
-      öppetmärken, vägbeskrivning, kopiera adress. Kvar: personalytornas
-      navigering, tomma tillstånd, menyns varukorg, statusstegen på kvittot.
+- [ ] **Ikoner på de sista ytorna.** Klart: sökknapp, betyg, öppetmärken,
+      vägbeskrivning, kopiera adress, personalytornas navigering, varukorgen.
+      Kvar: tomma tillstånd och statusstegen på kvittot — båda små.
 - [ ] **Platshållarbilderna i takt med paletten.** Tallriksformen ritades för
       pappersbakgrunden och är mörkare och mättare än allt annat på den nya
       grå/vita ytan. Löses annars av att riktiga fotografier kommer in.
