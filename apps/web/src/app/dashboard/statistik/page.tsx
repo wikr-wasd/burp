@@ -44,7 +44,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <StaffHeader staff={staff} current="dashboard" />
+      <StaffHeader staff={staff} current="statistik" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <div className="flex flex-wrap items-baseline justify-between gap-4">

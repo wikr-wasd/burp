@@ -97,7 +97,7 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <StaffHeader staff={staff} current="dashboard" />
+      <StaffHeader staff={staff} current="installningar" />
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <p className="label-caps">{staff.restaurantName}</p>

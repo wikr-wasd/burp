@@ -80,7 +80,7 @@ export default async function TablesPage() {
 
   return (
     <>
-      <StaffHeader staff={staff} current="dashboard" />
+      <StaffHeader staff={staff} current="bord" />
 
       <main className="mx-auto max-w-4xl px-6 py-8">
         <h1 className="font-display text-4xl">Bord och QR-koder</h1>

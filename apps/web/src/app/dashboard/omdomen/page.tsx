@@ -28,7 +28,7 @@ export default async function ReviewsPage() {
 
   return (
     <>
-      <StaffHeader staff={staff} current="dashboard" />
+      <StaffHeader staff={staff} current="omdomen" />
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-4xl">Omdömen</h1>

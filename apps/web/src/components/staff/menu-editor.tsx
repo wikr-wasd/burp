@@ -222,10 +222,20 @@ function MenuCard({
               type="button"
               disabled={pending}
               onClick={() => toggleDay(day)}
-              className={` border px-3 py-1 text-sm disabled:opacity-50 ${
+              aria-pressed={menu.activeDays.includes(day)}
+              /*
+               * Valda dagar fylls med bläck, inte med rött.
+               *
+               * Alla sju dagar valda gav sju ifyllda röda knappar i rad. Rött
+               * är handlingsfärg och används sparsamt — och en ifylld röd yta
+               * betyder "primärknapp" överallt annars i produkten, så det gick
+               * inte att se om "Fre" utförde något eller växlade ett läge.
+               * Inverterad fyllning läser otvetydigt som på/av.
+               */
+              className={`min-h-11 border px-3.5 text-sm transition-colors duration-[var(--speed)] disabled:opacity-50 ${
                 menu.activeDays.includes(day)
-                  ? "border-transparent bg-burp-600 text-white"
-                  : "border-[var(--rule)]"
+                  ? "border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]"
+                  : "border-[var(--rule-control)] text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
               {label}

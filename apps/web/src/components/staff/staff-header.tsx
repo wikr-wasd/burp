@@ -9,7 +9,30 @@ import type { StaffContext } from "@/lib/auth";
  * gästytorna — det är ett arbetsredskap, inte en bilaga — men de ska ändå se
  * ut att komma från samma produkt. Utan vinjetten gör de inte det.
  */
-export function StaffHeader({ staff, current }: { staff: StaffContext; current: "dashboard" | "kok" }) {
+/**
+ * Vilken sektion som är den aktiva.
+ *
+ * Alla undersidor skickade tidigare "dashboard", så "Order" stod markerad i
+ * rött oavsett var man befann sig. Markeringen sa alltså ingenting — och en
+ * markering som alltid pekar på samma ställe är sämre än ingen, eftersom den
+ * ser ut att svara på frågan "var är jag".
+ */
+export type StaffSection =
+  | "dashboard"
+  | "kok"
+  | "meny"
+  | "bord"
+  | "omdomen"
+  | "statistik"
+  | "installningar";
+
+export function StaffHeader({
+  staff,
+  current,
+}: {
+  staff: StaffContext;
+  current: StaffSection;
+}) {
   return (
     <header className="border-b border-[var(--rule)]">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-4">
@@ -49,19 +72,19 @@ export function StaffHeader({ staff, current }: { staff: StaffContext; current: 
 
           {staff.role === "owner" || staff.role === "manager" ? (
             <>
-              <Link href="/dashboard/meny" className={navClass(false)}>
+              <Link href="/dashboard/meny" className={navClass(current === "meny")}>
                 Meny
               </Link>
-              <Link href="/dashboard/bord" className={navClass(false)}>
+              <Link href="/dashboard/bord" className={navClass(current === "bord")}>
                 Bord
               </Link>
-              <Link href="/dashboard/omdomen" className={navClass(false)}>
+              <Link href="/dashboard/omdomen" className={navClass(current === "omdomen")}>
                 Omdömen
               </Link>
-              <Link href="/dashboard/statistik" className={navClass(false)}>
+              <Link href="/dashboard/statistik" className={navClass(current === "statistik")}>
                 Statistik
               </Link>
-              <Link href="/dashboard/installningar" className={navClass(false)}>
+              <Link href="/dashboard/installningar" className={navClass(current === "installningar")}>
                 Inställningar
               </Link>
             </>

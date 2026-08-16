@@ -34,8 +34,10 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
       utan radbrytning är bredare än 390 px) men aldrig sedd. QR-flödet lever
       på telefon.
 - [ ] **Köksskärmen på en surfplatta.** Byggd för det, aldrig provad på en.
-- [ ] **Personalytorna genomgångna sida för sida i webbläsaren**, som
-      gästytorna. Meny, omdömen, inställningar, backoffice.
+- [x] ~~Personalytorna genomgångna sida för sida i webbläsaren.~~ Hittade två
+      fel: sju ifyllda röda veckodagsknappar, och en navigering som markerade
+      "Order" på varje undersida. Backoffice återstår.
+- [ ] **Backoffice genomgången i webbläsaren.** Översikt, restauranger, media.
 
 ---
 
