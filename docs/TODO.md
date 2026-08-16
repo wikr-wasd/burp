@@ -29,8 +29,9 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 
 - [ ] **Designbytet klart på alla ytor.** Klart: startsida, stadssida,
       kökssida, restaurangsida — kort, piller, statusmärken, guldstjärnor.
-      Kvar: QR-menyn, kvittona, kontosidorna, dashboarden och backoffice, som
-      ännu använder linjaler som sektionsdelare. Ikoner (Lucide) saknas överallt.
+      och QR-menyn. Kvar: kvittona, kontosidorna, dashboarden och backoffice.
+      Ikoner (Lucide) saknas överallt — det är nu den största kvarvarande
+      skillnaden mot mockuperna.
 - [x] ~~Restaurangansökan.~~ `/anslut` för restauranger, och "Lägg upp en
       restaurang" i backoffice för Burp. Kvar: ingen notis går ut när en
       ansökan kommer in — se nedan.

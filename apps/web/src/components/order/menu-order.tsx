@@ -256,13 +256,13 @@ export function MenuOrder({
       {menu.categories.length > 1 ? (
         <nav
           aria-label={labels.sections}
-          className="sticky top-0 z-10 -mx-4 mb-8 flex gap-1 overflow-x-auto border-b border-[var(--rule)] bg-[var(--background)]/95 px-4 py-1 backdrop-blur [scrollbar-width:none] sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden"
+          className="sticky top-0 z-10 -mx-4 mb-8 flex gap-2 overflow-x-auto border-b border-[var(--rule)] bg-[var(--background)]/95 px-4 py-2 backdrop-blur [scrollbar-width:none] sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden"
         >
           {menu.categories.map((category) => (
             <a
               key={category.id}
               href={`#kategori-${category.id}`}
-              className="inline-flex min-h-11 shrink-0 items-center border-b-2 border-transparent px-3 text-sm whitespace-nowrap text-[var(--muted)] transition-colors hover:border-burp-600 hover:text-burp-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
+              className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--rule-control)] bg-[var(--surface)] px-4 text-sm font-medium whitespace-nowrap transition-colors hover:border-burp-600 hover:text-burp-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
             >
               {category.name}
             </a>
@@ -277,13 +277,11 @@ export function MenuOrder({
           // Ankarhoppet får inte lägga rubriken under den klistrade navigeringen.
           className="mb-14 scroll-mt-16"
         >
-          <h2 className="font-display text-3xl">{category.name}</h2>
+          <h2 className="font-display text-2xl">{category.name}</h2>
           {category.description ? (
             <p className="mt-1 text-[var(--muted)]">{category.description}</p>
           ) : null}
-          <hr className="rule mt-4" />
-
-          <ul className="mt-6 grid gap-x-6 gap-y-8 sm:grid-cols-2">
+          <ul className="mt-5 grid gap-x-6 gap-y-8 sm:grid-cols-2">
             {category.items.map((item) => (
               <MenuItemCard
                 key={item.id}
@@ -381,7 +379,7 @@ function MenuItemCard({
 
   if (!item.isAvailable) {
     return (
-      <li className="opacity-45">
+      <li className="card overflow-hidden opacity-50">
         <div className="relative">
           <FoodImage src={dishImage(item.name, item.imageUrl)} alt="" ratio="aspect-[4/3]" />
           <span className="absolute inset-0 grid place-items-center bg-[var(--background)]/70">
@@ -392,7 +390,7 @@ function MenuItemCard({
             </span>
           </span>
         </div>
-        <h3 className="font-display mt-3 text-xl line-through">{item.name}</h3>
+        <h3 className="font-display p-4 text-lg line-through">{item.name}</h3>
       </li>
     );
   }
@@ -403,13 +401,14 @@ function MenuItemCard({
         type="button"
         onClick={hasOptions ? onToggle : () => onAdd(item, [], "")}
         aria-expanded={hasOptions ? isOpen : undefined}
-        className="group text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burp-600"
+        className="card group block w-full overflow-hidden text-left transition-shadow duration-[var(--speed)] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
       >
         <FoodImage src={dishImage(item.name, item.imageUrl)} alt="" ratio="aspect-[4/3]" />
 
-        <span className="mt-3 flex items-baseline justify-between gap-4">
-          <span className="font-display text-xl group-hover:text-burp-600">{item.name}</span>
-          <span className="shrink-0 tabular-nums">{money(item.priceOre)}</span>
+        <span className="block p-4">
+        <span className="flex items-baseline justify-between gap-4">
+          <span className="font-display text-lg group-hover:text-burp-600">{item.name}</span>
+          <span className="shrink-0 font-semibold tabular-nums">{money(item.priceOre)}</span>
         </span>
 
         {item.description ? (
@@ -422,8 +421,11 @@ function MenuItemCard({
           <span className="label-caps mt-2 block">Allergener: {item.allergens.join(", ")}</span>
         ) : null}
 
-        <span className="mt-2 block text-sm font-medium text-burp-600">
+        {/* Uppmaningen ser ut som en knapp for att den ar kortets enda
+            handling — hela kortet ar klickbart, men ogat behover ett mal. */}
+        <span className="mt-3 inline-flex items-center text-sm font-semibold text-burp-600">
           {hasOptions ? (isOpen ? labels.hideOptions : labels.chooseOptions) : labels.add}
+        </span>
         </span>
       </button>
 
@@ -455,10 +457,10 @@ function MenuItemCard({
                       aria-pressed={isSelected}
                       disabled={!option.isAvailable}
                       onClick={() => toggleOption(group.id, option.id, group.maxSelect)}
-                      className={`inline-flex min-h-11 items-center border px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600 ${
+                      className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600 ${
                         isSelected
                           ? "border-burp-600 bg-burp-600 text-white"
-                          : "border-[var(--rule)] hover:border-burp-600"
+                          : "border-[var(--rule-control)] bg-[var(--surface)] hover:border-burp-600"
                       } ${option.isAvailable ? "" : "cursor-not-allowed opacity-40"}`}
                     >
                       {option.name}
@@ -484,7 +486,7 @@ function MenuItemCard({
               maxLength={280}
               onChange={(event) => setNote(event.target.value)}
               placeholder={labels.notePlaceholder}
-              className="mt-1.5 min-h-11 w-full border-b border-[var(--rule)] bg-transparent px-1 text-sm outline-none focus-visible:border-burp-600"
+              className="field mt-1.5 text-sm"
             />
           </label>
 
@@ -496,11 +498,11 @@ function MenuItemCard({
               setSelected([]);
               setNote("");
             }}
-            className="mt-5 flex min-h-12 w-full items-center justify-between bg-burp-600 px-4 text-sm font-medium tracking-[var(--tracking-label)] text-white uppercase transition-colors hover:bg-burp-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn btn-primary mt-5 w-full justify-between"
           >
             <span>{unmetGroup ? fill(labels.chooseFirst, { group: unmetGroup.name }) : labels.add}</span>
             {!unmetGroup ? (
-              <span className="tabular-nums normal-case">
+              <span className="tabular-nums">
                 {money(item.priceOre + optionsDeltaOre)}
               </span>
             ) : null}
@@ -571,7 +573,7 @@ function CartBar({
   return (
     // Nederkanten tar hänsyn till iPhones hemindikator. Utan det hamnar
     // "Beställ" delvis under den, och knappen blir svår att träffa.
-    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--rule)] bg-[var(--background)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--rule)] bg-[var(--surface)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgb(0_0_0/0.10)]">
       <div className="mx-auto max-w-2xl">
         {expanded ? (
           <div className="mb-4 max-h-[45vh] overflow-y-auto">
@@ -598,7 +600,7 @@ function CartBar({
                       type="button"
                       aria-label={fill(labels.removeOne, { name: line.item.name })}
                       onClick={() => onQuantityChange(line.key, -1)}
-                      className="grid h-11 w-11 place-items-center border border-[var(--rule)] text-lg transition-colors hover:border-burp-600"
+                      className="grid h-11 w-11 place-items-center rounded-full border border-[var(--rule-control)] text-lg transition-colors hover:border-burp-600"
                     >
                       −
                     </button>
@@ -607,7 +609,7 @@ function CartBar({
                       type="button"
                       aria-label={fill(labels.addOne, { name: line.item.name })}
                       onClick={() => onQuantityChange(line.key, 1)}
-                      className="grid h-11 w-11 place-items-center border border-[var(--rule)] text-lg transition-colors hover:border-burp-600"
+                      className="grid h-11 w-11 place-items-center rounded-full border border-[var(--rule-control)] text-lg transition-colors hover:border-burp-600"
                     >
                       +
                     </button>
@@ -622,7 +624,7 @@ function CartBar({
                 <select
                   value={scheduledFor}
                   onChange={(event) => onScheduleChange(event.target.value)}
-                  className="mt-1.5 min-h-11 w-full border border-[var(--rule)] bg-transparent px-3"
+                  className="field mt-1.5"
                 >
                   {/* Tom sträng betyder "så snart som möjligt". Att göra det
                       till förstaval är avsiktligt: de flesta vill äta nu. */}
@@ -645,7 +647,7 @@ function CartBar({
                     type="button"
                     aria-pressed={tipBps === choice}
                     onClick={() => onTipChange(choice)}
-                    className={`min-h-11 flex-1 border text-sm transition-colors ${
+                    className={`min-h-11 flex-1 rounded-lg border text-sm font-medium transition-colors ${
                       tipBps === choice
                         ? "border-burp-600 bg-burp-600 text-white"
                         : "border-[var(--rule)] hover:border-burp-600"
@@ -687,7 +689,7 @@ function CartBar({
             type="button"
             aria-expanded={expanded}
             onClick={() => setExpanded(!expanded)}
-            className="min-h-12 border border-[var(--rule)] px-4 text-sm transition-colors hover:border-burp-600"
+            className="btn btn-secondary"
           >
             {expanded ? labels.hide : fill(labels.itemCount, { n: itemCount })}
           </button>
@@ -696,7 +698,7 @@ function CartBar({
             type="button"
             onClick={onSubmit}
             disabled={submitting}
-            className="flex min-h-12 flex-1 items-center justify-between bg-burp-600 px-4 font-medium text-white transition-colors hover:bg-burp-700 disabled:opacity-60"
+            className="btn btn-primary flex-1 justify-between"
           >
             <span>{submitting ? labels.sending : labels.order}</span>
             <span className="tabular-nums">{money(totals.totalOre)}</span>
