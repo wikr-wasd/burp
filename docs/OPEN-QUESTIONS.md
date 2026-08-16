@@ -2,40 +2,45 @@
 
 De sju frågorna ur arkitekturunderlaget, med status och var i koden svaret ska landa.
 
-Frågorna är inte formaliteter. Fråga 1 och 5 blockerar Fas 1 — utan svar går det
-inte att ta betalt. Fråga 4 kan blockera lanseringen av QR-flödet helt.
+Frågorna är inte formaliteter. Fråga 5 blockerar Fas 1 — utan svar går det inte
+att ta betalt med kort. Fråga 4 kan blockera lanseringen av QR-flödet helt.
+
+Fråga 1 och 6 besvarades 2026-08-16 och står kvar med svaren inskrivna, eftersom
+resonemanget bakom dem är det som gör svaren begripliga om ett år.
 
 ---
 
-## 1. Vad räknas 3,4 % på, och ligger kortavgiften ovanpå eller inuti? 3.4 % av order summan. alla andra kostnader tar kunden. 
+## 1. Vad räknas 3,4 % på, och ligger kortavgiften ovanpå eller inuti?
 
-**Status:** obesvarad · **Blockerar:** Fas 1 (betalning)
+**Status:** BESVARAD 2026-08-16 · **Blockerar:** ingenting längre
 
-Tre delfrågor:
+> **Williams svar:** "3,4 % av ordersumman. Alla andra kostnader tar kunden."
 
-1. **Basen** — ordersumma inkl. eller exkl. moms, med eller utan leveransavgift?
-2. **Kortavgiften** — betalleverantören tar sin egen avgift ovanpå. Är 3,4 %
-   Burps nettomarginal eller allt restaurangen betalar? Är det allt, äter
-   kortavgiften (typiskt 1,4–2,9 % + fast belopp) upp en stor del av marginalen.
-3. **Dricks** — ska inte ligga i basen. Detta är redan avgjort i koden.
+Vilket betyder:
 
-**Så här är det byggt i väntan på svar:**
+1. **Basen** är ordersumman — `GROSS_ITEMS`, alltså mat och dryck inklusive
+   moms, utan dricks och utan leveransavgift.
+2. **Kortavgiften ligger ovanpå.** 3,4 % är Burps nettomarginal; leverantörens
+   avgift bärs av restaurangen, inte av Burp.
+3. **Dricks** ligger inte i basen. Var redan avgjort.
 
-- `restaurants.fee_base` är en enum: `GROSS_ITEMS` (utgångsläge), `NET_ITEMS`,
-  `GROSS_TOTAL`. Modellen kan alltså bytas utan migration.
-- `fees` sparar bas, procentsats **och** beräknat belopp per order. Ändras
-  modellen skrivs historiken inte om — en order från i fjol visar fortfarande
-  vad som faktiskt togs ut.
-- `fees.provider_fee_ore` finns men fylls inte. Kolumnen väntar på svaret på
-  delfråga 2.
+**Koden behövde inte ändras.** `GROSS_ITEMS` var utgångsläget och
+`calculateFee()` drog aldrig kortavgiften — den låtsades inte veta, och det
+visade sig vara rätt. `fees.provider_fee_ore` fylls när en leverantör valts
+(fråga 5) och redovisas som restaurangens kostnad, inte som avdrag från Burps
+avgift.
+
+**En tolkning värd att invända mot om den är fel:** "ordersumman" läses här som
+beloppet gästen betalar, alltså **inklusive moms**. Det är den vanliga
+innebörden, men det betyder att 3,4 % delvis räknas på pengar restaurangen bara
+förmedlar till staten. Vill du i stället ha basen exklusive moms är bytet en
+rad: `restaurants.fee_base` till `NET_ITEMS`, ingen migration, och `fees` sparar
+basen per order så att historiken inte skrivs om.
+
+Kvar sedan tidigare, och fortfarande sant:
+
+- `restaurants.fee_base` är en enum: `GROSS_ITEMS`, `NET_ITEMS`, `GROSS_TOTAL`.
 - `restaurants.fee_override_bps` finns för specialavtal.
-- `calculateFee()` i `@burp/core` drar **inte** kortavgiften, eftersom det inte
-  är bestämt om den ska dras. Koden låtsas inte veta.
-
-**Rekommendation:** `GROSS_ITEMS` som bas och kortavgiften ovanpå (restaurangen
-betalar 3,4 % till Burp plus leverantörens avgift). Det är enklast att förklara
-i ett säljsamtal och gör Burps marginal förutsägbar. Men det är ett affärsbeslut,
-inte ett tekniskt.
 
 ---
 
@@ -143,11 +148,54 @@ rätt valuta i efterhand.
 Ingen kod behöver skrivas om beroende på vilket svar frågan får. Det som
 tillkommer är en webhook-hanterare och en statusövergång — inte en ommöblering.
 
-## 6. Ska Burp ta betalt av gästen också, eller bara av restaurangen?gästen skall kunna betala via vår plattform. de är det som är bäst. vi skall även ställa krav att resturangen skriver in summan som är betald om de besökaren betalar kontant. 
+## 6. Ska Burp ta betalt av gästen också, eller bara av restaurangen?
 
-**Status:** obesvarad · **Blockerar:** Fas 1 (kassaflödet)
+**Status:** BESVARAD 2026-08-16 · **Blockerar:** delvis fortfarande Fas 1
 
-En serviceavgift på gästen skulle vara en ny rad i `orders`. Finns inte idag.
+> **Williams svar:** "Gästen ska kunna betala via vår plattform. Det är det som
+> är bäst. Vi ska även ställa krav att restaurangen skriver in summan som är
+> betald om besökaren betalar kontant."
+
+Två saker, med olika brådska:
+
+**a) Gästen betalar i plattformen.** Det är riktningen, men den kan inte byggas
+förrän fråga 5 har ett svar — det går inte att ta emot ett kort utan en
+leverantör, och det svåra i fråga 5 är just utbetalningarna till Bosnien och
+Serbien. Den här raden väntar alltså på fråga 5, inte tvärtom.
+
+Observera att svaret **inte** säger att gästen ska betala en serviceavgift till
+Burp. "Betala via plattformen" är var pengarna passerar, inte vem som betalar
+avgiften. Enligt fråga 1 bär restaurangen avgiften. En serviceavgift på gästen
+vore fortfarande en ny rad i `orders` och finns inte.
+
+**b) Kontant betalning ska registreras av restaurangen.** Inte blockerad av
+något — men inte heller byggd, för den kräver ett beslut som svaret inte ger.
+Idag skrivs `payments` inte av någon kod alls.
+
+Varför det behövs är däremot klart: utan registrering finns ingen
+kassaavstämning och inget bekräftat underlag för Burps avgift på en
+kontantorder. Restaurangen skulle betala 3,4 % på en siffra ingen kvitterat.
+
+**Beslutet som saknas: var i flödet, och ska det gå att hoppa över?**
+
+Ordern försvinner från dashboarden i samma stund den blir `COMPLETED`
+(`getActiveOrders` visar bara aktiva). Betalningen måste därför fångas **vid**
+slutförandet, eller så behövs en ny vy för slutförda-men-obetalda order.
+
+| Väg | Innebörd | Kostnad |
+|---|---|---|
+| **A. Vid "Serverad" på dashboarden** | Knappen frågar efter mottaget belopp innan ordern slutförs | Minst kod. Men köksskärmen har samma knapp och ska INTE hantera pengar — en order slutförd i köket blir aldrig registrerad |
+| **B. Egen kassavy** | Lista över slutförda order utan betalning, som betas av | Ärligast mot verkligheten: notan betalas i kassan, inte vid pass-luckan. Mer att bygga |
+| **C. Tvingande i databasen** | En trigger vägrar `COMPLETED` utan betalningsrad | Stänger hålet helt, men låser köksskärmen — kocken kan inte längre säga att maten är serverad |
+
+**Rekommendation: B.** Kassan och köket är olika platser och olika personer, och
+A gör köksskärmen till en kassaapparat för att spara en vy. C låter maten stå
+kvar i luckan för att en siffra saknas.
+
+Att notera för alla tre: `payments.order_id` är `not null`, alltså en betalning
+per order. Ett bordssällskap som betalar tre order i en klump får tre rader.
+Det är vad schemat stödjer, och det räcker för avstämning — men det är inte
+samma sak som en gemensam nota per bord.
 
 ---
 
@@ -165,6 +213,9 @@ Fråga en revisor.
 
 | Fråga | Beslut | Var |
 |---|---|---|
+| Vad räknas 3,4 % på? | Ordersumman inkl. moms, utan dricks — `GROSS_ITEMS` | `calculateFee()`, `restaurants.fee_base` |
+| Ligger kortavgiften ovanpå? | Ja. 3,4 % är Burps netto; restaurangen bär leverantörens avgift | `fees.provider_fee_ore` |
+| Ska gästen kunna betala i plattformen? | Ja — men väntar på fråga 5 | — |
 | Dricks i avgiftsunderlaget? | Nej. Dricks är gästens pengar till personalen | `calculateFee()`, `tips`-tabellen |
 | Lagrat lojalitetssaldo? | Nej. Saldot räknas ur händelseloggen | `loyalty_transactions` |
 | Får klienten skicka priser? | Nej. Servern räknar om från menyn | `POST /api/orders` |

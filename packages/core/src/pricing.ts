@@ -180,13 +180,19 @@ export function itemPriceRange(
 /**
  * Räknar Burps avgift.
  *
- * Underlaget styrs av `base` eftersom det inte är beslutat vad 3,4 % ska räknas
- * på (öppen fråga 1). Varje `fees`-rad i databasen sparar bas, procentsats och
- * belopp — då kan modellen ändras utan att historiken skrivs om.
+ * Underlaget är beslutat (öppen fråga 1, besvarad 2026-08-16): 3,4 % av
+ * ordersumman inklusive moms och utan dricks, alltså `GROSS_ITEMS`.
  *
- * OBS: betalleverantörens kortavgift ingår INTE. Om 3,4 % ska vara Burps
- * nettomarginal måste kortavgiften dras här; om den ligger ovanpå ska den inte.
- * Frågan är obesvarad, så funktionen gör inget antagande.
+ * `base` är ändå ett argument och inte en konstant. Varje `fees`-rad i
+ * databasen sparar bas, procentsats OCH belopp, så att en framtida ändring av
+ * modellen inte skriver om historiken — en order från i fjol ska fortsätta
+ * visa vad som faktiskt togs ut då. En hårdkodad bas hade gjort den garantin
+ * omöjlig att hålla.
+ *
+ * Betalleverantörens kortavgift ingår INTE, och det är nu ett beslut och inte
+ * en lucka: 3,4 % är Burps nettomarginal och restaurangen bär leverantörens
+ * avgift ovanpå. Den registreras i `fees.provider_fee_ore` när en leverantör
+ * valts (öppen fråga 5) — som restaurangens kostnad, inte som avdrag härifrån.
  */
 export function calculateFee(totals: OrderTotals, base: FeeBase, bps: number): FeeBreakdown {
   const baseAmountOre = feeBaseAmount(totals, base);
