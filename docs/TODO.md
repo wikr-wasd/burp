@@ -27,10 +27,14 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 
 ## Näst på tur
 
-- [ ] **Ikoner på de sista ytorna.** Klart: sökknapp, betyg, öppetmärken,
+- [x] ~~Ikoner på de sista ytorna.~~ Sökknapp, betyg, öppetmärken,
       vägbeskrivning, kopiera adress, personalytornas navigering, varukorgen,
-      QR-menyns sökruta och dess tomma träfflista. Kvar: statusstegen på
-      kvittot och de tomma tillstånden i personalytorna.
+      QR-menyns sökruta, kvittots statussteg och samtliga tomma tillstånd.
+      De tomma tillstånden delar numera en byggsten (`EmptyState`) i stället
+      för att vara en grå mening formulerad på nio olika sätt.
+      **Sett i webbläsaren:** gästytorna. **Inte sett:** personalytornas och
+      backoffices tomma tillstånd — de kräver inloggning, och jag skriver inte
+      in lösenord. Samma spärr som raden om backoffice längre ned.
 
 - [ ] **QR-menyn mätt mot Qopla.** Referens:
       `qopla.com/restaurant/partille-sushi/…/order?qr=1`. Klart efter
@@ -40,9 +44,11 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
       i stället för att äta på plats — Qopla frågar det före menyn, vilket är
       fel läge för en QR-gäst, men frågan i sig är rimlig för en ćevabdžinica.
       Kräver ett beslut, inte kod.
-- [ ] **Platshållarbilderna i takt med paletten.** Tallriksformen ritades för
-      pappersbakgrunden och är mörkare och mättare än allt annat på den nya
-      grå/vita ytan. Löses annars av att riktiga fotografier kommer in.
+- [x] ~~Platshållarbilderna i takt med paletten.~~ Tonerna dämpades och två togs
+      bort: rödbetan var i praktiken magenta, vilket designspråket förbjuder,
+      och tomaten låg så nära handlingsfärgen att en tallrik läste som en stor
+      knapp. Kvar är sju varma toner i apelsin, tegel, saffran och kanel.
+      Ersätts ändå av riktiga fotografier när de kommer in.
 - [x] ~~Designbytet på alla ytor.~~ Startsida, stadssida, kökssida,
       restaurangsida, QR-meny, kvitton, kontosidor, dashboard och backoffice.
       Köksskärmen står utanför med flit — stora träffytor på några meters håll.
@@ -74,6 +80,9 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
       Påbörjad men inte gjord: utloggningen kräver POST, så mitt kontobyte tog
       inte och jag granskade fel roll. Logga in som `burp@burp.test` via
       formuläret, inte genom att navigera till `/logga-ut`.
+      **Den här behöver du göra, William** — jag skriver inte in lösenord i
+      formulär, inte ens seedens. Allt bakom inloggning är därför verifierat
+      med typkontroll, lint, test och bygge, men aldrig sett.
 
 ---
 

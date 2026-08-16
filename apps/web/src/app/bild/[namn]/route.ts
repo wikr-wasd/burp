@@ -17,21 +17,33 @@
 export const dynamic = "force-static";
 
 /**
- * Paletten är matnära och varm: tomat, saffran, paprika, kanel, rödbeta.
+ * Paletten är matnära och varm: apelsin, paprika, saffran, kanel, chili.
  *
  * Inga blå eller gröna toner. Oliv fanns här från början och såg rimlig ut i
  * en lista — men på startsidans collage, tre bilder bredvid varandra, blev en
  * grön tallrik omedelbart det öga fastnade på, och den läste som möglig. Grönt
  * fungerar som ingrediens i ett fotografi och inte alls som hel yta.
+ *
+ * Tonerna dämpades när designspråket byttes. Två skäl, båda synliga:
+ *
+ * 1. **Rödbetan var rosa.** `#831843` är magenta i praktiken, och Burp använder
+ *    uttryckligen inte designsystemets rosa (se docs/DESIGN.md). I en lista
+ *    blev den dessutom den enda kalla plattan bland sex varma.
+ * 2. **Tomaten konkurrerade med handlingsfärgen.** `#b91c1c` ligger så nära
+ *    `--burp-600` (`#dc2626`) att en tallrik läste som en stor knapp. Ett kort
+ *    ska ha exakt en röd yta man kan trycka på, och det är "Lägg till".
+ *
+ * Den gamla paletten ritades dessutom mot varmt papper. På den grå/vita ytan
+ * blev samma mättnad för tung — plattorna vann över maten de skulle föreställa.
  */
 const PALETTE: readonly [string, string][] = [
-  ["#c2410c", "#7c2d12"], // bränd apelsin
-  ["#b91c1c", "#7f1d1d"], // tomat
-  ["#a16207", "#713f12"], // saffran
-  ["#92400e", "#5c2a08"], // brynt smör
-  ["#9a3412", "#601a0a"], // paprika
-  ["#78350f", "#451a03"], // kanel
-  ["#831843", "#500724"], // rödbeta
+  ["#c96f3f", "#9a4f2a"], // bränd apelsin
+  ["#c1553d", "#94382a"], // paprika
+  ["#c58f36", "#96631f"], // saffran
+  ["#ab7a3e", "#7d5427"], // brynt smör
+  ["#b06246", "#7f4029"], // tegel
+  ["#8f6742", "#63452a"], // kanel
+  ["#a85a52", "#7a3a35"], // torkad chili
 ];
 
 /** Stabil hash. Samma namn ska alltid ge samma färg, även efter omstart. */

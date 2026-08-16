@@ -351,7 +351,7 @@ export default async function RestaurantPage({ params }: PageProps) {
             )}
           </p>
         ) : null}
-        <ReviewList reviews={reviews} />
+        <ReviewList reviews={reviews} labels={t.restaurant} locale={locale} />
       </section>
       </main>
 

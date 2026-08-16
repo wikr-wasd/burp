@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Star } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { ReviewResponder } from "@/components/staff/review-responder";
 import { requireStaff } from "@/lib/auth";
@@ -38,9 +40,13 @@ export default async function ReviewsPage() {
         </p>
 
         {reviews.length === 0 ? (
-          <p className="card mt-8 p-6 opacity-70">
-            Inga omdömen än. De kommer när gäster börjat beställa och deras order slutförts.
-          </p>
+          <div className="mt-8">
+            <EmptyState
+              icon={Star}
+              title="Inga omdömen än"
+              body="De kommer när gäster börjat beställa och deras order slutförts."
+            />
+          </div>
         ) : (
           <>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">

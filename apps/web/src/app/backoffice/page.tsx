@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ChartNoAxesColumn } from "lucide-react";
 import { formatMoney, type CurrencyCode } from "@burp/core";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PlatformHeader } from "@/components/platform/platform-header";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
@@ -138,9 +140,13 @@ export default async function BackofficePage({ searchParams }: PageProps) {
           <h2 className="font-display text-2xl">Omsättning per valuta</h2>
 
           {revenue.length === 0 ? (
-            <p className="mt-3 text-sm opacity-60">
-              Inga genomförda beställningar under perioden.
-            </p>
+            <div className="mt-3">
+              <EmptyState
+                icon={ChartNoAxesColumn}
+                title="Inga genomförda beställningar under perioden"
+                body="Omsättningen redovisas per valuta och räknas först när en order slutförts."
+              />
+            </div>
           ) : (
             <ul className="card mt-3 divide-y divide-[var(--rule)]">
               {revenue.map((line) => (

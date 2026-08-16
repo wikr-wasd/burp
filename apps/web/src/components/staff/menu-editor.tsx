@@ -36,6 +36,8 @@ import type {
   EditorMenu,
   EditorOptionGroup,
 } from "@/app/dashboard/meny/page";
+import { BookOpen } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ImageUpload } from "@/components/staff/image-upload";
 
 /**
@@ -99,7 +101,13 @@ export function MenuEditor({
       <NewMenuForm />
 
       {menus.length === 0 ? (
-        <p className="mt-8 opacity-60">Ingen meny ännu. Skapa den första ovan.</p>
+        <div className="mt-8">
+          <EmptyState
+            icon={BookOpen}
+            title="Ingen meny ännu"
+            body="Skapa den första ovan. En restaurang kan ha flera menyer — lunch, kväll, helg — och rätt meny visas efter veckodag och klockslag."
+          />
+        </div>
       ) : (
         <div className="mt-8 space-y-8">
           {menus.map((menu) => (

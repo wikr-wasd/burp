@@ -13,6 +13,7 @@ import {
   type PricedLine,
 } from "@burp/core";
 import { FoodImage } from "@/components/media/food-image";
+import { EmptyState } from "@/components/ui/empty-state";
 import { fill, type Dictionary } from "@/lib/i18n";
 import type { Menu, MenuItem } from "@/lib/menu";
 import { filterMenu } from "@/lib/menu-search";
@@ -422,11 +423,11 @@ export function MenuOrder({
       ) : null}
 
       {searching && visibleCategories.length === 0 ? (
-        <div className="card p-8 text-center">
-          <SearchX size={28} aria-hidden="true" className="mx-auto text-[var(--muted)]" />
-          <p className="mt-3 font-medium">{fill(labels.searchEmpty, { query: query.trim() })}</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">{labels.searchEmptyHint}</p>
-        </div>
+        <EmptyState
+          icon={SearchX}
+          title={fill(labels.searchEmpty, { query: query.trim() })}
+          body={labels.searchEmptyHint}
+        />
       ) : null}
 
       {visibleCategories.map((category) => (

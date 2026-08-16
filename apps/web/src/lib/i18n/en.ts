@@ -94,6 +94,13 @@ export const en: Dictionary = {
     closed: "Closed",
     reviewSummary: (average: string, count: number) =>
       `${average} out of 5 based on ${count} ${count === 1 ? "review" : "reviews"} from completed orders.`,
+    reviewsEmptyTitle: "No reviews yet",
+    reviewsEmptyBody: "Ratings can only be left by guests who have actually ordered.",
+    reviewAuthorFallback: "Guest",
+    foodRating: "Food rating",
+    serviceRating: "Service rating",
+    ratingOutOf: "{n} out of 5",
+    restaurantReply: "Reply from the restaurant",
   },
 
   menu: {
@@ -158,6 +165,7 @@ export const en: Dictionary = {
     payAtTable: "Payment is taken in person.",
     backTo: "Back to {name}",
     progress: "Order progress",
+    contactRestaurant: "Contact the restaurant if you have any questions about your order.",
     enjoy: "Enjoy your meal",
     onTheWay: "Your food is on its way to the table.",
     minutesLeft: "About {n} minutes left.",

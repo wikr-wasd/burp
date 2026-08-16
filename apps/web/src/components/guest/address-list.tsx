@@ -2,6 +2,8 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
+import { MapPin } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { deleteAddress, saveAddress, type ActionResult } from "@/app/konto/actions";
 import type { GuestAddress } from "@/app/konto/adresser/page";
 
@@ -75,7 +77,13 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-6 opacity-60">Inga sparade adresser.</p>
+        <div className="mt-6">
+          <EmptyState
+            icon={MapPin}
+            title="Inga sparade adresser"
+            body="Lägg till en nedan så slipper du skriva den varje gång."
+          />
+        </div>
       )}
 
       <form

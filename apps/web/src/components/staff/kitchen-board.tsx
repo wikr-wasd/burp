@@ -9,6 +9,7 @@ import {
   type CurrencyCode,
   type OrderStatus,
 } from "@burp/core";
+import { CheckCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { KitchenOrder } from "@/lib/orders";
 
@@ -182,7 +183,14 @@ export function KitchenBoard({
       ) : null}
 
       {orders.length === 0 ? (
-        <p className="py-20 text-center text-xl opacity-50">Inga aktiva beställningar.</p>
+        // Köksskärmen står utanför det gemensamma tomma tillståndet med flit:
+        // den läses på några meters håll, och ett kort med brödtext syns inte
+        // därifrån. Ikonen är stor av samma skäl som texten är det. En tom kö
+        // är dessutom goda nyheter i ett kök — bocken säger det, inte en ruta.
+        <div className="py-20 text-center opacity-50">
+          <CheckCheck size={56} aria-hidden="true" className="mx-auto" />
+          <p className="mt-4 text-xl">Inga aktiva beställningar.</p>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {orders.map((order) => (

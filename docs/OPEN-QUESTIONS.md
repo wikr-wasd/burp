@@ -7,7 +7,7 @@ inte att ta betalt. Fråga 4 kan blockera lanseringen av QR-flödet helt.
 
 ---
 
-## 1. Vad räknas 3,4 % på, och ligger kortavgiften ovanpå eller inuti?
+## 1. Vad räknas 3,4 % på, och ligger kortavgiften ovanpå eller inuti? 3.4 % av order summan. alla andra kostnader tar kunden. 
 
 **Status:** obesvarad · **Blockerar:** Fas 1 (betalning)
 
@@ -143,7 +143,7 @@ rätt valuta i efterhand.
 Ingen kod behöver skrivas om beroende på vilket svar frågan får. Det som
 tillkommer är en webhook-hanterare och en statusövergång — inte en ommöblering.
 
-## 6. Ska Burp ta betalt av gästen också, eller bara av restaurangen?
+## 6. Ska Burp ta betalt av gästen också, eller bara av restaurangen?gästen skall kunna betala via vår plattform. de är det som är bäst. vi skall även ställa krav att resturangen skriver in summan som är betald om de besökaren betalar kontant. 
 
 **Status:** obesvarad · **Blockerar:** Fas 1 (kassaflödet)
 

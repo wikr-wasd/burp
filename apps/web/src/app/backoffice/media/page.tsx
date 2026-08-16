@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Images, ImageOff } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PlatformHeader } from "@/components/platform/platform-header";
 import { MediaQueue } from "@/components/platform/media-queue";
 import { publicEnv } from "@/lib/env";
@@ -126,11 +128,19 @@ export default async function MediaPage({ searchParams }: PageProps) {
         </nav>
 
         {media.length === 0 ? (
-          <p className="mt-8 opacity-60">
-            {status === "PENDING"
-              ? "Inget väntar på granskning."
-              : "Ingen media med den statusen."}
-          </p>
+          <div className="mt-8">
+            <EmptyState
+              icon={status === "PENDING" ? ImageOff : Images}
+              title={
+                status === "PENDING" ? "Inget väntar på granskning" : "Ingen media med den statusen"
+              }
+              body={
+                status === "PENDING"
+                  ? "Kön är tom. Nya bilder från restaurangerna dyker upp här."
+                  : "Byt status ovan för att se de andra köerna."
+              }
+            />
+          </div>
         ) : (
           <MediaQueue media={media} canWrite={admin.role !== "support"} />
         )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, CircleX, CookingPot, ReceiptText, Undo2, UtensilsCrossed } from "lucide-react";
 import { isTerminal, type OrderStatus } from "@burp/core";
 import { fill, type Dictionary } from "@/lib/i18n";
 
@@ -20,6 +21,23 @@ import { fill, type Dictionary } from "@/lib/i18n";
  */
 
 const POLL_INTERVAL_MS = 10_000;
+
+/**
+ * Stegen gästen går igenom, med varsin ikon.
+ *
+ * Etiketterna är ett ord långa ("Lagd", "Tillagas") och fyra sådana i rad
+ * skiljer sig knappt åt på en telefon i ögonvrån. Formerna gör det: en gryta
+ * och en gaffel går att skilja på håll, vilket "Tillagas" och "Klar" inte gör.
+ *
+ * Ikonen är ett tillägg till texten, aldrig ett byte. Ett kvitto som bara visar
+ * en gryta säger inte vad som händer.
+ */
+const STEPS = [
+  { status: "PLACED", Icon: ReceiptText },
+  { status: "ACCEPTED", Icon: Check },
+  { status: "PREPARING", Icon: CookingPot },
+  { status: "READY", Icon: UtensilsCrossed },
+] as const satisfies readonly { status: OrderStatus; Icon: typeof Check }[];
 
 export function OrderStatusView({
   status,
@@ -51,16 +69,17 @@ export function OrderStatusView({
     return () => clearInterval(timer);
   }, []);
 
-  const steps: OrderStatus[] = ["PLACED", "ACCEPTED", "PREPARING", "READY"];
-  const currentIndex = steps.indexOf(status);
+  const currentIndex = STEPS.findIndex((step) => step.status === status);
 
   if (status === "CANCELLED" || status === "REFUNDED") {
+    const TerminalIcon = status === "CANCELLED" ? CircleX : Undo2;
     return (
-      <div className="card p-6">
-        <p className="text-lg font-semibold">{labels.status[status]}</p>
-        <p className="mt-1 text-sm opacity-70">
-          Prata med personalen om du har frågor om beställningen.
-        </p>
+      <div className="card flex items-start gap-3 p-6">
+        <TerminalIcon size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-[var(--muted)]" />
+        <div>
+          <p className="text-lg font-semibold">{labels.status[status]}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">{labels.contactRestaurant}</p>
+        </div>
       </div>
     );
   }
@@ -81,22 +100,42 @@ export function OrderStatusView({
         </p>
       ) : null}
 
+      {/*
+        Etiketterna stod tidigare i `sr-only`. Det var en halv lösning: den som
+        såg skärmen fick fyra namnlösa streck och kunde bara gissa vad de betydde.
+        Nu står namnen ut, och streckens enda uppgift är att visa hur långt det
+        gått.
+      */}
       <ol className="mt-5 flex gap-1.5" aria-label={labels.progress}>
-        {steps.map((step, index) => (
-          <li
-            key={step}
-            className={`h-1.5 flex-1 ${
-              index <= currentIndex || status === "COMPLETED"
-                ? "bg-burp-600"
-                : "bg-black/10 dark:bg-white/15"
-            }`}
-          >
-            <span className="sr-only">
-              {labels.status[step]}
-              {index <= currentIndex ? " — klart" : ""}
-            </span>
-          </li>
-        ))}
+        {STEPS.map(({ status: step, Icon }, index) => {
+          const done = index <= currentIndex || status === "COMPLETED";
+          const isCurrent = index === currentIndex && status !== "COMPLETED";
+
+          return (
+            <li
+              key={step}
+              aria-current={isCurrent ? "step" : undefined}
+              className="flex flex-1 flex-col items-center gap-1.5"
+            >
+              <Icon
+                size={16}
+                aria-hidden="true"
+                className={done ? "text-burp-600" : "text-[var(--muted)] opacity-50"}
+              />
+              <span
+                aria-hidden="true"
+                className={`h-1.5 w-full ${done ? "bg-burp-600" : "bg-black/10 dark:bg-white/15"}`}
+              />
+              <span
+                className={`text-center text-xs ${
+                  isCurrent ? "font-semibold" : done ? "" : "text-[var(--muted)]"
+                }`}
+              >
+                {labels.status[step]}
+              </span>
+            </li>
+          );
+        })}
       </ol>
     </div>
   );

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ChartNoAxesColumn } from "lucide-react";
 import { formatMoney } from "@burp/core";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { requireStaff } from "@/lib/auth";
 import { getStatistics, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
@@ -68,10 +70,13 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
         </div>
 
         {summary.ordersCount === 0 ? (
-          <p className="card mt-8 p-6 opacity-70">
-            Inga genomförda beställningar i perioden. Statistiken räknar bara order som
-            slutförts — en order i kön är inte omsättning.
-          </p>
+          <div className="mt-8">
+            <EmptyState
+              icon={ChartNoAxesColumn}
+              title="Inga genomförda beställningar i perioden"
+              body="Statistiken räknar bara order som slutförts — en order i kön är inte omsättning."
+            />
+          </div>
         ) : (
           <>
             <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

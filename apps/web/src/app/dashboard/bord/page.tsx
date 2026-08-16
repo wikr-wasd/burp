@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import QRCode from "qrcode";
+import { QrCode } from "lucide-react";
 import { signTableToken, tableQrUrl } from "@burp/core";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { TableList } from "@/components/staff/table-list";
 import { NewTableForm } from "@/components/staff/new-table-form";
@@ -91,7 +93,13 @@ export default async function TablesPage() {
         <NewTableForm />
 
         {tables.length === 0 ? (
-          <p className="mt-10 opacity-60">Inga bord ännu. Lägg till det första ovan.</p>
+          <div className="mt-10">
+            <EmptyState
+              icon={QrCode}
+              title="Inga bord ännu"
+              body="Lägg till det första ovan. Varje bord får en egen QR-kod att skriva ut och sätta på bordet."
+            />
+          </div>
         ) : (
           <TableList tables={tables} />
         )}

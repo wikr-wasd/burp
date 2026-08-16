@@ -91,6 +91,13 @@ export const sv = {
     closed: "Stängt",
     reviewSummary: (average: string, count: number) =>
       `${average} av 5 baserat på ${count} ${count === 1 ? "omdöme" : "omdömen"} från genomförda beställningar.`,
+    reviewsEmptyTitle: "Inga omdömen än",
+    reviewsEmptyBody: "Betyg kan bara lämnas av gäster som faktiskt beställt.",
+    reviewAuthorFallback: "Gäst",
+    foodRating: "Betyg på maten",
+    serviceRating: "Servicebetyg",
+    ratingOutOf: "{n} av 5",
+    restaurantReply: "Svar från restaurangen",
   },
 
   /**
@@ -179,6 +186,10 @@ export const sv = {
     payAtTable: "Betalning sker på plats.",
     backTo: "Tillbaka till {name}",
     progress: "Orderns förlopp",
+    // Neutral med flit. Blocket visas på både bordskvittot och
+    // avhämtningskvittot, och "prata med personalen" är fel råd till den som
+    // sitter hemma och väntar på att gå och hämta.
+    contactRestaurant: "Kontakta restaurangen om du har frågor om beställningen.",
     enjoy: "Smaklig måltid",
     onTheWay: "Maten är på väg till bordet.",
     minutesLeft: "Ungefär {n} minuter kvar.",

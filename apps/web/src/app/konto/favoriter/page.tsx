@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Heart } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { FavoriteButton } from "@/components/guest/favorite-button";
 import { requireGuest } from "@/lib/guest";
@@ -44,16 +46,17 @@ export default async function FavoritesPage() {
         <h1 className="font-display mt-2 text-4xl">Favoriter</h1>
 
         {ordered.length === 0 ? (
-          <div className="card mt-6 p-6">
-            <p className="opacity-70">
-              Inga favoriter än. Spara en restaurang så hittar du tillbaka snabbare.
-            </p>
-            <Link
-              href="/"
-              className="btn btn-primary mt-3"
-            >
-              Bläddra bland restauranger
-            </Link>
+          <div className="mt-6">
+            <EmptyState
+              icon={Heart}
+              title="Inga favoriter än"
+              body="Spara en restaurang så hittar du tillbaka snabbare."
+              action={
+                <Link href="/" className="btn btn-primary">
+                  Bläddra bland restauranger
+                </Link>
+              }
+            />
           </div>
         ) : (
           <ul className="mt-6 space-y-3">

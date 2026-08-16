@@ -125,31 +125,39 @@ export default async function OrderPage({ params }: PageProps) {
         }))}
       />
 
-      <ul className="mt-8 divide-y divide-[var(--rule)]">
+      <h2 className="label-caps mt-8">{t.receipt.yourBill}</h2>
+
+      <ul className="mt-3 divide-y divide-[var(--rule)]">
         {(items ?? []).map((item) => (
           <li key={item.id} className="flex items-start justify-between gap-4 py-3">
             <div className="min-w-0">
               <p className="font-medium">
-                <span className="tabular-nums opacity-60">{item.quantity}×</span> {item.name_snapshot}
+                <span className="tabular-nums text-[var(--muted)]">{item.quantity}×</span>{" "}
+                {item.name_snapshot}
               </p>
               {optionsByItem.get(item.id)?.length ? (
-                <p className="text-sm opacity-60">{optionsByItem.get(item.id)!.join(", ")}</p>
+                <p className="text-sm text-[var(--muted)]">{optionsByItem.get(item.id)!.join(", ")}</p>
               ) : null}
-              {item.note ? <p className="text-sm italic opacity-60">{item.note}</p> : null}
+              {item.note ? (
+                <p className="text-sm text-[var(--muted)] italic">{item.note}</p>
+              ) : null}
             </div>
             <span className="shrink-0 tabular-nums">{formatMoney(item.line_gross_ore, order.currency)}</span>
           </li>
         ))}
       </ul>
 
+      {/* Texterna kommer ur ordboken, inte ur koden. Raderna stod tidigare på
+          svenska mitt i en sida som väljer språk på Accept-Language — en
+          engelsktalande turist fick "Mat och dryck" på sin nota. */}
       <dl className="mt-6 space-y-1 border-t border-[var(--rule)] pt-4 text-sm">
         <div className="flex justify-between">
-          <dt className="opacity-60">Mat och dryck</dt>
+          <dt className="text-[var(--muted)]">{t.receipt.foodAndDrink}</dt>
           <dd className="tabular-nums">{formatMoney(order.items_gross_ore, order.currency)}</dd>
         </div>
         {order.tip_ore > 0 ? (
           <div className="flex justify-between">
-            <dt className="opacity-60">Dricks</dt>
+            <dt className="text-[var(--muted)]">{t.receipt.tip}</dt>
             <dd className="tabular-nums">{formatMoney(order.tip_ore, order.currency)}</dd>
           </div>
         ) : null}

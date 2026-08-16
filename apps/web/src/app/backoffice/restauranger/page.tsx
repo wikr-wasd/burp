@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Store } from "lucide-react";
 import { DEFAULT_FEE_BPS } from "@burp/core";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PlatformHeader } from "@/components/platform/platform-header";
 import { NewRestaurantForm } from "@/components/platform/new-restaurant-form";
 import { RestaurantList } from "@/components/platform/restaurant-list";
@@ -119,7 +121,13 @@ export default async function PlatformRestaurantsPage({ searchParams }: PageProp
         {admin.role !== "support" ? <NewRestaurantForm /> : null}
 
         {restaurants.length === 0 ? (
-          <p className="mt-8 opacity-60">Inga restauranger med den statusen.</p>
+          <div className="mt-8">
+            <EmptyState
+              icon={Store}
+              title="Inga restauranger med den statusen"
+              body="Byt status ovan för att se de andra köerna."
+            />
+          </div>
         ) : (
           <RestaurantList restaurants={restaurants} canWrite={admin.role !== "support"} />
         )}
