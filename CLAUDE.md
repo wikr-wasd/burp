@@ -213,13 +213,19 @@ innehåller strängarna.
 
 ## Design
 
-Se `docs/DESIGN.md`. Kort: redaktionellt, varmt, matnära. Inga rundade hörn,
-inga skuggor. Byggstenarna definieras **en gång** i `globals.css` — skriv aldrig
-en egen knapp eller ett eget fält i en komponent.
+Se `docs/DESIGN.md`. Burp följer **123Connect Design System**: handlingsrött
+`#dc2626`, vita kort på `#f3f4f6`, Geist i både rubrik och brödtext, rundade
+hörn och låga skuggor. Byggstenarna definieras **en gång** i `globals.css` —
+skriv aldrig en egen knapp eller ett eget fält i en komponent.
 
-Färgerna väljs efter ett enda kriterium: att göra mat aptitlig. Varmt papper,
-espressomörkt i mörkt läge, tomat som handlingsfärg och saffran för betyg. Inget
-blått, av samma skäl som det inte finns på en tallrik.
+Den tidigare redaktionella formen — papper, antikva, inga rundade hörn, inga
+skuggor — är **borta sedan 2026-08-16**. Beskrivningen står kvar i enstaka
+filkommentarer och stämmer inte längre. Utgå från `globals.css`, inte från en
+docstring.
+
+Burp använder inte systemets lila och rosa marknadsföringsgradienter. Guld till
+betyg, grönt till bekräftelse, inget blått — av samma skäl som förut: ingenting
+får konkurrera med maten.
 
 ---
 

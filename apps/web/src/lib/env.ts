@@ -20,6 +20,22 @@ const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
   QR_TOKEN_SECRET: z.string().min(32, "QR_TOKEN_SECRET ska vara minst 32 tecken"),
   BURP_DEFAULT_FEE_BPS: z.coerce.number().int().min(0).max(10_000).default(340),
+
+  /*
+   * Notiser.
+   *
+   * Frivilliga med flit. Utan nyckel skickas ingen e-post — utvecklingsmiljön
+   * ska inte kräva ett konto hos en leverantör för att en order ska gå att
+   * lägga, och en order får aldrig falla för att notisen inte kunde skickas.
+   * `sendEmail()` svarar då NOT_CONFIGURED och skriver brevet i loggen.
+   *
+   * Avsändaren måste ligga på en domän som är verifierad hos leverantören.
+   */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  NOTIFY_FROM: z.string().min(3).default("Burp <notiser@burp.se>"),
+
+  /* Burps egen adress — dit ansökningar från /anslut går. */
+  BURP_OPS_EMAIL: z.email().optional(),
 });
 
 export const publicEnv = publicSchema.parse({

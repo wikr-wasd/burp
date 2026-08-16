@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { COUNTRY_INFO } from "@burp/core";
+import { notifyRestaurantApplication } from "@/lib/notify";
 import {
   readableDatabaseError,
   validateApplication,
@@ -64,6 +66,21 @@ export async function applyForRestaurant(
   // Backoffice-kön ska visa ansökan direkt, inte när cachen råkar gå ut.
   revalidatePath("/backoffice");
   revalidatePath("/backoffice/restauranger");
+
+  // Kön visar ansökan, men bara för den som öppnar backoffice. Brevet är det
+  // som gör att någon får veta att den finns. Efter svaret — sökanden ska få
+  // sin bekräftelse oavsett hur leverantören mår.
+  after(() =>
+    notifyRestaurantApplication({
+      restaurantName: validation.value.name,
+      city: validation.value.city,
+      country: validation.value.country,
+      orgNumber: validation.value.org_number,
+      email: validation.value.email,
+      phone: validation.value.phone,
+      description: validation.value.description,
+    }),
+  );
 
   return { ok: true };
 }

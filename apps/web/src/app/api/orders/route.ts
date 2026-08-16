@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import {
   availabilityState,
   COUNTRY_INFO,
@@ -18,6 +18,7 @@ import {
 } from "@burp/core";
 import { serverEnv } from "@/lib/env";
 import { rememberGuestOrder } from "@/lib/guest-orders";
+import { notifyNewOrder } from "@/lib/notify";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -371,6 +372,21 @@ export async function POST(request: Request) {
   // egen. Bordsflödet har redan sin `table_session_id` och behöver den inte.
   if (input.type !== "TABLE" && typeof order === "string") {
     await rememberGuestOrder(order);
+  }
+
+  /*
+   * Notisen till restaurangen.
+   *
+   * `after()` kör efter att svaret gått iväg. Gästen ska inte vänta på ett
+   * SMTP-anrop för att få veta att beställningen gick igenom, och en
+   * leverantör som hänger får inte fördröja bekräftelsen vid bordet.
+   *
+   * Ett rent `void notifyNewOrder(...)` hade sett likadant ut lokalt men
+   * inte fungerat på Vercel: instansen fryser när svaret är skickat och
+   * brevet hade avbrutits mitt i. `after()` håller den vid liv.
+   */
+  if (typeof order === "string") {
+    after(() => notifyNewOrder(order));
   }
 
   return NextResponse.json(
