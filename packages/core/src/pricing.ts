@@ -237,6 +237,48 @@ function weightedVatRateBps(totals: OrderTotals): number {
 }
 
 /**
+ * Avstämning av en kontantbetalning mot notan.
+ *
+ * Personalen skriver in vad som faktiskt togs emot. Oftast är det notan på
+ * kronan, men inte alltid, och de fallen är verkliga snarare än slarv:
+ *
+ * - **Avrundning.** Serbiska dinarer har noll decimaler och bosniska sedlar
+ *   slutar i praktiken på hela och halva mark. En nota på 12,37 KM betalas med
+ *   12,40 och ingen frågar efter tre fening.
+ * - **Rabatt i lokalen.** Stamgästen får sista ölen, och det syns bara här.
+ *
+ * Därför avvisas en avvikelse inte — den räknas ut och visas. Ett gränssnitt
+ * som vägrar ta emot 12,40 för en nota på 12,37 tvingar fram en felaktig
+ * siffra, och det är sämre än en avvikelse någon kan se.
+ *
+ * Beloppet som lagras är det som faktiskt togs emot. Att i stället lagra notan
+ * hade gjort `payments` till en kopia av `orders` och avstämningen meningslös.
+ */
+export type SettlementKind = "EXACT" | "OVER" | "SHORT";
+
+export interface CashSettlement {
+  kind: SettlementKind;
+  /** Mottaget minus notan. Positivt när gästen betalat mer. */
+  differenceOre: Ore;
+}
+
+export function settleCash(receivedOre: Ore, orderTotalOre: Ore): CashSettlement {
+  assertOre(receivedOre, "mottaget belopp");
+  assertOre(orderTotalOre, "ordersumma");
+
+  if (receivedOre <= 0) {
+    throw new RangeError(`mottaget belopp måste vara positivt, fick: ${receivedOre}`);
+  }
+
+  const differenceOre = receivedOre - orderTotalOre;
+
+  return {
+    kind: differenceOre === 0 ? "EXACT" : differenceOre > 0 ? "OVER" : "SHORT",
+    differenceOre,
+  };
+}
+
+/**
  * Serverside-kontroll mot manipulerade priser (avsnitt 12).
  *
  * Klienten skickar med vad den tror att ordern kostar. Servern räknar om från

@@ -6,6 +6,7 @@ import {
   calculateOrderTotals,
   itemPriceRange,
   PriceMismatchError,
+  settleCash,
   vatFromGross,
 } from "./pricing";
 import {
@@ -378,5 +379,32 @@ describe("itemPriceRange", () => {
 
   it("vägrar ett styckpris som inte är ett heltal i minsta enheten", () => {
     expect(() => itemPriceRange(12.5, [])).toThrow(TypeError);
+  });
+});
+
+describe("settleCash", () => {
+  it("stämmer när gästen betalat notan på kronan", () => {
+    expect(settleCash(2000, 2000)).toEqual({ kind: "EXACT", differenceOre: 0 });
+  });
+
+  it("räknar ut överskottet när gästen avrundat uppåt", () => {
+    // 12,37 KM betalas med 12,40. Ingen frågar efter tre fening.
+    expect(settleCash(1240, 1237)).toEqual({ kind: "OVER", differenceOre: 3 });
+  });
+
+  it("räknar ut underskottet när mindre togs emot än notan", () => {
+    // Rabatt i lokalen syns bara här, och ska synas.
+    expect(settleCash(1800, 2000)).toEqual({ kind: "SHORT", differenceOre: -200 });
+  });
+
+  it("vägrar noll och negativa belopp", () => {
+    expect(() => settleCash(0, 2000)).toThrow(RangeError);
+    expect(() => settleCash(-100, 2000)).toThrow(RangeError);
+  });
+
+  it("vägrar belopp som inte är heltal i minsta enheten", () => {
+    // Det viktigaste testet i beskrivningen: en float får aldrig nå payments.
+    expect(() => settleCash(12.4, 1237)).toThrow(TypeError);
+    expect(() => settleCash(1240, 12.37)).toThrow(TypeError);
   });
 });

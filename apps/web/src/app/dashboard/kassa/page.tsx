@@ -1,0 +1,46 @@
+import type { Metadata } from "next";
+import { CashRegister } from "@/components/staff/cash-register";
+import { StaffHeader } from "@/components/staff/staff-header";
+import { requireStaff } from "@/lib/auth";
+import { getCashRegister } from "@/lib/cash-register";
+
+/**
+ * Kassan — slutförda order och vad som faktiskt betalats för dem.
+ *
+ * Egen vy och inte ett steg på "Serverad"-knappen. Kassan och köket är olika
+ * platser och olika personer: att lägga beloppsfrågan på knappen hade gjort
+ * köksskärmen till en kassaapparat, och en order som kocken slutför hade ändå
+ * aldrig blivit kvitterad.
+ *
+ * Kocken har ingen anledning att vara här och släpps inte in — `requireStaff`
+ * redirectar hen till /kok, och RLS i migration 0024 säger samma sak en gång
+ * till.
+ */
+
+export const metadata: Metadata = {
+  title: "Kassa",
+  robots: { index: false, follow: false },
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function CashRegisterPage() {
+  const staff = await requireStaff(["owner", "manager", "staff"]);
+  const { unsettled, settled } = await getCashRegister(staff.restaurantId, staff.timeZone);
+
+  return (
+    <>
+      <StaffHeader staff={staff} current="kassa" />
+
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <h1 className="font-display text-4xl">Kassa</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Slutförda order från det senaste dygnet. Kvittera vad som faktiskt togs emot —
+          utan det finns ingen kassaavstämning, och avgiften räknas på en siffra ingen sett.
+        </p>
+
+        <CashRegister unsettled={unsettled} settled={settled} />
+      </main>
+    </>
+  );
+}

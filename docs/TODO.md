@@ -19,12 +19,7 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
       v1; det avgör om frågan blockerar lansering eller bara intäktsmodellen.
       **Fråga 6 är besvarad — gästen ska kunna betala i plattformen — men den
       raden kan inte byggas förrän den här frågan har ett svar.**
-- [ ] **Var registreras en kontantbetalning?** Följer av fråga 6. Tre vägar med
-      olika kostnad står i `OPEN-QUESTIONS.md`; rekommendationen är en egen
-      kassavy över slutförda order utan betalningsrad. Ordern försvinner från
-      dashboarden i samma stund den blir `COMPLETED`, så betalningen måste
-      antingen fångas vid slutförandet eller få en egen vy. Ett svar och den
-      går att bygga direkt — inget annat blockerar den.
+      Kontantregistreringen är däremot byggd, se **Kassan** nedan.
 - [ ] **Supabase och Vercel i molnet.** Kräver inloggning. Supabase-orgen har
       två projektplatser på gratisnivån och båda är upptagna av 123Connect —
       antingen uppgradering eller ett frigjort projekt.
@@ -63,6 +58,13 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 - [x] ~~Restaurangansökan.~~ `/anslut` för restauranger, och "Lägg upp en
       restaurang" i backoffice för Burp. Kvar: ingen notis går ut när en
       ansökan kommer in — se nedan.
+- [x] ~~Kassan.~~ `/dashboard/kassa`. Slutförda order från det senaste dygnet,
+      delade i att kvittera och kvitterat. Personalen skriver in vad som
+      faktiskt togs emot; avvikelsen mot notan räknas ut och visas innan man
+      trycker, eftersom avrundning och rabatt i lokalen ska synas och inte
+      stoppas. Spärrarna ligger i databasen: en kontantrad per order, ingen
+      UPDATE, ingen DELETE. **Sedd i webbläsaren: nej** — kräver inloggning.
+      Policyerna är i stället körda direkt mot databasen, tretton fall.
 - [ ] **Notiser.** Ingen e-post, ingen push. Restaurangen vet inte att en order
       kommit om ingen stirrar på köksskärmen.
 - [ ] **Karta över alla restauranger.** Beslutad. Koordinater och OSM-inbäddning
@@ -102,7 +104,8 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 |---|---|---|
 | Rate limiter i processminnet — fungerar inte över flera Vercel-instanser | `lib/rate-limit.ts` | Fas 2 live |
 | Öppettider stödjer inte pass över midnatt | `is_restaurant_open()`, migration 0004 | Nattöppet |
-| Ingen betalning registreras någonstans — `payments` skrivs inte av någon kod | Öppen fråga 5 och 6 | Fas 1 |
+| Ingen kortbetalning — bara kontant kan registreras | Öppen fråga 5 | Fas 1 |
+| Betalning per order, inte per bordssällskap | `payments.order_id` är `not null` | Kräver schemaändring om gemensam nota per bord ska finnas |
 | Ingen GDPR-export eller radering | — | Fas 4 |
 | Personalytorna är enbart svenska | — | Medvetet. Köket ska inte byta språk för att en gäst gjorde det |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |

@@ -168,34 +168,45 @@ Burp. "Betala via plattformen" är var pengarna passerar, inte vem som betalar
 avgiften. Enligt fråga 1 bär restaurangen avgiften. En serviceavgift på gästen
 vore fortfarande en ny rad i `orders` och finns inte.
 
-**b) Kontant betalning ska registreras av restaurangen.** Inte blockerad av
-något — men inte heller byggd, för den kräver ett beslut som svaret inte ger.
-Idag skrivs `payments` inte av någon kod alls.
+**b) Kontant betalning ska registreras av restaurangen.** Byggd som en **egen
+kassavy** (`/dashboard/kassa`), beslutat 2026-08-16.
 
-Varför det behövs är däremot klart: utan registrering finns ingen
-kassaavstämning och inget bekräftat underlag för Burps avgift på en
-kontantorder. Restaurangen skulle betala 3,4 % på en siffra ingen kvitterat.
+Valet stod mellan att lägga beloppsfrågan på "Serverad"-knappen, att bygga en
+egen vy, och att tvinga fram en betalningsrad med en databastrigger. Kassavyn
+vann därför att kassan och köket är olika platser och olika personer: knappen
+hade gjort köksskärmen till en kassaapparat, och en order som kocken slutför
+hade ändå aldrig blivit kvitterad. En tvingande trigger hade låtit maten stå
+kvar i luckan för att en siffra saknades.
 
-**Beslutet som saknas: var i flödet, och ska det gå att hoppa över?**
+Så här fungerar den:
 
-Ordern försvinner från dashboarden i samma stund den blir `COMPLETED`
-(`getActiveOrders` visar bara aktiva). Betalningen måste därför fångas **vid**
-slutförandet, eller så behövs en ny vy för slutförda-men-obetalda order.
+- Vyn visar slutförda order från det senaste dygnet, delade i **att kvittera**
+  och **kvitterat**. Ett dygn räcker för ett pass; en obetald order från förra
+  veckan är ett bokföringsärende, inte en nota någon jagar i kassan.
+- Fältet är förifyllt med notan men går att ändra. Serbiska dinarer har noll
+  decimaler och bosniska sedlar slutar i praktiken på hela och halva mark — en
+  nota på 12,37 KM betalas med 12,40. Ett fält som vägrar ta emot det tvingar
+  fram en felaktig siffra, och det är sämre än en synlig avvikelse.
+- Avvikelsen räknas ut av `settleCash()` i `@burp/core` och visas **innan** man
+  trycker. Beloppet som sparas är det som faktiskt togs emot; avvikelsen och
+  ordersumman läggs i `provider_payload` så att frågan "varför gick kassan plus
+  3 fening i fredags" har ett svar.
+- Servitören (`staff`) får kvittera, inte bara ägaren. Kravet att kräva ägaren
+  för varje nota hade betytt att ingen kvitterar något en fredag kväll.
+  `kitchen` får inte — köket hanterar mat.
 
-| Väg | Innebörd | Kostnad |
-|---|---|---|
-| **A. Vid "Serverad" på dashboarden** | Knappen frågar efter mottaget belopp innan ordern slutförs | Minst kod. Men köksskärmen har samma knapp och ska INTE hantera pengar — en order slutförd i köket blir aldrig registrerad |
-| **B. Egen kassavy** | Lista över slutförda order utan betalning, som betas av | Ärligast mot verkligheten: notan betalas i kassan, inte vid pass-luckan. Mer att bygga |
-| **C. Tvingande i databasen** | En trigger vägrar `COMPLETED` utan betalningsrad | Stänger hålet helt, men låser köksskärmen — kocken kan inte längre säga att maten är serverad |
+Spärrarna ligger i databasen och inte i gränssnittet (migration 0024): ett
+partiellt unikt index gör dubbelkvittering omöjlig, en check-constraint kräver
+att en kontantrad är `CAPTURED` med tidpunkt, och det finns varken UPDATE- eller
+DELETE-policy. En felkvittering rättas med en motbokning när
+återbetalningsflödet byggs, inte genom att skriva om historien — samma princip
+som `order_events` och `loyalty_transactions`.
 
-**Rekommendation: B.** Kassan och köket är olika platser och olika personer, och
-A gör köksskärmen till en kassaapparat för att spara en vy. C låter maten stå
-kvar i luckan för att en siffra saknas.
-
-Att notera för alla tre: `payments.order_id` är `not null`, alltså en betalning
-per order. Ett bordssällskap som betalar tre order i en klump får tre rader.
-Det är vad schemat stödjer, och det räcker för avstämning — men det är inte
-samma sak som en gemensam nota per bord.
+Att notera: `payments.order_id` är `not null`, alltså en betalning per order.
+Ett bordssällskap som betalar tre order i en klump får tre rader. Det är vad
+schemat stödjer och det räcker för avstämning — men det är inte samma sak som
+en gemensam nota per bord, och den dagen någon vill ha det krävs en
+schemaändring.
 
 ---
 

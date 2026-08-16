@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   BookOpen,
+  Banknote,
   ChefHat,
   LayoutGrid,
   LogOut,
@@ -30,6 +31,7 @@ import type { StaffContext } from "@/lib/auth";
 export type StaffSection =
   | "dashboard"
   | "kok"
+  | "kassa"
   | "meny"
   | "bord"
   | "omdomen"
@@ -81,6 +83,16 @@ export function StaffHeader({
             <ChefHat size={16} aria-hidden="true" />
             Köksskärm
           </Link>
+
+          {/* Kassan är servitörens vy lika mycket som chefens. Att kräva ägaren
+              för varje nota hade betytt att ingen kvitterar något en fredag
+              kväll — och en okvitterad nota är en nota ingen stämt av. */}
+          {staff.role !== "kitchen" ? (
+            <Link href="/dashboard/kassa" className={navClass(current === "kassa")}>
+              <Banknote size={16} aria-hidden="true" />
+              Kassa
+            </Link>
+          ) : null}
 
           {staff.role === "owner" || staff.role === "manager" ? (
             <>
