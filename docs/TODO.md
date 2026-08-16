@@ -27,9 +27,9 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 
 ## Näst på tur
 
-- [ ] **Ikoner (Lucide).** Saknas överallt. Nu den enda strukturella
-      skillnaden kvar mot mockuperna, som använder dem i navigering, på
-      statusmärken och i tomma tillstånd.
+- [ ] **Ikoner (Lucide) på resten av ytorna.** Klart: sökknapp, betyg,
+      öppetmärken, vägbeskrivning, kopiera adress. Kvar: personalytornas
+      navigering, tomma tillstånd, menyns varukorg, statusstegen på kvittot.
 - [ ] **Platshållarbilderna i takt med paletten.** Tallriksformen ritades för
       pappersbakgrunden och är mörkare och mättare än allt annat på den nya
       grå/vita ytan. Löses annars av att riktiga fotografier kommer in.

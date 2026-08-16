@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Clock, MapPin, Star } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
 import { priceTierLabel, todaysHours, type DiscoveryRestaurant } from "@/lib/discovery";
 import { dictionary, localePath, type Locale } from "@/lib/i18n";
@@ -72,6 +73,7 @@ export function CityRestaurantList({
                       : "bg-[var(--surface)]/90 text-[var(--muted)]"
                   }`}
                 >
+                  <Clock size={12} aria-hidden="true" />
                   {open ? `Idag ${hours}` : "Stängt idag"}
                 </span>
               </div>
@@ -83,9 +85,11 @@ export function CityRestaurantList({
                   </h2>
                   {restaurant.ratingCount > 0 && restaurant.ratingAverage !== null ? (
                     <span className="shrink-0 text-sm tabular-nums">
-                      <span aria-hidden="true" className="text-[var(--star)]">
-                        ★
-                      </span>{" "}
+                      <Star
+                        size={14}
+                        aria-hidden="true"
+                        className="inline fill-[var(--star)] text-[var(--star)]"
+                      />{" "}
                       {restaurant.ratingAverage.toFixed(1).replace(".", ",")}
                       <span className="text-[var(--muted)]"> ({restaurant.ratingCount})</span>
                     </span>
@@ -100,7 +104,8 @@ export function CityRestaurantList({
                   </p>
                 ) : null}
 
-                <p className="mt-auto pt-3 text-sm text-[var(--muted)]">
+                <p className="mt-auto flex items-center gap-1.5 pt-3 text-sm text-[var(--muted)]">
+                  <MapPin size={13} aria-hidden="true" className="shrink-0" />
                   {restaurant.streetAddress}
                 </p>
               </div>

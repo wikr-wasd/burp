@@ -1,3 +1,4 @@
+import { MapPin, Navigation } from "lucide-react";
 import { dictionary, type Locale } from "@/lib/i18n";
 import { CopyAddress } from "./copy-address";
 
@@ -47,17 +48,20 @@ export function Directions({
   const links = [
     {
       name: "Google Maps",
+      Icon: MapPin,
       // `api=1` är den dokumenterade, versionsstabila formen. Den äldre
       // maps.google.com-syntaxen fungerar men kan ändras utan förvarning.
       href: `https://www.google.com/maps/dir/?api=1&destination=${coordinates}`,
     },
     {
       name: "Apple Kartor",
+      Icon: MapPin,
       // `daddr` är destinationen, `q` etiketten som visas på nålen.
       href: `https://maps.apple.com/?daddr=${coordinates}&q=${label}`,
     },
     {
       name: "Waze",
+      Icon: Navigation,
       href: `https://waze.com/ul?ll=${coordinates}&q=${label}&navigate=yes`,
     },
   ];
@@ -81,6 +85,7 @@ export function Directions({
             rel="noopener noreferrer"
             className="btn btn-secondary"
           >
+            <link.Icon size={16} aria-hidden="true" />
             {link.name}
             <span className="sr-only">{t.directions.opensInNewTab}</span>
           </a>

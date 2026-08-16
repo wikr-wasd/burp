@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Clock, Search, Star } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
@@ -354,7 +355,8 @@ function Hero({
               type="submit"
               className="min-h-12 shrink-0 px-2 text-sm font-medium tracking-[var(--tracking-label)] uppercase transition-colors hover:text-burp-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
             >
-              {t.home.searchButton}
+              <Search size={18} aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">{t.home.searchButton}</span>
             </button>
           </form>
 
@@ -431,9 +433,7 @@ function Rating({ t, restaurant }: { t: Dictionary; restaurant: DiscoveryRestaur
 
   return (
     <span>
-      <span aria-hidden="true" className="text-[var(--star)]">
-        ★
-      </span>{" "}
+      <Star size={14} aria-hidden="true" className="inline fill-[var(--star)] text-[var(--star)]" />{" "}
       <span className="tabular-nums">{restaurant.ratingAverage.toFixed(1)}</span>
       <span className="text-[var(--muted)]"> ({restaurant.ratingCount})</span>
       <span className="sr-only">
@@ -478,6 +478,7 @@ function RestaurantCard({
               : "bg-[var(--surface)]/90 text-[var(--muted)]"
           }`}
         >
+          <Clock size={12} aria-hidden="true" />
           {open ? t.home.todayHours(hours!) : t.home.closedToday}
         </span>
       </div>

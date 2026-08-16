@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, Copy } from "lucide-react";
 
 /**
  * Kopierar adressen till urklipp.
@@ -51,6 +52,7 @@ export function CopyAddress({
         }
       }}
     >
+      {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
       {copied ? labels.copied : labels.copy}
       {/* Skärmläsare får besked om att något hänt; den visuella texten byts
           bara ut, vilket inte alltid läses upp. */}
