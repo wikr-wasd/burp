@@ -27,11 +27,15 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 
 ## Näst på tur
 
-- [ ] **Designbytet klart på alla ytor.** Klart: startsida, stadssida,
-      kökssida, restaurangsida — kort, piller, statusmärken, guldstjärnor.
-      och QR-menyn. Kvar: kvittona, kontosidorna, dashboarden och backoffice.
-      Ikoner (Lucide) saknas överallt — det är nu den största kvarvarande
-      skillnaden mot mockuperna.
+- [ ] **Ikoner (Lucide).** Saknas överallt. Nu den enda strukturella
+      skillnaden kvar mot mockuperna, som använder dem i navigering, på
+      statusmärken och i tomma tillstånd.
+- [ ] **Platshållarbilderna i takt med paletten.** Tallriksformen ritades för
+      pappersbakgrunden och är mörkare och mättare än allt annat på den nya
+      grå/vita ytan. Löses annars av att riktiga fotografier kommer in.
+- [x] ~~Designbytet på alla ytor.~~ Startsida, stadssida, kökssida,
+      restaurangsida, QR-meny, kvitton, kontosidor, dashboard och backoffice.
+      Köksskärmen står utanför med flit — stora träffytor på några meters håll.
 - [x] ~~Restaurangansökan.~~ `/anslut` för restauranger, och "Lägg upp en
       restaurang" i backoffice för Burp. Kvar: ingen notis går ut när en
       ansökan kommer in — se nedan.

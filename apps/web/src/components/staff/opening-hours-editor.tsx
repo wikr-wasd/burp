@@ -42,7 +42,7 @@ export function OpeningHoursEditor({ initial }: { initial: OpeningHours }) {
 
   return (
     <div className="mt-4">
-      <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
+      <ul className="card divide-y divide-[var(--rule)]">
         {WEEKDAY_KEYS.map((day) => (
           <li key={day} className="p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">

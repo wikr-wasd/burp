@@ -57,7 +57,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
         {tables.map((table) => (
           <li
             key={table.id}
-            className="break-inside-avoid border border-[var(--rule)] p-4"
+            className="card break-inside-avoid p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>

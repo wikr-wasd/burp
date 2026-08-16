@@ -40,7 +40,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
         </p>
       ) : null}
 
-      <ul className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
+      <ul className="card divide-y divide-[var(--rule)]">
         {members.map((member) => (
           <li key={member.id} className="flex flex-wrap items-center gap-3 p-4">
             <div className="mr-auto min-w-0">
@@ -117,7 +117,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
         ))}
       </ul>
 
-      <form action={formAction} className="mt-4 border border-[var(--rule)] p-4">
+      <form action={formAction} className="card mt-4 p-4">
         <h3 className="font-semibold">Bjud in en medarbetare</h3>
         <p className="mt-1 text-sm opacity-60">
           Har personen redan ett Burp-konto kopplas det direkt. Annars skickas en inbjudan.

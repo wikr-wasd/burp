@@ -11,7 +11,7 @@ export function NewTableForm() {
   return (
     <form
       action={formAction}
-      className="mt-6 border border-[var(--rule)] p-4"
+      className="card mt-6 p-4"
     >
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex-1 basis-32">

@@ -38,7 +38,7 @@ export default async function ReviewsPage() {
         </p>
 
         {reviews.length === 0 ? (
-          <p className="mt-8 border border-[var(--rule)] p-6 opacity-70">
+          <p className="card mt-8 p-6 opacity-70">
             Inga omdömen än. De kommer när gäster börjat beställa och deras order slutförts.
           </p>
         ) : (
@@ -71,7 +71,7 @@ export default async function ReviewsPage() {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="border border-[var(--rule)] p-4">
+    <div className="card p-4">
       <p className="text-sm opacity-60">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
       {hint ? <p className="mt-0.5 text-xs opacity-50">{hint}</p> : null}

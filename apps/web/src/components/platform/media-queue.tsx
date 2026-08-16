@@ -41,7 +41,7 @@ export function MediaQueue({
 
       <ul className="mt-4 grid gap-4 sm:grid-cols-2">
         {media.map((item) => (
-          <li key={item.id} className="border border-[var(--rule)] p-4">
+          <li key={item.id} className="card p-4">
             <div className="flex items-baseline justify-between gap-3">
               <p className="font-medium">{item.restaurantName}</p>
               <span className="shrink-0 text-xs uppercase tracking-wide opacity-60">

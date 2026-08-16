@@ -291,7 +291,7 @@ function CategoryBlock({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <div className="mb-6 border border-[var(--rule)] p-3">
+    <div className="card mb-6 p-3">
       <div className="flex items-center gap-3">
         <InlineText
           value={category.name}
@@ -425,7 +425,7 @@ function ItemRow({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <li className="border border-[var(--rule)] p-3">
+    <li className="card p-3">
       <div className="flex flex-wrap items-center gap-3">
         <InlineText
           value={item.name}
@@ -682,7 +682,7 @@ function OptionGroupBlock({
   const [price, setPrice] = useState("");
 
   return (
-    <div className="mt-2 border border-[var(--rule)] p-3">
+    <div className="card mt-2 p-3">
       <div className="flex items-center gap-3">
         <p className="mr-auto text-sm font-medium">
           {group.name}

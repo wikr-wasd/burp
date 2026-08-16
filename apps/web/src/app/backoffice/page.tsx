@@ -142,7 +142,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
               Inga genomförda beställningar under perioden.
             </p>
           ) : (
-            <ul className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
+            <ul className="card mt-3 divide-y divide-[var(--rule)]">
               {revenue.map((line) => (
                 <li key={line.currency} className="px-4 py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -182,7 +182,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
 
         <section className="mt-8">
           <h2 className="font-display text-2xl">Väntar på dig</h2>
-          <ul className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
+          <ul className="card mt-3 divide-y divide-[var(--rule)]">
             <li className="flex items-center gap-4 px-4 py-3">
               <span className="mr-auto">Restauranger som väntar på godkännande</span>
               <span className="tabular-nums font-semibold">{pending.length}</span>
@@ -230,7 +230,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="border border-[var(--rule)] p-4">
+    <div className="card p-4">
       <p className="text-sm opacity-60">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
       {hint ? <p className="mt-0.5 text-xs opacity-50">{hint}</p> : null}

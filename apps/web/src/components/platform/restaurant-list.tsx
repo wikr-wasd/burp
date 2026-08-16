@@ -49,7 +49,7 @@ export function RestaurantList({
         {restaurants.map((restaurant) => (
           <li
             key={restaurant.id}
-            className="border border-[var(--rule)] p-4"
+            className="card p-4"
           >
             <div className="flex flex-wrap items-start gap-3">
               <div className="mr-auto min-w-0">

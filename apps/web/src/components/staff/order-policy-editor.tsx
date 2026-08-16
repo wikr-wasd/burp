@@ -27,7 +27,7 @@ export function OrderPolicyEditor({ initial }: { initial: OrderPolicy }) {
   }
 
   return (
-    <div className="mt-4 space-y-5 border border-[var(--rule)] p-4">
+    <div className="card mt-4 space-y-5 p-4">
       <Toggle
         label="Ta emot beställningar automatiskt"
         hint="Utan detta måste någon trycka Ta emot på varje order innan köket ser den."

@@ -47,7 +47,7 @@ export default async function DashboardPage() {
             <p className="mt-1 text-sm opacity-60">
               Släpps till köket när tillagningstiden återstår.
             </p>
-            <ul className="mt-3 divide-y divide-[var(--rule)] border border-[var(--rule)]">
+            <ul className="card mt-3 divide-y divide-[var(--rule)]">
               {upcoming.map((order) => (
                 <li key={order.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
                   <span className="font-semibold tabular-nums">
