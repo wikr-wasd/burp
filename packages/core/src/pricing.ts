@@ -107,6 +107,77 @@ export function calculateOrderTotals(input: CalculateTotalsInput): OrderTotals {
 }
 
 /**
+ * Vad en rätt kan kosta, innan gästen valt något.
+ *
+ * Menykortet visar ett pris. Har rätten en obligatorisk storleksgrupp är
+ * styckpriset inte det priset — gästen betalar alltid minst styckpriset plus
+ * det billigaste obligatoriska valet. Att skriva ut styckpriset rakt av är då
+ * en siffra ingen kan få, och det är exakt den sortens pris en gäst känner sig
+ * lurad av när notan kommer.
+ *
+ * Därför ett intervall: `fromOre` är lägsta möjliga pris för en giltig rad,
+ * `toOre` det högsta. Är de lika är priset exakt och ska skrivas utan "Från".
+ *
+ * Ligger här och inte i komponenten av samma skäl som allt annat prisarbete
+ * (avsnitt 3): en prisregel som duplicerats i en vy hinner glida isär från
+ * servern innan någon märker det.
+ */
+export interface OptionGroupPricing {
+  minSelect: number;
+  maxSelect: number;
+  options: readonly { priceOre: Ore; isAvailable: boolean }[];
+}
+
+export interface ItemPriceRange {
+  /** Lägsta pris en giltig rad kan få. */
+  fromOre: Ore;
+  /** Högsta pris en giltig rad kan få. Lika med `fromOre` när priset är fast. */
+  toOre: Ore;
+}
+
+export function itemPriceRange(
+  unitPriceOre: Ore,
+  groups: readonly OptionGroupPricing[],
+): ItemPriceRange {
+  assertOre(unitPriceOre, "styckpris");
+
+  let fromOre = unitPriceOre;
+  let toOre = unitPriceOre;
+
+  for (const group of groups) {
+    // Slutsålda tillval kan inte väljas och ska varken höja eller sänka
+    // intervallet. Servern avvisar dem ändå (`OPTION_UNAVAILABLE`).
+    const prices = group.options
+      .filter((option) => option.isAvailable)
+      .map((option) => option.priceOre);
+
+    for (const price of prices) assertOre(price, "tillvalspris");
+
+    // En grupp kan kräva fler val än den har kvar i lager. Då gäller det som
+    // faktiskt går att välja — annars skulle intervallet räkna med tillval
+    // som inte finns.
+    const required = Math.min(Math.max(0, group.minSelect), prices.length);
+    const ceiling = Math.min(Math.max(group.maxSelect, required), prices.length);
+
+    const cheapestFirst = [...prices].sort((a, b) => a - b);
+    fromOre += sumOre(cheapestFirst.slice(0, required));
+
+    const dearestFirst = [...prices].sort((a, b) => b - a);
+    // De obligatoriska valen måste tas även när de sänker priset. Därutöver
+    // tas bara det som höjer det — ingen gäst väljer frivilligt ett avdrag för
+    // att nå maxpriset.
+    let groupMax = sumOre(dearestFirst.slice(0, required));
+    for (const price of dearestFirst.slice(required, ceiling)) {
+      if (price <= 0) break;
+      groupMax += price;
+    }
+    toOre += groupMax;
+  }
+
+  return { fromOre, toOre };
+}
+
+/**
  * Räknar Burps avgift.
  *
  * Underlaget styrs av `base` eftersom det inte är beslutat vad 3,4 % ska räknas

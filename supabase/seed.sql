@@ -155,10 +155,30 @@ insert into public.menu_categories (id, menu_id, restaurant_id, name, descriptio
 values
   ('33333333-3333-3333-3333-333333333331',
    '22222222-2222-2222-2222-222222222222',
-   '11111111-1111-1111-1111-111111111111', 'Sa roštilja', 'Från kolgrillen', 1),
+   '11111111-1111-1111-1111-111111111111', 'Sa roštilja', 'Från kolgrillen', 2),
   ('33333333-3333-3333-3333-333333333332',
    '22222222-2222-2222-2222-222222222222',
-   '11111111-1111-1111-1111-111111111111', 'Pića', 'Dryck', 2);
+   '11111111-1111-1111-1111-111111111111', 'Pića', 'Dryck', 5),
+
+  -- Resten av menyn. En ćevabdžinica i Sarajevo har inte tre rätter, och en
+  -- meny med tre rätter går inte att bedöma: kategorinavigeringen har inget
+  -- att navigera i, sökrutan visas inte alls och ingen ser hur menyn beter sig
+  -- när den är längre än skärmen. Det är i den vyn QR-gästen bor.
+  --
+  -- Ingen fläskrätt. En ćevabdžinica i Baščaršija är halal, och en meny som
+  -- inte stämmer med verkligheten är sämre testdata än ingen alls.
+  ('33333333-3333-3333-3333-333333333333',
+   '22222222-2222-2222-2222-222222222222',
+   '11111111-1111-1111-1111-111111111111', 'Predjela', 'Förrätter', 1),
+  ('33333333-3333-3333-3333-333333333334',
+   '22222222-2222-2222-2222-222222222222',
+   '11111111-1111-1111-1111-111111111111', 'Pite', 'Bakat i vedugn', 3),
+  ('33333333-3333-3333-3333-333333333335',
+   '22222222-2222-2222-2222-222222222222',
+   '11111111-1111-1111-1111-111111111111', 'Prilozi', 'Tillbehör', 4),
+  ('33333333-3333-3333-3333-333333333336',
+   '22222222-2222-2222-2222-222222222222',
+   '11111111-1111-1111-1111-111111111111', 'Deserti', 'Efterrätt', 6);
 
 /*
  * Priser i minsta enhet, inklusive moms. Bosnien har EN momssats: 17 % på
@@ -203,6 +223,151 @@ values
   ('55555555-5555-5555-5555-555555555551', '11111111-1111-1111-1111-111111111111', 'Extra kajmak', 200, 1),
   ('55555555-5555-5555-5555-555555555551', '11111111-1111-1111-1111-111111111111', 'Ajvar', 150, 2),
   ('55555555-5555-5555-5555-555555555551', '11111111-1111-1111-1111-111111111111', 'Bez luka', -100, 3);
+
+/*
+ * Resten av menyn.
+ *
+ * Priserna ligger i fening, allt med 17 % moms. Rätterna finns på riktigt i
+ * Baščaršija — poängen med testdatan är att kunna se hur menyn ser ut för en
+ * gäst, och "Rätt 4" säger ingenting om det.
+ *
+ * OBS för smoke.sh: tillvalsnamnen måste vara unika i hela filen. Skriptet
+ * slår upp 'Extra kajmak' och 'Bez luka' på namn och förutsätter en rad.
+ */
+insert into public.menu_items (
+  id, category_id, restaurant_id, name, description,
+  price_ore, vat_rate_bps, allergens, is_available, status, sort_order
+)
+values
+  -- Predjela
+  ('44444444-4444-4444-4444-4444444444a1', '33333333-3333-3333-3333-333333333333',
+   '11111111-1111-1111-1111-111111111111',
+   'Kajmak', 'Saltat mjölkfett från Vlašić, skuret ur kaggen',
+   400, 1700, array['mjölk'], true, 'PUBLISHED', 1),
+  ('44444444-4444-4444-4444-4444444444a2', '33333333-3333-3333-3333-333333333333',
+   '11111111-1111-1111-1111-111111111111',
+   'Ajvar domaći', 'Hemgjord, av rostad paprika och aubergine',
+   350, 1700, array[]::text[], true, 'PUBLISHED', 2),
+  ('44444444-4444-4444-4444-4444444444a3', '33333333-3333-3333-3333-333333333333',
+   '11111111-1111-1111-1111-111111111111',
+   'Uštipci', 'Friterade degkulor, serveras med kajmak',
+   600, 1700, array['gluten', 'mjölk'], true, 'PUBLISHED', 3),
+  ('44444444-4444-4444-4444-4444444444a4', '33333333-3333-3333-3333-333333333333',
+   '11111111-1111-1111-1111-111111111111',
+   'Suho meso', 'Rökt och lufttorkat nötkött, tunt skivat',
+   900, 1700, array[]::text[], true, 'PUBLISHED', 4),
+
+  -- Sa roštilja
+  ('44444444-4444-4444-4444-4444444444b1', '33333333-3333-3333-3333-333333333331',
+   '11111111-1111-1111-1111-111111111111',
+   'Ćevapi 5 kom', 'Fem ćevapi i halv lepinja — den lilla portionen',
+   800, 1700, array['gluten'], true, 'PUBLISHED', 3),
+  ('44444444-4444-4444-4444-4444444444b2', '33333333-3333-3333-3333-333333333331',
+   '11111111-1111-1111-1111-111111111111',
+   'Ćevapi 15 kom', 'Femton ćevapi i hel lepinja, lök och kajmak',
+   1700, 1700, array['gluten', 'mjölk'], true, 'PUBLISHED', 4),
+  ('44444444-4444-4444-4444-4444444444b3', '33333333-3333-3333-3333-333333333331',
+   '11111111-1111-1111-1111-111111111111',
+   'Ražnjići', 'Spett av kalv och lamm, grillat över kol',
+   1600, 1700, array[]::text[], true, 'PUBLISHED', 5),
+  ('44444444-4444-4444-4444-4444444444b4', '33333333-3333-3333-3333-333333333331',
+   '11111111-1111-1111-1111-111111111111',
+   'Pileći ćevapi', 'Ćevapi på kyckling, för den som vill ha lättare',
+   1300, 1700, array['gluten'], true, 'PUBLISHED', 6),
+
+  -- Pite
+  ('44444444-4444-4444-4444-4444444444c1', '33333333-3333-3333-3333-333333333334',
+   '11111111-1111-1111-1111-111111111111',
+   'Burek', 'Rullad för hand, fylld med nötfärs och lök',
+   700, 1700, array['gluten'], true, 'PUBLISHED', 1),
+  ('44444444-4444-4444-4444-4444444444c2', '33333333-3333-3333-3333-333333333334',
+   '11111111-1111-1111-1111-111111111111',
+   'Sirnica', 'Med ung ost',
+   700, 1700, array['gluten', 'mjölk'], true, 'PUBLISHED', 2),
+  ('44444444-4444-4444-4444-4444444444c3', '33333333-3333-3333-3333-333333333334',
+   '11111111-1111-1111-1111-111111111111',
+   'Zeljanica', 'Med spenat och ost',
+   700, 1700, array['gluten', 'mjölk'], true, 'PUBLISHED', 3),
+  ('44444444-4444-4444-4444-4444444444c4', '33333333-3333-3333-3333-333333333334',
+   '11111111-1111-1111-1111-111111111111',
+   'Krompiruša', 'Med potatis och lök',
+   650, 1700, array['gluten'], true, 'PUBLISHED', 4),
+
+  -- Prilozi
+  ('44444444-4444-4444-4444-4444444444d1', '33333333-3333-3333-3333-333333333335',
+   '11111111-1111-1111-1111-111111111111',
+   'Lepinja', 'Nybakad, direkt ur vedugnen',
+   200, 1700, array['gluten'], true, 'PUBLISHED', 1),
+  ('44444444-4444-4444-4444-4444444444d2', '33333333-3333-3333-3333-333333333335',
+   '11111111-1111-1111-1111-111111111111',
+   'Kiseli kupus', 'Syrad vitkål',
+   300, 1700, array[]::text[], true, 'PUBLISHED', 2),
+  ('44444444-4444-4444-4444-4444444444d3', '33333333-3333-3333-3333-333333333335',
+   '11111111-1111-1111-1111-111111111111',
+   'Pomfrit', 'Pommes frites',
+   400, 1700, array[]::text[], true, 'PUBLISHED', 3),
+  ('44444444-4444-4444-4444-4444444444d4', '33333333-3333-3333-3333-333333333335',
+   '11111111-1111-1111-1111-111111111111',
+   'Zelena salata', 'Grönsallad med tomat och rödlök',
+   350, 1700, array[]::text[], true, 'PUBLISHED', 4),
+
+  -- Pića
+  ('44444444-4444-4444-4444-4444444444e1', '33333333-3333-3333-3333-333333333332',
+   '11111111-1111-1111-1111-111111111111',
+   'Čaj od nane', 'Myntate, bryggt på färska blad',
+   300, 1700, array[]::text[], true, 'PUBLISHED', 2),
+  ('44444444-4444-4444-4444-4444444444e2', '33333333-3333-3333-3333-333333333332',
+   '11111111-1111-1111-1111-111111111111',
+   'Kiseljak 0,5 l', 'Sarajevskt mineralvatten',
+   250, 1700, array[]::text[], true, 'PUBLISHED', 3),
+  ('44444444-4444-4444-4444-4444444444e3', '33333333-3333-3333-3333-333333333332',
+   '11111111-1111-1111-1111-111111111111',
+   'Coca-Cola 0,33 l', null,
+   350, 1700, array[]::text[], true, 'PUBLISHED', 4),
+  ('44444444-4444-4444-4444-4444444444e4', '33333333-3333-3333-3333-333333333332',
+   '11111111-1111-1111-1111-111111111111',
+   'Sok od jabuke', 'Grumlig äppeljuice',
+   350, 1700, array[]::text[], true, 'PUBLISHED', 5),
+  -- Slut för dagen. Menyn ska kunna granskas med ett slutsålt kort i sig —
+  -- det tillståndet syns annars aldrig i utvecklingsmiljön.
+  ('44444444-4444-4444-4444-4444444444e5', '33333333-3333-3333-3333-333333333332',
+   '11111111-1111-1111-1111-111111111111',
+   'Kefir 0,33 l', 'Syrad mjölkdryck',
+   300, 1700, array['mjölk'], false, 'PUBLISHED', 6),
+
+  -- Deserti
+  ('44444444-4444-4444-4444-4444444444f1', '33333333-3333-3333-3333-333333333336',
+   '11111111-1111-1111-1111-111111111111',
+   'Tufahija', 'Kokt äpple fyllt med valnötter, med vispad grädde',
+   600, 1700, array['nötter', 'mjölk'], true, 'PUBLISHED', 1),
+  ('44444444-4444-4444-4444-4444444444f2', '33333333-3333-3333-3333-333333333336',
+   '11111111-1111-1111-1111-111111111111',
+   'Baklava', 'Med valnöt och sirap',
+   500, 1700, array['gluten', 'nötter'], true, 'PUBLISHED', 2),
+  ('44444444-4444-4444-4444-4444444444f3', '33333333-3333-3333-3333-333333333336',
+   '11111111-1111-1111-1111-111111111111',
+   'Hurmašice', 'Doppade i sockerlag',
+   450, 1700, array['gluten'], true, 'PUBLISHED', 3);
+
+/*
+ * En obligatorisk storleksgrupp.
+ *
+ * Ražnjići har inget eget pris förrän gästen valt portion, och det är precis
+ * det fallet menykortets "Från 16,00 KM" finns för. Utan en sådan grupp i
+ * testdatan går prisintervallet inte att se någonstans.
+ */
+insert into public.option_groups (id, menu_item_id, restaurant_id, name, min_select, max_select)
+values (
+  '55555555-5555-5555-5555-555555555552',
+  '44444444-4444-4444-4444-4444444444b3',
+  '11111111-1111-1111-1111-111111111111',
+  'Veličina', 1, 1
+);
+
+insert into public.options (option_group_id, restaurant_id, name, price_ore, sort_order)
+values
+  ('55555555-5555-5555-5555-555555555552', '11111111-1111-1111-1111-111111111111', 'Mala — 4 spett', 0, 1),
+  ('55555555-5555-5555-5555-555555555552', '11111111-1111-1111-1111-111111111111', 'Velika — 6 spett', 500, 2);
 
 -- ── Bord ────────────────────────────────────────────────────────────────────
 --

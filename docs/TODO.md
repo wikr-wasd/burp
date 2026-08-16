@@ -28,8 +28,18 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 ## Näst på tur
 
 - [ ] **Ikoner på de sista ytorna.** Klart: sökknapp, betyg, öppetmärken,
-      vägbeskrivning, kopiera adress, personalytornas navigering, varukorgen.
-      Kvar: tomma tillstånd och statusstegen på kvittot — båda små.
+      vägbeskrivning, kopiera adress, personalytornas navigering, varukorgen,
+      QR-menyns sökruta och dess tomma träfflista. Kvar: statusstegen på
+      kvittot och de tomma tillstånden i personalytorna.
+
+- [ ] **QR-menyn mätt mot Qopla.** Referens:
+      `qopla.com/restaurant/partille-sushi/…/order?qr=1`. Klart efter
+      jämförelsen: sökruta, markerad avdelning i den klistrade raden,
+      prisintervall ("Från 16,00 KM") och kvittens på kortet när en rätt läggs
+      till. Kvar att bedöma: om gästen vid bordet ska kunna välja **ta med**
+      i stället för att äta på plats — Qopla frågar det före menyn, vilket är
+      fel läge för en QR-gäst, men frågan i sig är rimlig för en ćevabdžinica.
+      Kräver ett beslut, inte kod.
 - [ ] **Platshållarbilderna i takt med paletten.** Tallriksformen ritades för
       pappersbakgrunden och är mörkare och mättare än allt annat på den nya
       grå/vita ytan. Löses annars av att riktiga fotografier kommer in.
@@ -49,6 +59,10 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 - [ ] **Riktiga bilder i seed-datan.** Platshållaren är så bra den kan bli;
       nästa steg kräver fotografier. Utan dem går det inte att bedöma hur
       sajten faktiskt ser ut för en gäst.
+- [x] ~~Meny i seed-datan som går att bedöma.~~ Tre rätter räckte inte:
+      kategorinavigeringen hade inget att navigera i, sökrutan visades aldrig
+      och inget slutsålt kort syntes. Nu 27 rätter i sex avdelningar, en
+      obligatorisk storleksgrupp och en slutsåld dryck.
 - [ ] **Mobilvyn sedd på riktigt.** Verifierad strukturellt (inget element
       utan radbrytning är bredare än 390 px) men aldrig sedd. QR-flödet lever
       på telefon.
@@ -76,6 +90,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Personalytorna är enbart svenska | — | Medvetet. Köket ska inte byta språk för att en gäst gjorde det |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett på publika sidor | — | `loading.tsx` gör varje `notFound()` till en 200:a. Se CLAUDE.md |
+| `smoke.sh` går inte att köra på den här maskinen | `bash` är WSL2, inte Git Bash | Kräver Git Bash eller en miljö som delar Windows nätverksstack. Se CLAUDE.md |
 
 ---
 

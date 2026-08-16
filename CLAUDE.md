@@ -270,6 +270,28 @@ där Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat
 Route handlers och server components har medvetet inga enhetstester — de kräver
 databas och session för att säga något meningsfullt, och täcks av `smoke.sh`.
 
+### `smoke.sh` når inte appen från WSL
+
+`bash` på den här maskinen är **WSL2, inte Git Bash**. WSL2 har ett eget
+nätverksnamnrum: `127.0.0.1:3000` inuti WSL är WSL:s egen loopback, inte
+Windows. `curl` svarar därför `000` på varenda rad och testet ser ut som att
+hela appen ligger nere — den svarar 200 hela tiden.
+
+Windows brandvägg släpper inte heller in WSL-subnätet mot värdens portar, så
+varken `172.31.48.1` eller `host.docker.internal` hjälper. Att öppna
+brandväggen är en systeminställning och inte något som ska göras för ett test.
+
+Kontrollera först var man står:
+
+```bash
+uname -a                 # innehåller "microsoft-standard-WSL2" → problemet
+curl.exe -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/health
+```
+
+`curl.exe` är Windows-binären via WSL-interop och når appen. `curl` gör det
+inte. En riktig lösning kräver antingen Git Bash installerat eller att
+`smoke.sh` körs från en miljö som delar Windows nätverksstack.
+
 ---
 
 ## Fällor som redan kostat tid

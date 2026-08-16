@@ -4,6 +4,7 @@ import {
   calculateFee,
   calculateLine,
   calculateOrderTotals,
+  itemPriceRange,
   PriceMismatchError,
   vatFromGross,
 } from "./pricing";
@@ -296,5 +297,86 @@ describe("formatMoney", () => {
   it("skriver dinar utan decimaler", () => {
     const normalize = (value: string) => value.replace(/\s/g, " ");
     expect(normalize(formatMoney(120000, "RSD"))).toBe("1.200 дин.");
+  });
+});
+
+describe("itemPriceRange", () => {
+  const option = (priceOre: number, isAvailable = true) => ({ priceOre, isAvailable });
+
+  it("ger ett fast pris när rätten saknar tillval", () => {
+    expect(itemPriceRange(1200, [])).toEqual({ fromOre: 1200, toOre: 1200 });
+  });
+
+  it("räknar in det billigaste obligatoriska valet i lägsta priset", () => {
+    // "Välj storlek": gästen kan aldrig komma undan billigare än den minsta.
+    const range = itemPriceRange(1200, [
+      { minSelect: 1, maxSelect: 1, options: [option(0), option(300), option(600)] },
+    ]);
+
+    expect(range).toEqual({ fromOre: 1200, toOre: 1800 });
+  });
+
+  it("håller priset fast när det obligatoriska valet inte påverkar summan", () => {
+    const range = itemPriceRange(1200, [
+      { minSelect: 1, maxSelect: 1, options: [option(0), option(0)] },
+    ]);
+
+    expect(range).toEqual({ fromOre: 1200, toOre: 1200 });
+  });
+
+  it("lägger på varje valfritt tillägg i högsta priset, upp till maxSelect", () => {
+    const range = itemPriceRange(1200, [
+      { minSelect: 0, maxSelect: 2, options: [option(200), option(150), option(500)] },
+    ]);
+
+    expect(range).toEqual({ fromOre: 1200, toOre: 1900 });
+  });
+
+  it("räknar inte ett avdrag som ett sätt att nå högsta priset", () => {
+    // "Bez luka −1,00 KM" sänker priset. Ingen väljer det för att betala mer.
+    const range = itemPriceRange(1200, [
+      { minSelect: 0, maxSelect: 3, options: [option(200), option(-100)] },
+    ]);
+
+    expect(range).toEqual({ fromOre: 1200, toOre: 1400 });
+  });
+
+  it("tar med ett obligatoriskt avdrag i båda ändarna", () => {
+    const range = itemPriceRange(1200, [
+      { minSelect: 1, maxSelect: 1, options: [option(-100)] },
+    ]);
+
+    expect(range).toEqual({ fromOre: 1100, toOre: 1100 });
+  });
+
+  it("bortser från slutsålda tillval", () => {
+    // Det dyra alternativet är slut. Maxpriset ska följa med ned — annars
+    // lovar kortet ett spann restaurangen inte kan leverera.
+    const range = itemPriceRange(1200, [
+      { minSelect: 1, maxSelect: 1, options: [option(300), option(900, false)] },
+    ]);
+
+    expect(range).toEqual({ fromOre: 1500, toOre: 1500 });
+  });
+
+  it("kräver aldrig fler val än gruppen har kvar att välja på", () => {
+    const range = itemPriceRange(1200, [
+      { minSelect: 2, maxSelect: 2, options: [option(300), option(900, false)] },
+    ]);
+
+    expect(range).toEqual({ fromOre: 1500, toOre: 1500 });
+  });
+
+  it("summerar över flera grupper", () => {
+    const range = itemPriceRange(1200, [
+      { minSelect: 1, maxSelect: 1, options: [option(0), option(400)] },
+      { minSelect: 0, maxSelect: 1, options: [option(250)] },
+    ]);
+
+    expect(range).toEqual({ fromOre: 1200, toOre: 1850 });
+  });
+
+  it("vägrar ett styckpris som inte är ett heltal i minsta enheten", () => {
+    expect(() => itemPriceRange(12.5, [])).toThrow(TypeError);
   });
 });

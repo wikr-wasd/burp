@@ -244,6 +244,24 @@ body {
 }
 
 /*
+ * Fält med en ikon till vänster och en rensaknapp till höger — sökrutan.
+ *
+ * Indraget måste ligga HÄR, inte som en Tailwind-klass på elementet. `.field`
+ * står utanför Tailwinds lager, och olagrad CSS vinner över lagrad oavsett
+ * ordning i filen: ett `pl-10` bredvid `field` slås tyst ut, och texten läggs
+ * ovanpå ikonen. Det såg ut som ett positioneringsfel och var en kaskadregel.
+ */
+.field-search {
+  padding-left: 2.5rem;
+  padding-right: 3rem;
+}
+
+/* Webkits egen kryssknapp. Rensningen är en riktig knapp i markupen. */
+.field-search::-webkit-search-cancel-button {
+  display: none;
+}
+
+/*
  * Länk i löpande text. Understruken i vilotillstånd, inte bara vid hover — en
  * länk som ser ut som text tills man råkar peka på den är en länk gästen
  * aldrig hittar.
