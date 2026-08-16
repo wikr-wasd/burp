@@ -20,6 +20,7 @@ export const en: Dictionary = {
     cities: "Cities",
     cuisines: "Cuisines",
     restaurantsIn: (city: string) => `Restaurants in ${city}`,
+    joinBurp: "List your restaurant",
     logIn: "Log in",
     createAccount: "Create guest account",
     myOrders: "My orders",

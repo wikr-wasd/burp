@@ -31,9 +31,9 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
       tokens) är bytt till 123Connect-systemet. Varje sida använder ännu det
       gamla formspråkets klasser — kantiga kort, linjaler som sektionsdelare,
       antikva-antaganden i layouten. Sidorna renderar, men de är inte omgjorda.
-- [ ] **Restaurangansökan.** Migration 0021 finns (`apply_for_restaurant`,
-      SECURITY DEFINER, skapar restaurang som PENDING och sökanden som ägare
-      atomärt) men är **inte inkopplad** — ingen sida, ingen serveråtgärd.
+- [x] ~~Restaurangansökan.~~ `/anslut` för restauranger, och "Lägg upp en
+      restaurang" i backoffice för Burp. Kvar: ingen notis går ut när en
+      ansökan kommer in — se nedan.
 - [ ] **Notiser.** Ingen e-post, ingen push. Restaurangen vet inte att en order
       kommit om ingen stirrar på köksskärmen.
 - [ ] **Karta över alla restauranger.** Beslutad. Koordinater och OSM-inbäddning

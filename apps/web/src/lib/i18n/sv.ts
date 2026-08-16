@@ -15,6 +15,7 @@ export const sv = {
     cities: "Städer",
     cuisines: "Kök",
     restaurantsIn: (city: string) => `Restauranger i ${city}`,
+    joinBurp: "Anslut din restaurang",
     logIn: "Logga in",
     createAccount: "Skapa gästkonto",
     myOrders: "Mina beställningar",

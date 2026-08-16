@@ -73,6 +73,11 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
             </p>
             <ul className="mt-4 space-y-2.5">
               <li>
+                <Link href="/anslut" className="link text-sm">
+                  {t.site.joinBurp}
+                </Link>
+              </li>
+              <li>
                 <Link href="/logga-in" className="link text-sm">
                   {t.site.logIn}
                 </Link>

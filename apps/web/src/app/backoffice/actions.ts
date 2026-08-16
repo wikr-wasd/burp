@@ -1,5 +1,11 @@
 "use server";
 
+import { COUNTRY_INFO } from "@burp/core";
+import {
+  readableDatabaseError,
+  validateApplication,
+  type ApplicationInput,
+} from "@/lib/restaurant-application";
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
@@ -126,4 +132,47 @@ export async function setReviewPublished(
     .eq("id", reviewId);
 
   return error ? fail(error.message) : done();
+}
+
+/* ── Lägga upp en restaurang ─────────────────────────────────────────────── */
+
+/**
+ * Burp lägger upp en restaurang direkt.
+ *
+ * Skild från `applyForRestaurant`, som är restaurangens egen väg in och alltid
+ * skapar PENDING med sökanden som ägare. Den här behövs vid uppsökande
+ * försäljning och på mässor: Burp fyller i åt någon som ännu inte har konto,
+ * och kan sätta ACTIVE direkt när avtalet redan är påskrivet.
+ *
+ * Behörigheten kontrolleras två gånger med flit — här och i
+ * `admin_create_restaurant`. Funktionen i databasen är SECURITY DEFINER och
+ * kör med ägarens rättigheter; en kontroll som bara finns i appen är ingen
+ * kontroll alls för den som når API:t direkt.
+ */
+export async function createRestaurantAsAdmin(
+  input: ApplicationInput & { status: "PENDING" | "ACTIVE" },
+): Promise<ActionResult> {
+  await requirePlatformAdmin(["admin", "owner"]);
+
+  const validation = validateApplication(input);
+  if (!validation.ok) return { ok: false, message: validation.message };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_create_restaurant", {
+    p_input: { ...validation.value, status: input.status },
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: readableDatabaseError(
+        error.message,
+        COUNTRY_INFO[validation.value.country].orgNumberLabel,
+      ),
+    };
+  }
+
+  revalidatePath("/backoffice");
+  revalidatePath("/backoffice/restauranger");
+  return { ok: true };
 }

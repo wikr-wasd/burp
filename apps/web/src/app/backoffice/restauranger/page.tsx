@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DEFAULT_FEE_BPS } from "@burp/core";
 import { PlatformHeader } from "@/components/platform/platform-header";
+import { NewRestaurantForm } from "@/components/platform/new-restaurant-form";
 import { RestaurantList } from "@/components/platform/restaurant-list";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
@@ -112,6 +113,10 @@ export default async function PlatformRestaurantsPage({ searchParams }: PageProp
             </FilterChip>
           ))}
         </nav>
+
+        {/* Ligger utanför listan: att lägga upp en restaurang ska gå även när
+            filtret råkar vara tomt, vilket det oftast är i godkännandekön. */}
+        {admin.role !== "support" ? <NewRestaurantForm /> : null}
 
         {restaurants.length === 0 ? (
           <p className="mt-8 opacity-60">Inga restauranger med den statusen.</p>
