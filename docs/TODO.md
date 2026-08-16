@@ -27,6 +27,20 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 
 ## Näst på tur
 
+- [ ] **Designbytet klart på alla ytor.** Grunden (globals.css, typsnitt,
+      tokens) är bytt till 123Connect-systemet. Varje sida använder ännu det
+      gamla formspråkets klasser — kantiga kort, linjaler som sektionsdelare,
+      antikva-antaganden i layouten. Sidorna renderar, men de är inte omgjorda.
+- [ ] **Restaurangansökan.** Migration 0021 finns (`apply_for_restaurant`,
+      SECURITY DEFINER, skapar restaurang som PENDING och sökanden som ägare
+      atomärt) men är **inte inkopplad** — ingen sida, ingen serveråtgärd.
+- [ ] **Notiser.** Ingen e-post, ingen push. Restaurangen vet inte att en order
+      kommit om ingen stirrar på köksskärmen.
+- [ ] **Karta över alla restauranger.** Beslutad. Koordinater och OSM-inbäddning
+      finns redan.
+- [ ] **Surfplatta vid bordet.** Beslutad. Delar mycket med QR-flödet.
+- [ ] **Mobilapp (React Native).** Beslutad. `@burp/core` är byggt för att delas.
+
 - [ ] **Riktiga bilder i seed-datan.** Platshållaren är så bra den kan bli;
       nästa steg kräver fotografier. Utan dem går det inte att bedöma hur
       sajten faktiskt ser ut för en gäst.

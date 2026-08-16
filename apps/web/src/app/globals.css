@@ -1,127 +1,88 @@
 @import "tailwindcss";
 
 /*
- * Burps designspråk — redaktionellt, varmt, matnära.
+ * Burps designspråk — 123Connect-systemet.
  *
- * Utgångspunkten är en tryckt matbilaga snarare än en SaaS-produkt: papper i
- * stället för vitt, en display-antikva till rubriker, tunna linjaler och
- * spärrade versaler till småetiketter. Rött är accenten och används sparsamt —
- * på det som ska tryckas, inte som dekoration.
+ * Tokens och skala är lyfta ur 123Connect Design System (colors_and_type.css)
+ * så att Burp och 123Connect ser ut att komma från samma hus. Rött bär
+ * handling, grått bär ytorna, guld bär betyg, grönt bär bekräftelse.
  *
- * Formspråket är kantigt med flit. Inga rundade hörn, inga skuggor. Det är
- * signaturen: en gäst som sett Burp en gång känner igen den, och igenkänning
- * är hela skillnaden mellan en sida man minns och en till matapp.
+ * Burp använder INTE systemets lila och rosa marknadsföringsgradienter. De hör
+ * till 123Connects egna säljsidor; här skulle de konkurrera med maten, som är
+ * det enda som ska sticka ut på en matmarknadsplats.
  *
- * Klasserna nedan är avsiktligt få. En knapp ska se likadan ut på startsidan,
- * i kassan och i dashboarden, och det enda sättet att garantera det är att det
- * bara finns ett ställe där den definieras. Varje sida som skriver sin egen
- * knapp är en sida som glider isär från resten.
- *
- * En yta lyder inte under det här: köksskärmen. Den körs på en surfplatta på
- * några meters håll i ett stökigt kök, och där går läsbarhet före ton.
+ * Ersatte en redaktionell form med papper och antikva. Bytet är ett medvetet
+ * val av släktskap framför särart — se docs/DESIGN.md.
  */
 
 @theme {
-  /* ── Rött ──────────────────────────────────────────────────────────────
-     Ett djupt, varmt rött. Inte signalröd larmfärg utan färgen på tomat och
-     paprika — den ska göra mat aptitlig, inte varna. */
-  --color-burp-50: oklch(0.97 0.015 30);
-  --color-burp-100: oklch(0.93 0.035 30);
-  --color-burp-200: oklch(0.86 0.07 30);
-  --color-burp-400: oklch(0.65 0.17 28);
-  --color-burp-500: oklch(0.57 0.19 27);
-  --color-burp-600: oklch(0.50 0.19 27);
-  --color-burp-700: oklch(0.42 0.16 27);
-  --color-burp-900: oklch(0.26 0.09 27);
+  /* ── Handlingsrött ─────────────────────────────────────────────────────
+     Primärfärgen. Varje standardknapp är röd. */
+  --color-burp-50: #fef2f2;
+  --color-burp-100: #fee2e2;
+  --color-burp-200: #fecaca;
+  --color-burp-500: #ef4444;
+  --color-burp-600: #dc2626;
+  --color-burp-700: #b91c1c;
+  --color-burp-900: #7f1d1d;
 
-  /* ── Papper och bläck ──────────────────────────────────────────────────
-     Bakgrunden är varmt benvit, inte ren vit. Ren vit får mat att se blek ut;
-     papperstonen gör att bilderna ser varmare ut utan att röra bilderna. */
-  --color-paper: oklch(0.970 0.018 80);
-  --color-paper-raised: oklch(0.986 0.013 80);
-  --color-ink: oklch(0.23 0.024 48);
-  --color-ink-soft: oklch(0.47 0.030 50);
-  --color-rule: oklch(0.855 0.020 72);
+  /* ── Stödfärger ────────────────────────────────────────────────────────
+     Guld till betyg, grönt till bekräftelse. Inga fler: en tredje
+     stödfärg gör att ingen av dem längre betyder något. */
+  --color-gold-400: #fbbf24;
+  --color-gold-600: #d97706;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
 
-  /* ── Saffran ───────────────────────────────────────────────────────────
-     Andraaccenten. Betyg, utmärkelser, det som ska glimma till utan att
-     konkurrera med det röda. Saffran och gurkmeja är kryddfärger — de läser
-     som mat, inte som en gul varningsikon. Används sparsamt: två accenter
-     som båda skriker blir ingen accent alls. */
-  --color-saffron-400: oklch(0.80 0.14 78);
-  --color-saffron-600: oklch(0.66 0.15 72);
+  /* Sätts av next/font i layout.tsx. Reserven gäller tills det laddats. */
+  --font-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* Variablerna sätts av next/font i layout.tsx. Reserverna gäller tills
-     typsnitten laddats — och om de aldrig gör det. */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-instrument), "Iowan Old Style", Georgia, serif;
-
-  /* Spärrade versaler till småetiketter — "VOL. 1 · SARAJEVO". */
-  --tracking-label: 0.14em;
+  /* Radien i systemet. Kort och paneler använder den; knappar går något
+     snävare och märken hela vägen till piller. */
+  --radius: 0.75rem;
 }
 
 :root {
-  --background: var(--color-paper);
-  --surface: var(--color-paper-raised);
-  --foreground: var(--color-ink);
-  --muted: var(--color-ink-soft);
-  --rule: var(--color-rule);
+  --background: #f3f4f6;
+  --surface: #ffffff;
+  --foreground: #111827;
+  --muted: #6b7280;
+  --rule: #e5e7eb;
 
   /*
-   * Betygsstjärnan.
+   * Kant på en kontroll, till skillnad från en avdelare.
    *
-   * Saffran mot papper ger 2,93:1 — under gränsen för ett grafiskt objekt, och
-   * i praktiken en stjärna som bleknar bort i stället för att glimma. Ljust
-   * läge får därför en mörkare ton och mörkt läge en ljusare. Samma färg i
-   * båda hade betytt att den fungerar i ett av dem.
+   * `--rule` är en linje mellan saker och behöver ingen kontrast.
+   * `--rule-control` är kanten på något man trycker på eller skriver i och
+   * håller 3:1 enligt WCAG 1.4.11. Kravet är inte formalia: fälten ritade en
+   * gång sin enda avgränsning med den svagare tonen och blev osynliga tills de
+   * fokuserades.
    */
-  --star: oklch(0.58 0.15 68);
+  --rule-control: #9ca3af;
 
-  /*
-   * Kant på en KONTROLL, till skillnad från en avdelare.
-   *
-   * `--rule` är en tryckt linjal — dekor, och behöver ingen kontrast. Men
-   * textfälten och sekundärknapparna använde den som sin enda synliga
-   * avgränsning, och mot pappret ger den 1,41:1. WCAG 1.4.11 kräver 3:1 för
-   * det som behövs för att urskilja en kontroll, och kravet är inte
-   * formalia här: fälten på inloggningssidan var i praktiken osynliga tills
-   * de fokuserades.
-   *
-   * 0,60 ger 3,63:1 mot pappret — över kravet med marginal utan att bli en
-   * ruta, vilket hade brutit formspråket.
-   */
-  --rule-control: oklch(0.60 0.02 60);
+  /* Betygsstjärnan. Guld mot vitt är för ljust — mörkare ton i ljust läge. */
+  --star: #d97706;
 
-  /*
-   * En enda hastighet och en enda kurva i hela produkten.
-   *
-   * Blandade övergångstider är det som får ett gränssnitt att kännas
-   * hopplockat. `ease-out` för att rörelsen ska bromsa in mot slutet — det
-   * läser som att något landar, inte som att något studsar.
-   */
   --ease: cubic-bezier(0.2, 0, 0, 1);
   --speed: 180ms;
 }
 
 /*
- * Mörkt läge är inte pappret inverterat.
+ * Mörkt läge.
  *
- * En rak invertering ger grått som ser smutsigt ut bakom matbilder. Här är
- * botten varm och nästan svart, ytorna en aning ljusare, och rött lyfts en
- * nivå för att hålla kontrasten mot den mörka botten.
+ * Designsystemet dokumenterar inget, men Burp behöver ett: QR-menyn läses vid
+ * ett bord på kvällen, ofta i en mörk lokal, och en vit skärm i ansiktet är
+ * inte en detalj utan hela upplevelsen. Samma gråskala, spegelvänd.
  */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Espresso, inte grafit. Ett neutralt mörkt läge drar blått ur
-       matbilderna och får dem att se kalla ut; en varm botten gör tvärtom. */
-    --background: oklch(0.165 0.026 42);
-    --surface: oklch(0.215 0.028 42);
-    --foreground: oklch(0.945 0.013 82);
-    --muted: oklch(0.735 0.022 72);
-    --rule: oklch(0.325 0.024 48);
-    /* 3,51:1 mot den mörka botten. Samma resonemang som i ljust läge. */
-    --rule-control: oklch(0.52 0.015 50);
-    --star: var(--color-saffron-400);
+    --background: #111827;
+    --surface: #1f2937;
+    --foreground: #f9fafb;
+    --muted: #9ca3af;
+    --rule: #374151;
+    --rule-control: #6b7280;
+    --star: #fbbf24;
   }
 }
 
@@ -129,82 +90,71 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/*
- * Ankarhopp får inte lägga rubriken under ett klistrat sidhuvud.
- *
- * Gäller globalt i stället för per komponent — annars gäller det bara på de
- * sidor någon kom ihåg att sätta det, och gästen landar på fel ställe på
- * resten.
- */
+/* Ankarhopp får inte lägga rubriken under ett klistrat sidhuvud. Globalt, för
+   annars gäller det bara de sidor någon kom ihåg att sätta det på. */
 :target {
   scroll-margin-top: 5rem;
 }
 
-/* ── Redaktionella byggstenar ─────────────────────────────────────────── */
+/* ── Typografi ────────────────────────────────────────────────────────── */
 
 /*
- * Display-antikvan. Instrument Serif har hög kontrast och tät sättning, vilket
- * är vackert i stora grader och oläsligt i små — därför bara på rubriker.
+ * Rubriker: feta, tät spärrning och radavstånd. Följer systemets h1–h6.
+ *
+ * Klassen heter fortfarande `.font-display` men betyder nu fet grotesk, inte
+ * antikva. Namnet är kvar för att slippa en genomgång av varje anropsplats i
+ * samma svep som färgbytet — två stora ändringar samtidigt gör det omöjligt
+ * att se vilken som orsakade vad.
  */
 .font-display {
-  font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  line-height: 1.05;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
 }
 
-/* Spärrad versaletikett. Bär metadata: stad, kategori, sektionsnummer. */
+/* Liten versaletikett. Systemets `.eyebrow`. */
 .label-caps {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-/* Hårfin linjal. Tunnare än en border, som en tryckt regel. */
 .rule {
   border: 0;
   border-top: 1px solid var(--rule);
 }
 
+.section-rule {
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+
 /*
- * Kort som ligger på pappret.
- *
- * Ingen skugga. Skuggor får en yta att sväva; här ska allt ligga platt på
- * sidan som tryck, och skiljas åt av linjaler och luft i stället.
+ * Kort. Vit yta, mjuk kant, rundade hörn och en svag skugga — systemets
+ * grundform. Skuggan är låg med flit: den ska lyfta kortet från bakgrunden,
+ * inte få det att sväva.
  */
 .card {
   background: var(--surface);
   border: 1px solid var(--rule);
-}
-
-/*
- * Sektionsrubrik: linjal ovanför, spärrad etikett under.
- *
- * Samma mönster på varje sida gör att gästen läser strukturen utan att behöva
- * tänka på den — det är det som gör en sajt lätt att navigera, inte fler
- * menyer.
- */
-.section-rule {
-  border: 0;
-  border-top: 1px solid var(--foreground);
-  opacity: 0.85;
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
 }
 
 /* ── Kontroller ───────────────────────────────────────────────────────── */
 
 /*
- * Fokusmarkering.
- *
- * En och samma i hela produkten, och alltid synlig. Tangentbordsnavigering är
- * inte en tillgänglighetsdetalj här — personalen i ett kök tabbar sig igenom
- * dashboarden med feta fingrar och en surfplatta, och en osynlig fokusram gör
- * ytan obrukbar.
+ * Fokusmarkering. En och samma i hela produkten, alltid synlig.
+ * Tangentbordsnavigering är inte en tillgänglighetsdetalj här — personalen
+ * tabbar sig igenom dashboarden med feta fingrar och en surfplatta.
  */
 :where(a, button, input, select, textarea, summary):focus-visible {
   outline: 2px solid var(--color-burp-600);
@@ -212,9 +162,7 @@ body {
 }
 
 /*
- * Knappar.
- *
- * 44 px hög som minimum överallt. Det är Apples och Googles gräns för en
+ * Knappar. 44 px hög som minimum överallt — Apples och Googles gräns för en
  * träffyta som en tumme klarar, och den gäller lika mycket för en gäst vid ett
  * bord som för en kock vid en spis.
  */
@@ -225,11 +173,11 @@ body {
   gap: 0.5rem;
   min-height: 2.75rem;
   padding-inline: 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+  border-radius: 0.625rem;
   border: 1px solid transparent;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   transition:
     background-color var(--speed) var(--ease),
     border-color var(--speed) var(--ease),
@@ -238,12 +186,13 @@ body {
 
 .btn:disabled {
   cursor: not-allowed;
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 .btn-primary {
   background: var(--color-burp-600);
   color: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
 .btn-primary:not(:disabled):hover {
@@ -251,6 +200,7 @@ body {
 }
 
 .btn-secondary {
+  background: var(--surface);
   border-color: var(--rule-control);
   color: var(--foreground);
 }
@@ -261,23 +211,22 @@ body {
 }
 
 /*
- * Textfält.
- *
- * En understruken linje i stället för en ruta. Rutan är formulärets
- * standardutseende och gör varje sida till ett formulär; linjen läser som
- * något att skriva på, vilket är vad det är.
+ * Textfält. Ruta med rundade hörn, som i systemet — inte den understrukna
+ * linjen den redaktionella formen använde.
  */
 .field {
   display: block;
   width: 100%;
   min-height: 2.75rem;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--rule-control);
-  padding: 0.25rem 0.125rem;
+  background: var(--surface);
+  border: 1px solid var(--rule-control);
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.75rem;
   font-size: 1rem;
   color: var(--foreground);
-  transition: border-color var(--speed) var(--ease);
+  transition:
+    border-color var(--speed) var(--ease),
+    box-shadow var(--speed) var(--ease);
 }
 
 .field:hover {
@@ -287,9 +236,7 @@ body {
 .field:focus {
   outline: none;
   border-color: var(--color-burp-600);
-  border-bottom-width: 2px;
-  /* Kompenserar den extra pixeln så att raden under inte hoppar. */
-  padding-bottom: calc(0.25rem - 1px);
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 0.12);
 }
 
 .field::placeholder {
@@ -297,24 +244,34 @@ body {
 }
 
 /*
- * Länk i löpande text.
- *
- * Understruken i vilotillstånd, inte bara vid hover. En länk som ser ut som
- * text tills man råkar peka på den är en länk gästen aldrig hittar.
+ * Länk i löpande text. Understruken i vilotillstånd, inte bara vid hover — en
+ * länk som ser ut som text tills man råkar peka på den är en länk gästen
+ * aldrig hittar.
  */
 .link {
-  color: inherit;
+  color: var(--color-burp-600);
   text-decoration: underline;
-  text-decoration-color: var(--rule);
-  text-underline-offset: 0.25em;
-  transition:
-    color var(--speed) var(--ease),
-    text-decoration-color var(--speed) var(--ease);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  transition: color var(--speed) var(--ease);
 }
 
 .link:hover {
-  color: var(--color-burp-600);
-  text-decoration-color: currentColor;
+  color: var(--color-burp-700);
+}
+
+/*
+ * Märke — status, kategori, antal. Pillerform, som i mockuperna.
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 /* ── Köksskärmen ──────────────────────────────────────────────────────── */
@@ -328,10 +285,6 @@ body {
 
 /* ── Rörelse ──────────────────────────────────────────────────────────── */
 
-/*
- * Bilder tonas in när de laddats. En matbild som slår in hårt känns billig;
- * en som tonar upp känns som att sidan sätter sig.
- */
 @keyframes burp-fade-in {
   from {
     opacity: 0;

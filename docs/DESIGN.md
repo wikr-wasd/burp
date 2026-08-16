@@ -1,44 +1,54 @@
 # Burps designspråk
 
-Formspråket är en tryckt matbilaga, inte en SaaS-produkt. Papper i stället för
-vitt, antikva i rubrikerna, hårfina linjaler, spärrade versaler till metadata.
+Burp följer **123Connect Design System**. Tokens, typskala och komponentformer
+är lyfta ur `colors_and_type.css` i designprojektet, så att Burp och 123Connect
+ser ut att komma från samma hus.
 
-**Inga rundade hörn. Inga skuggor.** Det är signaturen, och den fungerar bara
-om den är undantagslös. En gäst som sett Burp en gång ska känna igen den, och
-igenkänning kommer av konsekvens — inte av effekter.
+Det var ett val av **släktskap framför särart**, fattat 2026-08-16. Burp hade
+dessförinnan en egen redaktionell form — papper, antikva, inga rundade hörn.
+Den var ovanligare och därmed mer minnesvärd, men Burp och 123Connect är samma
+avsändare och ska se ut så.
 
 ---
 
-## Färgerna ska göra mat aptitlig
+## Färger
 
-Det är hela urvalskriteriet. Varmt, inte neutralt; kryddfärger, inte
-gränssnittsfärger. Blått och kallt grönt finns inte i paletten, av samma skäl
-som de inte finns på en tallrik.
+| Roll | Värde | Används till |
+|---|---|---|
+| Handlingsrött | `#dc2626`, hover `#b91c1c` | Varje primärknapp, aktiva lägen |
+| Ytor | `#ffffff` på `#f3f4f6` | Kort på bakgrund |
+| Text | `#111827` / dämpad `#6b7280` | Brödtext och metadata |
+| Guld | `#d97706` ljust, `#fbbf24` mörkt | Betyg. Ska glimma, inte trycka |
+| Grönt | `#16a34a` | Bekräftelse, öppen nota |
+| Kant | `#e5e7eb` avdelare, `#9ca3af` kontroll | Se nedan |
 
-| Token | Ljust | Mörkt | Roll |
-|---|---|---|---|
-| `--background` | Varmt benvit | Espresso | Ren vit får mat att se blek ut. Ett neutralt mörkt läge drar blått ur bilderna |
-| `--foreground` | Nästan svart, varm | Varmt benvit | Text |
-| `--muted` | Dämpad brun | Ljus varmgrå | Metadata, ingresser |
-| `--color-burp-600` | Djup tomat | samma | Huvudaccent. Det som ska tryckas |
-| `--star` | Mörk saffran | Ljus saffran | Betyg. Ska glimma, inte trycka |
-| `--rule` | Hårfin | Hårfin | Avdelare. **Dekor — ingen kontrast krävs** |
-| `--rule-control` | 3,6:1 mot papper | 3,5:1 mot botten | Kant på något man trycker på eller skriver i |
+**Burp använder inte** systemets lila och rosa marknadsföringsgradienter. De hör
+till 123Connects säljsidor; här skulle de konkurrera med maten, som är det enda
+som ska sticka ut på en matmarknadsplats.
 
-### Två linjaler, inte en
+### Två kanter, inte en
 
-`--rule` är dekor. `--rule-control` är en kontrolls kant och håller 3:1, enligt
-WCAG 1.4.11. Kravet är inte formalia: fälten ritade en gång sin enda
-avgränsning med `--rule` och gav 1,41:1 mot pappret — i praktiken osynliga
-tills de fokuserades, och jag såg sidan flera gånger utan att reagera.
+`--rule` är en avdelare och behöver ingen kontrast. `--rule-control` är kanten
+på något man trycker på eller skriver i och håller 3:1 enligt WCAG 1.4.11.
+Kravet är inte formalia: fälten ritade en gång sin enda avgränsning med den
+svagare tonen och blev osynliga tills de fokuserades.
 
-Använd `--rule-control` på varje `button`, `input`, `select` och `textarea` som
-ritar en egen kant.
+### Mörkt läge
 
-### Två accenter, inte fler
+Designsystemet dokumenterar inget. Burp behöver ett ändå: QR-menyn läses vid ett
+bord på kvällen, ofta i en mörk lokal, och en vit skärm i ansiktet är inte en
+detalj utan hela upplevelsen. Samma gråskala, spegelvänd.
 
-Rött bär handling. Saffran bär betyg. En tredje accent gör att ingen av dem
-längre betyder något.
+---
+
+## Typografi
+
+**Geist**, en familj till både rubrik och brödtext — vikten är skillnaden.
+`latin-ext` är inte valfritt: Ćevabdžinica och Tri Šešira faller annars tillbaka
+på ett systemtypsnitt mitt i ett ord.
+
+Rubriker är feta med tät spärrning (`-0.025em`). Klassen heter fortfarande
+`.font-display` av historiska skäl men betyder nu fet grotesk, inte antikva.
 
 ---
 
@@ -49,13 +59,14 @@ eller en egen kantlinje i en komponent.
 
 | Klass | Till vad |
 |---|---|
-| `.font-display` | Rubriker. Aldrig under ~1,5rem — antikvan blir oläslig liten |
+| `.font-display` | Rubriker. Fet grotesk, tät spärrning |
 | `.label-caps` | Metadata: stad, kategori, sektionsetikett |
 | `.rule` | Avdelare mellan sektioner |
-| `.card` | Yta som ligger på pappret. Ingen skugga |
+| `.card` | Vit yta, rundade hörn, låg skugga |
 | `.btn` + `.btn-primary` / `.btn-secondary` | Alla knappar. Minst 44 px höga |
-| `.field` | Alla textfält. Understruken linje, inte ruta |
-| `.link` | Länk i löpande text. Understruken redan i viloläge |
+| `.field` | Alla textfält. Rundad ruta |
+| `.link` | Länk i löpande text. Röd och understruken i viloläge |
+| `.badge` | Status, kategori, antal. Pillerform |
 
 Regeln finns för att produkten en gång talade tre designspråk samtidigt:
 startsidan i antikva, stadssidan i fet grotesk, inloggningen i varken eller.
