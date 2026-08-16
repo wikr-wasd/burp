@@ -9,90 +9,98 @@ snabbt.
 
 ---
 
+## Var vi står
+
+Senast uppdaterad **2026-08-16**, branch `dev`, commit `5df10ce`.
+
+Fas 1 är byggd i sin helhet. Produkten går att använda rakt igenom: en gäst
+skannar en dekal, beställer vid bordet, ser sin nota och sin orderstatus;
+köket ser beställningen; personalen kvitterar betalningen i kassan. Allt utom
+kortbetalning fungerar, och kortbetalning är blockerad av ett beslut, inte av
+kod.
+
+Det som återstår är i tur och ordning:
+
+1. **Tre beslut** som ligger hos William (nedan). Två av dem blockerar lansering.
+2. **Notiser** — den enda funktionella luckan som varken är blockerad eller
+   beslutsberoende. Ingen får veta att en order kommit.
+3. **Att se produkten på riktig hårdvara** — telefon och surfplatta. Byggd för
+   båda, provad på ingen.
+4. Fas 2 och framåt: karta, surfplatta vid bordet, mobilapp.
+
+### Två spärrar som gäller varje session
+
+Båda står utförligt i `CLAUDE.md`, men de kostar tid varje gång de glöms:
+
+- **`smoke.sh` går inte att köra på den här maskinen.** `bash` är WSL2, inte
+  Git Bash, och WSL2:s loopback är inte Windows. `curl` svarar `000` på varje
+  rad medan appen svarar 200 — det ser ut som att hela appen ligger nere.
+  Windows-`curl.exe` når appen och används i stället.
+- **Claude skriver inte in lösenord i formulär**, inte ens seedens. Allt bakom
+  inloggning — dashboard, kassa, backoffice — är därför verifierat med
+  typkontroll, lint, test, bygge och direkta SQL-körningar mot RLS, men aldrig
+  sett i en webbläsare. Raderna nedan säger vilka det gäller.
+
+RLS går däremot att testa utan inloggning: `request.jwt.claims` kan sättas i
+psql, så policyerna kan köras som vilken användare som helst. Det gjordes för
+migration 0024 och är mönstret att följa för nästa.
+
+---
+
 ## Väntar på beslut — William
 
-Ingenting går vidare här utan svar. Båda blockerar lansering.
+Ingenting går vidare här utan svar.
 
-- [ ] **Betalväg.** Se `OPEN-QUESTIONS.md` fråga 5. Det svåra är utbetalningar
-      till restauranger i Bosnien och Serbien, som ligger utanför EU/EES — inte
-      att ta emot kort. Betalning på plats fungerar idag och är möjligen rätt
-      v1; det avgör om frågan blockerar lansering eller bara intäktsmodellen.
-      **Fråga 6 är besvarad — gästen ska kunna betala i plattformen — men den
-      raden kan inte byggas förrän den här frågan har ett svar.**
-      Kontantregistreringen är däremot byggd, se **Kassan** nedan.
-- [ ] **Supabase och Vercel i molnet.** Kräver inloggning. Supabase-orgen har
-      två projektplatser på gratisnivån och båda är upptagna av 123Connect —
+- [ ] **Betalväg.** `OPEN-QUESTIONS.md` fråga 5. **Blockerar lansering av
+      kortbetalning.** Det svåra är utbetalningar till restauranger i Bosnien
+      och Serbien, som ligger utanför EU/EES — inte att ta emot kort. Fråga 6 är
+      besvarad (gästen ska kunna betala i plattformen), men den raden kan inte
+      byggas förrän den här har ett svar. Betalning på plats fungerar idag och
+      är möjligen rätt v1; det avgör om frågan blockerar lansering eller bara
+      intäktsmodellen.
+- [ ] **Fiskalisering.** `OPEN-QUESTIONS.md` fråga 4. **Kan blockera lansering
+      helt.** Kroatien och Serbien kräver realtidsrapportering av kvitton. Tre
+      länder, tre lokala jurister.
+- [ ] **Supabase och Vercel i molnet.** Kräver din inloggning. Supabase-orgen
+      har två projektplatser på gratisnivån och båda är upptagna av 123Connect —
       antingen uppgradering eller ett frigjort projekt.
-- [ ] **Fiskalisering.** `OPEN-QUESTIONS.md` fråga 4. Kroatien och Serbien
-      kräver realtidsrapportering av kvitton. Tre länder, tre lokala jurister.
+- [ ] **Ska en QR-gäst kunna välja "ta med"?** Följdfråga ur jämförelsen med
+      Qopla. De frågar det före menyn, vilket är fel läge för någon som just
+      satt sig vid ett bord — men frågan i sig är rimlig för en ćevabdžinica.
+      Kräver ett beslut, inte kod: `orders.type` har redan `PICKUP`.
 
 ---
 
 ## Näst på tur
 
-- [x] ~~Ikoner på de sista ytorna.~~ Sökknapp, betyg, öppetmärken,
-      vägbeskrivning, kopiera adress, personalytornas navigering, varukorgen,
-      QR-menyns sökruta, kvittots statussteg och samtliga tomma tillstånd.
-      De tomma tillstånden delar numera en byggsten (`EmptyState`) i stället
-      för att vara en grå mening formulerad på nio olika sätt.
-      **Sett i webbläsaren:** gästytorna. **Inte sett:** personalytornas och
-      backoffices tomma tillstånd — de kräver inloggning, och jag skriver inte
-      in lösenord. Samma spärr som raden om backoffice längre ned.
-
-- [ ] **QR-menyn mätt mot Qopla.** Referens:
-      `qopla.com/restaurant/partille-sushi/…/order?qr=1`. Klart efter
-      jämförelsen: sökruta, markerad avdelning i den klistrade raden,
-      prisintervall ("Från 16,00 KM") och kvittens på kortet när en rätt läggs
-      till. Kvar att bedöma: om gästen vid bordet ska kunna välja **ta med**
-      i stället för att äta på plats — Qopla frågar det före menyn, vilket är
-      fel läge för en QR-gäst, men frågan i sig är rimlig för en ćevabdžinica.
-      Kräver ett beslut, inte kod.
-- [x] ~~Platshållarbilderna i takt med paletten.~~ Tonerna dämpades och två togs
-      bort: rödbetan var i praktiken magenta, vilket designspråket förbjuder,
-      och tomaten låg så nära handlingsfärgen att en tallrik läste som en stor
-      knapp. Kvar är sju varma toner i apelsin, tegel, saffran och kanel.
-      Ersätts ändå av riktiga fotografier när de kommer in.
-- [x] ~~Designbytet på alla ytor.~~ Startsida, stadssida, kökssida,
-      restaurangsida, QR-meny, kvitton, kontosidor, dashboard och backoffice.
-      Köksskärmen står utanför med flit — stora träffytor på några meters håll.
-- [x] ~~Restaurangansökan.~~ `/anslut` för restauranger, och "Lägg upp en
-      restaurang" i backoffice för Burp. Kvar: ingen notis går ut när en
-      ansökan kommer in — se nedan.
-- [x] ~~Kassan.~~ `/dashboard/kassa`. Slutförda order från det senaste dygnet,
-      delade i att kvittera och kvitterat. Personalen skriver in vad som
-      faktiskt togs emot; avvikelsen mot notan räknas ut och visas innan man
-      trycker, eftersom avrundning och rabatt i lokalen ska synas och inte
-      stoppas. Spärrarna ligger i databasen: en kontantrad per order, ingen
-      UPDATE, ingen DELETE. **Sedd i webbläsaren: nej** — kräver inloggning.
-      Policyerna är i stället körda direkt mot databasen, tretton fall.
 - [ ] **Notiser.** Ingen e-post, ingen push. Restaurangen vet inte att en order
-      kommit om ingen stirrar på köksskärmen.
-- [ ] **Karta över alla restauranger.** Beslutad. Koordinater och OSM-inbäddning
-      finns redan.
-- [ ] **Surfplatta vid bordet.** Beslutad. Delar mycket med QR-flödet.
-- [ ] **Mobilapp (React Native).** Beslutad. `@burp/core` är byggt för att delas.
-
+      kommit om ingen stirrar på köksskärmen, och ingen får veta när en
+      restaurangansökan kommer in via `/anslut`. Den enda funktionella luckan i
+      Fas 1 som inte väntar på ett beslut — börja här.
+- [ ] **Mobilvyn sedd på riktigt.** Verifierad strukturellt (inget element utan
+      radbrytning är bredare än 390 px) men aldrig sedd på en telefon.
+      QR-flödet lever på telefon och har högst kvalitetskrav i produkten.
+- [ ] **Köksskärmen på en surfplatta.** Byggd för det, aldrig provad på en.
+- [ ] **Backoffice genomgången i webbläsaren.** Översikt, restauranger, media.
+      Påbörjad men inte gjord: utloggningen kräver POST, så ett tidigare
+      kontobyte tog inte och fel roll granskades. Logga in som `burp@burp.test`
+      via formuläret, inte genom att navigera till `/logga-ut`.
+      **Behöver göras av William** — se spärren om lösenord ovan.
+- [ ] **Kassan och personalytornas tomma tillstånd sedda i webbläsaren.**
+      Samma spärr. Logga in som `agare@burp.test` och gå till Kassa. Det som
+      behöver ögon är om beloppsfältet och avvikelseraden känns rätt i handen —
+      att reglerna håller är mätt mot databasen.
 - [ ] **Riktiga bilder i seed-datan.** Platshållaren är så bra den kan bli;
       nästa steg kräver fotografier. Utan dem går det inte att bedöma hur
       sajten faktiskt ser ut för en gäst.
-- [x] ~~Meny i seed-datan som går att bedöma.~~ Tre rätter räckte inte:
-      kategorinavigeringen hade inget att navigera i, sökrutan visades aldrig
-      och inget slutsålt kort syntes. Nu 27 rätter i sex avdelningar, en
-      obligatorisk storleksgrupp och en slutsåld dryck.
-- [ ] **Mobilvyn sedd på riktigt.** Verifierad strukturellt (inget element
-      utan radbrytning är bredare än 390 px) men aldrig sedd. QR-flödet lever
-      på telefon.
-- [ ] **Köksskärmen på en surfplatta.** Byggd för det, aldrig provad på en.
-- [x] ~~Personalytorna genomgångna sida för sida i webbläsaren.~~ Hittade två
-      fel: sju ifyllda röda veckodagsknappar, och en navigering som markerade
-      "Order" på varje undersida. Backoffice återstår.
-- [ ] **Backoffice genomgången i webbläsaren.** Översikt, restauranger, media.
-      Påbörjad men inte gjord: utloggningen kräver POST, så mitt kontobyte tog
-      inte och jag granskade fel roll. Logga in som `burp@burp.test` via
-      formuläret, inte genom att navigera till `/logga-ut`.
-      **Den här behöver du göra, William** — jag skriver inte in lösenord i
-      formulär, inte ens seedens. Allt bakom inloggning är därför verifierat
-      med typkontroll, lint, test och bygge, men aldrig sett.
+
+### Fas 2 och framåt
+
+- [ ] **Karta över alla restauranger.** Beslutad. Koordinater och
+      OSM-inbäddning finns redan.
+- [ ] **Surfplatta vid bordet.** Beslutad. Delar mycket med QR-flödet.
+- [ ] **Mobilapp (React Native).** Beslutad. `@burp/core` är byggt för att
+      delas och importerar aldrig något runtime-beroende.
 
 ---
 
@@ -116,7 +124,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 
 ## Klart
 
-Fas 1 i sin helhet, utom det som väntar på beslut ovan.
+### Fas 1 — grunden
 
 - [x] Monorepo, `@burp/core`, Next.js-app, Supabase-migrationer med RLS
 - [x] QR-beställning vid bordet — meny, varukorg, kassa, kvitto
@@ -126,14 +134,72 @@ Fas 1 i sin helhet, utom det som väntar på beslut ovan.
 - [x] Kundpanel, lojalitetspoäng, omdömen med restaurangsvar
 - [x] Google-synlighet: sitemap med hreflang, robots, landningssidor per stad
       och kök, schema.org med öppettider
+- [x] Egen 404 och felsida
+- [x] Schemalagd tillgänglighet (`item_availability`) — skrivning, läsning
+      **och** kontroll i API:t
+
+### Marknad och språk
+
 - [x] **Land och valuta per restaurang** — BA, HR, RS, SE. Valutan fryses på
       ordern; belopp från olika valutor summeras aldrig
+- [x] **Två språk** — svenska och engelska. Språket i URL:en för indexerade
+      ytor, via `Accept-Language` för QR och kvitton
 - [x] **Restaurangens egen sida**, redigerbar av restaurangen: presentation,
       bild, kökstyper, prisklass, adress, kartnål
-- [x] **Kartor** — Google Maps, Apple Kartor, Waze, plus karta via OSM
-- [x] **Två språk** — svenska och engelska, språket i URL:en för indexerade
-      ytor och via Accept-Language för QR och kvitton
-- [x] **Ett designspråk** i hela produkten, med mätt kontrast
-- [x] Schemalagd tillgänglighet (`item_availability`) — skriv, läs och
-      kontroll i API:t
-- [x] Egen 404 och felsida
+- [x] **Kartor** — Google Maps, Apple Kartor, Waze, plus inbäddad OSM-karta
+- [x] **Restaurangansökan** — `/anslut` för restauranger, "Lägg upp en
+      restaurang" i backoffice för Burp
+
+### Pengar
+
+- [x] **Kassan** (`/dashboard/kassa`). Slutförda order från det senaste dygnet,
+      delade i att kvittera och kvitterat. Personalen skriver in vad som
+      faktiskt togs emot; avvikelsen mot notan räknas ut och visas innan man
+      trycker, eftersom avrundning och rabatt i lokalen ska synas och inte
+      stoppas. Spärrarna ligger i databasen (migration 0024): en kontantrad per
+      order, ingen UPDATE, ingen DELETE. Policyerna körda direkt mot databasen,
+      tretton fall. **Inte sedd i webbläsaren.**
+- [x] **Avgiftsunderlaget avgjort** — `GROSS_ITEMS`, kortavgiften ovanpå.
+      `OPEN-QUESTIONS.md` fråga 1, besvarad 2026-08-16.
+
+### Design och form
+
+- [x] **Ett designspråk** i hela produkten, med mätt kontrast. 123Connects
+      tokens; startsida, stadssida, kökssida, restaurangsida, QR-meny, kvitton,
+      kontosidor, dashboard och backoffice. Köksskärmen står utanför med flit —
+      stora träffytor på några meters håll
+- [x] **Ikoner där de bär betydelse.** Sökknapp, betyg, öppetmärken,
+      vägbeskrivning, kopiera adress, personalytornas navigering, varukorgen,
+      QR-menyns sökruta, kvittots statussteg och samtliga tomma tillstånd. De
+      tomma tillstånden delar en byggsten (`EmptyState`) i stället för att vara
+      en grå mening formulerad på nio olika sätt
+- [x] **Platshållarbilderna i takt med paletten.** Två toner ströks: rödbetan
+      var i praktiken magenta, vilket designspråket förbjuder, och tomaten låg
+      så nära handlingsfärgen att en tallrik läste som en stor knapp
+
+### QR-menyn mätt mot Qopla
+
+Referens: `qopla.com/restaurant/partille-sushi/…/order?qr=1`.
+
+- [x] **Sökruta** i menyn, från tio rätter och uppåt. Diakriterna viks bort åt
+      båda håll — "cevapi" hittar "Ćevapi", "kottfars" hittar "köttfärsbiff"
+- [x] **Markerad avdelning** i den klistrade raden, så att den är en
+      positionsvisare och inte bara genvägar
+- [x] **Prisintervall** — "Från 16,00 KM" när ett obligatoriskt val kan höja
+      priset. Räknas i `@burp/core`, aldrig i komponenten
+- [x] **Kvittens på kortet** när en rätt läggs till, plus en uppläst rad för
+      den som inte ser skärmen
+- [x] **Meny i seed-datan som går att bedöma.** Tre rätter räckte inte:
+      kategorinavigeringen hade inget att navigera i, sökrutan visades aldrig
+      och inget slutsålt kort syntes. Nu 27 rätter i sex avdelningar, en
+      obligatorisk storleksgrupp och en slutsåld dryck
+
+### Genomgångar i webbläsaren
+
+- [x] **Personalytorna sida för sida.** Hittade två fel: sju ifyllda röda
+      veckodagsknappar, och en navigering som markerade "Order" på varje
+      undersida
+- [x] **Gästytorna** — startsida, QR-meny, kvitto. Hittade två oöversatta ytor:
+      bordskvittot skrev "Mat och dryck" och "Dricks" på svenska mitt i en sida
+      som väljer språk på `Accept-Language`, och omdömeslistan var helsvensk på
+      den engelska restaurangsidan, som Google indexerar
