@@ -42,6 +42,7 @@ export function CityRestaurantList({
     <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
       {restaurants.map((restaurant) => {
         const hours = todaysHours(restaurant.openingHours, restaurant.timeZone);
+        const open = Boolean(hours);
         const meta = [
           restaurant.cuisines.join(" · ") || null,
           priceTierLabel(restaurant.priceTier, restaurant.currency),
@@ -53,44 +54,56 @@ export function CityRestaurantList({
           <li key={restaurant.id}>
             <Link
               href={localePath(locale, `/r/${restaurant.citySlug}/${restaurant.slug}`)}
-              className="group flex h-full flex-col focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burp-600"
+              className="card group flex h-full flex-col overflow-hidden transition-shadow duration-[var(--speed)] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
             >
-              <FoodImage
-                src={restaurantImage(
-                  restaurant.name,
-                  restaurant.city,
-                  restaurant.heroImageUrl,
-                )}
-                alt=""
-              />
-
-              <div className="mt-4 flex items-baseline justify-between gap-3">
-                <h2 className="font-display text-2xl group-hover:text-burp-600">
-                  {restaurant.name}
-                </h2>
-                {restaurant.ratingCount > 0 && restaurant.ratingAverage !== null ? (
-                  <span className="shrink-0 text-sm tabular-nums">
-                    <span aria-hidden="true" className="text-[var(--star)]">
-                      ★
-                    </span>{" "}
-                    {restaurant.ratingAverage.toFixed(1).replace(".", ",")}
-                    <span className="text-[var(--muted)]"> ({restaurant.ratingCount})</span>
-                  </span>
-                ) : null}
+              <div className="relative">
+                <FoodImage
+                  src={restaurantImage(
+                    restaurant.name,
+                    restaurant.city,
+                    restaurant.heroImageUrl,
+                  )}
+                  alt=""
+                />
+                <span
+                  className={`badge absolute top-3 left-3 backdrop-blur ${
+                    open
+                      ? "bg-green-600/90 text-white"
+                      : "bg-[var(--surface)]/90 text-[var(--muted)]"
+                  }`}
+                >
+                  {open ? `Idag ${hours}` : "Stängt idag"}
+                </span>
               </div>
 
-              {meta ? <p className="label-caps mt-1.5">{meta}</p> : null}
+              <div className="flex flex-1 flex-col p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="font-display text-lg group-hover:text-burp-600">
+                    {restaurant.name}
+                  </h2>
+                  {restaurant.ratingCount > 0 && restaurant.ratingAverage !== null ? (
+                    <span className="shrink-0 text-sm tabular-nums">
+                      <span aria-hidden="true" className="text-[var(--star)]">
+                        ★
+                      </span>{" "}
+                      {restaurant.ratingAverage.toFixed(1).replace(".", ",")}
+                      <span className="text-[var(--muted)]"> ({restaurant.ratingCount})</span>
+                    </span>
+                  ) : null}
+                </div>
 
-              {restaurant.description ? (
-                <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
-                  {restaurant.description}
+                {meta ? <p className="label-caps mt-1">{meta}</p> : null}
+
+                {restaurant.description ? (
+                  <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
+                    {restaurant.description}
+                  </p>
+                ) : null}
+
+                <p className="mt-auto pt-3 text-sm text-[var(--muted)]">
+                  {restaurant.streetAddress}
                 </p>
-              ) : null}
-
-              <p className="mt-auto pt-3 text-sm text-[var(--muted)]">
-                {restaurant.streetAddress}
-                {hours ? ` · idag ${hours}` : ""}
-              </p>
+              </div>
             </Link>
           </li>
         );

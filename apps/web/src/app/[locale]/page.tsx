@@ -178,9 +178,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
           ) : null}
         </div>
 
-        <hr className="rule mt-8" />
-
-        <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+        <div className="mt-10 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <h2 className="label-caps">
             {activeCity ? t.city.title(activeCity.name) : t.home.allRestaurants}
           </h2>
@@ -211,7 +209,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
           byCity.map((group) => (
             <section key={group.slug} className="mt-12 first:mt-8">
               <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                <h3 className="font-display text-3xl">{group.name}</h3>
+                <h3 className="font-display text-2xl">{group.name}</h3>
                 <Link
                   href={localePath(locale, `/${group.slug}`)}
                   className="link text-sm whitespace-nowrap"
@@ -220,9 +218,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
                 </Link>
               </div>
 
-              <hr className="rule mt-3" />
-
-              <ul className="mt-6 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="mt-5 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
                 {group.restaurants.map((restaurant) => (
                   <li key={restaurant.id}>
                     <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
@@ -457,35 +453,53 @@ function RestaurantCard({
   restaurant: DiscoveryRestaurant;
 }) {
   const hours = todaysHours(restaurant.openingHours, restaurant.timeZone);
+  const open = Boolean(hours);
 
   return (
     <Link
       href={localePath(locale, `/r/${restaurant.citySlug}/${restaurant.slug}`)}
-      className="group flex h-full flex-col focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burp-600"
+      className="card group flex h-full flex-col overflow-hidden transition-shadow duration-[var(--speed)] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
     >
-      <FoodImage
-        src={restaurantImage(restaurant.name, restaurant.city, restaurant.heroImageUrl)}
-        alt=""
-      />
+      {/* Bilden går kant i kant med kortet — `overflow-hidden` på kortet
+          klipper hörnen åt den, i stället för att bilden bär sin egen radie
+          och de två råkar skilja sig med en pixel. */}
+      <div className="relative">
+        <FoodImage
+          src={restaurantImage(restaurant.name, restaurant.city, restaurant.heroImageUrl)}
+          alt=""
+        />
 
-      <h3 className="font-display mt-4 text-2xl group-hover:text-burp-600">
-        {restaurant.name}
-      </h3>
-
-      <p className="label-caps mt-1.5">{meta(restaurant)}</p>
-
-      {restaurant.description ? (
-        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
-          {restaurant.description}
-        </p>
-      ) : null}
-
-      <p className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-3 text-sm">
-        <Rating t={t} restaurant={restaurant} />
-        <span className="text-[var(--muted)]">
-          {hours ? t.home.todayHours(hours) : t.home.closedToday}
+        {/* Öppetmärket ligger på bilden, där ögat redan är. Grönt för öppet,
+            neutralt för stängt — stängt är ingen varning, bara en upplysning. */}
+        <span
+          className={`badge absolute top-3 left-3 backdrop-blur ${
+            open
+              ? "bg-green-600/90 text-white"
+              : "bg-[var(--surface)]/90 text-[var(--muted)]"
+          }`}
+        >
+          {open ? t.home.todayHours(hours!) : t.home.closedToday}
         </span>
-      </p>
+      </div>
+
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-display text-lg group-hover:text-burp-600">
+            {restaurant.name}
+          </h3>
+          <span className="shrink-0 text-sm">
+            <Rating t={t} restaurant={restaurant} />
+          </span>
+        </div>
+
+        <p className="label-caps mt-1">{meta(restaurant)}</p>
+
+        {restaurant.description ? (
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
+            {restaurant.description}
+          </p>
+        ) : null}
+      </div>
     </Link>
   );
 }

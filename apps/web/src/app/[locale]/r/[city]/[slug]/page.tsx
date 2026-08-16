@@ -197,7 +197,7 @@ export default async function RestaurantPage({ params }: PageProps) {
         src={restaurantImage(restaurant.name, restaurant.city, resolveMediaUrl(restaurant.hero_image_url))}
         alt=""
         ratio="aspect-[16/9] sm:aspect-[21/9]"
-        className="mt-6"
+        className="mt-6 overflow-hidden rounded-xl"
         priority
       />
 
@@ -251,7 +251,7 @@ export default async function RestaurantPage({ params }: PageProps) {
           att leta. Ankarlänkar i stället för flikar: allt finns i HTML:en,
           Google indexerar hela sidan, och ingenting kräver JavaScript.
         */}
-        <nav aria-label={t.restaurant.onThisPage} className="mt-8 flex flex-wrap gap-x-1">
+        <nav aria-label={t.restaurant.onThisPage} className="mt-8 flex flex-wrap gap-2">
           {[
             { href: "#meny", label: t.restaurant.menu },
             { href: "#hitta-hit", label: t.restaurant.findUs },
@@ -260,7 +260,7 @@ export default async function RestaurantPage({ params }: PageProps) {
             <a
               key={entry.href}
               href={entry.href}
-              className="inline-flex min-h-11 items-center border-b-2 border-[var(--rule)] px-3 text-sm transition-colors duration-[var(--speed)] hover:border-burp-600 hover:text-burp-600"
+              className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule-control)] bg-[var(--surface)] px-4 text-sm font-medium transition-colors duration-[var(--speed)] hover:border-burp-600 hover:text-burp-600"
             >
               {entry.label}
             </a>
@@ -269,9 +269,8 @@ export default async function RestaurantPage({ params }: PageProps) {
       </header>
 
       {menu && menu.categories.length > 0 ? (
-        <section id="meny" className="mt-14">
-          <hr className="rule" />
-          <p className="label-caps mt-6">{t.restaurant.orderForPickup} · {menu.name}</p>
+        <section id="meny" className="mt-16">
+          <p className="label-caps">{t.restaurant.orderForPickup} · {menu.name}</p>
           <div className="mt-6">
             <MenuOrder
               menu={menu}
@@ -295,10 +294,9 @@ export default async function RestaurantPage({ params }: PageProps) {
       )}
 
       <section id="hitta-hit" className="mt-16">
-        <hr className="rule" />
-        <h2 className="font-display mt-6 text-3xl">{t.restaurant.findUs}</h2>
+        <h2 className="font-display text-3xl">{t.restaurant.findUs}</h2>
 
-        <div className="mt-6 grid gap-10 lg:grid-cols-2">
+        <div className="card mt-6 grid gap-10 p-6 lg:grid-cols-2">
           <div>
             <Directions
               locale={locale}
@@ -344,8 +342,7 @@ export default async function RestaurantPage({ params }: PageProps) {
           Betygen är kopplade till genomförda order, vilket är det som gör att
           AggregateRating i markupen ovan får publiceras. */}
       <section id="omdomen" className="mt-16">
-        <hr className="rule" />
-        <h2 className="font-display mt-6 text-3xl">{t.restaurant.reviews}</h2>
+        <h2 className="font-display text-3xl">{t.restaurant.reviews}</h2>
         {restaurant.rating_count > 0 && restaurant.rating_average !== null ? (
           <p className="mt-1 text-sm text-[var(--muted)]">
             {t.restaurant.reviewSummary(

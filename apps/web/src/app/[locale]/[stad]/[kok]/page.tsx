@@ -126,13 +126,11 @@ export default async function CuisinePage({ params }: PageProps) {
           {t.city.cuisineIntro(restaurants.length, cuisine, city.name)}
         </p>
 
-        <hr className="rule mt-8" />
-
+        
         <CityRestaurantList locale={locale} restaurants={restaurants} />
 
         {allCuisines.length > 1 ? (
           <nav aria-label={t.city.otherCuisines(city.name)} className="mt-16">
-            <hr className="rule" />
             <h2 className="label-caps mt-6">{t.city.otherCuisines(city.name)}</h2>
             <div className="mt-3 flex flex-wrap gap-x-1">
               {allCuisines
@@ -141,7 +139,7 @@ export default async function CuisinePage({ params }: PageProps) {
                   <Link
                     key={entry}
                     href={localePath(locale, `/${city.slug}/${slugifyCuisine(entry)}`)}
-                    className="inline-flex min-h-11 items-center border-b-2 border-transparent px-3 text-sm text-[var(--muted)] transition-colors duration-[var(--speed)] hover:border-burp-600 hover:text-burp-600"
+                    className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule-control)] bg-[var(--surface)] px-4 text-sm font-medium transition-colors duration-[var(--speed)] hover:border-burp-600 hover:text-burp-600"
                   >
                     {entry}
                   </Link>

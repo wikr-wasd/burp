@@ -118,7 +118,7 @@ export default async function CityPage({ params }: PageProps) {
         </p>
 
         {cuisines.length > 0 ? (
-          <nav aria-label={t.home.cuisine} className="mt-8 flex flex-wrap items-center gap-x-1 gap-y-1">
+          <nav aria-label={t.home.cuisine} className="mt-8 flex flex-wrap items-center gap-2">
             {/* Utan etiketten läser raden som brödtext. Gästen ska se på en
                 halv sekund att det är något att klicka på, inte en uppräkning. */}
             <span className="label-caps mr-3">{t.home.cuisine}</span>
@@ -126,7 +126,7 @@ export default async function CityPage({ params }: PageProps) {
               <Link
                 key={cuisine}
                 href={localePath(locale, `/${city.slug}/${slugifyCuisine(cuisine)}`)}
-                className="inline-flex min-h-11 items-center border-b-2 border-[var(--rule)] px-3 text-sm transition-colors duration-[var(--speed)] hover:border-burp-600 hover:text-burp-600"
+                className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule-control)] bg-[var(--surface)] px-4 text-sm font-medium transition-colors duration-[var(--speed)] hover:border-burp-600 hover:text-burp-600"
               >
                 {cuisine}
               </Link>
@@ -134,8 +134,7 @@ export default async function CityPage({ params }: PageProps) {
           </nav>
         ) : null}
 
-        <hr className="rule mt-8" />
-
+        
         <CityRestaurantList locale={locale} restaurants={restaurants} />
       </main>
 

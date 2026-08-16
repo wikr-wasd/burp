@@ -27,10 +27,10 @@ Ingenting går vidare här utan svar. Båda blockerar lansering.
 
 ## Näst på tur
 
-- [ ] **Designbytet klart på alla ytor.** Grunden (globals.css, typsnitt,
-      tokens) är bytt till 123Connect-systemet. Varje sida använder ännu det
-      gamla formspråkets klasser — kantiga kort, linjaler som sektionsdelare,
-      antikva-antaganden i layouten. Sidorna renderar, men de är inte omgjorda.
+- [ ] **Designbytet klart på alla ytor.** Klart: startsida, stadssida,
+      kökssida, restaurangsida — kort, piller, statusmärken, guldstjärnor.
+      Kvar: QR-menyn, kvittona, kontosidorna, dashboarden och backoffice, som
+      ännu använder linjaler som sektionsdelare. Ikoner (Lucide) saknas överallt.
 - [x] ~~Restaurangansökan.~~ `/anslut` för restauranger, och "Lägg upp en
       restaurang" i backoffice för Burp. Kvar: ingen notis går ut när en
       ansökan kommer in — se nedan.
