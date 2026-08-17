@@ -329,11 +329,20 @@ function Hero({
             {t.home.intro}
           </p>
 
+          {/*
+            Fältet är byggstenen `.field`, inte en egen linje.
+
+            Hjälten ritade tidigare en understruken rad ur den redaktionella
+            formen. Den var vacker och stod ensam om att vara det: varje annat
+            fält i produkten — QR-menyns sökruta, inloggningen, menyredigeraren
+            — är en rundad ruta. Ett fält som ser unikt ut på startsidan lär
+            gästen fel form.
+          */}
           <form
             action={localePath(locale, "/")}
             method="get"
             role="search"
-            className="mt-8 flex max-w-xl gap-0 border-b-2 border-[var(--foreground)] pb-1"
+            className="mt-8 flex max-w-xl gap-2"
           >
             {/* Sökningen ska inte tappa vald stad eller kökstyp. */}
             {city ? <input type="hidden" name="stad" value={city} /> : null}
@@ -342,21 +351,27 @@ function Hero({
             <label htmlFor="q" className="sr-only">
               {t.home.searchLabel}
             </label>
-            <input
-              id="q"
-              name="q"
-              type="search"
-              defaultValue={query ?? ""}
-              placeholder={t.home.searchPlaceholder}
-              autoComplete="off"
-              className="min-h-12 flex-1 bg-transparent text-lg outline-none placeholder:text-[var(--muted)] focus-visible:placeholder:opacity-60"
-            />
-            <button
-              type="submit"
-              className="min-h-12 shrink-0 px-2 text-sm font-medium tracking-[var(--tracking-label)] uppercase transition-colors hover:text-burp-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
-            >
-              <Search size={18} aria-hidden="true" />
-              <span className="sr-only sm:not-sr-only">{t.home.searchButton}</span>
+            <div className="relative flex-1">
+              <Search
+                size={18}
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--muted)]"
+              />
+              {/* `.field-search` bär indraget för ikonen. En Tailwind-klass för
+                  samma sak hade slagits ut tyst — olagrad CSS vinner över
+                  lagrad, oavsett ordning. Se kommentaren i globals.css. */}
+              <input
+                id="q"
+                name="q"
+                type="search"
+                defaultValue={query ?? ""}
+                placeholder={t.home.searchPlaceholder}
+                autoComplete="off"
+                className="field field-search"
+              />
+            </div>
+            <button type="submit" className="btn btn-primary shrink-0">
+              {t.home.searchButton}
             </button>
           </form>
 
@@ -385,11 +400,12 @@ function FilterRow({ label, children }: { label: string; children: React.ReactNo
 }
 
 /**
- * Filtret är en understruken etikett, inte en fylld pill.
+ * Ett filter. Byggstenen `.chip` i `globals.css`, samma som QR-menyns
+ * avdelningar — gästen ska lära sig formen en gång, inte en gång per yta.
  *
- * Aktivt filter markeras med rött och en linje under — samma sätt som en
- * tidning markerar den avdelning man läser. Höjden är 44 px även om texten är
- * liten; det är minsta trygga träffyta för en tumme.
+ * Filtret var tidigare en understruken etikett ur den redaktionella formen.
+ * Den läste som en tidningsavdelning, vilket var meningen då, men gick inte
+ * att skilja från en rubrik i den nuvarande formen.
  */
 function Chip({
   href,
@@ -404,11 +420,7 @@ function Chip({
     <Link
       href={href}
       aria-current={active ? "true" : undefined}
-      className={`inline-flex min-h-11 shrink-0 items-center border-b-2 px-3 text-sm whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600 ${
-        active
-          ? "border-burp-600 font-medium text-burp-600"
-          : "border-transparent text-[var(--muted)] hover:border-[var(--rule)] hover:text-[var(--foreground)]"
-      }`}
+      className={`chip ${active ? "chip-active" : ""}`}
     >
       {children}
     </Link>

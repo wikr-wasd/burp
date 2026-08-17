@@ -11,6 +11,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { STAFF_ROLE_LABELS } from "@burp/core";
+import { BurpMark } from "@/components/ui/burp-mark";
 import type { StaffContext } from "@/lib/auth";
 
 /**
@@ -51,9 +52,9 @@ export function StaffHeader({
         <Link
           href="/"
           aria-label="Burp — till startsidan"
-          className="font-display text-2xl leading-none transition-colors duration-[var(--speed)] hover:text-burp-600"
+          className="transition-opacity duration-[var(--speed)] hover:opacity-80"
         >
-          Burp
+          <BurpMark size="sm" />
         </Link>
 
         <div className="mr-auto border-l border-[var(--rule)] pl-6">

@@ -345,11 +345,41 @@ export function MenuOrder({
     <div className={cart.length > 0 ? "pb-44" : ""}>
       {showHeading ? (
         <header className="mb-10">
-          <p className="label-caps">
-            {context.kind === "TABLE"
-              ? fill(labels.table, { number: context.tableNumber })
-              : labels.pickup}
-          </p>
+          {/*
+            Bordsbannern.
+
+            Gästen har just riktat en kamera mot en dekal och blivit skickad
+            någonstans. Det första sidan måste svara på är inte "vad finns på
+            menyn" utan "kom jag rätt" — vilket bord, vilken restaurang. Grönt
+            därför att det är en bekräftelse, inte en varning.
+
+            Andra raden är lika viktig: den som aldrig beställt vid ett bord
+            väntar sig att bli ombedd att ladda ned något. Att säga att hen
+            inte behöver det tar bort tveksamheten innan den hinner uppstå.
+
+            Avhämtning får ingen banner. Där har gästen valt restaurangen
+            själv och behöver ingen bekräftelse på var hen hamnat.
+          */}
+          {context.kind === "TABLE" ? (
+            <div className="mb-6 flex items-center gap-3 rounded-[var(--radius)] border border-green-600/30 bg-green-600/10 p-4">
+              <span
+                aria-hidden="true"
+                className="h-2.5 w-2.5 shrink-0 rounded-full bg-green-600"
+              />
+              <div className="min-w-0">
+                {/* Bara bordet, inte restaurangen. Namnet står som rubrik
+                    direkt under — samma namn två gånger med tre centimeters
+                    mellanrum läser som ett fel, inte som en bekräftelse. */}
+                <p className="font-medium">
+                  {fill(labels.table, { number: context.tableNumber })}
+                </p>
+                <p className="text-sm text-[var(--muted)]">{labels.noAppNoAccount}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="label-caps">{labels.pickup}</p>
+          )}
+
           <h1 className="font-display mt-2 text-4xl sm:text-5xl">{restaurantName}</h1>
           <p className="mt-2 text-[var(--muted)]">{menu.name}</p>
         </header>
@@ -409,11 +439,7 @@ export function MenuOrder({
                 // `location` snarare än `current`: det är en position i sidan,
                 // inte den sida gästen står på.
                 aria-current={isActive ? "location" : undefined}
-                className={`inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600 ${
-                  isActive
-                    ? "border-burp-600 bg-burp-600 text-white"
-                    : "border-[var(--rule-control)] bg-[var(--surface)] hover:border-burp-600 hover:text-burp-600"
-                }`}
+                className={`chip ${isActive ? "chip-active" : ""}`}
               >
                 {category.name}
               </a>

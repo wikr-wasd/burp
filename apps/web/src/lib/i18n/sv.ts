@@ -22,6 +22,13 @@ export const sv = {
     breadcrumbs: "Brödsmulor",
     allCities: "Alla städer",
     language: "Språk",
+
+    /* Sidhuvudets navigering. */
+    discover: "Upptäck",
+    becomePartner: "Bli partner",
+    mainNav: "Huvudmeny",
+    searchLabel: "Sök efter restaurang eller maträtt",
+    searchPlaceholder: "Sök restauranger eller rätter",
   },
 
   home: {
@@ -116,6 +123,8 @@ export const sv = {
   menu: {
     table: "Bord {number}",
     pickup: "Avhämtning",
+    /* Bordsbannern. Bekräftar för gästen att koden gick till rätt bord. */
+    noAppNoAccount: "Ingen app. Inget konto. Beställ direkt.",
     sections: "Menyns avdelningar",
     search: "Sök i menyn",
     searchPlaceholder: "Sök efter en rätt",

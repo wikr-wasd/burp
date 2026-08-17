@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { BRAND_PAPER } from "@/lib/brand-glyph";
 
 /**
  * Webbmanifestet — det som gör Burp installerbar på hemskärmen.
@@ -22,8 +23,14 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait",
     lang: "sv-SE",
     dir: "ltr",
-    background_color: "#fdfcfb",
-    theme_color: "#c2410c",
+    /*
+     * Papperstonen, inte den röda accenten — samma värde som `themeColor` i
+     * layouten. De två stod på var sitt värde: layouten sa papper och
+     * manifestet rött, vilket gav olika systemfärg beroende på om gästen
+     * öppnat sajten eller startat den från hemskärmen.
+     */
+    background_color: BRAND_PAPER,
+    theme_color: BRAND_PAPER,
     categories: ["food", "shopping"],
     icons: [
       {

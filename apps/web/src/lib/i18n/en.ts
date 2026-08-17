@@ -27,6 +27,13 @@ export const en: Dictionary = {
     breadcrumbs: "Breadcrumbs",
     allCities: "All cities",
     language: "Language",
+
+    /* Header navigation. */
+    discover: "Discover",
+    becomePartner: "Become a partner",
+    mainNav: "Main menu",
+    searchLabel: "Search for a restaurant or dish",
+    searchPlaceholder: "Search restaurants or dishes",
   },
 
   home: {
@@ -106,6 +113,8 @@ export const en: Dictionary = {
   menu: {
     table: "Table {number}",
     pickup: "Pickup",
+    /* The table banner. Confirms to the guest that the code hit the right table. */
+    noAppNoAccount: "No app. No account. Just order.",
     sections: "Menu sections",
     search: "Search the menu",
     searchPlaceholder: "Find a dish",

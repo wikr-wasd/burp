@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BurpMark } from "@/components/ui/burp-mark";
 import { listCities, listCuisines } from "@/lib/discovery";
 import { dictionary, localePath, type Locale } from "@/lib/i18n";
 
@@ -24,8 +25,12 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <Link href={localePath(locale, "/")} className="font-display text-3xl">
-              Burp
+            <Link
+              href={localePath(locale, "/")}
+              aria-label={t.site.home}
+              className="transition-opacity duration-[var(--speed)] hover:opacity-80"
+            >
+              <BurpMark size="lg" />
             </Link>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-[var(--muted)]">
               {t.site.tagline}

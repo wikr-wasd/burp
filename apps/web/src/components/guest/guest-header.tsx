@@ -1,12 +1,13 @@
 import Link from "next/link";
+import { BurpMark } from "@/components/ui/burp-mark";
 import type { Guest } from "@/lib/guest";
 
 /**
  * Topprad för gästens konto.
  *
- * Bär samma vinjett som resten av sajten — antikva, inte fet grotesk. En gäst
- * som klickar sig från restaurangsidan till sina beställningar ska inte känna
- * att hen bytt produkt på vägen.
+ * Bär samma vinjett som resten av sajten. En gäst som klickar sig från
+ * restaurangsidan till sina beställningar ska inte känna att hen bytt produkt
+ * på vägen.
  */
 export function GuestHeader({
   guest,
@@ -21,9 +22,10 @@ export function GuestHeader({
         <div className="mr-auto">
           <Link
             href="/"
-            className="font-display text-2xl leading-none transition-colors duration-[var(--speed)] hover:text-burp-600"
+            aria-label="Burp — till startsidan"
+            className="transition-opacity duration-[var(--speed)] hover:opacity-80"
           >
-            Burp
+            <BurpMark size="sm" />
           </Link>
           <p className="label-caps mt-1">{guest.fullName ?? guest.email}</p>
         </div>
