@@ -1,3 +1,5 @@
+import { BUBBLE_PATH, BUBBLE_VIEWBOX } from "@/components/ui/burp-mark";
+
 /**
  * Märket ritat för `next/og` — favicon, iOS-ikon och PWA-ikonerna.
  *
@@ -11,9 +13,12 @@
  * nådde `globals.css` men inte de fyra genererade ikonerna, som låg kvar på
  * den redaktionella formens `#c2410c`.
  *
+ * Kurvan importeras däremot — `BUBBLE_PATH` är samma bézier som gränssnittet
+ * ritar. En handskriven kopia hade glidit isär utan att någon såg det.
+ *
  * Plattan ritas fylld ut i kanterna, utan rundade hörn. iOS och Android lägger
  * på sin egen mask; ritar vi hörnen själva syns de två gångerna som en ojämn
- * kant. Märket i gränssnittet har rundade hörn, ikonen ska inte ha det.
+ * kant. Bubblan är vit på röd platta, precis som i logotypförslaget.
  */
 
 /** `--color-burp-600` i `globals.css`. */
@@ -26,6 +31,10 @@ export const BRAND_RED_DARK = "#b91c1c";
 export const BRAND_PAPER = "#f3f4f6";
 
 export function BurpGlyph({ size }: { size: number }) {
+  // 0,58 av kanten fyller plattan utan att bubblan tuggar i kanten när
+  // Androids mask kapar hörnen.
+  const bubble = Math.round(size * 0.58);
+
   return (
     <div
       style={{
@@ -35,14 +44,15 @@ export function BurpGlyph({ size }: { size: number }) {
         alignItems: "center",
         justifyContent: "center",
         background: `linear-gradient(135deg, ${BRAND_RED}, ${BRAND_RED_DARK})`,
-        color: "#ffffff",
-        // 0,64 av kanten fyller plattan utan att B:et tuggar i kanten när
-        // Androids mask kapar hörnen.
-        fontSize: Math.round(size * 0.64),
-        fontWeight: 700,
       }}
     >
-      B
+      <svg
+        width={bubble}
+        height={Math.round((bubble * 36) / 40)}
+        viewBox={BUBBLE_VIEWBOX}
+      >
+        <path d={BUBBLE_PATH} fill="#ffffff" />
+      </svg>
     </div>
   );
 }

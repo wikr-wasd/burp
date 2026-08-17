@@ -118,25 +118,32 @@ rör den.
 
 ## Vinjetten
 
-Ett märke — röd ruta med ett B — följt av ordbilden **burp**, gemen.
+En röd **pratbubbla** följd av ordbilden **burp**, gemen. Förslag 1b ur
+`Burp Logo Concepts`, valt 2026-08-17.
+
+Bubblan betyder beställning och samtal vid bordet — det produkten faktiskt gör
+— och håller som siluett hela vägen ned till en 32 px favicon. Det gör inte de
+fyra graffitiförslagen med hård skugga och droppar.
 
 Ersatte ordet "Burp" satt i rubriktypsnittet. Ett ord är inget märke: det går
 inte att känna igen på en flik, i en inkorg eller på en dekal vid ett bord,
 vilket är tre av de fyra ställen produkten möter någon. Gement med flit —
 "BURP" i versaler läser som ett läte, gement läser det som ett namn.
 
-Gradienten mellan `--color-burp-600` och `--color-burp-700` är den enda i
-produkten. Designsystemets lila och rosa marknadsföringsgradienter används inte.
+`<BurpMark>` i `components/ui/burp-mark.tsx` bär bubblan och måtten,
+`globals.css` bara ordbilden. Bubblan är dekor och döljs för uppläsaren;
+ordbilden bär namnet. Utan ordbild måste den som anropar sätta `aria-label` på
+länken runt om.
 
-`<BurpMark>` i `components/ui/burp-mark.tsx` bär måtten, `globals.css` formen.
-Märket är dekor och döljs för uppläsaren; ordbilden bär namnet. Utan ordbild
-måste den som anropar sätta `aria-label` på länken runt om.
+**Kurvan finns i EN kopia.** `BUBBLE_PATH` exporteras ur `burp-mark.tsx` och
+importeras av `lib/brand-glyph.tsx`, som ritar favicon, iOS-ikonen och
+PWA-ikonerna. Två handskrivna bézierkurvor glider isär utan att någon ser det.
 
-**De genererade ikonerna läser ur `lib/brand-glyph.tsx`, inte ur temat.** Satori
-känner varken Tailwind eller CSS-variabler. Ändras märkesfärgen måste båda
-ändras — att de kan glida isär är inte en teori, de gjorde det i fyra månader:
-färgbytet nådde `globals.css` men inte favicon, apple-icon, PWA-ikonerna eller
-manifestets `theme_color`.
+**Färgerna gör det däremot inte.** Satori, som ritar ikonerna, känner varken
+Tailwind eller CSS-variabler, så `brand-glyph.tsx` bär råa hexvärden. Ändras
+märkesfärgen måste båda ändras — att de kan glida isär är inte en teori, de
+gjorde det i fyra månader: färgbytet nådde `globals.css` men inte favicon,
+apple-icon, PWA-ikonerna eller manifestets `theme_color`.
 
 ---
 

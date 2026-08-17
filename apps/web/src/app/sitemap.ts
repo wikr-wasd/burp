@@ -61,13 +61,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     }),
 
-    // Kartsidan. Listan renderas på servern och är indexerbar — kartan är det
-    // enda som kräver en webbläsare.
-    ...forEachLocale("/upptack", {
-      lastModified: new Date(),
-      changeFrequency: "daily" as const,
-      priority: 0.8,
-    }),
+    // Ingen egen rad för /upptack: den pekar permanent på startsidan sedan
+    // kartan flyttade dit. En sitemap som listar en omdirigering ber Google
+    // indexera en adress som inte finns.
 
     // Stadssidorna är landningssidorna för "ćevapi sarajevo"-sökningar och är
     // därför viktigare än enskilda restauranger.

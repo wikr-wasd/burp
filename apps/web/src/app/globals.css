@@ -1,6 +1,21 @@
 @import "tailwindcss";
 
 /*
+ * `dark:` betyder "vid bordet", inte "telefonen står i mörkt läge".
+ *
+ * Tailwinds standard är `prefers-color-scheme`, vilket var rätt så länge hela
+ * produkten följde systemet. Sedan mörkt läge begränsades till QR-ytan (öppen
+ * fråga 9) hade den standarden gjort tvärtom mot vad den skulle: ett `dark:`
+ * på startsidan hade slagit till på en maskin i mörkt läge och lagt ljusröd
+ * text på vitt papper.
+ *
+ * Ett steg här i stället för sjuttio ändrade klassnamn i komponenterna. Varje
+ * befintligt `dark:` betyder nu precis det det alltid menade — "när ytan är
+ * mörk" — och den enda ytan som är det är bordet.
+ */
+@custom-variant dark (&:where(.theme-table, .theme-table *));
+
+/*
  * Burps designspråk — 123Connect-systemet.
  *
  * Tokens och skala är lyfta ur 123Connect Design System (colors_and_type.css)
@@ -75,17 +90,36 @@
 
   --ease: cubic-bezier(0.2, 0, 0, 1);
   --speed: 180ms;
+
+  /* Produkten är ljus. Ytan vid bordet slår om det, se `.theme-table`. */
+  color-scheme: light;
 }
 
 /*
- * Mörkt läge.
+ * Mörkt läge — bara vid bordet.
  *
- * Designsystemet dokumenterar inget, men Burp behöver ett: QR-menyn läses vid
+ * Skälet till mörkt läge är platsbundet och gäller EN yta: QR-menyn läses vid
  * ett bord på kvällen, ofta i en mörk lokal, och en vit skärm i ansiktet är
- * inte en detalj utan hela upplevelsen. Samma gråskala, spegelvänd.
+ * inte en detalj utan hela upplevelsen. Kvittot hör till samma stund och samma
+ * bord.
+ *
+ * Det skälet gäller inte startsidan, kartan, dashboarden eller backoffice. De
+ * låg ändå i mörkt läge så länge villkoret satt på `:root`, vilket betydde att
+ * marknadsföringsytorna såg helt annorlunda ut än designen på varannan maskin —
+ * samma tokens, spegelvända, men det läser som ett annat designspråk.
+ *
+ * Beslutat 2026-08-17 (öppen fråga 9). Ytan som vill ha mörkt läge sätter
+ * `.theme-table` på sitt yttersta element; resten av produkten är alltid
+ * papper.
  */
+.theme-table {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  .theme-table {
     --background: #111827;
     --surface: #1f2937;
     --foreground: #f9fafb;
@@ -94,6 +128,10 @@
     --rule-control: #6b7280;
     --surface-muted: #374151;
     --star: #fbbf24;
+
+    /* Formkontroller — kryssrutor, rullgardiner, rullningslister — ritas av
+       webbläsaren och läser den här, inte våra variabler. */
+    color-scheme: dark;
   }
 }
 
@@ -163,31 +201,22 @@ body {
 /* ── Vinjetten ────────────────────────────────────────────────────────── */
 
 /*
- * Burps märke: en röd ruta med ett B, följt av ordbilden "burp".
+ * Burps märke: en röd pratbubbla följd av ordbilden "burp".
  *
- * Ersatte ordet "Burp" satt i rubriktypsnittet. Ett ord är inget märke — det
+ * Förslag 1b ur logotypskisserna, valt 2026-08-17. Bubblan betyder beställning
+ * och samtal vid bordet — det produkten faktiskt gör — och håller som siluett
+ * hela vägen ned till en 32 px favicon.
+ *
+ * Ersatte ordet "Burp" satt i rubriktypsnittet. Ett ord är inget märke: det
  * går inte att känna igen på en flik, i en inkorg eller på en dekal vid ett
  * bord, vilket är tre av de fyra ställen produkten möter någon.
  *
- * Gradienten går mellan handlingsrött och dess hovervärde. Den är den enda i
- * produkten: designsystemets lila och rosa marknadsföringsgradienter används
- * inte, och en tredje ton i märket hade blivit en fjärde färg att hålla reda
- * på. Storleken sätts av komponenten, formen här.
+ * Själva bubblan är en SVG i komponenten, inte en CSS-form. Bara ordbilden
+ * behöver en klass.
  *
  * Ordbilden är gemen med flit. "BURP" i versaler läser som ett läte;
  * gement läser det som ett namn.
  */
-.burp-mark {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--color-burp-600), var(--color-burp-700));
-  color: #fff;
-  font-weight: 900;
-  line-height: 1;
-}
-
 .burp-wordmark {
   font-weight: 800;
   letter-spacing: -0.02em;

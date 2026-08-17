@@ -95,8 +95,11 @@ export default async function OrderPage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <header className="mb-10">
+    // Kvittot hör till samma stund och samma bord som menyn, och följer därför
+    // telefonens mörka läge. Se `.theme-table` i globals.css.
+    <div className="theme-table">
+      <main className="mx-auto max-w-2xl px-6 py-10">
+        <header className="mb-10">
         <p className="label-caps">
           {fill(t.receipt.table, { number: lookup.table.tableNumber })} · {restaurant?.name}
         </p>
@@ -170,8 +173,9 @@ export default async function OrderPage({ params }: PageProps) {
       {/* Betalningen sker på plats tills en betalleverantör är vald
           (öppen fråga 5). Det ska stå rakt ut, inte antydas. */}
       <p className="mt-8 border-l-2 border-burp-600 bg-burp-50 px-4 py-3 text-sm dark:bg-burp-900/40">
-        {t.receipt.payAtTable}
-      </p>
-    </main>
+          {t.receipt.payAtTable}
+        </p>
+      </main>
+    </div>
   );
 }

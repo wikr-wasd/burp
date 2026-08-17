@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Clock, Search, Star } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
+import { RestaurantMap, type MapPin } from "@/components/discovery/restaurant-map";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import {
   listCities,
   listCuisines,
+  openRestaurantIds,
   priceTierLabel,
   searchRestaurants,
   todaysHours,
@@ -24,17 +26,23 @@ import { restaurantImage } from "@/lib/placeholder";
 /**
  * Startsidan — marknadsplatsens upptäcktsyta (avsnitt 9).
  *
+ * Kartan ligger överst och visar varje restaurang som matchar filtret. Beslutat
+ * 2026-08-17: den som kommer till burp.se utan att ha skannat en QR-kod frågar
+ * "vad finns nära mig", och det svaret är en karta. Sidan hade dessförinnan ett
+ * bildcollage där kartan nu ligger, och kartan låg på en egen sida som få hade
+ * hittat till.
+ *
+ * `/upptack` pekar hit sedan dess. Två sidor med samma innehåll är dubblerat
+ * innehåll för Google och två ställen att underhålla för oss.
+ *
  * Byggd mobilförst. Gästen står oftast på en gata med telefonen i handen, inte
  * vid ett skrivbord, så layouten börjar i en kolumn och breddas uppåt.
  *
  * Sökning och filter är vanliga länkar och ett GET-formulär, inte klientstate.
  * Det gör att sidan fungerar utan JavaScript, att varje filtrerad vy har en
  * egen delbar URL, och att Google kan indexera den. Ett filter som bara finns
- * i minnet ger ingen av de tre sakerna.
- *
- * Tonen är en tryckt matbilaga: papper, antikva i rubrikerna, hårfina linjaler
- * i stället för kort som svävar. Bilden på maten är det som säljer, så den
- * första restaurangen får en hel uppslagsbild och resten ett rutnät.
+ * i minnet ger ingen av de tre sakerna. Kartan är det enda som kräver en
+ * webbläsare — allt under den renderas på servern.
  */
 
 export const metadata: Metadata = {
@@ -43,31 +51,29 @@ export const metadata: Metadata = {
 
 // Restauranglistan ändras när någon öppnar, stänger eller byter beskrivning —
 // inte per sekund. Sidan renderas dock per request eftersom sökningen ligger i
-// query-parametrar.
+// query-parametrar, och "öppet nu" ändras med klockan.
 export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string; kok?: string; stad?: string }>;
+  searchParams: Promise<{ q?: string; kok?: string; stad?: string; oppet?: string }>;
 }
 
 /** Bygger en URL med ett filter satt eller borttaget, och behåller resten. */
 function filterHref(
   locale: Locale,
-  current: { q?: string; kok?: string; stad?: string },
-  change: Partial<{ kok: string | null; stad: string | null }>,
+  current: { q?: string; kok?: string; stad?: string; oppet?: string },
+  change: Partial<{ kok: string | null; stad: string | null; oppet: string | null }>,
 ): string {
   const params = new URLSearchParams();
 
-  const next = {
-    q: current.q,
-    kok: "kok" in change ? change.kok ?? undefined : current.kok,
-    stad: "stad" in change ? change.stad ?? undefined : current.stad,
-  };
-
-  if (next.q) params.set("q", next.q);
-  if (next.kok) params.set("kok", next.kok);
-  if (next.stad) params.set("stad", next.stad);
+  // `null` i `change` betyder "ta bort filtret", en utelämnad nyckel "rör det
+  // inte". Utan skillnaden går det inte att skilja "visa alla städer" från
+  // "lämna staden som den är".
+  for (const key of ["q", "kok", "stad", "oppet"] as const) {
+    const value = key in change ? change[key as keyof typeof change] : current[key];
+    if (value) params.set(key, value);
+  }
 
   const queryString = params.toString();
   return localePath(locale, queryString ? `/?${queryString}` : "/");
@@ -82,30 +88,49 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
   const query = params.q?.trim() || undefined;
   const cuisine = params.kok?.trim() || undefined;
   const city = params.stad?.trim() || undefined;
+  const onlyOpen = params.oppet === "1";
 
-  const [restaurants, cuisines, cities] = await Promise.all([
+  const [matched, cuisines, cities, openIds] = await Promise.all([
     searchRestaurants({ query, cuisine, city }),
     listCuisines(city),
     listCities(),
+    openRestaurantIds(),
   ]);
 
-  const activeCity = cities.find((entry) => entry.slug === city);
-  const hasFilter = Boolean(query || cuisine || city);
+  const restaurants = onlyOpen
+    ? matched.filter((entry) => openIds.has(entry.id))
+    : matched;
 
-  // Den högst betygsatta restaurangen får uppslaget. Är listan filtrerad ner
-  // till en handfull träffar vore det udda att lyfta ut en av dem — då är
-  // rutnätet ärligare.
+  const activeCity = cities.find((entry) => entry.slug === city);
+  const hasFilter = Boolean(query || cuisine || city || onlyOpen);
+
   /*
-   * Collaget i hjälten ersätter det tidigare "utvalda" uppslaget.
+   * Bara restauranger med koordinater får en nål.
    *
-   * Två stora bildblock före rutnätet blev för mycket — gästen fick scrolla
-   * förbi bilder för att komma till listan med bilder. Hjälten gör nu jobbet
-   * att locka, och rutnätet jobbet att låta välja.
-   *
-   * Döljs vid filtrering: har gästen redan sökt är tre godtyckliga bilder i
-   * vägen för svaret.
+   * En restaurang utan punkt hamnar i listan men inte på kartan. Alternativet —
+   * att sätta nålen i stadens mittpunkt — hade sett rätt ut och skickat gästen
+   * fel, vilket är värre än att inte visa något.
    */
-  const showcase = hasFilter ? [] : restaurants.slice(0, 3);
+  const pins: MapPin[] = restaurants
+    .filter(
+      (entry): entry is DiscoveryRestaurant & { latitude: number; longitude: number } =>
+        entry.latitude !== null && entry.longitude !== null,
+    )
+    .map((entry) => {
+      const hours = todaysHours(entry.openingHours, entry.timeZone);
+      const isOpen = openIds.has(entry.id);
+
+      return {
+        id: entry.id,
+        name: entry.name,
+        latitude: entry.latitude,
+        longitude: entry.longitude,
+        meta: [entry.cuisines.join(" · "), entry.city].filter(Boolean).join(" · "),
+        status: isOpen && hours ? t.home.todayHours(hours) : t.home.closedToday,
+        isOpen,
+        href: localePath(locale, `/r/${entry.citySlug}/${entry.slug}`),
+      };
+    });
 
   /*
    * Ogrupperad lista vid sökning, grupperad per stad annars.
@@ -135,10 +160,29 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
       <SiteHeader locale={locale} path="/" />
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6">
+        {/*
+          Kartan högst upp, före rubriken.
+
+          Den som kommer till burp.se utan att ha skannat en QR-kod frågar "vad
+          finns nära mig". Svaret är en karta, inte en ingress. Här låg ett
+          collage av tre restaurangbilder; det sålde mat men svarade på fel
+          fråga, och rutnätet under bär bilderna ändå.
+
+          Höjden är satt och inte proportionell: en karta som växer med skärmen
+          skjuter listan under vikningen på en bred skärm.
+        */}
+        <section className="mt-6 h-[20rem] sm:h-[24rem]">
+          <RestaurantMap
+            pins={pins}
+            label={t.discover.mapLabel}
+            emptyLabel={t.discover.mapEmpty}
+            failedLabel={t.discover.mapFailed}
+          />
+        </section>
+
         <Hero
           t={t}
           locale={locale}
-          showcase={showcase}
           city={city}
           cuisine={cuisine}
           query={query}
@@ -146,6 +190,20 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
         />
 
         <div className="mt-8 space-y-px">
+          {/* "Öppet nu" är ett av/på och inte ett av flera val — därför ett
+              reglage och inte en chip. Ett GET-formulär, så att det fungerar
+              utan JavaScript. */}
+          <form method="get" action={localePath(locale, "/")} className="pb-2">
+            {query ? <input type="hidden" name="q" value={query} /> : null}
+            {cuisine ? <input type="hidden" name="kok" value={cuisine} /> : null}
+            {city ? <input type="hidden" name="stad" value={city} /> : null}
+            {onlyOpen ? null : <input type="hidden" name="oppet" value="1" />}
+
+            <button type="submit" aria-pressed={onlyOpen} className="switch">
+              {t.discover.openNow}
+            </button>
+          </form>
+
           <FilterRow label={t.home.city}>
             <Chip href={filterHref(locale, params, { stad: null })} active={!city}>
               {t.home.allCities}
@@ -245,17 +303,14 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
 }
 
 /**
- * Förstaskärmen.
+ * Rubriken och sökningen, under kartan.
  *
- * Sidan var textbaserad ända tills gästen scrollade — rubrik, ingress,
- * sökfält. Det är svagast möjliga första intryck för en matmarknadsplats:
- * det som säljer mat är bilder på mat, och de låg alla under vikningen.
+ * Bar tidigare ett collage av tre restaurangbilder bredvid rubriken. Det sålde
+ * mat, men svarade på fel fråga för den som just kommit till sajten — och
+ * kartan ovanför gör det jobbet nu. Rutnätet under bär bilderna ändå.
  *
- * Nu ligger tre restauranger som ett förskjutet collage bredvid rubriken, och
- * ovanför den på mobilen. Bilderna är riktiga länkar till riktiga
- * restauranger, inte dekor — den som lockas av en bild ska kunna klicka på
- * den. Förskjutningen är avsiktlig: tre lika stora rutor i rad läser som en
- * annons, tre i otakt läser som ett uppslag.
+ * Rubriken är mindre än den var. Den konkurrerar inte längre om förstaskärmen,
+ * den namnger vad man tittar på.
  */
 function Hero({
   t,
@@ -264,7 +319,6 @@ function Hero({
   cuisine,
   query,
   cityName,
-  showcase,
 }: {
   t: Dictionary;
   locale: Locale;
@@ -272,49 +326,13 @@ function Hero({
   cuisine?: string;
   query?: string;
   cityName?: string;
-  /** Restauranger att visa i collaget. Tom lista döljer det helt. */
-  showcase: readonly DiscoveryRestaurant[];
 }) {
   return (
-    <section className="pt-10 sm:pt-14">
-      <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
-        {/* Bilderna först i DOM:en på mobil, men textkolumnen först på stora
-            skärmar. `order` flyttar dem visuellt utan att röra läsordningen
-            för skärmläsare mer än nödvändigt. */}
-        {showcase.length > 0 ? (
-          <div className="order-first grid grid-cols-3 gap-3 lg:order-last lg:gap-4">
-            {showcase.map((restaurant, index) => (
-              <Link
-                key={restaurant.id}
-                href={localePath(locale, `/r/${restaurant.citySlug}/${restaurant.slug}`)}
-                className={`group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burp-600 ${
-                  // Mittenbilden sjunker ned, de yttre lyfts. Otakten är det
-                  // som gör det till ett uppslag i stället för en bannerrad.
-                  index === 1 ? "mt-8 lg:mt-12" : ""
-                }`}
-              >
-                <FoodImage
-                  src={restaurantImage(
-                    restaurant.name,
-                    restaurant.city,
-                    restaurant.heroImageUrl,
-                  )}
-                  alt=""
-                  ratio="aspect-[3/4]"
-                  priority={index === 0}
-                />
-                <span className="label-caps mt-2 block truncate group-hover:text-burp-600">
-                  {restaurant.name}
-                </span>
-              </Link>
-            ))}
-          </div>
-        ) : null}
+    <section className="pt-8">
+      <div>
+        <p className="label-caps">{t.home.label}</p>
 
-        <div>
-          <p className="label-caps">{t.home.label}</p>
-
-          <h1 className="font-display mt-3 text-[2.75rem] leading-[1.02] sm:text-6xl">
+        <h1 className="font-display mt-2 text-[2.25rem] leading-[1.05] sm:text-5xl">
             {cityName ? (
               t.home.headlineCity(cityName)
             ) : (
@@ -378,7 +396,6 @@ function Hero({
           {/* Ligger kvar även när formuläret är tomt — utan den ser fältet ut
               att söka i något odefinierat. */}
           <p className="mt-2 max-w-xl text-xs text-[var(--muted)]">{t.home.searchHint}</p>
-        </div>
       </div>
     </section>
   );

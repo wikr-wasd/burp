@@ -89,6 +89,31 @@ ombyggnad. Tabellen fylls inte av någon kod idag.
 
 ## 5. Hur tas betalt i Bosnien, Kroatien och Serbien?
 
+> **Williams inriktning 2026-08-17:** "betalväg kan vara paypal, kort,
+> kontant, vilka andra alternativ finns det därute?"
+
+Kartan över vad som faktiskt går att använda i regionen:
+
+| Väg | Läge i BA / HR / RS |
+|---|---|
+| **Kontant** | Fungerar i dag. Kvitteras i kassan, migration 0024 |
+| **Kort via Stripe eller Adyen** | Lätt att ta EMOT. Det svåra är **utbetalning** — Stripe stödjer inte utbetalningskonton i BA eller RS |
+| **Lokal inlösare** | Monri (HR), Payten/Asseco (HR/RS), samt Raiffeisen och UniCredit med egna gateways i alla tre. Löser utbetalningen, kostar ett avtal per land |
+| **Apple Pay / Google Pay** | Ligger ovanpå en kortinlösare, ingen egen avtalspart. Lyfter konvertering vid bordet mer än något annat |
+| **PayPal** | Fungerar i HR. **Begränsat för mottagarkonton i BA och RS** |
+| **IPS NBS (Serbien)** | Statligt realtidssystem med QR-betalning, gratis för handlaren, mycket använt. Passar QR-flödet ovanligt väl |
+| **SEPA instant (Kroatien)** | Möjligt sedan euroinförandet 2023 |
+| **Revolut, Wise** | Konsumentplånböcker, inte handlarrails. Gästen kan betala med kortet i dem, men de är ingen egen integration |
+
+**Den bärande skillnaden:** att ta emot pengar är löst dag ett. Att få ut dem
+till en restaurang i Sarajevo eller Belgrad är det inte, med en internationell
+leverantör. Antingen ett lokalt avtal per land, eller börja i Kroatien (EU och
+SEPA) och låt BA och RS köra kontant tills volymen bär ett avtal.
+
+Beslutet är fortfarande ditt. Frågan nedan står kvar som den skrevs.
+
+
+
 **Status:** obesvarad · **Blockerar:** kortbetalning, men troligen inte lansering
 
 > Frågan var tidigare ställd för Sverige, med Swish och Klarna som alternativ.
@@ -261,11 +286,23 @@ finns annars inte i produkten av ett uttalat skäl.
 
 ## 9. Ska mörkt läge gälla överallt, eller bara vid bordet?
 
-**Status:** obesvarad · **Blockerar:** ingenting, men avgör vad man ser
+**Status:** BESVARAD 2026-08-17 · **Blockerar:** ingenting längre
 
-Burp följer systemets inställning på varje yta. Mockuperna är ljusa, och en
-maskin i mörkt läge visar därför espressomörkt där mockupen visar vitt papper.
-Samma tokens, spegelvända — men det ser ut som ett annat designspråk.
+> **Williams svar:** "mörktläge vid bordet."
+
+Alltså alternativ 2 nedan. Genomfört: `.theme-table` i `globals.css` bär de
+mörka värdena, och exakt två ytor sätter klassen — QR-menyn (`/t/[token]`) och
+bordskvittot. Allt annat är alltid papper, oavsett vad telefonen står i.
+
+Tailwinds `dark:`-variant är omdefinierad till att betyda "inuti
+`.theme-table`" i stället för `prefers-color-scheme`. Ett steg i CSS i stället
+för sjuttio ändrade klassnamn — och utan det hade varje `dark:` på startsidan
+slagit till på en maskin i mörkt läge och lagt ljusröd text på vitt papper.
+
+Bakgrunden, för den som undrar varför frågan ställdes: Burp följde systemets
+inställning på varje yta. Mockuperna är ljusa, och en maskin i mörkt läge visade
+därför espressomörkt där mockupen visar vitt papper. Samma tokens, spegelvända —
+men det ser ut som ett annat designspråk.
 
 Skälet till mörkt läge är gott och gäller **en** yta: QR-menyn läses vid ett
 bord på kvällen, ofta i en mörk lokal, och en vit skärm i ansiktet är hela
@@ -282,29 +319,53 @@ Tre vägar:
 3. **Ljust överallt.** Enklast, men ger en vit skärm i ansiktet på en gäst som
    sitter i en mörk ćevabdžinica klockan elva.
 
-Mitt förslag är **2**. Skälet till mörkt läge är platsbundet, och då ska
-inställningen vara det också.
+Mitt förslag var **2**, och det blev svaret.
 
 ---
 
 ## 10. Vilken logotyp?
 
-**Status:** obesvarad · **Blockerar:** ingenting akut
+**Status:** BESVARAD 2026-08-17 · **Blockerar:** ingenting
 
-`Burp Logo Concepts.dc.html` i designprojektet innehåller **fjorton förslag** i
-tre omgångar — wordmark, pratbubbla, skål med ånga, app-ikonplatta, ångprick,
-runt monogram, QR-ruta, negative-space-bricka, kursiv rörelse-wordmark,
-understreck som bordslinje, och fyra i graffitistil. Inget är valt.
+> **Williams svar:** "logo med pratbubblan."
 
-Koden använder i dag **app-ikonplattan** (`1d`): röd ruta med ett B plus
-gemen ordbild. Det är den UI-mockuperna använder i varje sidhuvud, så den var
-det enda valet som inte hade varit en gissning. Byte är billigt: formen ligger
-i `.burp-mark` i `globals.css` och i `lib/brand-glyph.tsx` för ikonerna.
+Förslag **1b** ur `Burp Logo Concepts.dc.html`: en röd pratbubbla följd av den
+gemena ordbilden **burp**. Bubblan betyder beställning och samtal vid bordet,
+vilket är vad produkten gör.
 
-Värt att veta innan valet: de fyra graffitiförslagen har hård skugga och
-droppar, vilket är svårt att få skarpt i 32 px favicon och under Androids
-maskning. `3d` (skiva-badge) och `1f` (runt monogram) är de som skalar bäst av
-de mer utpräglade.
+Genomfört. Kurvan står som `BUBBLE_PATH` i `components/ui/burp-mark.tsx` och
+importeras av `lib/brand-glyph.tsx`, som ritar favicon, iOS-ikonen och
+PWA-ikonerna. **En enda kopia av bézierkurvan** — två handskrivna hade glidit
+isär utan att någon såg det. I ikonerna är bubblan vit på röd platta, som i
+förslaget.
+
+De tretton övriga förslagen ligger kvar i designprojektet. Värt att veta om
+någon vill byta: de fyra graffitiförslagen har hård skugga och droppar, vilket
+är svårt att få skarpt i en 32 px favicon och under Androids maskning.
+
+---
+
+## 11. Startsidan och QR-gästens val
+
+**Status:** BESVARAD 2026-08-17 · **Blockerar:** ingenting
+
+> **Williams svar:** "förstasidan kan vara upptäck men jag vill gärna ha kartor
+> som listar samtliga restauranger redan i toppen av sidan. qr-gäst skall inte
+> kunna ta med då qr-koden skall vara kopplad till ett bord."
+
+**Startsidan.** Kart- och listvyn ligger nu på `/`. Kartan är det första på
+sidan, före rubriken — den som kommer till burp.se utan att ha skannat en
+QR-kod frågar "vad finns nära mig", och det svaret är en karta, inte en
+ingress. Bildcollaget som låg där är borta; rutnätet under bär bilderna ändå.
+
+`/upptack` svarar 308 mot `/` och behåller frågesträngen. Två sidor med samma
+innehåll är dubblerat innehåll för Google och två ställen att underhålla.
+
+**"Ta med" i QR-flödet: nej.** Koden hör till ett bord, alltså är beställningen
+en bordsbeställning. Ingen kod behövde ändras — QR-menyn har aldrig erbjudit
+valet, och `orders.type` sätts till `TABLE` av flödet, inte av gästen. Det som
+ändrades är att skälet nu står skrivet, så att nästa person som ser `PICKUP` i
+enumet inte lägger till knappen i tron att den saknas.
 
 ---
 

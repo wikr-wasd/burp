@@ -104,15 +104,6 @@ export function SiteHeader({
             >
               {t.site.discover}
             </Link>
-            <Link
-              href={localePath(locale, "/upptack")}
-              aria-current={path === "/upptack" ? "page" : undefined}
-              className={`min-h-11 content-center text-sm font-medium ${
-                path === "/upptack" ? "text-burp-600" : ""
-              }`}
-            >
-              {t.site.map}
-            </Link>
           </nav>
 
           {/* Språkvalet pekar på SAMMA sida i det andra språket, inte på

@@ -88,30 +88,41 @@ export default async function TablePage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <MenuOrder
-        menu={menu}
-        restaurantName={table.restaurantName}
-        labels={t.menu}
-        currency={table.currency}
-        timeZone={table.timeZone}
-        context={{
-          kind: "TABLE",
-          tableToken: token.toUpperCase(),
-          tableNumber: table.zone
-            ? `${table.tableNumber} · ${table.zone}`
-            : table.tableNumber,
-        }}
-      />
-    </main>
+    /*
+     * `.theme-table` — den enda ytan som följer telefonens mörka läge.
+     *
+     * Gästen sitter vid ett bord på kvällen, ofta i en mörk lokal. En vit
+     * skärm i ansiktet där är inte en detalj utan hela upplevelsen. Resten av
+     * produkten är alltid papper; se globals.css och öppen fråga 9.
+     */
+    <div className="theme-table">
+      <main className="mx-auto max-w-2xl px-6 py-10">
+        <MenuOrder
+          menu={menu}
+          restaurantName={table.restaurantName}
+          labels={t.menu}
+          currency={table.currency}
+          timeZone={table.timeZone}
+          context={{
+            kind: "TABLE",
+            tableToken: token.toUpperCase(),
+            tableNumber: table.zone
+              ? `${table.tableNumber} · ${table.zone}`
+              : table.tableNumber,
+          }}
+        />
+      </main>
+    </div>
   );
 }
 
 function TableMessage({ title, body }: { title: string; body: string }) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-3 px-6 text-center">
-      <h1 className="font-display text-3xl">{title}</h1>
-      <p className="text-[var(--muted)]">{body}</p>
-    </main>
+    <div className="theme-table">
+      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-3 px-6 text-center">
+        <h1 className="font-display text-3xl">{title}</h1>
+        <p className="text-[var(--muted)]">{body}</p>
+      </main>
+    </div>
   );
 }

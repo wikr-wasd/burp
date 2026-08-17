@@ -77,26 +77,81 @@ Ingenting går vidare här utan svar.
       standardvärdet, tillåter inte publika tjänster. Bytet är två
       miljövariabler och ingen kod. MapTiler är förstahandsförslaget — deras
       gratisnivå räcker, och en egen stil kan rita bort blått.
-- [ ] **Ska en QR-gäst kunna välja "ta med"?** Följdfråga ur jämförelsen med
-      Qopla. De frågar det före menyn, vilket är fel läge för någon som just
-      satt sig vid ett bord — men frågan i sig är rimlig för en ćevabdžinica.
-      Kräver ett beslut, inte kod: `orders.type` har redan `PICKUP`.
-- [ ] **Mörkt läge — överallt eller bara vid bordet?** `OPEN-QUESTIONS.md`
-      fråga 9. Blockerar ingenting, men avgör om marknadsföringsytorna ser ut
-      som mockuperna på en maskin i mörkt läge. Mitt förslag: ljust överallt
-      utom QR-sidan och kvittona.
-- [ ] **Vilken logotyp?** `OPEN-QUESTIONS.md` fråga 10. Fjorton förslag i
-      designprojektet, inget valt. Koden använder app-ikonplattan, som är den
-      UI-mockuperna själva använder.
-- [ ] **Ska `/upptack` vara startsidan?** I mockuperna ÄR kart- och listvyn
-      startsidan för gäster som inte kommit via en QR-kod. Burps `/sv` är en
-      redaktionell landningssida med bildcollage — en sidtyp som inte finns i
-      mockuperna alls. Båda finns byggda; frågan är vilken `burp.se` ska visa.
 - [ ] **Avsändaradress för notiserna.** Brev skickas när `RESEND_API_KEY` och
       `NOTIFY_FROM` är satta; utan dem skrivs de bara i loggen. Avsändaren
       måste ligga på en domän som är verifierad hos leverantören, och
       `BURP_OPS_EMAIL` avgör vem hos Burp som får restaurangansökningarna.
       Kräver inloggning, inte kod.
+
+---
+
+## Beställt 2026-08-17 — inte påbörjat
+
+Fyra önskemål från William, i den ordning jag skulle bygga dem. Storleken är
+ärlig: ingen av dem är en eftermiddag, och tre av dem kräver nytt schema med
+egna RLS-policyer.
+
+- [ ] **Be om omdöme efter besöket.** *Minst arbete, störst effekt.*
+
+      Omdömesformuläret finns redan — men bara på `/konto`, alltså bara för
+      inloggade gäster. **QR-gästen är anonym och ser det aldrig**, vilket är
+      precis den gäst som just ätit och har mest att säga.
+
+      Vägen: när bordskvittot visar en order i `COMPLETED`, fråga direkt på
+      kvittosidan. Kräver att `reviews` går att skriva med en bordssession i
+      stället för `auth.uid()` — ny RLS-policy i samma anda som QR-flödets
+      övriga: bevisa åtkomst med sessionen, inte med ett konto. Spärren mot
+      dubbla omdömen per order finns redan i databasen.
+
+      Ett brev efteråt är sämre: den anonyma gästen har ingen adress, och den
+      som fått maten svarar på plats eller inte alls.
+
+- [ ] **Kuponger och erbjudanden till registrerade gäster.**
+
+      Nytt: `coupons` (kod, rabatt i öre eller baspunkter, giltighetstid,
+      användningsgräns, per restaurang eller plattformsbred) och
+      `coupon_redemptions` (vem, vilken order, när). Båda med RLS.
+
+      **Rabatten måste räknas i `packages/core/src/pricing.ts`**, aldrig i en
+      komponent och aldrig i en route handler. `orders.discount_ore` finns
+      redan och är `<= 0`. Klienten skickar en kod, aldrig ett belopp — samma
+      regel som priset.
+
+      Avgiftsunderlaget behöver ett beslut: räknas Burps 3,4 % på beloppet före
+      eller efter rabatt? Om Burp bekostar kampanjen är det efter; om
+      restaurangen gör det är det före. Det är en följdfråga till fråga 1.
+
+- [ ] **Klippkort — tionde besöket bjuder restaurangen på.**
+
+      Lojalitetssystemet finns men räknar **poäng per krona**, inte besök.
+      Klippkort är en annan mekanik: räkna slutförda order per gäst och
+      restaurang, och lös ut en belöning vid tio.
+
+      Räkna aldrig fram och lagra ett antal — samma skäl som lojalitetssaldot
+      inte lagras (regel 7). Antalet är en `count(*)` över ordrarna, belöningen
+      en rad i `loyalty_transactions`.
+
+      Två saker behöver beslut: gäller kortet per restaurang eller över hela
+      Burp, och **vem betalar den tionde måltiden**. Det senare är inte en
+      detalj — det är skillnaden mellan en kampanj restaurangen äger och en
+      kostnad Burp tar.
+
+      Fungerar bara för inloggade gäster. En anonym QR-gäst går inte att räkna
+      besök på, och ska inte gå att räkna besök på.
+
+- [ ] **Restaurangen ritar sin egen bordsplacering.** *Störst arbete.*
+
+      I dag är bord en lista. Önskemålet är en planritning: dra ut bord, sätta
+      dem i en sal, se vilka som är upptagna i rummets faktiska form.
+
+      Schemat är den enkla delen — `tables` behöver `x`, `y`, `rotation`,
+      `shape`, `seats` och en `floor_plans`-tabell per våning eller uteservering.
+      Redigeraren är den svåra: dra-och-släpp med rutnät, undo, och något som
+      fungerar med fingrar på en surfplatta.
+
+      Betalar sig först när Översiktens bordsrutnät byts mot planritningen —
+      då ser en servitör vilket bord som ropar, inte vilken ruta i ordningen.
+      Bör byggas efter surfplattan vid bordet, som delar mycket av samma yta.
 
 ---
 
