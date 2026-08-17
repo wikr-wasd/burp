@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { CashRegister } from "@/components/staff/cash-register";
-import { StaffHeader } from "@/components/staff/staff-header";
+import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
 import { getCashRegister } from "@/lib/cash-register";
 
@@ -29,18 +29,14 @@ export default async function CashRegisterPage() {
   const { unsettled, settled } = await getCashRegister(staff.restaurantId, staff.timeZone);
 
   return (
-    <>
-      <StaffHeader staff={staff} current="kassa" />
-
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-4xl">Kassa</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Slutförda order från det senaste dygnet. Kvittera vad som faktiskt togs emot —
-          utan det finns ingen kassaavstämning, och avgiften räknas på en siffra ingen sett.
-        </p>
-
-        <CashRegister unsettled={unsettled} settled={settled} />
-      </main>
-    </>
+    <StaffShell
+      staff={staff}
+      current="kassa"
+      title="Kassa"
+      intro="Slutförda order från det senaste dygnet. Kvittera vad som faktiskt togs emot — utan det finns ingen kassaavstämning, och avgiften räknas på en siffra ingen sett."
+      width="narrow"
+    >
+      <CashRegister unsettled={unsettled} settled={settled} />
+    </StaffShell>
   );
 }

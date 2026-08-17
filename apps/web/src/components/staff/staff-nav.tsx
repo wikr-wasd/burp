@@ -1,0 +1,200 @@
+import Link from "next/link";
+import {
+  BookOpen,
+  Banknote,
+  ChefHat,
+  LayoutGrid,
+  LogOut,
+  MessageSquare,
+  QrCode,
+  Receipt,
+  Settings,
+  TrendingUp,
+  type LucideIcon,
+} from "lucide-react";
+import { STAFF_ROLE_LABELS, type StaffRole } from "@burp/core";
+import { BurpMark } from "@/components/ui/burp-mark";
+import type { StaffContext } from "@/lib/auth";
+
+/**
+ * Personalytans navigering.
+ *
+ * En sidomeny på stora skärmar, en rullande rad på små. Innan den fanns låg
+ * allt i en topprad som växte varje gång en yta lades till — och en topprad
+ * som radbryts är inte en meny, den är en lista.
+ *
+ * Punkterna definieras EN gång, i `STAFF_NAV`, och renderas två gånger. Två
+ * listor hade glidit isär första gången någon lade till en yta i den ena.
+ */
+
+/**
+ * Vilken sektion som är den aktiva.
+ *
+ * Alla undersidor skickade tidigare "dashboard", så "Order" stod markerad i
+ * rött oavsett var man befann sig. Markeringen sa alltså ingenting — och en
+ * markering som alltid pekar på samma ställe är sämre än ingen, eftersom den
+ * ser ut att svara på frågan "var är jag".
+ */
+export type StaffSection =
+  | "oversikt"
+  | "order"
+  | "kok"
+  | "kassa"
+  | "meny"
+  | "bord"
+  | "omdomen"
+  | "statistik"
+  | "installningar";
+
+interface NavItem {
+  section: StaffSection;
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Roller som ser punkten. Kocken har bara köksskärmen. */
+  roles: readonly StaffRole[];
+}
+
+const ALL_BUT_KITCHEN = ["owner", "manager", "staff"] as const;
+const MANAGEMENT = ["owner", "manager"] as const;
+
+export const STAFF_NAV: readonly NavItem[] = [
+  { section: "oversikt", href: "/dashboard", label: "Översikt", icon: LayoutGrid, roles: ALL_BUT_KITCHEN },
+  { section: "order", href: "/dashboard/order", label: "Beställningar", icon: Receipt, roles: ALL_BUT_KITCHEN },
+  { section: "kok", href: "/kok", label: "Köksskärm", icon: ChefHat, roles: ["owner", "manager", "staff", "kitchen"] },
+  { section: "kassa", href: "/dashboard/kassa", label: "Kassa", icon: Banknote, roles: ALL_BUT_KITCHEN },
+  { section: "meny", href: "/dashboard/meny", label: "Meny", icon: BookOpen, roles: MANAGEMENT },
+  { section: "bord", href: "/dashboard/bord", label: "Bord & QR", icon: QrCode, roles: MANAGEMENT },
+  { section: "omdomen", href: "/dashboard/omdomen", label: "Omdömen", icon: MessageSquare, roles: MANAGEMENT },
+  { section: "statistik", href: "/dashboard/statistik", label: "Statistik", icon: TrendingUp, roles: MANAGEMENT },
+];
+
+const SETTINGS: NavItem = {
+  section: "installningar",
+  href: "/dashboard/installningar",
+  label: "Inställningar",
+  icon: Settings,
+  roles: MANAGEMENT,
+};
+
+function visible(items: readonly NavItem[], role: StaffRole): NavItem[] {
+  return items.filter((item) => item.roles.includes(role));
+}
+
+/** Sidomenyn. Döljs under `lg`, där raden nedan tar över. */
+export function StaffSidebar({
+  staff,
+  current,
+}: {
+  staff: StaffContext;
+  current: StaffSection;
+}) {
+  const items = visible(STAFF_NAV, staff.role);
+  const settings = visible([SETTINGS], staff.role);
+
+  return (
+    <aside className="hidden w-58 shrink-0 flex-col gap-0.5 border-r border-[var(--rule)] bg-[var(--surface)] p-3 lg:flex">
+      <Link
+        href="/"
+        aria-label="Burp — till startsidan"
+        className="px-2 pb-4 transition-opacity duration-[var(--speed)] hover:opacity-80"
+      >
+        <BurpMark size="sm" />
+      </Link>
+
+      {/* Restaurangens namn står överst, inte Burps. Personalen vet vilken
+          produkt de sitter i; det de behöver veta är vilken restaurang de
+          redigerar — särskilt den som jobbar på två. */}
+      <div className="mb-2 border-b border-[var(--rule)] px-2 pb-3">
+        <p className="truncate font-medium">{staff.restaurantName}</p>
+        <p className="label-caps mt-0.5 truncate normal-case">
+          {staff.email} · {STAFF_ROLE_LABELS[staff.role]}
+        </p>
+      </div>
+
+      {items.map((item) => (
+        <NavLink key={item.section} item={item} active={item.section === current} />
+      ))}
+
+      <div className="flex-1" />
+
+      {settings.map((item) => (
+        <NavLink key={item.section} item={item} active={item.section === current} />
+      ))}
+
+      <form action="/logga-ut" method="post">
+        <button type="submit" className={`${linkClass(false)} w-full`}>
+          <LogOut size={16} aria-hidden="true" />
+          Logga ut
+        </button>
+      </form>
+    </aside>
+  );
+}
+
+/** Raden för telefon och surfplatta i porträtt. Rullar i sidled. */
+export function StaffTopBar({
+  staff,
+  current,
+}: {
+  staff: StaffContext;
+  current: StaffSection;
+}) {
+  const items = [...visible(STAFF_NAV, staff.role), ...visible([SETTINGS], staff.role)];
+
+  return (
+    <div className="border-b border-[var(--rule)] bg-[var(--surface)] lg:hidden">
+      <div className="flex items-center justify-between gap-4 px-4 py-3">
+        <Link href="/" aria-label="Burp — till startsidan">
+          <BurpMark size="sm" wordmark={false} />
+        </Link>
+        <p className="min-w-0 flex-1 truncate font-medium">{staff.restaurantName}</p>
+        <form action="/logga-ut" method="post">
+          <button type="submit" className="label-caps min-h-11 hover:text-burp-600">
+            Logga ut
+          </button>
+        </form>
+      </div>
+
+      <nav
+        aria-label="Personalytans navigering"
+        className="flex gap-1 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {items.map((item) => (
+          <NavLink key={item.section} item={item} active={item.section === current} />
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className={linkClass(active)}
+    >
+      <Icon size={16} aria-hidden="true" />
+      {item.label}
+    </Link>
+  );
+}
+
+/**
+ * En enda plats där personalytans navigering får sitt utseende.
+ *
+ * Aktiv punkt är röd text på en svag röd platta — samma markering som
+ * mockupen. Höjden är 44 px också här: personalen tabbar och trycker sig
+ * igenom dashboarden med feta fingrar och en surfplatta.
+ */
+function linkClass(active: boolean): string {
+  return [
+    "inline-flex min-h-11 shrink-0 items-center gap-2.5 rounded-[0.5rem] px-2.5 text-sm whitespace-nowrap transition-colors duration-[var(--speed)]",
+    active
+      ? "bg-burp-50 font-medium text-burp-600 dark:bg-burp-900/30"
+      : "text-[var(--muted)] hover:bg-[var(--background)] hover:text-[var(--foreground)]",
+  ].join(" ");
+}

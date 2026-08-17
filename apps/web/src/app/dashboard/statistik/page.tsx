@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChartNoAxesColumn } from "lucide-react";
 import { formatMoney } from "@burp/core";
 import { EmptyState } from "@/components/ui/empty-state";
-import { StaffHeader } from "@/components/staff/staff-header";
+import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
 import { getStatistics, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
 
@@ -45,41 +45,35 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
   const payoutOre = summary.itemsGrossOre - summary.feesOre + summary.tipsOre;
 
   return (
-    <>
-      <StaffHeader staff={staff} current="statistik" />
-
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h1 className="font-display text-4xl">Statistik</h1>
-          <nav className="flex gap-2" aria-label="Period">
-            {(Object.keys(PERIODS) as PeriodKey[]).map((key) => (
-              <Link
-                key={key}
-                href={`/dashboard/statistik?period=${key}`}
-                aria-current={key === periodKey ? "page" : undefined}
-                className={`min-h-9 px-3.5 py-1.5 text-sm ${
-                  key === periodKey
-                    ? "bg-burp-600 font-medium text-white"
-                    : "border border-[var(--rule)]"
-                }`}
-              >
-                {PERIODS[key].label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
+    <StaffShell
+      staff={staff}
+      current="statistik"
+      title="Statistik"
+      width="narrow"
+      actions={
+        <nav className="flex gap-2" aria-label="Period">
+          {(Object.keys(PERIODS) as PeriodKey[]).map((key) => (
+            <Link
+              key={key}
+              href={`/dashboard/statistik?period=${key}`}
+              aria-current={key === periodKey ? "page" : undefined}
+              className={`chip ${key === periodKey ? "chip-active" : ""}`}
+            >
+              {PERIODS[key].label}
+            </Link>
+          ))}
+        </nav>
+      }
+    >
         {summary.ordersCount === 0 ? (
-          <div className="mt-8">
-            <EmptyState
-              icon={ChartNoAxesColumn}
-              title="Inga genomförda beställningar i perioden"
-              body="Statistiken räknar bara order som slutförts — en order i kön är inte omsättning."
-            />
-          </div>
+          <EmptyState
+            icon={ChartNoAxesColumn}
+            title="Inga genomförda beställningar i perioden"
+            body="Statistiken räknar bara order som slutförts — en order i kön är inte omsättning."
+          />
         ) : (
           <>
-            <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Stat label="Omsättning" value={formatMoney(summary.itemsGrossOre, staff.currency)} hint="inkl. moms" />
               <Stat label="Beställningar" value={String(summary.ordersCount)} />
               <Stat label="Snittnota" value={formatMoney(summary.avgOrderOre, staff.currency)} />
@@ -181,8 +175,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
             ) : null}
           </>
         )}
-      </main>
-    </>
+    </StaffShell>
   );
 }
 

@@ -38,7 +38,7 @@ för den svenska marknaden och gav fel svar på fel fråga. Se
 | 8 Media | Schema klart, uppladdning saknas | `supabase/migrations/0008` |
 | 9 SEO | Grund byggd | `apps/web/src/app/r/[city]/[slug]`, `src/lib/seo/jsonld.ts` |
 | 10 Lojalitet | Logik och schema klart, UI saknas | `packages/core/src/loyalty.ts`, migration `0007` |
-| 11 Dashboard | Order live, köksskärm och bord byggt; meny, kampanjer, statistik och ekonomi kvar | `apps/web/src/app/dashboard`, `apps/web/src/app/kok` |
+| 11 Dashboard | Översikt, order live, köksskärm, kassa, meny, bord, omdömen, statistik och inställningar byggt; kampanjer och utbetalningar kvar | `apps/web/src/app/dashboard`, `apps/web/src/app/kok` |
 | 12 Säkerhet | Byggt | `supabase/migrations/0009`, `apps/web/src/lib/rate-limit.ts`, `proxy.ts` |
 
 Öppna frågor som blockerar: se [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md).
@@ -469,9 +469,22 @@ eller delat. Det påverkar hela ekonomin. Se öppen fråga 3.
 
 ## 11. Restaurangdashboard
 
-*(Fas 1 — ej byggd)*
+*(Fas 1 — byggd, utom kampanjer och utbetalningar)*
 
-- **Order live** — nya order, accept, avvisa, förseningstid
+Navigeringen är en sidomeny (`components/staff/staff-nav.tsx`), inte en
+topprad. Ramen runt varje yta är `StaffShell`, som bär meny, rubrik och bredd
+en gång i stället för en gång per sida.
+
+Köksskärmen står utanför ramen med flit: den körs på en surfplatta på några
+meters håll, och varje pixel som går till navigering är en pixel som inte går
+till en biljett.
+
+- **Översikt** (`/dashboard`) — dagens nyckeltal, vad köket har framför sig
+  och vilka bord som är upptagna. Räknar ingenting själv: talen kommer ur
+  `restaurant_revenue_summary` och bordens läge härleds ur notor och
+  orderstatus. En översikt som summerar själv blir en andra sanning bredvid
+  statistiksidan
+- **Order live** (`/dashboard/order`) — nya order, accept, avvisa, förseningstid
 - **Köksskärm** — stor vy för surfplatta med ljudsignal vid ny order och statusknappar
 - **Meny** — dra och släpp kategorier, tillvalsgrupper, slut för dagen
 - **Bord** — skapa bord, skriv ut QR-koder, se aktiva notor

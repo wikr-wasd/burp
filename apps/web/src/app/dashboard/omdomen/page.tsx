@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Star } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
-import { StaffHeader } from "@/components/staff/staff-header";
+import { StaffShell } from "@/components/staff/staff-shell";
 import { ReviewResponder } from "@/components/staff/review-responder";
 import { requireStaff } from "@/lib/auth";
 import { LOW_RATING_THRESHOLD } from "@burp/core";
@@ -29,27 +29,22 @@ export default async function ReviewsPage() {
   const low = reviews.filter((review) => review.ratingFood <= LOW_RATING_THRESHOLD);
 
   return (
-    <>
-      <StaffHeader staff={staff} current="omdomen" />
-
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-4xl">Omdömen</h1>
-        <p className="mt-1 text-sm opacity-70">
-          Betyg kan bara lämnas av gäster som genomfört en beställning. Du kan svara offentligt,
-          men inte ändra betyget eller texten.
-        </p>
-
-        {reviews.length === 0 ? (
-          <div className="mt-8">
-            <EmptyState
-              icon={Star}
-              title="Inga omdömen än"
-              body="De kommer när gäster börjat beställa och deras order slutförts."
-            />
-          </div>
+    <StaffShell
+      staff={staff}
+      current="omdomen"
+      title="Omdömen"
+      intro="Betyg kan bara lämnas av gäster som genomfört en beställning. Du kan svara offentligt, men inte ändra betyget eller texten."
+      width="narrow"
+    >
+      {reviews.length === 0 ? (
+        <EmptyState
+          icon={Star}
+          title="Inga omdömen än"
+          body="De kommer när gäster börjat beställa och deras order slutförts."
+        />
         ) : (
           <>
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3">
               <Stat label="Omdömen" value={String(reviews.length)} />
               <Stat
                 label="Obesvarade"
@@ -70,8 +65,7 @@ export default async function ReviewsPage() {
             </ul>
           </>
         )}
-      </main>
-    </>
+    </StaffShell>
   );
 }
 

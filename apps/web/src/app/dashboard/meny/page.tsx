@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { StaffHeader } from "@/components/staff/staff-header";
+import { StaffShell } from "@/components/staff/staff-shell";
 import { MenuEditor } from "@/components/staff/menu-editor";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -208,21 +208,20 @@ export default async function MenuPage() {
   }));
 
   return (
-    <>
-      <StaffHeader staff={staff} current="meny" />
-      <main className="mx-auto max-w-4xl px-6 py-8">
-        <h1 className="font-display text-4xl">Meny</h1>
-        <p className="mt-1 text-sm opacity-70">
-          Bara publicerade menyer och rätter syns för gästen. Priser anges inklusive moms.
-        </p>
-        <MenuEditor
-          menus={tree}
-          restaurantId={staff.restaurantId}
-          country={staff.country}
-          currency={staff.currency}
-        />
-      </main>
-    </>
+    <StaffShell
+      staff={staff}
+      current="meny"
+      title="Meny"
+      intro="Bara publicerade menyer och rätter syns för gästen. Priser anges inklusive moms."
+      width="narrow"
+    >
+      <MenuEditor
+        menus={tree}
+        restaurantId={staff.restaurantId}
+        country={staff.country}
+        currency={staff.currency}
+      />
+    </StaffShell>
   );
 }
 

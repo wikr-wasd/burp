@@ -6,7 +6,7 @@ import {
   type OrderPolicy,
   type StaffRole,
 } from "@burp/core";
-import { StaffHeader } from "@/components/staff/staff-header";
+import { StaffShell } from "@/components/staff/staff-shell";
 import { OpeningHoursEditor } from "@/components/staff/opening-hours-editor";
 import { PresentationEditor } from "@/components/staff/presentation-editor";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
@@ -96,12 +96,13 @@ export default async function SettingsPage() {
   }));
 
   return (
-    <>
-      <StaffHeader staff={staff} current="installningar" />
-
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <p className="label-caps">{staff.restaurantName}</p>
-        <h1 className="font-display mt-2 text-4xl">Inställningar</h1>
+    <StaffShell
+      staff={staff}
+      current="installningar"
+      title="Inställningar"
+      intro={staff.restaurantName}
+      width="narrow"
+    >
 
         {/*
           Presentationen först.
@@ -172,7 +173,6 @@ export default async function SettingsPage() {
             </p>
           </section>
         )}
-      </main>
-    </>
+    </StaffShell>
   );
 }

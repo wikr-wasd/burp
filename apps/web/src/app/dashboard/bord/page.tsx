@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { QrCode } from "lucide-react";
 import { signTableToken, tableQrUrl } from "@burp/core";
 import { EmptyState } from "@/components/ui/empty-state";
-import { StaffHeader } from "@/components/staff/staff-header";
+import { StaffShell } from "@/components/staff/staff-shell";
 import { TableList } from "@/components/staff/table-list";
 import { NewTableForm } from "@/components/staff/new-table-form";
 import { requireStaff } from "@/lib/auth";
@@ -81,29 +81,26 @@ export default async function TablesPage() {
   );
 
   return (
-    <>
-      <StaffHeader staff={staff} current="bord" />
+    <StaffShell
+      staff={staff}
+      current="bord"
+      title="Bord och QR-koder"
+      intro="Skriv ut koden och sätt den på bordet. Koden är statisk och behöver aldrig bytas."
+      width="narrow"
+    >
+      <NewTableForm />
 
-      <main className="mx-auto max-w-4xl px-6 py-8">
-        <h1 className="font-display text-4xl">Bord och QR-koder</h1>
-        <p className="mt-1 text-sm opacity-70">
-          Skriv ut koden och sätt den på bordet. Koden är statisk och behöver aldrig bytas.
-        </p>
-
-        <NewTableForm />
-
-        {tables.length === 0 ? (
-          <div className="mt-10">
-            <EmptyState
-              icon={QrCode}
-              title="Inga bord ännu"
-              body="Lägg till det första ovan. Varje bord får en egen QR-kod att skriva ut och sätta på bordet."
-            />
-          </div>
-        ) : (
-          <TableList tables={tables} />
-        )}
-      </main>
-    </>
+      {tables.length === 0 ? (
+        <div className="mt-10">
+          <EmptyState
+            icon={QrCode}
+            title="Inga bord ännu"
+            body="Lägg till det första ovan. Varje bord får en egen QR-kod att skriva ut och sätta på bordet."
+          />
+        </div>
+      ) : (
+        <TableList tables={tables} />
+      )}
+    </StaffShell>
   );
 }

@@ -111,7 +111,9 @@ export async function notifyNewOrder(orderId: string): Promise<void> {
       currency: order.currency as CurrencyCode,
       note: (order.note as string | null) ?? null,
       scheduledFor: order.scheduled_for ? new Date(order.scheduled_for as string) : null,
-      dashboardUrl: `${publicEnv.NEXT_PUBLIC_SITE_URL}/dashboard`,
+      // Till orderlistan, inte till översikten. Brevet handlar om en
+      // beställning; länken ska landa där den går att göra något åt.
+      dashboardUrl: `${publicEnv.NEXT_PUBLIC_SITE_URL}/dashboard/order`,
     });
 
     const recipients = await orderRecipients(restaurantId, restaurant.email as string | null);

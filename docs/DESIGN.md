@@ -149,6 +149,12 @@ rundad och större än allt annat i produkten.
 **Dashboard och backoffice.** Samma byggstenar och samma färger, men tätare.
 Det är arbetsredskap, inte en bilaga.
 
+Personalytan har en **sidomeny**, inte en topprad. Punkterna definieras en
+gång i `STAFF_NAV` och renderas två gånger — sidomeny på stora skärmar, en
+rullande rad på små. Två listor hade glidit isär första gången någon lade till
+en yta i den ena. Ramen är `StaffShell`, som bär rubrik och bredd så att de
+inte skrivs om per sida.
+
 ---
 
 ## Kontrast mäts, den bedöms inte

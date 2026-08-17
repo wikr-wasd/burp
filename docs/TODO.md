@@ -107,6 +107,11 @@ Ingenting går vidare här utan svar.
       Samma spärr. Logga in som `agare@burp.test` och gå till Kassa. Det som
       behöver ögon är om beloppsfältet och avvikelseraden känns rätt i handen —
       att reglerna håller är mätt mot databasen.
+- [ ] **Sidomenyn och Översikten sedda i webbläsaren.** Personalytan gjordes om
+      till sidomeny och fick en ny startsida på `/dashboard`; orderlistan
+      flyttade till `/dashboard/order`. Typkontroll, lint och bygge passerar,
+      och Översiktens fyra frågor är körda direkt mot databasen som ägaren med
+      RLS påslagen — men ingen har sett sidan. **Behöver göras av William.**
 - [ ] **Riktiga bilder i seed-datan.** Platshållaren är så bra den kan bli;
       nästa steg kräver fotografier. Utan dem går det inte att bedöma hur
       sajten faktiskt ser ut för en gäst.
