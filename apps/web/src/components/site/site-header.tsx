@@ -95,8 +95,23 @@ export function SiteHeader({
             under lg, och utan den skulle högergruppen glida in mot mitten. */}
         <div className="ml-auto flex items-center gap-4">
           <nav aria-label={t.site.mainNav} className="hidden items-center gap-4 sm:flex">
-            <Link href={localePath(locale, "/")} className="min-h-11 content-center text-sm font-medium">
+            <Link
+              href={localePath(locale, "/")}
+              aria-current={path === "/" ? "page" : undefined}
+              className={`min-h-11 content-center text-sm font-medium ${
+                path === "/" ? "text-burp-600" : ""
+              }`}
+            >
               {t.site.discover}
+            </Link>
+            <Link
+              href={localePath(locale, "/upptack")}
+              aria-current={path === "/upptack" ? "page" : undefined}
+              className={`min-h-11 content-center text-sm font-medium ${
+                path === "/upptack" ? "text-burp-600" : ""
+              }`}
+            >
+              {t.site.map}
             </Link>
           </nav>
 

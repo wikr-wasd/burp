@@ -25,10 +25,29 @@ export const sv = {
 
     /* Sidhuvudets navigering. */
     discover: "Upptäck",
+    map: "Karta",
     becomePartner: "Bli partner",
     mainNav: "Huvudmeny",
     searchLabel: "Sök efter restaurang eller maträtt",
     searchPlaceholder: "Sök restauranger eller rätter",
+  },
+
+  /* Kartsidan /upptack. */
+  discover: {
+    title: "Alla restauranger på kartan",
+    intro:
+      "Se var ställena ligger innan du bestämmer dig. Filtrera på kök, stad och vad som har öppet just nu.",
+    openNow: "Öppet nu",
+    showAll: "Visa alla",
+    sort: "Sortera",
+    sortRating: "Högst betyg",
+    sortName: "Namn A–Ö",
+    mapLabel: "Karta över restaurangerna",
+    mapEmpty: "Ingen av träffarna har någon kartnål ännu.",
+    mapFailed: "Kartan gick inte att ladda. Listan bredvid visar samma ställen.",
+    results: "Träffar",
+    empty: "Ingen restaurang matchar filtret.",
+    emptyHint: "Ta bort ett filter, eller sök i hela marknadsplatsen.",
   },
 
   home: {

@@ -367,6 +367,85 @@ body {
   line-height: 1.5;
 }
 
+/* ── Kartan ───────────────────────────────────────────────────────────── */
+
+/*
+ * Kartnålen och popupen på /upptack.
+ *
+ * Ligger här och inte i komponenten av samma skäl som allt annat: Leaflet
+ * skriver in nålen som HTML-sträng i en `divIcon` och popupen som HTML i sin
+ * bubbla, så det finns ingen React-komponent att sätta klasser på. Formen
+ * måste därför finnas som färdiga klasser — och då hör den hemma här.
+ *
+ * Droppformen är tre rundade hörn och ett spetsigt, roterat 45 grader. Samma
+ * form som varje kartapp använder, vilket är hela poängen: en nål ska kännas
+ * igen utan att förklaras.
+ */
+.map-pin {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: var(--color-burp-600);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+  transform: rotate(-45deg);
+}
+
+/* Stängt är ingen varning, bara en upplysning. Grå nål, inte röd. */
+.map-pin-closed {
+  background: var(--muted);
+}
+
+/*
+ * Popupens innehåll.
+ *
+ * Väljarna är avsiktligt tyngre än de behöver vara för att fungera ensamma.
+ * Leaflets egen CSS laddas som en egen bunt EFTER `globals.css`, och vid lika
+ * specificitet vinner den som kommer sist. Utan `.leaflet-container` framför
+ * ritades namnet i Leaflets blå länkfärg — den enda blå färgen i hela
+ * produkten, och just den designspråket förbjuder.
+ */
+.leaflet-container a.map-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.map-popup strong {
+  font-weight: 600;
+}
+
+.map-popup span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* Måste vara tyngre än `.map-popup span` ovan, annars vinner den grå tonen. */
+.map-popup span.map-popup-open {
+  color: var(--color-green-600);
+  font-weight: 600;
+}
+
+/*
+ * Leaflets egen bubbla ritas i vitt med sina egna mått. I mörkt läge blir den
+ * en vit fläck mitt i en mörk karta — och den ärver inte våra variabler, för
+ * den ligger utanför sidans egen markup.
+ */
+.leaflet-container .leaflet-popup-content-wrapper,
+.leaflet-container .leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--foreground);
+  border-radius: 0.625rem;
+}
+
+.leaflet-container {
+  background: var(--background);
+  font: inherit;
+}
+
 /* ── Köksskärmen ──────────────────────────────────────────────────────── */
 
 /* Körs på en surfplatta i ett kök. Ingen ska kunna markera text av misstag

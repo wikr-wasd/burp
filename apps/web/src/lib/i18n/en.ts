@@ -30,10 +30,29 @@ export const en: Dictionary = {
 
     /* Header navigation. */
     discover: "Discover",
+    map: "Map",
     becomePartner: "Become a partner",
     mainNav: "Main menu",
     searchLabel: "Search for a restaurant or dish",
     searchPlaceholder: "Search restaurants or dishes",
+  },
+
+  /* The map page, /upptack. */
+  discover: {
+    title: "Every restaurant on the map",
+    intro:
+      "See where the places are before you decide. Filter by cuisine, city and what is open right now.",
+    openNow: "Open now",
+    showAll: "Show all",
+    sort: "Sort",
+    sortRating: "Highest rated",
+    sortName: "Name A–Z",
+    mapLabel: "Map of the restaurants",
+    mapEmpty: "None of the matches has a map pin yet.",
+    mapFailed: "The map could not be loaded. The list beside it shows the same places.",
+    results: "Matches",
+    empty: "No restaurant matches the filter.",
+    emptyHint: "Remove a filter, or search the whole marketplace.",
   },
 
   home: {

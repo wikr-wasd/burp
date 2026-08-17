@@ -66,12 +66,51 @@ eller en egen kantlinje i en komponent.
 | `.btn` + `.btn-primary` / `.btn-secondary` | Alla knappar. Minst 44 px höga |
 | `.field` | Alla textfält. Rundad ruta |
 | `.link` | Länk i löpande text. Röd och understruken i viloläge |
-| `.badge` | Status, kategori, antal. Pillerform |
+| `.badge` | Status, kategori, antal. Pillerform. Visas, trycks inte |
+| `.chip` + `.chip-active` | Filter och genvägar. Pillerform, 44 px, tryckbar |
+| `.burp-mark` + `.burp-wordmark` | Vinjetten. Se nedan |
+| `.map-pin`, `.map-popup` | Kartnålen och dess bubbla på `/upptack` |
+
+`.badge` och `.chip` ser lika ut men gör olika saker: ett märke rapporterar ett
+tillstånd, en chip ändrar det. Skillnaden syns i träffytan — ett märke får vara
+litet, en chip måste gå att träffa med en tumme.
+
+Kartans två klasser ligger i `globals.css` trots att de bara används på ett
+ställe. Leaflet skriver in nålen och bubblan som HTML-strängar, så det finns
+ingen komponent att sätta stilen på. **Väljarna måste dessutom vara tyngre än
+de behöver:** Leaflets egen CSS laddas som en egen bunt efter `globals.css`, och
+vid lika specificitet vinner den. Utan `.leaflet-container` framför ritades
+restaurangnamnet i Leaflets blå länkfärg — den enda blå färgen i produkten, och
+just den som är förbjuden.
 
 Regeln finns för att produkten en gång talade tre designspråk samtidigt:
 startsidan i antikva, stadssidan i fet grotesk, inloggningen i varken eller.
 Varje sida som skriver sin egen knapp glider isär från resten nästa gång någon
 rör den.
+
+---
+
+## Vinjetten
+
+Ett märke — röd ruta med ett B — följt av ordbilden **burp**, gemen.
+
+Ersatte ordet "Burp" satt i rubriktypsnittet. Ett ord är inget märke: det går
+inte att känna igen på en flik, i en inkorg eller på en dekal vid ett bord,
+vilket är tre av de fyra ställen produkten möter någon. Gement med flit —
+"BURP" i versaler läser som ett läte, gement läser det som ett namn.
+
+Gradienten mellan `--color-burp-600` och `--color-burp-700` är den enda i
+produkten. Designsystemets lila och rosa marknadsföringsgradienter används inte.
+
+`<BurpMark>` i `components/ui/burp-mark.tsx` bär måtten, `globals.css` formen.
+Märket är dekor och döljs för uppläsaren; ordbilden bär namnet. Utan ordbild
+måste den som anropar sätta `aria-label` på länken runt om.
+
+**De genererade ikonerna läser ur `lib/brand-glyph.tsx`, inte ur temat.** Satori
+känner varken Tailwind eller CSS-variabler. Ändras märkesfärgen måste båda
+ändras — att de kan glida isär är inte en teori, de gjorde det i fyra månader:
+färgbytet nådde `globals.css` men inte favicon, apple-icon, PWA-ikonerna eller
+manifestets `theme_color`.
 
 ---
 

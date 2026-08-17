@@ -11,22 +11,25 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-08-16**, branch `dev`, commit `5df10ce`.
+Senast uppdaterad **2026-08-17**, branch `dev`.
 
 Fas 1 är byggd i sin helhet. Produkten går att använda rakt igenom: en gäst
 skannar en dekal, beställer vid bordet, ser sin nota och sin orderstatus;
-köket ser beställningen; personalen kvitterar betalningen i kassan. Allt utom
-kortbetalning fungerar, och kortbetalning är blockerad av ett beslut, inte av
-kod.
+köket ser beställningen och får dessutom ett brev om den; personalen kvitterar
+betalningen i kassan. Allt utom kortbetalning fungerar, och kortbetalning är
+blockerad av ett beslut, inte av kod.
+
+Kartsidan `/upptack` är byggd — det första steget in i Fas 2. Den fungerar, men
+kartrutorna kommer tills vidare från OpenStreetMaps egna servrar, vilket inte
+är tillåtet för en publik tjänst. Se öppen fråga 8.
 
 Det som återstår är i tur och ordning:
 
-1. **Tre beslut** som ligger hos William (nedan). Två av dem blockerar lansering.
-2. **Notiser** — den enda funktionella luckan som varken är blockerad eller
-   beslutsberoende. Ingen får veta att en order kommit.
-3. **Att se produkten på riktig hårdvara** — telefon och surfplatta. Byggd för
+1. **Fyra beslut** som ligger hos William (nedan). Två av dem blockerar
+   lansering, ett blockerar kartsidan.
+2. **Att se produkten på riktig hårdvara** — telefon och surfplatta. Byggd för
    båda, provad på ingen.
-4. Fas 2 och framåt: karta, surfplatta vid bordet, mobilapp.
+3. Resten av Fas 2 och framåt: surfplatta vid bordet, mobilapp.
 
 ### Två spärrar som gäller varje session
 
@@ -36,6 +39,10 @@ Båda står utförligt i `CLAUDE.md`, men de kostar tid varje gång de glöms:
   Git Bash, och WSL2:s loopback är inte Windows. `curl` svarar `000` på varje
   rad medan appen svarar 200 — det ser ut som att hela appen ligger nere.
   Windows-`curl.exe` når appen och används i stället.
+- **Öppna appen på `localhost`, aldrig på `127.0.0.1`.** Next 16 blockerar
+  `/_next/`-resurser för värdar som inte står i `allowedDevOrigins`. Sidan
+  renderas och svarar 200, men hydrerar aldrig — ingenting är klickbart, och
+  det enda som säger varför är en varning i dev-serverns egen logg.
 - **Claude skriver inte in lösenord i formulär**, inte ens seedens. Allt bakom
   inloggning — dashboard, kassa, backoffice — är därför verifierat med
   typkontroll, lint, test, bygge och direkta SQL-körningar mot RLS, men aldrig
@@ -64,19 +71,29 @@ Ingenting går vidare här utan svar.
 - [ ] **Supabase och Vercel i molnet.** Kräver din inloggning. Supabase-orgen
       har två projektplatser på gratisnivån och båda är upptagna av 123Connect —
       antingen uppgradering eller ett frigjort projekt.
+- [ ] **Kartleverantör.** `OPEN-QUESTIONS.md` fråga 8. **Blockerar lansering av
+      `/upptack`.** Sidan är byggd och fungerar; det som saknas är ett konto
+      hos någon som får leverera kartrutor. OSM:s egna servrar, som är
+      standardvärdet, tillåter inte publika tjänster. Bytet är två
+      miljövariabler och ingen kod. MapTiler är förstahandsförslaget — deras
+      gratisnivå räcker, och en egen stil kan rita bort blått.
 - [ ] **Ska en QR-gäst kunna välja "ta med"?** Följdfråga ur jämförelsen med
       Qopla. De frågar det före menyn, vilket är fel läge för någon som just
       satt sig vid ett bord — men frågan i sig är rimlig för en ćevabdžinica.
       Kräver ett beslut, inte kod: `orders.type` har redan `PICKUP`.
+- [ ] **Avsändaradress för notiserna.** Brev skickas när `RESEND_API_KEY` och
+      `NOTIFY_FROM` är satta; utan dem skrivs de bara i loggen. Avsändaren
+      måste ligga på en domän som är verifierad hos leverantören, och
+      `BURP_OPS_EMAIL` avgör vem hos Burp som får restaurangansökningarna.
+      Kräver inloggning, inte kod.
 
 ---
 
 ## Näst på tur
 
-- [ ] **Notiser.** Ingen e-post, ingen push. Restaurangen vet inte att en order
-      kommit om ingen stirrar på köksskärmen, och ingen får veta när en
-      restaurangansökan kommer in via `/anslut`. Den enda funktionella luckan i
-      Fas 1 som inte väntar på ett beslut — börja här.
+- [ ] **Push, inte bara e-post.** Brevet går fram, men en inkorg är inget
+      larm. Köket behöver något som låter. Kräver ett beslut om bäraren:
+      webbpush i PWA:n, eller vänta på mobilappen i Fas 3.
 - [ ] **Mobilvyn sedd på riktigt.** Verifierad strukturellt (inget element utan
       radbrytning är bredare än 390 px) men aldrig sedd på en telefon.
       QR-flödet lever på telefon och har högst kvalitetskrav i produkten.
@@ -96,8 +113,6 @@ Ingenting går vidare här utan svar.
 
 ### Fas 2 och framåt
 
-- [ ] **Karta över alla restauranger.** Beslutad. Koordinater och
-      OSM-inbäddning finns redan.
 - [ ] **Surfplatta vid bordet.** Beslutad. Delar mycket med QR-flödet.
 - [ ] **Mobilapp (React Native).** Beslutad. `@burp/core` är byggt för att
       delas och importerar aldrig något runtime-beroende.
@@ -119,6 +134,9 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett på publika sidor | — | `loading.tsx` gör varje `notFound()` till en 200:a. Se CLAUDE.md |
 | `smoke.sh` går inte att köra på den här maskinen | `bash` är WSL2, inte Git Bash | Kräver Git Bash eller en miljö som delar Windows nätverksstack. Se CLAUDE.md |
+| Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av `/upptack`. Öppen fråga 8 |
+| `is_restaurant_open()` räknar i `Europe/Stockholm` oavsett land | Migration 0004 | Ofarligt idag — BA, HR, RS och SE ligger alla i CET. Bryter mot regel 9 och måste läsa restaurangens land innan en marknad utanför CET tillkommer |
+| Notiser går bara som e-post | `lib/notify/` | Köket behöver något som låter. Kräver ett beslut om bäraren |
 
 ---
 
@@ -137,6 +155,23 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 - [x] Egen 404 och felsida
 - [x] Schemalagd tillgänglighet (`item_availability`) — skrivning, läsning
       **och** kontroll i API:t
+- [x] **Notiser.** Restaurangen får ett brev när en order kommer in, och Burp
+      när någon ansöker via `/anslut`. Brevet bär allt köket behöver för att
+      agera utan att logga in. Skickas via `after()`, efter svaret — gästen ska
+      inte vänta på ett API-anrop för att få veta att beställningen gick
+      igenom, och en order faller aldrig för att en notis inte kunde skickas.
+      Utan `RESEND_API_KEY` skrivs brevet i loggen i stället
+
+### Fas 2 — påbörjad
+
+- [x] **Karta över alla restauranger** (`/upptack`). Karta och lista sida vid
+      sida, filter på kök, stad och öppet nu, sortering på betyg eller namn.
+      Listan renderas på servern och är indexerbar; kartan är det enda som
+      kräver en webbläsare. "Öppet nu" frågar databasen (`open_restaurant_ids`,
+      migration 0025) i stället för att räkna om öppettiderna i TypeScript —
+      två svar på samma fråga glider isär, och den dagen visar listan öppet
+      medan beställningen nekas.
+      **Rutorna behöver en leverantör före lansering** — öppen fråga 8
 
 ### Marknad och språk
 

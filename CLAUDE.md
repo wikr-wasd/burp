@@ -329,7 +329,31 @@ inte en bugg i uppdelningen.
 ### Dev-servern efter en katalogflytt
 
 `next dev` behåller en gammal ruttlista och svarar 404 på nya rutter trots att
-bygget är korrekt. Starta om och rensa `.next`.
+bygget är korrekt. Starta om och rensa `.next`. Samma sak efter ett `npm
+install` av ett nytt paket — den nya modulens bunt svarar 503 tills servern
+startats om.
+
+### Öppna appen på `localhost`, aldrig på `127.0.0.1`
+
+Next 16 blockerar `/_next/`-resurser för en värd som inte står i
+`allowedDevOrigins`. `localhost` står där, `127.0.0.1` gör det inte. Följden är
+att **sidan renderas men aldrig hydrerar**: HTML:en ser komplett ut, statusen
+är 200, och ingenting i den är klickbart. Bunterna svarar 503 och det enda som
+säger varför är en varning i dev-serverns egen logg.
+
+Det kostade en halvtimmes felsökning av en karta som var korrekt hela tiden.
+`curl` mot `127.0.0.1` är däremot oproblematiskt — det är bara webbläsaren som
+behöver `localhost`.
+
+### En dynamisk import kan behöva `.default`
+
+Ett paket vars `main` pekar på en UMD-fil, utan `module` eller `exports`, ger
+en namnrymd där hela biblioteket ligger under `default`. `const L = await
+import("leaflet")` gör då `L.map` till undefined. Kartan blev en tom ruta utan
+ett enda felmeddelande, eftersom den avvisade promisen inte fångades någonstans.
+
+Fånga alltid felet i en dynamisk import och visa något. Ett tyst fel är värre
+än ett synligt.
 
 ### Flaxiga test döljer riktiga egenskaper
 

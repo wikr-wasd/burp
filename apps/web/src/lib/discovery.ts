@@ -38,6 +38,15 @@ export interface DiscoveryRestaurant {
    * och falla tillbaka på serverns tidszon — vilket på Vercel är UTC.
    */
   timeZone: string;
+  /**
+   * Kartnålens läge. Null när restaurangen saknar punkt.
+   *
+   * Genererade kolumner ur `location` (migration 0013) — skriv aldrig till
+   * dem. En restaurang utan koordinater hamnar i listan men inte på kartan;
+   * det är avsiktligt och bättre än att gissa mitt i staden.
+   */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface DiscoveryFilters {
@@ -50,7 +59,7 @@ export interface DiscoveryFilters {
 }
 
 const COLUMNS =
-  "id, name, slug, city, city_slug, description, street_address, cuisines, price_tier, rating_average, rating_count, hero_image_url, opening_hours, country, currency";
+  "id, name, slug, city, city_slug, description, street_address, cuisines, price_tier, rating_average, rating_count, hero_image_url, opening_hours, country, currency, latitude, longitude";
 
 interface RestaurantRow {
   id: string;
@@ -68,6 +77,8 @@ interface RestaurantRow {
   opening_hours: OpeningHours | null;
   country: CountryCode;
   currency: CurrencyCode;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 function toRestaurant(row: RestaurantRow): DiscoveryRestaurant {
@@ -88,6 +99,8 @@ function toRestaurant(row: RestaurantRow): DiscoveryRestaurant {
     country: row.country,
     currency: row.currency,
     timeZone: COUNTRY_INFO[row.country].timeZone,
+    latitude: row.latitude,
+    longitude: row.longitude,
   };
 }
 
@@ -122,6 +135,28 @@ export async function searchRestaurants(
   if (error) throw new Error(`Kunde inte hämta restauranger: ${error.message}`);
 
   return (data as RestaurantRow[] | null)?.map(toRestaurant) ?? [];
+}
+
+/**
+ * Id på restauranger som är öppna just nu.
+ *
+ * Svaret kommer från databasen (`open_restaurant_ids`, migration 0025), inte
+ * från en uträkning här. Öppettider är lokala och avgörs av serverns klocka —
+ * `discovery-format.ts` säger det uttryckligen om sin egen `todaysHours`, som
+ * bara formaterar schemat och aldrig svarar på om köket tar emot order.
+ *
+ * Två svar på samma fråga glider isär. Den dagen skulle listan visa "öppet"
+ * och beställningen nekas, vilket är sämre än att inte visa något alls.
+ */
+export async function openRestaurantIds(): Promise<Set<string>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("open_restaurant_ids");
+
+  if (error) throw new Error(`Kunde inte hämta öppna restauranger: ${error.message}`);
+
+  const rows = (data as { restaurant_id: string }[] | null) ?? [];
+  return new Set(rows.map((row) => row.restaurant_id));
 }
 
 /** Alla kökstyper som finns på minst en aktiv restaurang, i bokstavsordning. */

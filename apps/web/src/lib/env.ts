@@ -14,6 +14,24 @@ const publicSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(20),
   NEXT_PUBLIC_SITE_URL: z.url().default("http://localhost:3000"),
+
+  /*
+   * Kartrutorna på /upptack.
+   *
+   * Ligger i miljön och inte i koden därför att valet av leverantör är ett
+   * öppet beslut. Standardvärdet är OpenStreetMaps egna servrar, vilket
+   * fungerar i utveckling men INTE i produktion: OSM:s användningsvillkor
+   * tillåter inte att en publik tjänst hämtar rutor därifrån.
+   *
+   * Byt till MapTiler, Stadia, Protomaps eller motsvarande innan lansering.
+   * Bara de här två variablerna ändras — se docs/OPEN-QUESTIONS.md.
+   */
+  NEXT_PUBLIC_MAP_TILE_URL: z
+    .string()
+    .default("https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
+  NEXT_PUBLIC_MAP_TILE_ATTRIBUTION: z
+    .string()
+    .default('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'),
 });
 
 const serverSchema = z.object({
@@ -42,6 +60,8 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+  NEXT_PUBLIC_MAP_TILE_URL: process.env.NEXT_PUBLIC_MAP_TILE_URL,
+  NEXT_PUBLIC_MAP_TILE_ATTRIBUTION: process.env.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION,
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;

@@ -1,6 +1,7 @@
 # Öppna frågor
 
-De sju frågorna ur arkitekturunderlaget, med status och var i koden svaret ska landa.
+De sju frågorna ur arkitekturunderlaget, med status och var i koden svaret ska
+landa. Fråga 8 tillkom när kartsidan byggdes.
 
 Frågorna är inte formaliteter. Fråga 5 blockerar Fas 1 — utan svar går det inte
 att ta betalt med kort. Fråga 4 kan blockera lanseringen av QR-flödet helt.
@@ -217,6 +218,43 @@ schemaändring.
 Burps avgift är en tjänst till restaurangen och bär sannolikt 25 % moms. Det
 påverkar vad som ska stå på restaurangens underlag och hur `payouts` redovisas.
 Fråga en revisor.
+
+---
+
+## 8. Vem levererar kartrutorna?
+
+**Status:** obesvarad · **Blockerar:** lansering av `/upptack`
+
+Kartsidan är byggd och fungerar. Det som saknas är ett konto hos någon som får
+leverera rutorna.
+
+Standardvärdet i `NEXT_PUBLIC_MAP_TILE_URL` pekar på OpenStreetMaps egna
+servrar. Det räcker i utveckling, men **deras användningsvillkor tillåter inte
+att en publik tjänst hämtar rutor därifrån** — de driftas av donerade medel för
+kartredigerarnas skull, inte för produkter. Att lansera med den inställningen är
+att bygga på något som när som helst kan spärras, med rätta.
+
+Bytet är två miljövariabler och ingen kod:
+
+```
+NEXT_PUBLIC_MAP_TILE_URL=https://…/{z}/{x}/{y}.png?key=…
+NEXT_PUBLIC_MAP_TILE_ATTRIBUTION=…
+```
+
+Alternativ, i grov ordning efter hur lite de kostar för Burps volym:
+
+| Leverantör | Anmärkning |
+|---|---|
+| **MapTiler** | Gratisnivå räcker långt. Egen stil går att rita, så kartan kan matcha paletten |
+| **Stadia Maps** | Gratis under en tröskel. Kräver att domänen registreras |
+| **Protomaps** | Rutorna ligger i en fil man hostar själv. Ingen tredje part alls, men mer att drifta |
+| **Google Maps** | Dyrast, och en nyckel som måste rullas i tre miljöer. Gästen har ändå sin egen kartapp för vägbeskrivningen |
+
+Den enskilda restaurangens karta (`map-embed.tsx`) berörs inte — den är en
+iframe till openstreetmap.org, inte en ruthämtning, och ryms i villkoren.
+
+En egen stil är värd att väga in: OSM:s standardkarta är blå och grön, och blått
+finns annars inte i produkten av ett uttalat skäl.
 
 ---
 
