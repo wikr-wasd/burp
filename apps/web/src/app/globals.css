@@ -60,6 +60,16 @@
    */
   --rule-control: #9ca3af;
 
+  /*
+   * Dämpad yta — chippar och fyllda sökfält.
+   *
+   * I mockuperna ligger de på en vit panel och är `#f3f4f6`, alltså ett steg
+   * mörkare än underlaget. Burps sidor ligger på papperstonen, så samma
+   * FÖRHÅLLANDE kräver ett steg till: en chip i `#f3f4f6` på en `#f3f4f6`-sida
+   * hade varit osynlig.
+   */
+  --surface-muted: #e5e7eb;
+
   /* Betygsstjärnan. Guld mot vitt är för ljust — mörkare ton i ljust läge. */
   --star: #d97706;
 
@@ -82,6 +92,7 @@
     --muted: #9ca3af;
     --rule: #374151;
     --rule-control: #6b7280;
+    --surface-muted: #374151;
     --star: #fbbf24;
   }
 }
@@ -245,6 +256,17 @@ body {
 }
 
 /*
+ * Pillerknapp. Bara till sidhuvudets värvningsknapp, som i mockuperna.
+ *
+ * Formen är inte gratis: en pill drar blicken och lovar "det här är den enda
+ * knappen på raden". Används den på fler ställen slutar den lova det. Formulär
+ * och kassa behåller den rundade rektangeln.
+ */
+.btn-pill {
+  border-radius: 999px;
+}
+
+/*
  * Textfält. Ruta med rundade hörn, som i systemet — inte den understrukna
  * linjen den redaktionella formen använde.
  */
@@ -296,6 +318,32 @@ body {
 }
 
 /*
+ * Fyllt, kantlöst sökfält i pillerform — mockupernas sökruta i sidhuvudet.
+ *
+ * Undantaget från "alla fält är en rundad ruta med kant", och undantaget har
+ * ett skäl: fältet i sidhuvudet står bredvid en logotyp och en navigering, inte
+ * i ett formulär. En kant där läser som att sidhuvudet vill ha en ifylld
+ * uppgift innan man går vidare.
+ *
+ * Kontrastkravet i WCAG 1.4.11 gäller inte här — fyllningen skiljer sig från
+ * underlaget, och det är gränsen mot underlaget som är kravet, inte att den
+ * ritas med en linje.
+ */
+.field-soft {
+  border-color: transparent;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.field-soft:hover {
+  border-color: transparent;
+}
+
+.field-soft:focus {
+  border-color: var(--color-burp-600);
+}
+
+/*
  * Länk i löpande text. Understruken i vilotillstånd, inte bara vid hover — en
  * länk som ser ut som text tills man råkar peka på den är en länk gästen
  * aldrig hittar.
@@ -322,6 +370,17 @@ body {
  * var en understruken etikett ur den redaktionella formen, QR-menyns
  * avdelningar en pill. Samma sak, två sätt att lära sig den.
  */
+/*
+ * Fylld och kantlös, som i mockuperna — inte en ruta med kontur.
+ *
+ * Skillnaden är inte kosmetisk. En chip med kant läser som en knapp bland
+ * knappar; en fylld läser som en etikett man kan trycka på, vilket är vad den
+ * är. Kanten fanns för att chippen ärvde `.field`s formspråk.
+ *
+ * Höjden är 44 px och INTE mockupens 30. Mockupen är ritad för en muspekare;
+ * det här filtret trycks av en tumme på en gata. Det är den enda punkt där
+ * mockupen medvetet inte följs.
+ */
 .chip {
   display: inline-flex;
   flex-shrink: 0;
@@ -329,9 +388,10 @@ body {
   gap: 0.375rem;
   min-height: 2.75rem;
   padding-inline: 1rem;
-  border: 1px solid var(--rule-control);
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: var(--surface);
+  background: var(--surface-muted);
+  color: var(--foreground);
   font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
@@ -351,6 +411,43 @@ body {
   border-color: var(--color-burp-600);
   background: var(--color-burp-600);
   color: #fff;
+}
+
+/*
+ * Reglaget. "Öppet nu" är ett av/på, inte ett av flera val.
+ *
+ * En chip bland chippar hade sagt att det går att välja EN av dem. Formen
+ * måste säga vilken sorts val det är innan man läser etiketten.
+ */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.switch::before {
+  content: "";
+  display: block;
+  width: 2.125rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--rule-control);
+  box-shadow: inset -0.875rem 0 0 -0.125rem var(--surface);
+  transition:
+    background-color var(--speed) var(--ease),
+    box-shadow var(--speed) var(--ease);
+}
+
+/* Knoppen flyttas med en inre skugga i stället för ett extra element —
+   markupen är en knapp med en etikett, inget mer. */
+.switch[aria-pressed="true"]::before {
+  background: var(--color-burp-600);
+  box-shadow: inset 0.875rem 0 0 -0.125rem #fff;
 }
 
 /*

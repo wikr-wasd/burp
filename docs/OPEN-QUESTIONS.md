@@ -1,7 +1,8 @@
 # Öppna frågor
 
 De sju frågorna ur arkitekturunderlaget, med status och var i koden svaret ska
-landa. Fråga 8 tillkom när kartsidan byggdes.
+landa. Fråga 8 tillkom när kartsidan byggdes, fråga 9 och 10 när koden mättes
+mot UI-mockuperna.
 
 Frågorna är inte formaliteter. Fråga 5 blockerar Fas 1 — utan svar går det inte
 att ta betalt med kort. Fråga 4 kan blockera lanseringen av QR-flödet helt.
@@ -255,6 +256,55 @@ iframe till openstreetmap.org, inte en ruthämtning, och ryms i villkoren.
 
 En egen stil är värd att väga in: OSM:s standardkarta är blå och grön, och blått
 finns annars inte i produkten av ett uttalat skäl.
+
+---
+
+## 9. Ska mörkt läge gälla överallt, eller bara vid bordet?
+
+**Status:** obesvarad · **Blockerar:** ingenting, men avgör vad man ser
+
+Burp följer systemets inställning på varje yta. Mockuperna är ljusa, och en
+maskin i mörkt läge visar därför espressomörkt där mockupen visar vitt papper.
+Samma tokens, spegelvända — men det ser ut som ett annat designspråk.
+
+Skälet till mörkt läge är gott och gäller **en** yta: QR-menyn läses vid ett
+bord på kvällen, ofta i en mörk lokal, och en vit skärm i ansiktet är hela
+upplevelsen. Det skälet gäller inte startsidan, kartan eller backoffice.
+
+Tre vägar:
+
+1. **Som idag** — systemets inställning gäller överallt. Mest respektfullt mot
+   gästens val, men marknadsföringsytorna ser inte ut som mockupen på hälften
+   av alla maskiner.
+2. **Ljust överallt utom QR-sidan och kvittona.** De två ytor där skälet
+   faktiskt finns behåller mörkt läge; resten är alltid papper. Kostar en
+   `color-scheme`-låsning per segment.
+3. **Ljust överallt.** Enklast, men ger en vit skärm i ansiktet på en gäst som
+   sitter i en mörk ćevabdžinica klockan elva.
+
+Mitt förslag är **2**. Skälet till mörkt läge är platsbundet, och då ska
+inställningen vara det också.
+
+---
+
+## 10. Vilken logotyp?
+
+**Status:** obesvarad · **Blockerar:** ingenting akut
+
+`Burp Logo Concepts.dc.html` i designprojektet innehåller **fjorton förslag** i
+tre omgångar — wordmark, pratbubbla, skål med ånga, app-ikonplatta, ångprick,
+runt monogram, QR-ruta, negative-space-bricka, kursiv rörelse-wordmark,
+understreck som bordslinje, och fyra i graffitistil. Inget är valt.
+
+Koden använder i dag **app-ikonplattan** (`1d`): röd ruta med ett B plus
+gemen ordbild. Det är den UI-mockuperna använder i varje sidhuvud, så den var
+det enda valet som inte hade varit en gissning. Byte är billigt: formen ligger
+i `.burp-mark` i `globals.css` och i `lib/brand-glyph.tsx` för ikonerna.
+
+Värt att veta innan valet: de fyra graffitiförslagen har hård skugga och
+droppar, vilket är svårt att få skarpt i 32 px favicon och under Androids
+maskning. `3d` (skiva-badge) och `1f` (runt monogram) är de som skalar bäst av
+de mer utpräglade.
 
 ---
 

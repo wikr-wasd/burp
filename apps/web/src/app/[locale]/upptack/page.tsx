@@ -157,13 +157,27 @@ export default async function DiscoverPage({ params: routeParams, searchParams }
         <p className="mt-3 max-w-xl text-[var(--muted)]">{t.discover.intro}</p>
 
         <div className="mt-8 flex flex-wrap items-center gap-2">
-          <Link
-            href={filterHref(locale, params, { oppet: onlyOpen ? null : "1" })}
-            aria-pressed={onlyOpen}
-            className={`chip ${onlyOpen ? "chip-active" : ""}`}
-          >
-            {t.discover.openNow}
-          </Link>
+          {/*
+            "Öppet nu" är ett av/på, inte ett av flera val, och ska därför inte
+            se ut som en chip bland chippar. Ett GET-formulär med en knapp och
+            inte en länk: `aria-pressed` hör till en knapp, och en länk som
+            påstår sig vara nedtryckt läser fel för den som lyssnar på sidan.
+
+            Fungerar utan JavaScript — knappen skickar formuläret, som bär
+            resten av filtret i dolda fält.
+          */}
+          <form method="get" action={localePath(locale, "/upptack")} className="contents">
+            {cuisine ? <input type="hidden" name="kok" value={cuisine} /> : null}
+            {city ? <input type="hidden" name="stad" value={city} /> : null}
+            {params.sortera ? (
+              <input type="hidden" name="sortera" value={params.sortera} />
+            ) : null}
+            {onlyOpen ? null : <input type="hidden" name="oppet" value="1" />}
+
+            <button type="submit" aria-pressed={onlyOpen} className="switch mr-2">
+              {t.discover.openNow}
+            </button>
+          </form>
 
           <Link
             href={filterHref(locale, params, { stad: null })}

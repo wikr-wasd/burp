@@ -81,6 +81,17 @@ Ingenting går vidare här utan svar.
       Qopla. De frågar det före menyn, vilket är fel läge för någon som just
       satt sig vid ett bord — men frågan i sig är rimlig för en ćevabdžinica.
       Kräver ett beslut, inte kod: `orders.type` har redan `PICKUP`.
+- [ ] **Mörkt läge — överallt eller bara vid bordet?** `OPEN-QUESTIONS.md`
+      fråga 9. Blockerar ingenting, men avgör om marknadsföringsytorna ser ut
+      som mockuperna på en maskin i mörkt läge. Mitt förslag: ljust överallt
+      utom QR-sidan och kvittona.
+- [ ] **Vilken logotyp?** `OPEN-QUESTIONS.md` fråga 10. Fjorton förslag i
+      designprojektet, inget valt. Koden använder app-ikonplattan, som är den
+      UI-mockuperna själva använder.
+- [ ] **Ska `/upptack` vara startsidan?** I mockuperna ÄR kart- och listvyn
+      startsidan för gäster som inte kommit via en QR-kod. Burps `/sv` är en
+      redaktionell landningssida med bildcollage — en sidtyp som inte finns i
+      mockuperna alls. Båda finns byggda; frågan är vilken `burp.se` ska visa.
 - [ ] **Avsändaradress för notiserna.** Brev skickas när `RESEND_API_KEY` och
       `NOTIFY_FROM` är satta; utan dem skrivs de bara i loggen. Avsändaren
       måste ligga på en domän som är verifierad hos leverantören, och

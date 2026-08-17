@@ -39,6 +39,14 @@ Designsystemet dokumenterar inget. Burp behöver ett ändå: QR-menyn läses vid
 bord på kvällen, ofta i en mörk lokal, och en vit skärm i ansiktet är inte en
 detalj utan hela upplevelsen. Samma gråskala, spegelvänd.
 
+**Mockuperna är ljusa. Burp följer systemets inställning.** Det är samma tokens,
+och en maskin i mörkt läge visar därför espressomörkt där mockupen visar vitt
+papper — vilket ser ut som ett annat designspråk och inte är det. Vill man
+jämföra måste man jämföra i samma läge.
+
+Om mörkt läge ska gälla ÖVERALLT eller bara vid bordet är ett öppet beslut. Se
+`docs/OPEN-QUESTIONS.md` fråga 9.
+
 ---
 
 ## Typografi
@@ -67,13 +75,31 @@ eller en egen kantlinje i en komponent.
 | `.field` | Alla textfält. Rundad ruta |
 | `.link` | Länk i löpande text. Röd och understruken i viloläge |
 | `.badge` | Status, kategori, antal. Pillerform. Visas, trycks inte |
-| `.chip` + `.chip-active` | Filter och genvägar. Pillerform, 44 px, tryckbar |
+| `.chip` + `.chip-active` | Filter och genvägar. Fylld pillerform, 44 px, tryckbar |
+| `.switch` | Ett av/på-filter. Reglage, inte chip |
+| `.field-soft` | Fyllt, kantlöst sökfält i sidhuvudet |
+| `.btn-pill` | Sidhuvudets värvningsknapp. Enda pillerknappen |
 | `.burp-mark` + `.burp-wordmark` | Vinjetten. Se nedan |
 | `.map-pin`, `.map-popup` | Kartnålen och dess bubbla på `/upptack` |
 
 `.badge` och `.chip` ser lika ut men gör olika saker: ett märke rapporterar ett
 tillstånd, en chip ändrar det. Skillnaden syns i träffytan — ett märke får vara
 litet, en chip måste gå att träffa med en tumme.
+
+`.chip` och `.switch` skiljer sig på samma sätt: en chip är ett av flera val,
+ett reglage är av eller på. Formen måste säga vilken sorts val det är innan man
+läser etiketten. "Öppet nu" var en chip bland chippar och läste därför som att
+det gick att välja EN av dem.
+
+Chippen är **fylld och kantlös**, inte en ruta med kontur — en chip med kant
+läser som en knapp bland knappar. Fyllningen är `--surface-muted`, ett steg
+mörkare än underlaget. I mockuperna ligger chippen på en vit panel och är
+`#f3f4f6`; Burps sidor ligger på papperstonen, så samma **förhållande** kräver
+ett steg till.
+
+**Höjden är 44 px och inte mockupens 30.** Det är den enda punkt där mockupen
+medvetet inte följs: den är ritad för en muspekare, filtret trycks av en tumme
+på en gata.
 
 Kartans två klasser ligger i `globals.css` trots att de bara används på ett
 ställe. Leaflet skriver in nålen och bubblan som HTML-strängar, så det finns

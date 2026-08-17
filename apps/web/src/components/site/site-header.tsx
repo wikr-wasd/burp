@@ -87,7 +87,7 @@ export function SiteHeader({
             type="search"
             autoComplete="off"
             placeholder={t.site.searchPlaceholder}
-            className="field field-search"
+            className="field field-search field-soft"
           />
         </form>
 
@@ -146,7 +146,10 @@ export function SiteHeader({
             redan var med. Den som ännu inte är det är den som ska värvas, och
             hen hittade ingen väg in utan att leta i sidfoten.
           */}
-          <Link href="/anslut" className="btn btn-primary hidden whitespace-nowrap sm:inline-flex">
+          <Link
+            href="/anslut"
+            className="btn btn-primary btn-pill hidden whitespace-nowrap sm:inline-flex"
+          >
             {t.site.becomePartner}
           </Link>
         </div>
