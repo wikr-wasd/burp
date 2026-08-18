@@ -203,7 +203,6 @@ export const en: Dictionary = {
     payOnPickup: "Payment is taken in person on collection.",
     payAtTable: "Payment is taken in person.",
     paidByCard: "Paid by card.",
-    paidLabel: "Payment",
     refundedNotice: "This order has been refunded.",
     notFiscalReceipt: "This is an order confirmation, not a fiscal receipt. The restaurant will give you the receipt.",
     backTo: "Back to {name}",

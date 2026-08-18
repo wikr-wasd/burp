@@ -1,9 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Banknote, Check, TriangleAlert } from "lucide-react";
-import { formatAmountInput, formatMoney, parseAmount, settleCash } from "@burp/core";
-import { registerCashPayment } from "@/app/dashboard/kassa/actions";
+import { Banknote, Check, RotateCcw, TriangleAlert } from "lucide-react";
+import {
+  formatAmountInput,
+  formatMoney,
+  parseAmount,
+  settleCash,
+  type CurrencyCode,
+} from "@burp/core";
+import { refundPayment, registerCashPayment } from "@/app/dashboard/kassa/actions";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { RegisterOrder } from "@/lib/cash-register";
 
@@ -28,9 +34,15 @@ import type { RegisterOrder } from "@/lib/cash-register";
 export function CashRegister({
   unsettled,
   settled,
+  canRefund,
 }: {
   unsettled: RegisterOrder[];
   settled: RegisterOrder[];
+  /**
+   * Ägare och chef. Servitören ser raderna men får inte lämna tillbaka pengar
+   * — samma gräns som statistiksidan drar.
+   */
+  canRefund: boolean;
 }) {
   return (
     <div className="mt-8">
@@ -56,18 +68,18 @@ export function CashRegister({
 
       {settled.length > 0 ? (
         <section className="mt-12">
-          <h2 className="font-display text-2xl">Kvitterat i dag</h2>
+          <h2 className="font-display text-2xl">Betalt i dag</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {/* Beloppen summeras inte. En restaurang har en valuta, men samma
                 regel gäller här som på plattformsöversikten: summan skrivs där
                 den är säker, inte där den ser bra ut. */}
-            Facit över passet. Raderna går inte att ändra — en felkvittering rättas
-            med en motbokning, inte genom att skriva om historien.
+            Facit över passet, kontanter och kort. Raderna går inte att ändra — en
+            felkvittering rättas med en motbokning, inte genom att skriva om historien.
           </p>
 
           <ul className="card mt-3 divide-y divide-[var(--rule)]">
             {settled.map((order) => (
-              <SettledRow key={order.id} order={order} />
+              <SettledRow key={order.id} order={order} canRefund={canRefund} />
             ))}
           </ul>
         </section>
@@ -164,25 +176,169 @@ function UnsettledRow({ order }: { order: RegisterOrder }) {
 
 /* ── Kvitterat ───────────────────────────────────────────────────────────── */
 
-function SettledRow({ order }: { order: RegisterOrder }) {
+/** Vad raden ska säga att gästen betalade med. */
+const PROVIDER_LABELS: Record<string, string> = {
+  CASH: "Kontant",
+  GIFT_CARD: "Presentkort",
+  STRIPE: "Kort",
+  MONRI: "Kort",
+};
+
+function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boolean }) {
   const payment = order.payment!;
   const difference = payment.amountOre - order.totalOre;
+  const remainingOre = payment.amountOre - payment.refundedOre;
+
+  const [open, setOpen] = useState(false);
 
   return (
-    <li className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
-      <Check size={16} aria-hidden="true" className="shrink-0 text-green-600" />
-      <span className="font-medium">{orderLabel(order)}</span>
-      <span className="mr-auto text-sm text-[var(--muted)]">{payment.capturedLabel}</span>
-
-      {difference !== 0 ? (
-        <span className="text-sm tabular-nums text-[var(--muted)]">
-          notan {formatMoney(order.totalOre, order.currency)}
+    <li className="px-4 py-3">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <Check size={16} aria-hidden="true" className="shrink-0 text-green-600" />
+        <span className="font-medium">{orderLabel(order)}</span>
+        <span className="text-sm text-[var(--muted)]">
+          {PROVIDER_LABELS[payment.provider] ?? payment.provider} · {payment.capturedLabel}
         </span>
+
+        <span className="mr-auto" />
+
+        {difference !== 0 ? (
+          <span className="text-sm tabular-nums text-[var(--muted)]">
+            notan {formatMoney(order.totalOre, order.currency)}
+          </span>
+        ) : null}
+        <span
+          className={`font-semibold tabular-nums ${payment.refundedOre > 0 ? "text-[var(--muted)] line-through" : ""}`}
+        >
+          {formatMoney(payment.amountOre, order.currency)}
+        </span>
+      </div>
+
+      {payment.refundedOre > 0 ? (
+        <p className="mt-1 flex items-center gap-2 text-sm text-[var(--muted)]">
+          <RotateCcw size={14} aria-hidden="true" className="shrink-0" />
+          Återbetalt {formatMoney(payment.refundedOre, order.currency)}
+          {remainingOre > 0 ? ` · kvar ${formatMoney(remainingOre, order.currency)}` : ""}
+        </p>
       ) : null}
-      <span className="font-semibold tabular-nums">
-        {formatMoney(payment.amountOre, order.currency)}
-      </span>
+
+      {canRefund && remainingOre > 0 ? (
+        open ? (
+          <RefundForm
+            payment={payment}
+            currency={order.currency}
+            remainingOre={remainingOre}
+            onClose={() => setOpen(false)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="mt-2 text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
+          >
+            Betala tillbaka
+          </button>
+        )
+      ) : null}
     </li>
+  );
+}
+
+/**
+ * Motbokningen.
+ *
+ * Beloppet är förifyllt med vad som återstår, eftersom hela notan är det
+ * vanliga fallet — men det går att sänka. En kall rätt av fyra ska inte kräva
+ * att hela måltiden betalas tillbaka.
+ *
+ * Skälet är obligatoriskt. En återbetalning utan skäl är oförklarlig för den
+ * som stämmer av kassan tre månader senare, och databasen kräver det ändå.
+ */
+function RefundForm({
+  payment,
+  currency,
+  remainingOre,
+  onClose,
+}: {
+  payment: NonNullable<RegisterOrder["payment"]>;
+  currency: CurrencyCode;
+  remainingOre: number;
+  onClose: () => void;
+}) {
+  const [amount, setAmount] = useState(() => formatAmountInput(remainingOre, currency));
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const amountOre = parseAmount(amount, currency);
+  const tooMuch = amountOre !== null && amountOre > remainingOre;
+
+  function submit() {
+    setError(null);
+    startTransition(async () => {
+      const result = await refundPayment(payment.id, amount, reason);
+      if (result.ok) onClose();
+      else setError(result.message ?? "Återbetalningen gick inte igenom.");
+    });
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-[var(--rule)] p-3">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="w-32">
+          <span className="label-caps">Belopp</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            className="field mt-1.5 tabular-nums"
+          />
+        </label>
+
+        <label className="min-w-48 flex-1">
+          <span className="label-caps">Varför</span>
+          <input
+            type="text"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="T.ex. kall soppa"
+            className="field mt-1.5"
+          />
+        </label>
+      </div>
+
+      {tooMuch ? (
+        <p className="mt-2 text-sm text-burp-600">
+          Mer än vad som återstår ({formatMoney(remainingOre, currency)}).
+        </p>
+      ) : null}
+
+      {amountOre === null && amount.trim() !== "" ? (
+        <p className="mt-2 text-sm text-burp-600">Beloppet gick inte att tolka.</p>
+      ) : null}
+
+      {error ? (
+        <p role="alert" className="mt-2 border-l-2 border-burp-600 bg-burp-50 px-3 py-2 text-sm text-burp-700 dark:bg-burp-900/40 dark:text-burp-100">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          onClick={submit}
+          disabled={pending || amountOre === null || tooMuch || !reason.trim()}
+          className="btn btn-primary"
+        >
+          <RotateCcw size={16} aria-hidden="true" />
+          {pending ? "Betalar tillbaka…" : "Betala tillbaka"}
+        </button>
+        <button type="button" onClick={onClose} className="btn btn-secondary">
+          Avbryt
+        </button>
+      </div>
+    </div>
   );
 }
 

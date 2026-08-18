@@ -2,16 +2,22 @@ import type { Metadata } from "next";
 import {
   parseOpeningHours,
   parseOrderPolicy,
+  type CurrencyCode,
   type OpeningHours,
   type OrderPolicy,
   type StaffRole,
 } from "@burp/core";
 import { StaffShell } from "@/components/staff/staff-shell";
+import {
+  CardPaymentSettings,
+  type AccountStatus,
+} from "@/components/staff/card-payment-settings";
 import { OpeningHoursEditor } from "@/components/staff/opening-hours-editor";
 import { PresentationEditor } from "@/components/staff/presentation-editor";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
 import { StaffManager } from "@/components/staff/staff-manager";
 import { requireStaff } from "@/lib/auth";
+import { connectableProviders, getPaymentAccounts } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -85,6 +91,17 @@ export default async function SettingsPage() {
     }
   }
 
+  /*
+   * Betalkontot.
+   *
+   * Läses med service role därför att `restaurant_payment_accounts` skrivs av
+   * servern efter samtal med leverantören — sidan visar bara vad som står där.
+   * `getPaymentAccounts` filtrerar själv på restaurangen (regel 5).
+   */
+  const accounts = await getPaymentAccounts(staff.restaurantId);
+  const paymentAccount = accounts[0] ?? null;
+  const connectable = connectableProviders(staff.currency);
+
   const members: StaffMember[] = (staffRows ?? []).map((row) => ({
     id: row.id,
     userId: row.user_id,
@@ -144,6 +161,30 @@ export default async function SettingsPage() {
             Pass över midnatt stöds inte än.
           </p>
           <OpeningHoursEditor initial={hours} />
+        </section>
+
+        <hr className="rule mt-14" />
+
+        <section className="mt-10">
+          <h2 className="font-display text-2xl">Kortbetalning</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Gästen betalar i sin egen telefon. Avtalet är ert, inte Burps — pengarna går rakt
+            in på ert konto.
+          </p>
+          <CardPaymentSettings
+            account={
+              paymentAccount
+                ? {
+                    provider: paymentAccount.provider,
+                    status: paymentAccount.status as AccountStatus,
+                    currency: paymentAccount.currency as CurrencyCode,
+                  }
+                : null
+            }
+            connectable={connectable}
+            currency={staff.currency}
+            isOwner={staff.role === "owner"}
+          />
         </section>
 
         <hr className="rule mt-14" />

@@ -231,7 +231,6 @@ export const sv = {
     payOnPickup: "Betalning sker på plats vid upphämtning.",
     payAtTable: "Betalning sker på plats.",
     paidByCard: "Betald med kort.",
-    paidLabel: "Betalning",
     refundedNotice: "Beställningen är återbetald.",
     /*
      * Fiskalisering.

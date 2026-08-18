@@ -1,16 +1,20 @@
 import "server-only";
 
-import type { CurrencyCode, OrderType } from "@burp/core";
+import type { CurrencyCode, OrderType, PaymentStatus } from "@burp/core";
 import { createClient } from "./supabase/server";
 
 /**
  * Kassavyn: slutförda order och vad som betalats för dem.
  *
- * Betalning i plattformen är beslutad men blockerad av leverantörsvalet (öppen
- * fråga 5). Kontant är inte blockerat av något, och tills korten fungerar är
- * det ENDA sättet en order faktiskt betalas — därför måste summan kunna
- * kvitteras av någon i lokalen. Utan kvittensen finns ingen kassaavstämning och
- * inget bekräftat underlag för Burps avgift.
+ * Kontant är fortfarande det vanligaste sättet en order betalas i Bosnien och
+ * Serbien, och personalen i lokalen måste kunna kvittera summan. Utan
+ * kvittensen finns ingen kassaavstämning och inget bekräftat underlag för
+ * Burps avgift.
+ *
+ * Vyn läser numera ALLA betalningar och inte bara kontanter. Med bara
+ * `provider = 'CASH'` såg en kortbetald order ut som obetald och hamnade bland
+ * notorna att kvittera — personalen hade då registrerat kontanter ovanpå en
+ * betalning som redan gått igenom, och kassan gått plus med hela notan.
  *
  * Läser med personalens egen session. `orders_select_staff` och de nya
  * policyerna i migration 0024 begränsar redan till den egna restaurangen;
@@ -18,9 +22,15 @@ import { createClient } from "./supabase/server";
  */
 
 export interface SettledPayment {
+  id: string;
   amountOre: number;
   /** Klockslag i restaurangens tidszon, färdigformaterat. */
   capturedLabel: string;
+  /** `CASH`, `STRIPE`, `MONRI`… Avgör vad raden säger och vad som går att göra. */
+  provider: string;
+  status: PaymentStatus;
+  /** Summan av lyckade motbokningar. Noll när ingenting återbetalats. */
+  refundedOre: number;
 }
 
 export interface RegisterOrder {
@@ -94,19 +104,48 @@ export async function getCashRegister(
   const [paymentsResult, itemsResult, tablesResult] = await Promise.all([
     supabase
       .from("payments")
-      .select("order_id, amount_ore, captured_at")
+      .select("id, order_id, amount_ore, captured_at, provider, status")
       .in("order_id", orderIds)
-      .eq("provider", "CASH"),
+      // En misslyckad betalning är inte en betalning. Ordern ska ligga kvar
+      // bland dem som ska kvitteras.
+      .neq("status", "FAILED"),
     supabase.from("order_items").select("order_id, name_snapshot, quantity").in("order_id", orderIds),
     tableIds.length
       ? supabase.from("tables").select("id, table_number").in("id", tableIds)
       : Promise.resolve({ data: [] as { id: string; table_number: string }[] }),
   ]);
 
+  const paymentRows = paymentsResult.data ?? [];
+
+  // Motbokningarna hämtas separat och inte som en join: `refunds` är läsbar
+  // bara för ägare och chef, och servitören ska kunna använda kassavyn ändå.
+  const { data: refundRows } = paymentRows.length
+    ? await supabase
+        .from("refunds")
+        .select("payment_id, amount_ore")
+        .in(
+          "payment_id",
+          paymentRows.map((row) => row.id),
+        )
+        .eq("status", "SUCCEEDED")
+    : { data: [] as { payment_id: string; amount_ore: number }[] };
+
+  const refundedByPayment = new Map<string, number>();
+  for (const row of refundRows ?? []) {
+    refundedByPayment.set(row.payment_id, (refundedByPayment.get(row.payment_id) ?? 0) + row.amount_ore);
+  }
+
   const paymentByOrder = new Map(
-    (paymentsResult.data ?? []).map((row) => [
+    paymentRows.map((row) => [
       row.order_id,
-      { amountOre: row.amount_ore, capturedLabel: at(row.captured_at) },
+      {
+        id: row.id,
+        amountOre: row.amount_ore,
+        capturedLabel: at(row.captured_at),
+        provider: row.provider,
+        status: row.status as PaymentStatus,
+        refundedOre: refundedByPayment.get(row.id) ?? 0,
+      },
     ]),
   );
 

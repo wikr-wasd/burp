@@ -6,13 +6,17 @@ import { SiteHeader } from "@/components/site/site-header";
 import { dictionary, fill, requestLocale } from "@/lib/i18n";
 import { notFound } from "next/navigation";
 import {
+  COUNTRY_INFO,
   formatMoney,
   parseOrderPolicy,
+  type CountryCode,
   type OrderStatus,
 } from "@burp/core";
 import { OrderActions } from "@/components/order/order-actions";
 import { OrderStatusView } from "@/components/order/order-status";
+import { PaymentNotice } from "@/components/order/payment-notice";
 import { guestOwnsOrder } from "@/lib/guest-orders";
+import { paymentSummaryFor } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -74,7 +78,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
       .eq("order_id", order.id),
     supabase
       .from("restaurants")
-      .select("name, city, city_slug, slug, street_address, postal_code, latitude, longitude, phone, order_policy")
+      .select("name, city, city_slug, slug, street_address, postal_code, latitude, longitude, phone, order_policy, country")
       .eq("id", order.restaurant_id)
       .single(),
   ]);
@@ -88,6 +92,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
     );
 
   const policy = parseOrderPolicy(restaurant?.order_policy);
+  const payment = await paymentSummaryFor(order.id);
 
   const optionsByItem = new Map<string, string[]>();
   for (const option of options ?? []) {
@@ -201,11 +206,21 @@ export default async function PickupOrderPage({ params }: PageProps) {
         </div>
       </dl>
 
-      {/* Betalning finns inte än (öppen fråga 5). Tills den gör det betalar
-          gästen på plats, och det ska stå rakt ut i stället för att antydas. */}
-      <p className="mt-8 border-l-2 border-burp-600 bg-burp-50 px-4 py-3 text-sm dark:bg-burp-900/40">
-        {t.receipt.payOnPickup}
-      </p>
+      {/* Vad som hänt med pengarna, och att det här inte är ett fiskalt
+          kvitto. Båda ska stå rakt ut i stället för att antydas. */}
+      <PaymentNotice
+        payment={payment}
+        fiscalReceiptRequired={
+          COUNTRY_INFO[(restaurant?.country as CountryCode | undefined) ?? "BA"]
+            .fiscalReceiptRequired
+        }
+        labels={{
+          payInPerson: t.receipt.payOnPickup,
+          paidByCard: t.receipt.paidByCard,
+          refundedNotice: t.receipt.refundedNotice,
+          notFiscalReceipt: t.receipt.notFiscalReceipt,
+        }}
+      />
 
       {restaurant ? (
         <Link href={`/r/${restaurant.city_slug}/${restaurant.slug}`} className="link mt-10 inline-block text-sm">

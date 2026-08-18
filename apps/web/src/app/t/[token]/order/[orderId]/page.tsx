@@ -2,12 +2,15 @@ import { dictionary, fill, requestLocale } from "@/lib/i18n";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
+  COUNTRY_INFO,
   formatMoney,
   parseOrderPolicy,
   type OrderStatus,
 } from "@burp/core";
 import { OrderActions } from "@/components/order/order-actions";
 import { OrderStatusView } from "@/components/order/order-status";
+import { PaymentNotice } from "@/components/order/payment-notice";
+import { paymentSummaryFor } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { currentTableSessionId, lookupTable } from "@/lib/table-session";
 
@@ -86,6 +89,7 @@ export default async function OrderPage({ params }: PageProps) {
     .single();
 
   const policy = parseOrderPolicy(restaurant?.order_policy);
+  const payment = await paymentSummaryFor(order.id);
 
   const optionsByItem = new Map<string, string[]>();
   for (const option of options ?? []) {
@@ -170,11 +174,18 @@ export default async function OrderPage({ params }: PageProps) {
         </div>
       </dl>
 
-      {/* Betalningen sker på plats tills en betalleverantör är vald
-          (öppen fråga 5). Det ska stå rakt ut, inte antydas. */}
-      <p className="mt-8 border-l-2 border-burp-600 bg-burp-50 px-4 py-3 text-sm dark:bg-burp-900/40">
-          {t.receipt.payAtTable}
-        </p>
+      {/* Vad som hänt med pengarna, och att det här inte är ett fiskalt
+          kvitto. Båda ska stå rakt ut, inte antydas. */}
+      <PaymentNotice
+        payment={payment}
+        fiscalReceiptRequired={COUNTRY_INFO[lookup.table.country].fiscalReceiptRequired}
+        labels={{
+          payInPerson: t.receipt.payAtTable,
+          paidByCard: t.receipt.paidByCard,
+          refundedNotice: t.receipt.refundedNotice,
+          notFiscalReceipt: t.receipt.notFiscalReceipt,
+        }}
+      />
       </main>
     </div>
   );

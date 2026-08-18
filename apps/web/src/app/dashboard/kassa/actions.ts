@@ -1,8 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { parseAmount, settleCash, type CurrencyCode } from "@burp/core";
+import {
+  parseAmount,
+  settleCash,
+  type CurrencyCode,
+  type PaymentProviderId,
+} from "@burp/core";
 import { requireStaff } from "@/lib/auth";
+import { paymentProvider, PaymentProviderError } from "@/lib/payments";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -106,6 +113,142 @@ export async function registerCashPayment(
       return { ok: false, message: "Ordern är redan kvitterad." };
     }
     return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/dashboard/kassa");
+  return { ok: true };
+}
+
+/* ── Återbetalning ───────────────────────────────────────────────────────── */
+
+/**
+ * Betalar tillbaka hela eller en del av en nota.
+ *
+ * Formen är en MOTBOKNING. Beloppet på betalningen skrivs aldrig om — det som
+ * hände står kvar, och rättelsen är en egen rad. Samma princip som
+ * `order_events` och `loyalty_transactions`, och den som migration 0024
+ * utlovade: "en felkvittering rättas med en motbokning när återbetalningsflödet
+ * byggs".
+ *
+ * Ägare och chef, inte servitören. Att lämna tillbaka pengar är ett ekonomiskt
+ * beslut, samma gräns som statistiksidan drar.
+ *
+ * Ordningen är avsiktlig: raden skrivs FÖRST, sedan anropas leverantören. Går
+ * anropet fel markeras raden som misslyckad. Motsatt ordning — leverantören
+ * först — hade kunnat lämna pengar utbetalda utan en rad som säger det, om
+ * processen dog mellan de två stegen.
+ */
+export async function refundPayment(
+  paymentId: string,
+  amountInput: string,
+  reason: string,
+): Promise<ActionResult> {
+  const staff = await requireStaff(["owner", "manager"]);
+
+  if (!reason.trim()) {
+    return { ok: false, message: "Skriv varför notan betalas tillbaka." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: payment } = await supabase
+    .from("payments")
+    .select("id, restaurant_id, amount_ore, currency, provider, provider_reference, status")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  if (!payment || payment.restaurant_id !== staff.restaurantId) {
+    return { ok: false, message: "Betalningen hittades inte." };
+  }
+
+  const currency = payment.currency as CurrencyCode;
+  const amountOre = parseAmount(amountInput, currency);
+
+  if (amountOre === null || amountOre <= 0) {
+    return { ok: false, message: "Beloppet gick inte att tolka." };
+  }
+
+  const admin = createAdminClient();
+
+  const { data: refundId, error: requestError } = await admin.rpc("request_refund", {
+    p_payment_id: payment.id,
+    p_amount_ore: amountOre,
+    p_reason: reason.trim(),
+    p_actor_id: staff.userId,
+  });
+
+  if (requestError || typeof refundId !== "string") {
+    return { ok: false, message: requestError?.message ?? "Motbokningen kunde inte skapas." };
+  }
+
+  // Kontant och presentkort är redan avslutade av `request_refund` — det finns
+  // ingen leverantör som ska bekräfta att sedlarna lämnades över disk.
+  if (payment.provider === "CASH" || payment.provider === "GIFT_CARD") {
+    revalidatePath("/dashboard/kassa");
+    return { ok: true };
+  }
+
+  const { data: account } = await admin
+    .from("restaurant_payment_accounts")
+    .select("provider, external_account_id, currency")
+    .eq("restaurant_id", staff.restaurantId)
+    .eq("provider", payment.provider)
+    .maybeSingle();
+
+  if (!account) {
+    await admin.rpc("fail_refund", {
+      p_refund_id: refundId,
+      p_reason: "Restaurangens betalkonto hittades inte.",
+    });
+    return { ok: false, message: "Betalkontot hittades inte hos leverantören." };
+  }
+
+  if (!payment.provider_reference) {
+    await admin.rpc("fail_refund", {
+      p_refund_id: refundId,
+      p_reason: "Betalningen saknar referens hos leverantören.",
+    });
+    return { ok: false, message: "Betalningen saknar referens hos leverantören." };
+  }
+
+  try {
+    const result = await paymentProvider(payment.provider as PaymentProviderId).refund({
+      // Leverantörens referens, inte vår. `refunds.provider_reference` fylls
+      // sedan med motbokningens egen.
+      reference: payment.provider_reference,
+      amountOre,
+      // Egen nyckel per motbokning. Två återbetalningar på samma nota ska gå
+      // igenom båda; ett dubbeltryck på samma ska inte.
+      idempotencyKey: refundId,
+      account: {
+        provider: account.provider as PaymentProviderId,
+        externalAccountId: account.external_account_id,
+        currency: account.currency as CurrencyCode,
+        isActive: true,
+      },
+      reason: reason.trim(),
+    });
+
+    // Leverantören kan svara direkt eller bekräfta med en webhook. Är den redan
+    // klar avslutas raden här; annars gör webhooken det.
+    if (result.isSettled) {
+      await admin.rpc("settle_refund", {
+        p_refund_id: refundId,
+        p_provider_reference: result.reference,
+      });
+    }
+  } catch (error) {
+    await admin.rpc("fail_refund", {
+      p_refund_id: refundId,
+      p_reason: error instanceof Error ? error.message : "Okänt fel hos leverantören.",
+    });
+    return {
+      ok: false,
+      message:
+        error instanceof PaymentProviderError
+          ? error.message
+          : "Leverantören kunde inte genomföra återbetalningen.",
+    };
   }
 
   revalidatePath("/dashboard/kassa");

@@ -80,6 +80,24 @@ export interface CountryInfo {
   orgNumberLabel: string;
   postalCodePattern: RegExp;
   phonePrefix: string;
+  /**
+   * Kräver landet att varje kvitto till en konsument fiskaliseras?
+   *
+   * Fiskalisering betyder att kvittot rapporteras till skattemyndigheten i
+   * realtid och förses med en signatur som ska stå på det. Kroatien kräver det
+   * sedan 2026-01-01 för varje B2C-kvitto **oavsett betalsätt**; Serbien sedan
+   * 2022 via ESIR och LPFR; Bosnien har en ny lag i kraft sedan 2026-02-12 som
+   * börjar tillämpas när föreskrifterna är klara.
+   *
+   * Burp gör INTE detta. Restaurangen har sin egen fiskalkassa och fortsätter
+   * använda den. Fältet finns för att Burps orderbekräftelse ska kunna säga
+   * rakt ut att den inte är ett kvitto — ett dokument med ordersumma och
+   * momsuppdelning utan signatur kan annars läsas som ett kvitto som borde ha
+   * fiskaliserats.
+   *
+   * Se docs/OPEN-QUESTIONS.md fråga 4. Integrationen kräver lokal skattejurist.
+   */
+  fiscalReceiptRequired: boolean;
 }
 
 export const COUNTRY_INFO: Record<CountryCode, CountryInfo> = {
@@ -95,6 +113,9 @@ export const COUNTRY_INFO: Record<CountryCode, CountryInfo> = {
     orgNumberLabel: "JIB",
     postalCodePattern: /^\d{5}$/,
     phonePrefix: "+387",
+    // Zakon o fiskalizaciji transakcija i FBiH, i kraft 2026-02-12. Tillämpas
+    // när föreskrifterna är klara; Republika Srpska har ett eget regelverk.
+    fiscalReceiptRequired: true,
   },
   HR: {
     code: "HR",
@@ -107,6 +128,8 @@ export const COUNTRY_INFO: Record<CountryCode, CountryInfo> = {
     orgNumberLabel: "OIB",
     postalCodePattern: /^\d{5}$/,
     phonePrefix: "+385",
+    // Fiskalizacija 2.0. Varje B2C-kvitto sedan 2026-01-01, oavsett betalsätt.
+    fiscalReceiptRequired: true,
   },
   RS: {
     code: "RS",
@@ -119,6 +142,8 @@ export const COUNTRY_INFO: Record<CountryCode, CountryInfo> = {
     orgNumberLabel: "PIB",
     postalCodePattern: /^\d{5,6}$/,
     phonePrefix: "+381",
+    // ESIR + LPFR, realtid till Poreska uprava, QR på kvittot.
+    fiscalReceiptRequired: true,
   },
   SE: {
     code: "SE",
@@ -131,6 +156,9 @@ export const COUNTRY_INFO: Record<CountryCode, CountryInfo> = {
     orgNumberLabel: "Organisationsnummer",
     postalCodePattern: /^\d{5}$/,
     phonePrefix: "+46",
+    // Sverige har krav på certifierat kassaregister men ingen realtidsrapportering
+    // av det slaget. Kravet gäller kassan i lokalen, inte en orderbekräftelse.
+    fiscalReceiptRequired: false,
   },
 };
 

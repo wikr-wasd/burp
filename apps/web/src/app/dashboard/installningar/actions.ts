@@ -16,6 +16,8 @@ import {
   type StaffRole,
 } from "@burp/core";
 import { requireStaff } from "@/lib/auth";
+import { publicEnv } from "@/lib/env";
+import { connectableProviders, paymentProvider, PaymentProviderError } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -319,6 +321,109 @@ export async function savePresentation(input: PresentationInput): Promise<Action
     .from("restaurants")
     .update(update)
     .eq("id", staff.restaurantId);
+
+  return error ? fail(error.message) : done();
+}
+
+/* ── Kortbetalning ───────────────────────────────────────────────────────── */
+
+/**
+ * Kopplar restaurangens eget inlösenavtal.
+ *
+ * Det viktiga att förstå om det här steget: **kontot är restaurangens, inte
+ * Burps.** Gästens pengar går rakt in på det och Burp rör dem aldrig. Det är
+ * inte en teknisk detalj utan hela skälet till att kortbetalning går att
+ * bygga: att förmedla pengar åt någon annan är tillståndspliktigt, och Bosnien
+ * och Serbien ligger utanför EU/EES där ett sådant tillstånd tar över ett år.
+ *
+ * Bara ägaren. En chef sköter drift och meny; att binda restaurangen till ett
+ * inlösenavtal är ett ekonomiskt beslut.
+ */
+export async function startCardOnboarding(): Promise<ActionResult & { url?: string }> {
+  const staff = await requireStaff(["owner"]);
+
+  const providers = connectableProviders(staff.currency);
+  const providerId = providers[0];
+
+  if (!providerId) {
+    // Ingen leverantör täcker restaurangens valuta. I Bosnien och Serbien är
+    // det läget tills ett Monri-avtal finns — och kontantflödet fungerar under
+    // tiden, så det här är ett besked och inte ett fel.
+    return fail(
+      `Ingen betalleverantör är kopplad för ${staff.currency} ännu. Kontantbetalning fungerar som vanligt.`,
+    );
+  }
+
+  const admin = createAdminClient();
+
+  const { data: existing } = await admin
+    .from("restaurant_payment_accounts")
+    .select("external_account_id")
+    .eq("restaurant_id", staff.restaurantId)
+    .eq("provider", providerId)
+    .maybeSingle();
+
+  const base = publicEnv.NEXT_PUBLIC_SITE_URL;
+
+  let link;
+  try {
+    link = await paymentProvider(providerId).createOnboardingLink({
+      restaurantId: staff.restaurantId,
+      country: staff.country,
+      currency: staff.currency,
+      email: staff.email,
+      existingAccountId: existing?.external_account_id ?? null,
+      returnUrl: new URL("/dashboard/installningar?kort=klart", base).toString(),
+      refreshUrl: new URL("/dashboard/installningar?kort=avbrutet", base).toString(),
+    });
+  } catch (error) {
+    return fail(
+      error instanceof PaymentProviderError
+        ? error.message
+        : "Kunde inte nå betalleverantören. Försök igen.",
+    );
+  }
+
+  /*
+   * Raden skapas som PENDING och blir ACTIVE först när leverantören säger att
+   * kontot får ta emot pengar. Att lita på att formuläret fylldes i hade gett
+   * en kortknapp som nekar varje betalning — leverantören granskar underlaget
+   * i efterhand, och det tar ibland dagar.
+   */
+  const { error: writeError } = await admin
+    .from("restaurant_payment_accounts")
+    .upsert(
+      {
+        restaurant_id: staff.restaurantId,
+        provider: providerId,
+        external_account_id: link.externalAccountId,
+        currency: staff.currency,
+      },
+      { onConflict: "restaurant_id,provider" },
+    );
+
+  if (writeError) return fail(writeError.message);
+
+  revalidatePath("/dashboard/installningar");
+  return { ok: true, url: link.url };
+}
+
+/**
+ * Stänger av kortbetalning.
+ *
+ * Kontot hos leverantören rörs inte — det är restaurangens och kan ha
+ * historik, tvister och utbetalningar kvar. Det som ändras är att Burp slutar
+ * erbjuda kortknappen. Att radera raden hade gjort gamla betalningar
+ * omöjliga att härleda till ett konto.
+ */
+export async function disableCardPayments(): Promise<ActionResult> {
+  const staff = await requireStaff(["owner"]);
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("restaurant_payment_accounts")
+    .update({ status: "DISABLED" })
+    .eq("restaurant_id", staff.restaurantId);
 
   return error ? fail(error.message) : done();
 }

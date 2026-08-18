@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { CurrencyCode, PaymentProviderId } from "@burp/core";
+import type { CurrencyCode, PaymentProviderId, PaymentStatus } from "@burp/core";
 import { publicEnv } from "../env";
 import { createAdminClient } from "../supabase/admin";
 import {
@@ -103,6 +103,49 @@ export async function cardOptionFor(
 
   const publishableKey = publicEnv.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
   return publishableKey ? { publishableKey } : null;
+}
+
+export interface PaymentSummary {
+  provider: PaymentProviderId;
+  status: PaymentStatus;
+  amountOre: number;
+  /** Sant när gästen betalade i plattformen och inte i kassan. */
+  paidInApp: boolean;
+}
+
+/**
+ * Vad kvittot ska säga om betalningen.
+ *
+ * Läser med service role: bordskvittot visas för en anonym gäst som saknar
+ * `auth.uid()`, och åtkomsten är redan avgjord av bordssessionen när den här
+ * anropas. Filtrerar på ordern (regel 5).
+ *
+ * Null betyder att ingen betalning registrerats — då gäller "betalning sker på
+ * plats", vilket är sant både före kassans kvittens och när restaurangen inte
+ * tar kort alls.
+ */
+export async function paymentSummaryFor(orderId: string): Promise<PaymentSummary | null> {
+  const supabase = createAdminClient();
+
+  const { data } = await supabase
+    .from("payments")
+    .select("provider, status, amount_ore")
+    .eq("order_id", orderId)
+    .neq("status", "FAILED")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  const provider = data.provider as PaymentProviderId;
+
+  return {
+    provider,
+    status: data.status as PaymentStatus,
+    amountOre: data.amount_ore,
+    paidInApp: provider !== "CASH",
+  };
 }
 
 /** Restaurangens konto oavsett status — för personalytan, som ska se väntande. */

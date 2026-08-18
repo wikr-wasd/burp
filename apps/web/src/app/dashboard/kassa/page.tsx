@@ -33,10 +33,14 @@ export default async function CashRegisterPage() {
       staff={staff}
       current="kassa"
       title="Kassa"
-      intro="Slutförda order från det senaste dygnet. Kvittera vad som faktiskt togs emot — utan det finns ingen kassaavstämning, och avgiften räknas på en siffra ingen sett."
+      intro="Slutförda order från det senaste dygnet. Kortbetalda order är redan kvitterade av leverantören; kontanter kvitteras här — utan det finns ingen kassaavstämning, och avgiften räknas på en siffra ingen sett."
       width="narrow"
     >
-      <CashRegister unsettled={unsettled} settled={settled} />
+      <CashRegister
+        unsettled={unsettled}
+        settled={settled}
+        canRefund={staff.role === "owner" || staff.role === "manager"}
+      />
     </StaffShell>
   );
 }
