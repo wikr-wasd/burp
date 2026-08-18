@@ -19,6 +19,7 @@ import {
 import { serverEnv } from "@/lib/env";
 import { rememberGuestOrder } from "@/lib/guest-orders";
 import { notifyNewOrder } from "@/lib/notify";
+import { getCardAccount, paymentProvider, PaymentProviderError } from "@/lib/payments";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -319,7 +320,32 @@ export async function POST(request: Request) {
     restaurant.fee_override_bps ?? serverEnv().BURP_DEFAULT_FEE_BPS,
   );
 
-  /* ── 5. Skriv allt i en transaktion ────────────────────────────────────── */
+  /* ── 5. Betalvägen ─────────────────────────────────────────────────────── */
+
+  /*
+   * Kort och kontant lägger ordern i olika status, och det är avsiktligt.
+   *
+   * En kontantorder är lagd direkt: gästen betalar i kassan efteråt och köket
+   * ska börja laga. En kortorder skapas som DRAFT och lyfts till PLACED först
+   * när betalningen bekräftats av leverantörens webhook. Köket ska aldrig se en
+   * obetald order — den som stänger telefonen mitt i betalningen ska inte ha
+   * fått mat tillagad.
+   */
+  const cardAccount = input.payment_method === "CARD" ? await getCardAccount(restaurantId) : null;
+
+  if (input.payment_method === "CARD" && !cardAccount) {
+    // Klienten visar bara kortknappen när kontot finns, men den som anropar
+    // API:t direkt har aldrig sett gränssnittet.
+    return problem(
+      409,
+      "Kortbetalning är inte tillgänglig",
+      "Restaurangen tar inte emot kort ännu. Beställ och betala på plats i stället.",
+    );
+  }
+
+  const orderStatus = cardAccount ? "DRAFT" : statusAfterPlacement(policy.autoAccept);
+
+  /* ── 6. Skriv allt i en transaktion ────────────────────────────────────── */
 
   const { data: order, error: writeError } = await supabase.rpc("place_order", {
     p_payload: {
@@ -329,7 +355,7 @@ export async function POST(request: Request) {
       table_id: tableId,
       table_session_id: tableSessionId,
       type: input.type,
-      status: statusAfterPlacement(policy.autoAccept),
+      status: orderStatus,
       note: input.note ?? null,
       scheduled_for: input.scheduled_for ?? null,
       items_gross_ore: totals.itemsGrossOre,
@@ -363,15 +389,80 @@ export async function POST(request: Request) {
     },
   });
 
-  if (writeError) {
-    return problem(500, "Beställningen kunde inte sparas", writeError.message);
+  if (writeError || typeof order !== "string") {
+    return problem(500, "Beställningen kunde inte sparas", writeError?.message ?? "Okänt fel.");
   }
 
   // Kvittosidan för avhämtning har varken bordssession eller inloggning att gå
   // på. Cookien är det som gör att gästen kan se sin egen order — och bara sin
   // egen. Bordsflödet har redan sin `table_session_id` och behöver den inte.
-  if (input.type !== "TABLE" && typeof order === "string") {
+  if (input.type !== "TABLE") {
     await rememberGuestOrder(order);
+  }
+
+  /* ── 7. Kortbetalningen initieras ──────────────────────────────────────── */
+
+  if (cardAccount) {
+    let intent;
+    try {
+      intent = await paymentProvider(cardAccount.provider).createIntent({
+        orderId: order,
+        restaurantId,
+        amountOre: totals.totalOre,
+        currency: cardAccount.currency,
+        // Burps avgift dras ur betalningen hos de leverantörer som kan det.
+        // Dricksen ingår aldrig i underlaget — den är gästens pengar till
+        // personalen (regel 8).
+        applicationFeeOre: fee.feeOre,
+        idempotencyKey: input.idempotency_key,
+        account: cardAccount,
+        description: `Burp ${order.slice(0, 8)}`,
+      });
+    } catch (error) {
+      // Ordern ligger kvar som DRAFT. Den syns inte för köket och städas av
+      // intentens egen utgång — men gästen ska få veta att det inte gick.
+      const detail =
+        error instanceof PaymentProviderError
+          ? error.message
+          : "Betalningen kunde inte startas. Försök igen eller betala på plats.";
+      return problem(502, "Betalningen kunde inte startas", detail);
+    }
+
+    const { data: payment, error: paymentError } = await supabase
+      .from("payments")
+      .insert({
+        order_id: order,
+        restaurant_id: restaurantId,
+        amount_ore: totals.totalOre,
+        provider: cardAccount.provider,
+        provider_reference: intent.reference,
+        status: intent.status,
+        // Samma nyckel som ordern och som leverantörens intent. Ett dubbeltryck
+        // ger en order, en intent och en betalningsrad.
+        idempotency_key: input.idempotency_key,
+      })
+      .select("id")
+      .single();
+
+    if (paymentError || !payment) {
+      return problem(500, "Betalningen kunde inte sparas", paymentError?.message ?? "Okänt fel.");
+    }
+
+    // Ingen notis här. Köket får sitt brev av webhooken när pengarna kommit in.
+    return NextResponse.json(
+      {
+        order_id: order,
+        status: orderStatus,
+        total_ore: totals.totalOre,
+        payment: {
+          id: payment.id,
+          provider: cardAccount.provider,
+          client_secret: intent.clientSecret,
+          ...intent.clientContext,
+        },
+      },
+      { status: 201, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   /*
@@ -385,12 +476,10 @@ export async function POST(request: Request) {
    * inte fungerat på Vercel: instansen fryser när svaret är skickat och
    * brevet hade avbrutits mitt i. `after()` håller den vid liv.
    */
-  if (typeof order === "string") {
-    after(() => notifyNewOrder(order));
-  }
+  after(() => notifyNewOrder(order));
 
   return NextResponse.json(
-    { order_id: order, status: statusAfterPlacement(policy.autoAccept), total_ore: totals.totalOre },
+    { order_id: order, status: orderStatus, total_ore: totals.totalOre },
     { status: 201, headers: { "Cache-Control": "no-store" } },
   );
 }

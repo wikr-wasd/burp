@@ -10,6 +10,7 @@ import {
 } from "@burp/core";
 import { FoodImage } from "@/components/media/food-image";
 import { MenuOrder } from "@/components/order/menu-order";
+import { cardOptionFor } from "@/lib/payments";
 import { SiteFooter } from "@/components/site/site-footer";
 import { Directions } from "@/components/site/directions";
 import { MapEmbed } from "@/components/site/map-embed";
@@ -147,6 +148,9 @@ export default async function RestaurantPage({ params }: PageProps) {
       }).map((slot) => slot.toISOString())
     : [];
 
+  // Kortknappen visas bara när restaurangen har ett aktivt betalkonto.
+  const card = await cardOptionFor(restaurant.id);
+
   const url = new URL(`/r/${city}/${slug}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString();
 
   const jsonLd = restaurantJsonLd({
@@ -281,6 +285,7 @@ export default async function RestaurantPage({ params }: PageProps) {
               context={{ kind: "PICKUP" }}
               pickupSlots={pickupSlots}
               showHeading={false}
+              card={card}
             />
           </div>
         </section>

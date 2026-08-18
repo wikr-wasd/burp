@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@burp/core": "*",
+    "@stripe/react-stripe-js": "^5.6.1",
+    "@stripe/stripe-js": "^8.11.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.112.0",
     "leaflet": "^1.9.4",
@@ -22,6 +24,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "server-only": "^0.0.1",
+    "stripe": "^19.3.0",
     "zod": "^4.4.0"
   },
   "devDependencies": {

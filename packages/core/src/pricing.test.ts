@@ -13,9 +13,11 @@ import {
   applyBasisPoints,
   formatAmountInput,
   formatMoney,
+  fromMinorUnits,
   kronorToOre,
   parseAmount,
   roundHalfEven,
+  toMinorUnits,
 } from "./money";
 import { VAT_ALCOHOL_BPS, VAT_FOOD_BPS, type PricedLine } from "./types";
 
@@ -215,6 +217,33 @@ describe("assertClientTotalMatches", () => {
 
   it("avvisar en summa som inte är heltal öre", () => {
     expect(() => assertClientTotalMatches(totals, 14900.5)).toThrow(TypeError);
+  });
+});
+
+describe("toMinorUnits", () => {
+  it("tvådecimalsvalutor är oförändrade", () => {
+    expect(toMinorUnits(1200, "BAM")).toBe(1200);
+    expect(toMinorUnits(1200, "EUR")).toBe(1200);
+    expect(toMinorUnits(14900, "SEK")).toBe(14900);
+  });
+
+  it("dinarer räknas om till hela dinarer", () => {
+    // Burp lagrar 1200 para = 12 dinarer. Skickas 1200 rakt av till en
+    // leverantör som väntar dinarer debiteras gästen hundra gånger för mycket.
+    expect(toMinorUnits(1200, "RSD")).toBe(12);
+  });
+
+  it("kastar hellre än avrundar bort pengar", () => {
+    expect(() => toMinorUnits(1234, "RSD")).toThrow(RangeError);
+  });
+
+  it("går tillbaka igen", () => {
+    expect(fromMinorUnits(12, "RSD")).toBe(1200);
+    expect(fromMinorUnits(1200, "EUR")).toBe(1200);
+  });
+
+  it("avvisar ett halvtal från leverantören", () => {
+    expect(() => fromMinorUnits(12.5, "EUR")).toThrow(TypeError);
   });
 });
 

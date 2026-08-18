@@ -33,6 +33,38 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const ORDER_TYPES = ["DELIVERY", "PICKUP", "TABLE"] as const;
 export type OrderType = (typeof ORDER_TYPES)[number];
 
+/* ── Betalning ───────────────────────────────────────────────────────────── */
+
+/** Speglar enum `payment_status`. Livscykeln finns i `payment.ts`. */
+export const PAYMENT_STATUSES = [
+  "PENDING",
+  "AUTHORIZED",
+  "CAPTURED",
+  "FAILED",
+  "REFUNDED",
+  "PARTIALLY_REFUNDED",
+] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+/**
+ * Vem som tar emot pengarna. Lagras som text i `payments.provider` så att en
+ * ny leverantör inte kräver en enum-migration — men listan står här så att
+ * koden har något att uttömma över.
+ *
+ * `CASH` och `GIFT_CARD` är inte leverantörer i egentlig mening. De är interna
+ * betalmedel som ändå ska bokföras som betalrader, eftersom en order annars
+ * kan se obetald ut trots att pengarna kommit in.
+ */
+export const PAYMENT_PROVIDERS = ["CASH", "GIFT_CARD", "STRIPE", "MONRI"] as const;
+export type PaymentProviderId = (typeof PAYMENT_PROVIDERS)[number];
+
+/**
+ * Hur gästen väljer att betala. Skilt från leverantören: `CARD` kan gå via
+ * Stripe i Kroatien och Monri i Bosnien, och gästen ska inte behöva veta det.
+ */
+export const PAYMENT_METHODS = ["CASH", "CARD", "GIFT_CARD"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
 /* ── Moms ────────────────────────────────────────────────────────────────── */
 
 /**

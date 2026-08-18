@@ -120,6 +120,42 @@ export function formatAmountInput(amount: Ore, currency: CurrencyCode): string {
   return (amount / ORE_PER_KRONA).toFixed(decimalDigits).replace(".", ",");
 }
 
+/**
+ * Översätter Burps interna belopp till leverantörens minsta enhet.
+ *
+ * Burp lagrar alltid hundradelar — öre, cent, fening, para — oavsett valuta.
+ * Betalleverantörer räknar i stället i valutans FAKTISKA minsta enhet, och för
+ * en nolldecimalsvaluta som serbiska dinarer är den hela dinaren. Skickas 1200
+ * rakt av till en leverantör som väntar dinarer debiteras gästen 1200 dinarer
+ * för en nota på 12.
+ *
+ * Går beloppet inte jämnt upp kastar funktionen i stället för att avrunda. Ett
+ * avrundat belopp är pengar som försvinner tyst mellan notan och debiteringen,
+ * och det ska synas som ett fel — inte som en differens i bokföringen tre
+ * månader senare.
+ */
+export function toMinorUnits(amount: Ore, currency: CurrencyCode): number {
+  assertOre(amount, "belopp");
+
+  const divisor = 10 ** (2 - CURRENCY_INFO[currency].decimalDigits);
+  if (divisor === 1) return amount;
+
+  if (amount % divisor !== 0) {
+    throw new RangeError(
+      `${amount} går inte att uttrycka i ${currency}:s minsta enhet utan avrundning`,
+    );
+  }
+  return amount / divisor;
+}
+
+/** Motsatsen till `toMinorUnits`. Används på svar och webhookar. */
+export function fromMinorUnits(value: number, currency: CurrencyCode): Ore {
+  if (!Number.isSafeInteger(value)) {
+    throw new TypeError(`beloppet från leverantören måste vara ett heltal, fick: ${String(value)}`);
+  }
+  return value * 10 ** (2 - CURRENCY_INFO[currency].decimalDigits);
+}
+
 /** Escapar reguljäruttryckstecken i en valutasymbol, t.ex. punkten i "дин.". */
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

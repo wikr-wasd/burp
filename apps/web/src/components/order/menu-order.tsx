@@ -12,6 +12,7 @@ import {
   type Ore,
   type PricedLine,
 } from "@burp/core";
+import { CardPayment } from "@/components/order/card-payment";
 import { FoodImage } from "@/components/media/food-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fill, type Dictionary } from "@/lib/i18n";
@@ -93,6 +94,25 @@ interface Props {
    * annars visa restaurangnamnet två gånger under varandra.
    */
   showHeading?: boolean;
+  /**
+   * Kortbetalning, eller null när restaurangen inte har något aktivt betalkonto.
+   *
+   * Null är inte ett felläge. Det är läget i Bosnien och Serbien tills ett
+   * lokalt avtal finns, och kontantflödet fungerar hela vägen. Att visa en
+   * kortknapp som sedan nekar varje betalning vore sämre än att inte visa den.
+   */
+  card?: CardOption | null;
+}
+
+export interface CardOption {
+  publishableKey: string;
+}
+
+/** En order som ligger som utkast och väntar på att gästen betalar. */
+interface PendingPayment {
+  orderId: string;
+  clientSecret: string;
+  stripeAccount: string;
 }
 
 export function MenuOrder({
@@ -104,6 +124,7 @@ export function MenuOrder({
   timeZone,
   pickupSlots = [],
   showHeading = true,
+  card = null,
 }: Props) {
   const router = useRouter();
 
@@ -127,6 +148,17 @@ export function MenuOrder({
   const [scheduledFor, setScheduledFor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+   * Kontant är förvalt.
+   *
+   * Inte av bekvämlighet: kontanter är fortfarande utbredda i restaurangledet
+   * i Bosnien och Serbien, och QR-beställningens värde — att slippa vänta på
+   * en servitör för att beställa — finns kvar även när notan betalas i kassan.
+   */
+  const [payWithCard, setPayWithCard] = useState(false);
+  /** Sätts när servern svarat med en betalning som väntar på gästen. */
+  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
 
   const money = useMemo(
     () => (amount: Ore) => formatMoney(amount, currency),
@@ -287,6 +319,17 @@ export function MenuOrder({
     );
   }
 
+  /**
+   * Kvittots adress. Bordskvittot ligger under bordets token,
+   * avhämtningskvittot fristående — en avhämtningsgäst har inget bord att
+   * hänga sidan under.
+   */
+  function receiptPath(orderId: string) {
+    return context.kind === "TABLE"
+      ? `/t/${context.tableToken}/order/${orderId}`
+      : `/order/${orderId}`;
+  }
+
   async function placeOrder() {
     if (!totals || cart.length === 0) return;
 
@@ -303,6 +346,9 @@ export function MenuOrder({
           tip_ore: tipOre,
           ...(scheduledFor ? { scheduled_for: scheduledFor } : {}),
           client_total_ore: totals.totalOre,
+          // Betalsätt, inte leverantör. Vilken inlösare kortet går genom
+          // avgörs av restaurangens betalkonto, på servern.
+          payment_method: payWithCard && card ? "CARD" : "CASH",
           // Nyckeln skapas en gång per försök. Dubbeltryck på knappen ger
           // samma nyckel och därmed samma order, inte två notor.
           idempotency_key: crypto.randomUUID(),
@@ -322,19 +368,51 @@ export function MenuOrder({
         return;
       }
 
+      /*
+       * Kortbetalning: ordern ligger som utkast tills pengarna kommit in.
+       *
+       * Varukorgen töms INTE här. Går betalningen inte igenom ska gästen ha
+       * kvar sin beställning och kunna välja "på plats" i stället — att behöva
+       * lägga in nio rätter en gång till vid ett bord är hur man förlorar en
+       * gäst.
+       */
+      if (body?.payment?.client_secret) {
+        setPendingPayment({
+          orderId: body.order_id,
+          clientSecret: body.payment.client_secret,
+          stripeAccount: body.payment.stripeAccount ?? "",
+        });
+        return;
+      }
+
       setCart([]);
-      // Bordskvittot ligger under bordets token, avhämtningskvittot fristående
-      // — en avhämtningsgäst har inget bord att hänga sidan under.
-      router.push(
-        context.kind === "TABLE"
-          ? `/t/${context.tableToken}/order/${body.order_id}`
-          : `/order/${body.order_id}`,
-      );
+      router.push(receiptPath(body.order_id));
     } catch {
       setError(labels.noConnection);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  /**
+   * Gästen stängde betalrutan utan att betala.
+   *
+   * Utkastet avbryts direkt i stället för att lämnas åt leverantörens
+   * utgångstid. Ordern syns visserligen inte för köket så länge den är DRAFT,
+   * men ett bord som har en öppen obetald order i bakgrunden är förvirrande
+   * för den som senare tittar i loggen. Går anropet inte igenom städas den av
+   * betalningens egen utgång — därför sväljs felet.
+   */
+  async function abandonPayment(orderId: string) {
+    setPendingPayment(null);
+    setSubmitting(false);
+    setError(labels.paymentAbandoned);
+
+    await fetch(`/api/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "CANCEL" }),
+    }).catch(() => undefined);
   }
 
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
@@ -505,6 +583,34 @@ export function MenuOrder({
           onSubmit={placeOrder}
           submitting={submitting}
           error={error}
+          cardAvailable={card !== null}
+          payWithCard={payWithCard}
+          onPayWithCardChange={setPayWithCard}
+        />
+      ) : null}
+
+      {pendingPayment && card ? (
+        <CardPayment
+          publishableKey={card.publishableKey}
+          stripeAccount={pendingPayment.stripeAccount}
+          clientSecret={pendingPayment.clientSecret}
+          returnUrl={
+            typeof window === "undefined"
+              ? ""
+              : new URL(receiptPath(pendingPayment.orderId), window.location.origin).toString()
+          }
+          labels={{
+            title: labels.paymentTitle,
+            pay: labels.payNow,
+            paying: labels.paying,
+            cancel: labels.paymentCancel,
+            failed: labels.paymentFailed,
+          }}
+          onCancel={() => void abandonPayment(pendingPayment.orderId)}
+          onPaid={() => {
+            setCart([]);
+            router.push(receiptPath(pendingPayment.orderId));
+          }}
         />
       ) : null}
     </div>
@@ -778,6 +884,9 @@ function CartBar({
   timeZone,
   scheduledFor,
   onScheduleChange,
+  cardAvailable,
+  payWithCard,
+  onPayWithCardChange,
 }: {
   cart: CartLine[];
   totals: ReturnType<typeof calculateOrderTotals>;
@@ -795,6 +904,10 @@ function CartBar({
   timeZone: string;
   scheduledFor: string;
   onScheduleChange: (value: string) => void;
+  /** Falskt när restaurangen saknar betalkonto. Då visas inget val alls. */
+  cardAvailable: boolean;
+  payWithCard: boolean;
+  onPayWithCardChange: (value: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -897,6 +1010,48 @@ function CartBar({
               </div>
             </div>
 
+            {/*
+              Betalsättet.
+
+              Visas bara när restaurangen har ett aktivt betalkonto. Utan det
+              finns ingen kortväg, och en knapp som nekar varje betalning vore
+              sämre än ingen knapp.
+            */}
+            {cardAvailable ? (
+              <div className="mt-5">
+                <p className="label-caps">{labels.payHow}</p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    aria-pressed={!payWithCard}
+                    onClick={() => onPayWithCardChange(false)}
+                    className={`min-h-11 flex-1 rounded-lg border px-3 text-sm font-medium transition-colors ${
+                      !payWithCard
+                        ? "border-burp-600 bg-burp-600 text-white"
+                        : "border-[var(--rule)] hover:border-burp-600"
+                    }`}
+                  >
+                    {labels.payAtPlace}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={payWithCard}
+                    onClick={() => onPayWithCardChange(true)}
+                    className={`min-h-11 flex-1 rounded-lg border px-3 text-sm font-medium transition-colors ${
+                      payWithCard
+                        ? "border-burp-600 bg-burp-600 text-white"
+                        : "border-[var(--rule)] hover:border-burp-600"
+                    }`}
+                  >
+                    {labels.payByCard}
+                  </button>
+                </div>
+                {payWithCard ? (
+                  <p className="mt-1.5 text-xs text-[var(--muted)]">{labels.payByCardHint}</p>
+                ) : null}
+              </div>
+            ) : null}
+
             <dl className="mt-5 space-y-1 text-sm">
               <div className="flex justify-between">
                 <dt className="text-[var(--muted)]">{labels.foodAndDrink}</dt>
@@ -944,7 +1099,9 @@ function CartBar({
             disabled={submitting}
             className="btn btn-primary flex-1 justify-between"
           >
-            <span>{submitting ? labels.sending : labels.order}</span>
+            <span>
+              {submitting ? labels.sending : payWithCard ? labels.payNow : labels.order}
+            </span>
             <span className="tabular-nums">{money(totals.totalOre)}</span>
           </button>
         </div>

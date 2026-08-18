@@ -32,6 +32,12 @@ const publicSchema = z.object({
   NEXT_PUBLIC_MAP_TILE_ATTRIBUTION: z
     .string()
     .default('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'),
+
+  /*
+   * Stripes publicerbara nyckel. Frivillig — utan den visar QR-kassan bara
+   * "betala på plats". Motsvarande hemligheter ligger i `serverSchema`.
+   */
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
 });
 
 const serverSchema = z.object({
@@ -54,6 +60,21 @@ const serverSchema = z.object({
 
   /* Burps egen adress — dit ansökningar från /anslut går. */
   BURP_OPS_EMAIL: z.email().optional(),
+
+  /*
+   * Kortbetalning via Stripe.
+   *
+   * Frivilliga av samma skäl som notiserna: utan nycklar går det fortfarande
+   * att lägga en order och betala på plats, och utvecklingsmiljön ska inte
+   * kräva ett konto hos en leverantör. Saknas de erbjuds bara "betala på
+   * plats" i kassan — ingen död knapp.
+   *
+   * Stripe finns i Kroatien och Sverige, men INTE i Bosnien eller Serbien.
+   * Där krävs Monri, som läggs på samma gränssnitt när avtalet finns.
+   * Se docs/OPEN-QUESTIONS.md fråga 5.
+   */
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 });
 
 export const publicEnv = publicSchema.parse({
@@ -62,6 +83,7 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   NEXT_PUBLIC_MAP_TILE_URL: process.env.NEXT_PUBLIC_MAP_TILE_URL,
   NEXT_PUBLIC_MAP_TILE_ATTRIBUTION: process.env.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION,
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;

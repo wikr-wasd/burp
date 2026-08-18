@@ -103,6 +103,15 @@ export const createOrderSchema = z
      * order — dubbeltryck på "Beställ" får aldrig bli två notor.
      */
     idempotency_key: uuidSchema,
+    /**
+     * Hur gästen vill betala. `CASH` betyder "på plats" och är standardvägen —
+     * den fungerar i hela regionen och kräver ingen leverantör.
+     *
+     * Lägg märke till att det här är ett betalSÄTT, inte en leverantör. Vilken
+     * inlösare ett kort går genom avgörs av restaurangens betalkonto, aldrig av
+     * klienten och aldrig av landet i en komponent.
+     */
+    payment_method: z.enum(["CASH", "CARD"]).default("CASH"),
   })
   .refine((order) => order.type !== "TABLE" || order.table_token !== undefined, {
     message: "Bordsbeställning kräver ett bordstoken",

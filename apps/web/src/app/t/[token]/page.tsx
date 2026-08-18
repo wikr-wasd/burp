@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getActiveMenu } from "@/lib/menu";
+import { cardOptionFor } from "@/lib/payments";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { lookupTable } from "@/lib/table-session";
 import { MenuOrder } from "@/components/order/menu-order";
@@ -81,6 +82,11 @@ export default async function TablePage({ params }: PageProps) {
   // beställer.
   const menu = await getActiveMenu(table.restaurantId, table.timeZone);
 
+  // Kortknappen visas bara när restaurangen faktiskt kan ta emot ett kort.
+  // Null är inte ett felläge — det är läget i Bosnien och Serbien tills ett
+  // lokalt avtal finns, och kontantflödet fungerar hela vägen.
+  const card = await cardOptionFor(table.restaurantId);
+
   if (!menu || menu.categories.length === 0) {
     return (
       <TableMessage title={t.table.noMenuTitle} body={t.table.noMenuBody} />
@@ -103,6 +109,7 @@ export default async function TablePage({ params }: PageProps) {
           labels={t.menu}
           currency={table.currency}
           timeZone={table.timeZone}
+          card={card}
           context={{
             kind: "TABLE",
             tableToken: token.toUpperCase(),

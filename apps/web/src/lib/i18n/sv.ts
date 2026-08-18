@@ -177,6 +177,24 @@ export const sv = {
     addOne: "Lägg till en {name}",
     orderFailed: "Beställningen kunde inte läggas. Försök igen.",
     noConnection: "Ingen kontakt med servern. Kontrollera nätet och försök igen.",
+
+    /*
+     * Betalsätt.
+     *
+     * Kontant står först och är förvalt. Det är inte en eftergift — kontanter
+     * är fortfarande utbredda i restaurangledet i Bosnien och Serbien, och
+     * kortknappen visas bara när restaurangen faktiskt har ett betalkonto.
+     */
+    payHow: "Hur vill du betala?",
+    payAtPlace: "På plats",
+    payByCard: "Med kort",
+    payByCardHint: "Kort, Apple Pay och Google Pay",
+    payNow: "Betala",
+    paying: "Betalar…",
+    paymentTitle: "Betala din beställning",
+    paymentCancel: "Avbryt",
+    paymentFailed: "Betalningen gick inte igenom. Försök igen eller betala på plats.",
+    paymentAbandoned: "Betalningen avbröts. Beställningen lades aldrig.",
   },
 
   /** Meddelanden på QR-sidan innan menyn visas. */
@@ -212,6 +230,22 @@ export const sv = {
     total: "Totalt",
     payOnPickup: "Betalning sker på plats vid upphämtning.",
     payAtTable: "Betalning sker på plats.",
+    paidByCard: "Betald med kort.",
+    paidLabel: "Betalning",
+    refundedNotice: "Beställningen är återbetald.",
+    /*
+     * Fiskalisering.
+     *
+     * Kroatien kräver sedan 2026-01-01 att varje kvitto till en konsument
+     * rapporteras till skattemyndigheten och förses med en signatur, oavsett
+     * betalsätt; Serbien har motsvarande krav sedan 2022. Burp gör inte det —
+     * restaurangen har sin egen fiskalkassa.
+     *
+     * Att då visa ett dokument med ordersumma och momsuppdelning utan att säga
+     * vad det är kan läsas som ett kvitto som borde ha fiskaliserats. Raden
+     * nedan är hela skillnaden mellan en orderbekräftelse och ett skattekvitto.
+     */
+    notFiscalReceipt: "Det här är en orderbekräftelse, inte ett kvitto. Kvittot får du av restaurangen.",
     backTo: "Tillbaka till {name}",
     progress: "Orderns förlopp",
     // Neutral med flit. Blocket visas på både bordskvittot och

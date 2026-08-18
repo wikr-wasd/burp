@@ -167,6 +167,17 @@ export const en: Dictionary = {
     addOne: "Add one {name}",
     orderFailed: "The order could not be placed. Please try again.",
     noConnection: "No connection to the server. Check your network and try again.",
+
+    payHow: "How would you like to pay?",
+    payAtPlace: "In person",
+    payByCard: "By card",
+    payByCardHint: "Card, Apple Pay and Google Pay",
+    payNow: "Pay",
+    paying: "Paying…",
+    paymentTitle: "Pay for your order",
+    paymentCancel: "Cancel",
+    paymentFailed: "The payment did not go through. Try again or pay in person.",
+    paymentAbandoned: "The payment was cancelled. Your order was never placed.",
   },
 
   table: {
@@ -191,6 +202,10 @@ export const en: Dictionary = {
     total: "Total",
     payOnPickup: "Payment is taken in person on collection.",
     payAtTable: "Payment is taken in person.",
+    paidByCard: "Paid by card.",
+    paidLabel: "Payment",
+    refundedNotice: "This order has been refunded.",
+    notFiscalReceipt: "This is an order confirmation, not a fiscal receipt. The restaurant will give you the receipt.",
     backTo: "Back to {name}",
     progress: "Order progress",
     contactRestaurant: "Contact the restaurant if you have any questions about your order.",

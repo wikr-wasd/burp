@@ -958,4 +958,383 @@ begin
 end
 $$;
 
+\echo '   betalkontot följer restaurangens valuta'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+begin
+  -- Seedrestaurangen ligger i Sarajevo och prissätter i mark. Ett konto som
+  -- avräknar i euro tar emot rätt siffra i fel valuta, och det syns först i
+  -- avräkningen — därför stoppas det här.
+  begin
+    insert into public.restaurant_payment_accounts
+      (restaurant_id, provider, external_account_id, currency)
+    values (v_rest_id, 'STRIPE', 'acct_fel', 'EUR');
+    raise exception 'FEL: betalkonto i annan valuta än restaurangens accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  insert into public.restaurant_payment_accounts
+    (restaurant_id, provider, external_account_id, currency, status)
+  values (v_rest_id, 'MONRI', 'mid_1', 'BAM', 'ACTIVE');
+
+  -- Två konton hos samma leverantör betyder att hälften av betalningarna
+  -- hamnar på fel ställe.
+  begin
+    insert into public.restaurant_payment_accounts
+      (restaurant_id, provider, external_account_id, currency)
+    values (v_rest_id, 'MONRI', 'mid_2', 'BAM');
+    raise exception 'FEL: två Monri-konton på samma restaurang accepterades';
+  exception
+    when unique_violation then null;
+  end;
+end
+$$;
+
+\echo '   betalningen ärver valutan från ordern'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_order_id uuid;
+  v_currency public.currency_code;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 1200)
+  returning id into v_order_id;
+
+  -- Anroparen försöker sätta kronor. Triggern skriver över med orderns valuta.
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, currency, provider, status, idempotency_key)
+  values (v_order_id, v_rest_id, 1200, 'SEK', 'STRIPE', 'PENDING', gen_random_uuid());
+
+  select currency into v_currency from public.payments where order_id = v_order_id;
+  if v_currency <> 'BAM' then
+    raise exception 'FEL: betalningen fick valutan % i stället för orderns BAM', v_currency;
+  end if;
+end
+$$;
+
+\echo '   betalningens statusmaskin och oföränderliga fält'
+
+do $$
+declare
+  v_rest_id    uuid := '11111111-1111-1111-1111-111111111111';
+  v_order_id   uuid;
+  v_payment_id uuid;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 1200)
+  returning id into v_order_id;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key)
+  values (v_order_id, v_rest_id, 1200, 'STRIPE', 'PENDING', gen_random_uuid())
+  returning id into v_payment_id;
+
+  update public.payments set status = 'CAPTURED', captured_at = now() where id = v_payment_id;
+
+  -- Bakåt går inte. En capturad betalning som blir PENDING igen är en order
+  -- som ser obetald ut trots att pengarna kommit in.
+  begin
+    update public.payments set status = 'PENDING' where id = v_payment_id;
+    raise exception 'FEL: betalningen gick från CAPTURED tillbaka till PENDING';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Beloppet är det som gör raden till bevis.
+  begin
+    update public.payments set amount_ore = 1 where id = v_payment_id;
+    raise exception 'FEL: beloppet på en betalning gick att ändra';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Och den tas aldrig bort.
+  begin
+    delete from public.payments where id = v_payment_id;
+    raise exception 'FEL: en betalningsrad gick att radera';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  update public.payments set status = 'REFUNDED' where id = v_payment_id;
+  begin
+    update public.payments set status = 'CAPTURED' where id = v_payment_id;
+    raise exception 'FEL: en återbetald betalning gick att capturera igen';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
+\echo '   kortordern lyfts ur DRAFT först när betalningen bekräftats'
+
+do $$
+declare
+  v_rest_id    uuid := '11111111-1111-1111-1111-111111111111';
+  v_order_id   uuid;
+  v_payment_id uuid;
+  v_status     public.order_status;
+  v_placed     timestamptz;
+  v_tip_link   uuid;
+begin
+  v_order_id := public.place_order(jsonb_build_object(
+    'restaurant_id',       v_rest_id,
+    'type',                'PICKUP',
+    'status',              'DRAFT',
+    'idempotency_key',     gen_random_uuid(),
+    'items_gross_ore',     1200,
+    'items_vat_ore',       174,
+    'delivery_fee_ore',    0,
+    'discount_ore',        0,
+    'tip_ore',             100,
+    'total_ore',           1300,
+    'fee_base',            'GROSS_ITEMS',
+    'fee_base_amount_ore', 1200,
+    'fee_bps',             340,
+    'fee_ore',             41,
+    'lines',               '[]'::jsonb
+  ));
+
+  -- Ett utkast är inte lagt. Hade placed_at satts här hade kvittot och
+  -- statistiken påstått att ordern lades trots att den aldrig betalades.
+  select placed_at into v_placed from public.orders where id = v_order_id;
+  if v_placed is not null then
+    raise exception 'FEL: en DRAFT-order fick placed_at satt';
+  end if;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key)
+  values (v_order_id, v_rest_id, 1300, 'STRIPE', 'PENDING', gen_random_uuid())
+  returning id into v_payment_id;
+
+  v_status := public.confirm_order_payment(v_payment_id, 'apple_pay');
+  if v_status <> 'PLACED' then
+    raise exception 'FEL: ordern blev % i stället för PLACED', v_status;
+  end if;
+
+  select placed_at into v_placed from public.orders where id = v_order_id;
+  if v_placed is null then
+    raise exception 'FEL: placed_at sattes inte när betalningen bekräftades';
+  end if;
+
+  -- Dricksen ska nu peka på betalningen, annars går den inte att fördela.
+  select payment_id into v_tip_link from public.tips where order_id = v_order_id;
+  if v_tip_link is distinct from v_payment_id then
+    raise exception 'FEL: dricksraden kopplades inte till betalningen';
+  end if;
+
+  -- Leverantören skickar om händelsen. Ordern ska inte läggas en gång till.
+  v_status := public.confirm_order_payment(v_payment_id, 'apple_pay');
+  if v_status <> 'PLACED' then
+    raise exception 'FEL: en omsänd webhook flyttade ordern till %', v_status;
+  end if;
+end
+$$;
+
+\echo '   en betalning som inte täcker ordern avvisas'
+
+do $$
+declare
+  v_rest_id    uuid := '11111111-1111-1111-1111-111111111111';
+  v_order_id   uuid;
+  v_payment_id uuid;
+  v_status     public.order_status;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 5000)
+  returning id into v_order_id;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key)
+  values (v_order_id, v_rest_id, 4999, 'STRIPE', 'PENDING', gen_random_uuid())
+  returning id into v_payment_id;
+
+  -- Webhooken kommer från internet. Ett belopp som inte räcker får aldrig
+  -- markera ordern som betald.
+  begin
+    v_status := public.confirm_order_payment(v_payment_id);
+    raise exception 'FEL: en för liten betalning lyfte ordern till %', v_status;
+  exception
+    when check_violation then null;
+  end;
+
+  -- Misslyckad betalning avbryter utkastet.
+  perform public.fail_order_payment(v_payment_id, 'Kortet nekades');
+
+  select status into v_status from public.orders where id = v_order_id;
+  if v_status <> 'CANCELLED' then
+    raise exception 'FEL: utkastet blev % i stället för CANCELLED', v_status;
+  end if;
+end
+$$;
+
+\echo '   en lagd order avbryts inte av en sen webhook'
+
+do $$
+declare
+  v_rest_id    uuid := '11111111-1111-1111-1111-111111111111';
+  v_order_id   uuid;
+  v_payment_id uuid;
+  v_status     public.order_status;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'PLACED', gen_random_uuid(), 1200)
+  returning id into v_order_id;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key)
+  values (v_order_id, v_rest_id, 1200, 'STRIPE', 'PENDING', gen_random_uuid())
+  returning id into v_payment_id;
+
+  perform public.fail_order_payment(v_payment_id, 'Timeout');
+
+  -- Ordern hör till köket nu. Den frågan löses av personalen, inte av en
+  -- webhook som kom för sent.
+  select status into v_status from public.orders where id = v_order_id;
+  if v_status <> 'PLACED' then
+    raise exception 'FEL: en lagd order avbröts av en sen webhook (blev %)', v_status;
+  end if;
+end
+$$;
+
+\echo '   samma webhook kan bara tas emot en gång'
+
+do $$
+begin
+  insert into public.payment_events (provider, event_id, kind)
+  values ('STRIPE', 'evt_1', 'PAYMENT_SUCCEEDED');
+
+  -- Leverantörer garanterar leverans minst en gång, inte exakt en gång. Utan
+  -- det unika indexet hade en omsändning gett köket ännu ett brev.
+  begin
+    insert into public.payment_events (provider, event_id, kind)
+    values ('STRIPE', 'evt_1', 'PAYMENT_SUCCEEDED');
+    raise exception 'FEL: samma webhook gick att ta emot två gånger';
+  exception
+    when unique_violation then null;
+  end;
+end
+$$;
+
+\echo '   återbetalning är en motbokning, aldrig en överskrivning'
+
+do $$
+declare
+  v_rest_id    uuid := '11111111-1111-1111-1111-111111111111';
+  v_order_id   uuid;
+  v_payment_id uuid;
+  v_refund_id  uuid;
+  v_status     public.payment_status;
+  v_amount     integer;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 1000)
+  returning id into v_order_id;
+
+  update public.orders set status = 'PLACED'    where id = v_order_id;
+  update public.orders set status = 'ACCEPTED'  where id = v_order_id;
+  update public.orders set status = 'PREPARING' where id = v_order_id;
+  update public.orders set status = 'READY'     where id = v_order_id;
+  update public.orders set status = 'COMPLETED' where id = v_order_id;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_order_id, v_rest_id, 1000, 'STRIPE', 'CAPTURED', gen_random_uuid(), now())
+  returning id into v_payment_id;
+
+  -- Ett skäl är obligatoriskt. En återbetalning utan skäl är oförklarlig för
+  -- den som stämmer av kassan tre månader senare.
+  begin
+    perform public.request_refund(v_payment_id, 300, '   ');
+    raise exception 'FEL: en återbetalning utan skäl accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  v_refund_id := public.request_refund(v_payment_id, 300, 'Kall soppa');
+  v_status := public.settle_refund(v_refund_id, 're_1');
+
+  if v_status <> 'PARTIALLY_REFUNDED' then
+    raise exception 'FEL: betalningen blev % efter en delåterbetalning', v_status;
+  end if;
+
+  -- Beloppet på betalningen står kvar. Raden är ett kvitto på vad som hände.
+  select amount_ore into v_amount from public.payments where id = v_payment_id;
+  if v_amount <> 1000 then
+    raise exception 'FEL: betalningens belopp skrevs om till %', v_amount;
+  end if;
+
+  -- Ordern följer inte med vid en delåterbetalning — måltiden ägde rum.
+  if (select status from public.orders where id = v_order_id) <> 'COMPLETED' then
+    raise exception 'FEL: ordern lämnade COMPLETED vid en delåterbetalning';
+  end if;
+
+  -- Mer än notan går inte tillbaka, hur snabbt man än trycker.
+  begin
+    perform public.request_refund(v_payment_id, 800, 'Igen');
+    raise exception 'FEL: summan av återbetalningar fick överstiga betalningen';
+  exception
+    when check_violation then null;
+  end;
+
+  v_refund_id := public.request_refund(v_payment_id, 700, 'Resten');
+  v_status := public.settle_refund(v_refund_id, 're_2');
+
+  if v_status <> 'REFUNDED' then
+    raise exception 'FEL: betalningen blev % när hela notan återbetalats', v_status;
+  end if;
+
+  if (select status from public.orders where id = v_order_id) <> 'REFUNDED' then
+    raise exception 'FEL: ordern följde inte med när hela notan återbetalats';
+  end if;
+end
+$$;
+
+\echo '   kontant återbetalas över disk, utan att vänta på någon leverantör'
+
+do $$
+declare
+  v_rest_id    uuid := '11111111-1111-1111-1111-111111111111';
+  v_order_id   uuid;
+  v_payment_id uuid;
+  v_refund_id  uuid;
+  v_settled    timestamptz;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 500)
+  returning id into v_order_id;
+
+  update public.orders set status = 'PLACED'    where id = v_order_id;
+  update public.orders set status = 'ACCEPTED'  where id = v_order_id;
+  update public.orders set status = 'PREPARING' where id = v_order_id;
+  update public.orders set status = 'READY'     where id = v_order_id;
+  update public.orders set status = 'COMPLETED' where id = v_order_id;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_order_id, v_rest_id, 500, 'CASH', 'CAPTURED', gen_random_uuid(), now())
+  returning id into v_payment_id;
+
+  v_refund_id := public.request_refund(v_payment_id, 500, 'Fel nota');
+
+  select settled_at into v_settled from public.refunds where id = v_refund_id;
+  if v_settled is null then
+    raise exception 'FEL: en kontant motbokning låg kvar som väntande';
+  end if;
+
+  -- Och den går inte att radera bort ur historien.
+  begin
+    delete from public.refunds where id = v_refund_id;
+    raise exception 'FEL: en motbokning gick att radera';
+  exception
+    when insufficient_privilege then null;
+  end;
+end
+$$;
+
 rollback;
