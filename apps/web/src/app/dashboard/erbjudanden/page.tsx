@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import type { CurrencyCode } from "@burp/core";
 import { CouponManager, type CouponRow } from "@/components/staff/coupon-manager";
 import { StaffShell } from "@/components/staff/staff-shell";
@@ -76,6 +77,23 @@ export default async function OffersPage() {
       width="narrow"
     >
       <CouponManager coupons={rows} currency={staff.currency as CurrencyCode} />
+
+      {/*
+        Presentkorten ligger på en egen sida och inte här.
+
+        De ser ut som samma sak men är det inte: en kupong är en rabatt som
+        sänker notan, ett presentkort är förbetalt värde som sänker vad som ska
+        betalas. Skillnaden avgör momsen, och att blanda dem i samma vy hade
+        gjort den svår att se.
+      */}
+      <p className="mt-10 text-sm text-[var(--muted)]">
+        Letar du efter presentkort?{" "}
+        <Link href="/dashboard/presentkort" className="link">
+          De ligger här
+        </Link>
+        . Ett presentkort är förbetalt värde och inte en rabatt — notan och momsen är
+        desamma, det är bara betalningen som ändras.
+      </p>
     </StaffShell>
   );
 }

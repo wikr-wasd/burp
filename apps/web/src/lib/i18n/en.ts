@@ -185,6 +185,14 @@ export const en: Dictionary = {
     couponChecking: "Checking…",
     couponRemove: "Remove code",
     discount: "Discount",
+
+    giftCard: "Gift card",
+    giftCardPlaceholder: "ABCD-EFGH-JKLM",
+    giftCardApply: "Use",
+    giftCardChecking: "Checking…",
+    giftCardRemove: "Remove gift card",
+    giftCardLeft: "{amount} left afterwards",
+    toPay: "To pay",
   },
 
   table: {

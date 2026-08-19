@@ -33,6 +33,13 @@ export interface SettledPayment {
   refundedOre: number;
 }
 
+/** Alla betalningar på en order, i den ordning de kom in. */
+export interface OrderPayments {
+  rows: SettledPayment[];
+  /** Summan av allt som inte misslyckats. */
+  paidOre: number;
+}
+
 export interface RegisterOrder {
   id: string;
   type: OrderType;
@@ -49,14 +56,24 @@ export interface RegisterOrder {
   totalOre: number;
   currency: CurrencyCode;
   itemSummary: string;
-  /** Null när ordern ännu inte kvitterats. */
-  payment: SettledPayment | null;
+  /** Betalningarna på ordern. Tom lista när ingenting kommit in. */
+  payments: SettledPayment[];
+  /** Summan av allt som inte misslyckats. */
+  paidOre: number;
+  /** Notan minus det betalda. Noll eller mindre betyder färdigbetald. */
+  dueOre: number;
 }
 
 export interface CashRegisterView {
-  /** Slutförda order utan betalningsrad. Det är de som ska betas av. */
+  /**
+   * Slutförda order där notan inte är täckt. Det är de som ska betas av.
+   *
+   * Att gå på "har en betalningsrad" räcker inte sedan presentkorten kom: ett
+   * kort på 50 mot en nota på 62 lämnar 12 att betala, och ordern hade sett
+   * färdig ut medan tolv mark saknades i kassan.
+   */
   unsettled: RegisterOrder[];
-  /** Kvitterade order i samma period, som facit över passet. */
+  /** Färdigbetalda order i samma period, som facit över passet. */
   settled: RegisterOrder[];
 }
 
@@ -135,19 +152,23 @@ export async function getCashRegister(
     refundedByPayment.set(row.payment_id, (refundedByPayment.get(row.payment_id) ?? 0) + row.amount_ore);
   }
 
-  const paymentByOrder = new Map(
-    paymentRows.map((row) => [
-      row.order_id,
-      {
-        id: row.id,
-        amountOre: row.amount_ore,
-        capturedLabel: at(row.captured_at),
-        provider: row.provider,
-        status: row.status as PaymentStatus,
-        refundedOre: refundedByPayment.get(row.id) ?? 0,
-      },
-    ]),
-  );
+  // Flera betalningar per order sedan presentkorten kom: ett kort betalar en
+  // del, resten kommer med kort eller kontant.
+  const paymentsByOrder = new Map<string, SettledPayment[]>();
+  for (const row of paymentRows) {
+    const mapped: SettledPayment = {
+      id: row.id,
+      amountOre: row.amount_ore,
+      capturedLabel: at(row.captured_at),
+      provider: row.provider,
+      status: row.status as PaymentStatus,
+      refundedOre: refundedByPayment.get(row.id) ?? 0,
+    };
+
+    const existing = paymentsByOrder.get(row.order_id);
+    if (existing) existing.push(mapped);
+    else paymentsByOrder.set(row.order_id, [mapped]);
+  }
 
   const summaryByOrder = new Map<string, string[]>();
   for (const item of itemsResult.data ?? []) {
@@ -165,7 +186,8 @@ export async function getCashRegister(
   const settled: RegisterOrder[] = [];
 
   for (const order of orders) {
-    const payment = paymentByOrder.get(order.id) ?? null;
+    const payments = paymentsByOrder.get(order.id) ?? [];
+    const paidOre = payments.reduce((sum, payment) => sum + payment.amountOre, 0);
 
     const mapped: RegisterOrder = {
       id: order.id,
@@ -177,10 +199,14 @@ export async function getCashRegister(
       // i efterhand, och kassan ska visa samma valuta som gästen betalade i.
       currency: order.currency as CurrencyCode,
       itemSummary: (summaryByOrder.get(order.id) ?? []).join(", "),
-      payment,
+      payments,
+      paidOre,
+      dueOre: order.total_ore - paidOre,
     };
 
-    if (payment) settled.push(mapped);
+    // Notan är täckt eller den är det inte. Att gå på om det FINNS en
+    // betalningsrad hade lämnat ett halvbetalt presentkortsköp som färdigt.
+    if (mapped.dueOre <= 0) settled.push(mapped);
     else unsettled.push(mapped);
   }
 

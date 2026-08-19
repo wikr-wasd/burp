@@ -53,6 +53,13 @@ export const RATE_LIMITS = {
    * från en skylt och slår fel ett par gånger.
    */
   couponPreview: { limit: 10, windowSeconds: 60 },
+  /**
+   * Presentkortskoder. Samma skäl som kupongerna, fast ett värdepapper.
+   *
+   * Kodrymden är 2^60 och gör gissning meningslös redan i sig, men en gräns
+   * kostar ingenting och gör frågan omöjlig att ställa i skala.
+   */
+  giftCardPreview: { limit: 10, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitOptions>;
 
 export function rateLimit(key: string, options: RateLimitOptions): RateLimitResult {

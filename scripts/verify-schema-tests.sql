@@ -1586,4 +1586,135 @@ begin
 end
 $$;
 
+\echo '   presentkortet gäller bara hos restaurangen som gav ut det'
+
+do $$
+declare
+  v_zeljo   uuid := '11111111-1111-1111-1111-111111111111';
+  v_annan   uuid;
+  v_card    uuid;
+  v_order   uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Aščinica Test', 'ascinica-test', '4200000000009',
+          'Bravadžiluk 11', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_annan;
+
+  v_card := public.issue_gift_card(v_zeljo, 'A2B3C4D5E6F7', 5000, 'BAM');
+
+  if public.gift_card_balance(v_card) <> 5000 then
+    raise exception 'FEL: saldot blev % i stället för 5000', public.gift_card_balance(v_card);
+  end if;
+
+  -- En order hos en ANNAN restaurang. Spärren som gör hela konstruktionen
+  -- möjlig utan tillstånd att ge ut elektroniska pengar.
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_annan, 'PICKUP', 'PLACED', gen_random_uuid(), 1200)
+  returning id into v_order;
+
+  begin
+    perform public.redeem_gift_card('A2B3C4D5E6F7', v_order, 1200);
+    raise exception 'FEL: presentkortet löstes in hos en annan restaurang';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
+\echo '   presentkortet är betalmedel, inte rabatt'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_card     uuid;
+  v_order    uuid;
+  v_payment  uuid;
+  v_total    integer;
+  v_discount integer;
+  v_status   public.order_status;
+begin
+  v_card := public.issue_gift_card(v_rest_id, 'K2L3M4N5P6Q7', 5000, 'BAM');
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore, items_gross_ore)
+  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 6200, 6200)
+  returning id into v_order;
+
+  v_payment := public.redeem_gift_card('K2L3M4N5P6Q7', v_order, 5000);
+
+  -- Ordersumman och rabatten står orörda. Momsen räknas därmed fortfarande på
+  -- hela notan — det är skillnaden mot en kupong.
+  select total_ore, discount_ore into v_total, v_discount from public.orders where id = v_order;
+  if v_total <> 6200 or v_discount <> 0 then
+    raise exception 'FEL: presentkortet ändrade ordersumman (% / %)', v_total, v_discount;
+  end if;
+
+  if public.gift_card_balance(v_card) <> 0 then
+    raise exception 'FEL: saldot blev % i stället för 0', public.gift_card_balance(v_card);
+  end if;
+
+  -- Betalningen täcker inte hela notan; 12 mark återstår. Ordern får inte
+  -- lyftas ur DRAFT förrän resten kommit in.
+  begin
+    v_status := public.confirm_order_payment(v_payment);
+    raise exception 'FEL: ordern lyftes trots att 1200 återstod (blev %)', v_status;
+  exception
+    when check_violation then null;
+  end;
+
+  -- Resten kontant. Nu täcker summan notan.
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_order, v_rest_id, 1200, 'CASH', 'CAPTURED', gen_random_uuid(), now())
+  returning id into v_payment;
+
+  v_status := public.confirm_order_payment(v_payment);
+  if v_status <> 'PLACED' then
+    raise exception 'FEL: ordern blev % när betalningarna tillsammans täckte notan', v_status;
+  end if;
+
+  -- Ett tomt kort går inte att använda igen.
+  begin
+    perform public.redeem_gift_card('K2L3M4N5P6Q7', v_order, 100);
+    raise exception 'FEL: ett tomt presentkort gick att lösa in';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
+\echo '   presentkortsloggen går inte att skriva om'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+  v_card    uuid;
+begin
+  v_card := public.issue_gift_card(v_rest_id, 'R2S3T4U5V6W7', 2000, 'BAM');
+
+  begin
+    update public.gift_card_transactions set amount_ore = 999999 where gift_card_id = v_card;
+    raise exception 'FEL: en presentkortsrad gick att ändra';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    delete from public.gift_card_transactions where gift_card_id = v_card;
+    raise exception 'FEL: en presentkortsrad gick att radera';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- Kortets valuta måste vara restaurangens.
+  begin
+    perform public.issue_gift_card(v_rest_id, 'X2Y3Z4A5B6C7', 2000, 'EUR');
+    raise exception 'FEL: ett presentkort i annan valuta än restaurangens accepterades';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
 rollback;

@@ -121,6 +121,15 @@ interface AppliedCoupon {
   discountOre: Ore;
 }
 
+/** Ett presentkort som servern godkänt, med beloppet servern räknade. */
+interface AppliedGiftCard {
+  code: string;
+  /** Vad kortet betalar av just den här notan. */
+  appliedOre: Ore;
+  /** Vad som finns kvar på kortet efteråt. */
+  remainingOre: Ore;
+}
+
 export function MenuOrder({
   menu,
   restaurantName,
@@ -176,6 +185,15 @@ export function MenuOrder({
    * utan att någon förstår varför.
    */
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
+
+  /**
+   * Presentkortet, som servern räknat det.
+   *
+   * Skilt från kupongen med flit: ett presentkort är BETALMEDEL och sänker
+   * bara vad som ska debiteras. Ordersumman, momsen och Burps avgiftsunderlag
+   * står kvar orörda — därför ligger det utanför `calculateOrderTotals`.
+   */
+  const [giftCard, setGiftCard] = useState<AppliedGiftCard | null>(null);
 
   const money = useMemo(
     () => (amount: Ore) => formatMoney(amount, currency),
@@ -388,6 +406,42 @@ export function MenuOrder({
     }
 
     setCoupon({ code, discountOre: body.discount_ore });
+    // Ett presentkort som räknats mot den gamla notan gäller inte längre.
+    // Hellre be gästen slå in det igen än visa ett belopp som är fel.
+    setGiftCard(null);
+    return null;
+  }
+
+  /** Prövar ett presentkort mot varukorgen. Sparar ingenting. */
+  async function applyGiftCardCode(code: string): Promise<string | null> {
+    const response = await fetch("/api/gift-cards/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code,
+        tip_ore: tipOre,
+        discount_ore: coupon?.discountOre ?? 0,
+        items: cart.map((line) => ({
+          menu_item_id: line.item.id,
+          quantity: line.quantity,
+          options: line.optionIds.map((optionId) => ({ option_id: optionId })),
+        })),
+      }),
+    }).catch(() => null);
+
+    if (!response) return labels.noConnection;
+
+    const body = await response.json().catch(() => null);
+
+    if (!response.ok || !body?.ok) {
+      return body?.detail ?? labels.orderFailed;
+    }
+
+    setGiftCard({
+      code,
+      appliedOre: body.applied_ore,
+      remainingOre: body.balance_ore - body.applied_ore,
+    });
     return null;
   }
 
@@ -413,6 +467,7 @@ export function MenuOrder({
           // Koden, aldrig beloppet. Servern räknar om rabatten och avvisar
           // ordern om klientens summa inte stämmer.
           ...(coupon ? { coupon_code: coupon.code } : {}),
+          ...(giftCard ? { gift_card_code: giftCard.code } : {}),
           // Nyckeln skapas en gång per försök. Dubbeltryck på knappen ger
           // samma nyckel och därmed samma order, inte två notor.
           idempotency_key: crypto.randomUUID(),
@@ -653,6 +708,9 @@ export function MenuOrder({
           coupon={coupon}
           onApplyCoupon={applyCoupon}
           onRemoveCoupon={() => setCoupon(null)}
+          giftCard={giftCard}
+          onApplyGiftCard={applyGiftCardCode}
+          onRemoveGiftCard={() => setGiftCard(null)}
         />
       ) : null}
 
@@ -957,6 +1015,9 @@ function CartBar({
   coupon,
   onApplyCoupon,
   onRemoveCoupon,
+  giftCard,
+  onApplyGiftCard,
+  onRemoveGiftCard,
 }: {
   cart: CartLine[];
   totals: ReturnType<typeof calculateOrderTotals>;
@@ -982,6 +1043,9 @@ function CartBar({
   /** Returnerar ett felmeddelande, eller null när koden gick igenom. */
   onApplyCoupon: (code: string) => Promise<string | null>;
   onRemoveCoupon: () => void;
+  giftCard: AppliedGiftCard | null;
+  onApplyGiftCard: (code: string) => Promise<string | null>;
+  onRemoveGiftCard: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -1134,6 +1198,14 @@ function CartBar({
               onRemove={onRemoveCoupon}
             />
 
+            <GiftCardField
+              labels={labels}
+              giftCard={giftCard}
+              money={money}
+              onApply={onApplyGiftCard}
+              onRemove={onRemoveGiftCard}
+            />
+
             <dl className="mt-5 space-y-1 text-sm">
               <div className="flex justify-between">
                 <dt className="text-[var(--muted)]">{labels.foodAndDrink}</dt>
@@ -1155,6 +1227,24 @@ function CartBar({
                 <dt>{labels.ofWhichVat}</dt>
                 <dd className="tabular-nums">{money(totals.itemsVatOre)}</dd>
               </div>
+
+              {/* Presentkortet står UNDER momsraden och inte bland rabatterna,
+                  därför att det inte är en rabatt. Notan och momsen är
+                  desamma; det som ändras är vad gästen ska betala nu. */}
+              {giftCard ? (
+                <>
+                  <div className="flex justify-between pt-2">
+                    <dt className="text-[var(--muted)]">{labels.giftCard}</dt>
+                    <dd className="tabular-nums">−{money(giftCard.appliedOre)}</dd>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <dt>{labels.toPay}</dt>
+                    <dd className="tabular-nums">
+                      {money(Math.max(0, totals.totalOre - giftCard.appliedOre))}
+                    </dd>
+                  </div>
+                </>
+              ) : null}
             </dl>
           </div>
         ) : null}
@@ -1190,7 +1280,11 @@ function CartBar({
             <span>
               {submitting ? labels.sending : payWithCard ? labels.payNow : labels.order}
             </span>
-            <span className="tabular-nums">{money(totals.totalOre)}</span>
+            {/* Knappen visar vad gästen faktiskt betalar nu. Ett presentkort
+                som redan täckt halva notan ska inte stå kvar i siffran. */}
+            <span className="tabular-nums">
+              {money(Math.max(0, totals.totalOre - (giftCard?.appliedOre ?? 0)))}
+            </span>
           </button>
         </div>
       </div>
@@ -1286,6 +1380,110 @@ function CouponField({
           className="btn btn-secondary"
         >
           {checking ? labels.couponChecking : labels.couponApply}
+        </button>
+      </div>
+      {error ? (
+        <p role="alert" className="mt-2 text-sm text-burp-600">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Presentkortsfältet.
+ *
+ * Skilt från rabattkoden, och det är avsiktligt att de ser olika ut. Ett
+ * presentkort har ett saldo som lever vidare — gästen ska se vad som blir kvar
+ * efteråt, för det är hela skillnaden mot en kupong.
+ */
+function GiftCardField({
+  labels,
+  giftCard,
+  money,
+  onApply,
+  onRemove,
+}: {
+  labels: Dictionary["menu"];
+  giftCard: AppliedGiftCard | null;
+  money: (amount: Ore) => string;
+  onApply: (code: string) => Promise<string | null>;
+  onRemove: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (giftCard) {
+    return (
+      <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-[var(--rule)] px-3 py-2 text-sm">
+        <span>
+          <span className="font-medium">{labels.giftCard}</span> −{money(giftCard.appliedOre)}
+          {giftCard.remainingOre > 0 ? (
+            <span className="block text-xs text-[var(--muted)]">
+              {fill(labels.giftCardLeft, { amount: money(giftCard.remainingOre) })}
+            </span>
+          ) : null}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            onRemove();
+            setOpen(false);
+            setCode("");
+          }}
+          className="min-h-11 shrink-0 text-[var(--muted)] underline underline-offset-2"
+        >
+          {labels.giftCardRemove}
+        </button>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-3 block text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
+      >
+        {labels.giftCard}
+      </button>
+    );
+  }
+
+  async function submit() {
+    if (!code.trim()) return;
+    setChecking(true);
+    setError(await onApply(code.trim()));
+    setChecking(false);
+  }
+
+  return (
+    <div className="mt-3">
+      <p className="label-caps">{labels.giftCard}</p>
+      <div className="mt-1.5 flex gap-2">
+        <input
+          type="text"
+          value={code}
+          onChange={(event) => {
+            setCode(event.target.value);
+            setError(null);
+          }}
+          placeholder={labels.giftCardPlaceholder}
+          autoCapitalize="characters"
+          autoComplete="off"
+          className="field flex-1 uppercase"
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={checking || !code.trim()}
+          className="btn btn-secondary"
+        >
+          {checking ? labels.giftCardChecking : labels.giftCardApply}
         </button>
       </div>
       {error ? (

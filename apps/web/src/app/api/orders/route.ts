@@ -6,6 +6,7 @@ import {
   COUPON_PROBLEM_MESSAGES,
   createOrderSchema,
   DEFAULT_FEE_BASE,
+  GIFT_CARD_PROBLEM_MESSAGES,
   parseOpeningHours,
   parseOrderPolicy,
   PriceMismatchError,
@@ -15,6 +16,7 @@ import {
 } from "@burp/core";
 import { resolveCoupon } from "@/lib/coupons";
 import { serverEnv } from "@/lib/env";
+import { resolveGiftCard } from "@/lib/gift-cards";
 import { priceRequestedItems } from "@/lib/order-pricing";
 import { rememberGuestOrder } from "@/lib/guest-orders";
 import { notifyNewOrder } from "@/lib/notify";
@@ -239,9 +241,43 @@ export async function POST(request: Request) {
    * obetald order — den som stänger telefonen mitt i betalningen ska inte ha
    * fått mat tillagad.
    */
-  const cardAccount = input.payment_method === "CARD" ? await getCardAccount(restaurantId) : null;
+  /*
+   * Presentkortet dras FÖRST, och det är avsiktligt.
+   *
+   * Kortet är betalmedel och inte rabatt: ordersumman, momsen och Burps
+   * avgiftsunderlag står kvar orörda. Det som sjunker är beloppet leverantören
+   * ska debitera — och det måste vara känt innan intenten skapas, annars
+   * debiteras gästen för hela notan och kortet blir en gåva till oss.
+   */
+  const giftCard = input.gift_card_code
+    ? await resolveGiftCard({
+        code: input.gift_card_code,
+        restaurantId,
+        currency: priced.currency,
+        amountDueOre: totals.totalOre,
+      })
+    : null;
 
-  if (input.payment_method === "CARD" && !cardAccount) {
+  if (giftCard && !giftCard.ok) {
+    return problem(
+      409,
+      "Presentkortet gäller inte",
+      GIFT_CARD_PROBLEM_MESSAGES[giftCard.problem],
+      undefined,
+      { code: giftCard.problem },
+    );
+  }
+
+  const giftCardOre = giftCard?.ok ? giftCard.appliedOre : 0;
+  const amountDueOre = totals.totalOre - giftCardOre;
+
+  // Täcker presentkortet hela notan behövs ingen leverantör alls.
+  const cardAccount =
+    input.payment_method === "CARD" && amountDueOre > 0
+      ? await getCardAccount(restaurantId)
+      : null;
+
+  if (input.payment_method === "CARD" && amountDueOre > 0 && !cardAccount) {
     // Klienten visar bara kortknappen när kontot finns, men den som anropar
     // API:t direkt har aldrig sett gränssnittet.
     return problem(
@@ -251,7 +287,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const orderStatus = cardAccount ? "DRAFT" : statusAfterPlacement(policy.autoAccept);
+  /*
+   * En kortorder skapas som utkast. Ett presentkort som täcker hela notan gör
+   * det också — inlösen sker efter att ordern finns, och köket ska inte se
+   * ordern förrän betalningen är bokförd.
+   */
+  const paysUpfront = cardAccount !== null || (giftCardOre > 0 && amountDueOre === 0);
+  const orderStatus = paysUpfront ? "DRAFT" : statusAfterPlacement(policy.autoAccept);
 
   /* ── 6. Skriv allt i en transaktion ────────────────────────────────────── */
 
@@ -335,7 +377,63 @@ export async function POST(request: Request) {
     await rememberGuestOrder(order);
   }
 
-  /* ── 7. Kortbetalningen initieras ──────────────────────────────────────── */
+  /* ── 7. Presentkortet löses in ─────────────────────────────────────────── */
+
+  if (giftCardOre > 0) {
+    /*
+     * Saldot läses om under lås i databasen. Mellan att `resolveGiftCard`
+     * räknade och att raden skrivs kan samma kort ha använts vid ett annat
+     * bord — det är hela poängen med att kontrollen finns två gånger.
+     */
+    const { data: giftPayment, error: giftError } = await supabase.rpc("redeem_gift_card", {
+      p_code: input.gift_card_code!,
+      p_order_id: order,
+      p_amount_ore: giftCardOre,
+    });
+
+    if (giftError || typeof giftPayment !== "string") {
+      await supabase
+        .from("orders")
+        .update({ status: "CANCELLED", cancelled_at: new Date().toISOString() })
+        .eq("id", order);
+
+      return problem(
+        409,
+        "Presentkortet gäller inte",
+        "Presentkortets saldo räckte inte längre. Försök igen utan det.",
+      );
+    }
+
+    /*
+     * Täcker kortet hela notan är ordern betald här och nu. Det finns ingen
+     * webhook som kommer och lyfter den — och en order som ligger kvar i DRAFT
+     * är en order köket aldrig får se.
+     */
+    if (amountDueOre === 0) {
+      const { error: confirmError } = await supabase.rpc("confirm_order_payment", {
+        p_payment_id: giftPayment,
+        p_method: "gift_card",
+      });
+
+      if (confirmError) {
+        return problem(500, "Beställningen kunde inte läggas", confirmError.message);
+      }
+
+      after(() => notifyNewOrder(order));
+
+      return NextResponse.json(
+        {
+          order_id: order,
+          status: statusAfterPlacement(policy.autoAccept),
+          total_ore: totals.totalOre,
+          gift_card_ore: giftCardOre,
+        },
+        { status: 201, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+  }
+
+  /* ── 8. Kortbetalningen initieras ──────────────────────────────────────── */
 
   if (cardAccount) {
     let intent;
@@ -343,7 +441,8 @@ export async function POST(request: Request) {
       intent = await paymentProvider(cardAccount.provider).createIntent({
         orderId: order,
         restaurantId,
-        amountOre: totals.totalOre,
+        // Det som återstår efter presentkortet, inte hela notan.
+        amountOre: amountDueOre,
         currency: cardAccount.currency,
         // Burps avgift dras ur betalningen hos de leverantörer som kan det.
         // Dricksen ingår aldrig i underlaget — den är gästens pengar till
@@ -368,7 +467,7 @@ export async function POST(request: Request) {
       .insert({
         order_id: order,
         restaurant_id: restaurantId,
-        amount_ore: totals.totalOre,
+        amount_ore: amountDueOre,
         provider: cardAccount.provider,
         provider_reference: intent.reference,
         status: intent.status,
@@ -389,9 +488,11 @@ export async function POST(request: Request) {
         order_id: order,
         status: orderStatus,
         total_ore: totals.totalOre,
+        gift_card_ore: giftCardOre,
         payment: {
           id: payment.id,
           provider: cardAccount.provider,
+          amount_ore: amountDueOre,
           client_secret: intent.clientSecret,
           ...intent.clientContext,
         },

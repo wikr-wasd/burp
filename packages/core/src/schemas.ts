@@ -120,6 +120,14 @@ export const createOrderSchema = z
      * praktiken obegränsad.
      */
     coupon_code: z.string().min(3).max(40).optional(),
+    /**
+     * Presentkortets kod, aldrig ett belopp.
+     *
+     * Ett presentkort är betalmedel och inte rabatt: det sänker vad som
+     * återstår att debitera, aldrig ordersumman. Servern räknar hur mycket av
+     * kortet som får användas.
+     */
+    gift_card_code: z.string().min(4).max(40).optional(),
   })
   .refine((order) => order.type !== "TABLE" || order.table_token !== undefined, {
     message: "Bordsbeställning kräver ett bordstoken",

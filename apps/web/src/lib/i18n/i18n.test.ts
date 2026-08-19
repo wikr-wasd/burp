@@ -49,6 +49,8 @@ describe("ordböckerna", () => {
    */
   const SAMMA_PÅ_BÅDA: Record<string, string> = {
     "errors.notFoundLabel": "En siffra. 404 heter 404 på båda språken.",
+    "menu.giftCardPlaceholder":
+      "Presentkortskodens form, inte en text. Koden består av bokstäver och siffror ur ett alfabet utan förväxlingsbara glyfer och ser likadan ut på båda språken.",
   };
 
   it("är faktiskt översatt", () => {

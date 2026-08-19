@@ -208,6 +208,21 @@ export const sv = {
     couponChecking: "Kontrollerar…",
     couponRemove: "Ta bort koden",
     discount: "Rabatt",
+
+    /*
+     * Presentkortet.
+     *
+     * Skilt från rabattkoden med flit. Ett presentkort är betalmedel och
+     * sänker vad som ska betalas; en rabattkod sänker notan. För gästen är
+     * skillnaden att presentkortets rest ligger kvar till nästa gång.
+     */
+    giftCard: "Presentkort",
+    giftCardPlaceholder: "ABCD-EFGH-JKLM",
+    giftCardApply: "Använd",
+    giftCardChecking: "Kontrollerar…",
+    giftCardRemove: "Ta bort presentkortet",
+    giftCardLeft: "{amount} kvar efteråt",
+    toPay: "Att betala",
   },
 
   /** Meddelanden på QR-sidan innan menyn visas. */

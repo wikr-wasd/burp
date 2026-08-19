@@ -13,6 +13,7 @@ export * from "./pricing";
 export * from "./order-status";
 export * from "./payment";
 export * from "./coupon";
+export * from "./gift-card";
 export * from "./order-policy";
 export * from "./order-build";
 export * from "./availability";

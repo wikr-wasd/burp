@@ -11,7 +11,7 @@ import {
 } from "@burp/core";
 import { refundPayment, registerCashPayment } from "@/app/dashboard/kassa/actions";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { RegisterOrder } from "@/lib/cash-register";
+import type { RegisterOrder, SettledPayment } from "@/lib/cash-register";
 
 /**
  * Kassavyn (öppen fråga 6).
@@ -91,13 +91,16 @@ export function CashRegister({
 /* ── Att kvittera ────────────────────────────────────────────────────────── */
 
 function UnsettledRow({ order }: { order: RegisterOrder }) {
-  const [amount, setAmount] = useState(() => formatAmountInput(order.totalOre, order.currency));
+  // Förifyllt med vad som ÅTERSTÅR, inte med hela notan. Har gästen betalat
+  // halva med presentkort är det bara resten som ska tas emot kontant, och ett
+  // fält som föreslår hela notan hade fått kassan att gå plus varje gång.
+  const [amount, setAmount] = useState(() => formatAmountInput(order.dueOre, order.currency));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const receivedOre = parseAmount(amount, order.currency);
   const settlement =
-    receivedOre !== null && receivedOre > 0 ? settleCash(receivedOre, order.totalOre) : null;
+    receivedOre !== null && receivedOre > 0 ? settleCash(receivedOre, order.dueOre) : null;
 
   function submit() {
     setError(null);
@@ -112,7 +115,7 @@ function UnsettledRow({ order }: { order: RegisterOrder }) {
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="font-display text-xl">{orderLabel(order)}</p>
         <p className="text-lg font-semibold tabular-nums">
-          {formatMoney(order.totalOre, order.currency)}
+          {formatMoney(order.dueOre, order.currency)}
         </p>
       </div>
 
@@ -121,6 +124,17 @@ function UnsettledRow({ order }: { order: RegisterOrder }) {
       ) : null}
 
       <p className="label-caps mt-1">Serverad {order.completedLabel}</p>
+
+      {/* Delbetalt. Personalen ska se varför beloppet i fältet är lägre än
+          notan — annars ser det ut som ett fel. */}
+      {order.paidOre > 0 ? (
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          {order.payments.map((payment) => PROVIDER_LABELS[payment.provider] ?? payment.provider).join(", ")}
+          {" · "}
+          {formatMoney(order.paidOre, order.currency)} betalt av{" "}
+          {formatMoney(order.totalOre, order.currency)}
+        </p>
+      ) : null}
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="min-w-40 flex-1">
@@ -185,11 +199,8 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boolean }) {
-  const payment = order.payment!;
-  const difference = payment.amountOre - order.totalOre;
-  const remainingOre = payment.amountOre - payment.refundedOre;
-
-  const [open, setOpen] = useState(false);
+  const difference = order.paidOre - order.totalOre;
+  const refundedOre = order.payments.reduce((sum, payment) => sum + payment.refundedOre, 0);
 
   return (
     <li className="px-4 py-3">
@@ -197,7 +208,10 @@ function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boo
         <Check size={16} aria-hidden="true" className="shrink-0 text-green-600" />
         <span className="font-medium">{orderLabel(order)}</span>
         <span className="text-sm text-[var(--muted)]">
-          {PROVIDER_LABELS[payment.provider] ?? payment.provider} · {payment.capturedLabel}
+          {order.payments
+            .map((payment) => PROVIDER_LABELS[payment.provider] ?? payment.provider)
+            .join(" + ")}
+          {order.payments[0] ? ` · ${order.payments[0].capturedLabel}` : ""}
         </span>
 
         <span className="mr-auto" />
@@ -208,17 +222,51 @@ function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boo
           </span>
         ) : null}
         <span
-          className={`font-semibold tabular-nums ${payment.refundedOre > 0 ? "text-[var(--muted)] line-through" : ""}`}
+          className={`font-semibold tabular-nums ${refundedOre > 0 ? "text-[var(--muted)] line-through" : ""}`}
         >
-          {formatMoney(payment.amountOre, order.currency)}
+          {formatMoney(order.paidOre, order.currency)}
         </span>
       </div>
 
+      {/* En rad per betalmedel. Ett presentkort plus ett kort är två rader som
+          ska gå att stämma av var för sig — och återbetalas var för sig. */}
+      <ul className="mt-1 space-y-1">
+        {order.payments.map((payment) => (
+          <PaymentLine
+            key={payment.id}
+            payment={payment}
+            currency={order.currency}
+            canRefund={canRefund}
+            showLabel={order.payments.length > 1}
+          />
+        ))}
+      </ul>
+    </li>
+  );
+}
+
+function PaymentLine({
+  payment,
+  currency,
+  canRefund,
+  showLabel,
+}: {
+  payment: SettledPayment;
+  currency: CurrencyCode;
+  canRefund: boolean;
+  showLabel: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const remainingOre = payment.amountOre - payment.refundedOre;
+
+  return (
+    <li>
       {payment.refundedOre > 0 ? (
-        <p className="mt-1 flex items-center gap-2 text-sm text-[var(--muted)]">
+        <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
           <RotateCcw size={14} aria-hidden="true" className="shrink-0" />
-          Återbetalt {formatMoney(payment.refundedOre, order.currency)}
-          {remainingOre > 0 ? ` · kvar ${formatMoney(remainingOre, order.currency)}` : ""}
+          {showLabel ? `${PROVIDER_LABELS[payment.provider] ?? payment.provider}: ` : ""}
+          återbetalt {formatMoney(payment.refundedOre, currency)}
+          {remainingOre > 0 ? ` · kvar ${formatMoney(remainingOre, currency)}` : ""}
         </p>
       ) : null}
 
@@ -226,7 +274,7 @@ function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boo
         open ? (
           <RefundForm
             payment={payment}
-            currency={order.currency}
+            currency={currency}
             remainingOre={remainingOre}
             onClose={() => setOpen(false)}
           />
@@ -234,9 +282,10 @@ function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boo
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="mt-2 text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
+            className="text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
           >
             Betala tillbaka
+            {showLabel ? ` ${PROVIDER_LABELS[payment.provider] ?? payment.provider}` : ""}
           </button>
         )
       ) : null}
@@ -260,7 +309,7 @@ function RefundForm({
   remainingOre,
   onClose,
 }: {
-  payment: NonNullable<RegisterOrder["payment"]>;
+  payment: SettledPayment;
   currency: CurrencyCode;
   remainingOre: number;
   onClose: () => void;

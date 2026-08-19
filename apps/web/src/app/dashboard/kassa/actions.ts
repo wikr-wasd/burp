@@ -71,12 +71,33 @@ export async function registerCashPayment(
     return { ok: false, message: "Beloppet gick inte att tolka." };
   }
 
+  /*
+   * Avstämningen sker mot vad som ÅTERSTÅR, inte mot hela notan.
+   *
+   * Ett presentkort kan ha betalat en del av ordern. Räknades avvikelsen mot
+   * hela notan skulle varje sådan order se ut att ha betalats för lite med
+   * exakt presentkortets belopp — och kassaavstämningen bli meningslös just på
+   * de order där den behövs mest.
+   */
+  const { data: existing } = await supabase
+    .from("payments")
+    .select("amount_ore")
+    .eq("order_id", order.id)
+    .neq("status", "FAILED");
+
+  const paidOre = (existing ?? []).reduce((sum, row) => sum + row.amount_ore, 0);
+  const dueOre = order.total_ore - paidOre;
+
+  if (dueOre <= 0) {
+    return { ok: false, message: "Ordern är redan betald." };
+  }
+
   // Kastar på noll, negativa belopp och på allt som inte är ett heltal i
   // valutans minsta enhet. Fångas här så att felet blir en mening i
   // gränssnittet i stället för en 500:a.
   let settlement;
   try {
-    settlement = settleCash(receivedOre, order.total_ore);
+    settlement = settleCash(receivedOre, dueOre);
   } catch {
     return { ok: false, message: "Beloppet måste vara större än noll." };
   }
@@ -100,6 +121,9 @@ export async function registerCashPayment(
       settlement: settlement.kind,
       difference_ore: settlement.differenceOre,
       order_total_ore: order.total_ore,
+      // Vad som återstod när kassan kvitterade. Utan den går avvikelsen inte
+      // att förklara i efterhand på en order som delbetalats med presentkort.
+      due_ore: dueOre,
       registered_by: staff.userId,
     },
   });
