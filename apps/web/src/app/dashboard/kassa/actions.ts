@@ -143,6 +143,99 @@ export async function registerCashPayment(
   return { ok: true };
 }
 
+/* ── Bordets gemensamma nota ─────────────────────────────────────────────── */
+
+/**
+ * Kvitterar hela bordets nota i ett svep.
+ *
+ * Fyra personer vid samma bord beställer var för sig i sina egna telefoner men
+ * delar nota — det är hela poängen med att sessionen hör till bordet. Kassan
+ * krävde förut fyra kvitteringar av en servitör som tagit emot ett handslag.
+ *
+ * Fördelningen per order sker i databasen och inte här. Avgiften, momsen och en
+ * framtida återbetalning räknas per order, så böckerna måste veta hur mycket av
+ * beloppet som hörde till vilken — och den räkningen ska ske i samma
+ * transaktion som raderna skrivs.
+ */
+export async function settleTableSession(
+  sessionId: string,
+  amountInput: string,
+): Promise<ActionResult> {
+  const staff = await requireStaff(REGISTER_ROLES);
+  const supabase = await createClient();
+
+  // Sessionen måste vara restaurangens egen. RLS gömmer andras, så ett okänt id
+  // och ett främmande id ger samma svar — vi bekräftar inte att det finns.
+  const { data: session } = await supabase
+    .from("table_sessions")
+    .select("id, restaurant_id")
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  if (!session || session.restaurant_id !== staff.restaurantId) {
+    return { ok: false, message: "Bordets nota hittades inte." };
+  }
+
+  const currency = staff.currency as CurrencyCode;
+  const receivedOre = parseAmount(amountInput, currency);
+
+  if (receivedOre === null || receivedOre <= 0) {
+    return { ok: false, message: "Beloppet gick inte att tolka." };
+  }
+
+  const { error } = await createAdminClient().rpc("settle_table_session", {
+    p_session_id: sessionId,
+    p_received_ore: receivedOre,
+    p_actor_id: staff.userId,
+  });
+
+  if (error) {
+    // 23505 = det unika indexet på en kontantrad per order. Någon hann kvittera
+    // en av bordets order först.
+    if (error.code === "23505") {
+      return { ok: false, message: "En av bordets order är redan kvitterad." };
+    }
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/dashboard/kassa");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * Stänger bordets nota utan att kvittera något.
+ *
+ * Sällskapet gick utan att beställa, eller betalade på ett sätt som inte hör
+ * hemma i Burp. Notan ska ändå kunna avslutas — annars står bordet som upptaget
+ * i Översikten för alltid, och nästa sällskap ärver sessionen.
+ */
+export async function closeTableSession(sessionId: string): Promise<ActionResult> {
+  const staff = await requireStaff(REGISTER_ROLES);
+  const supabase = await createClient();
+
+  const { data: session } = await supabase
+    .from("table_sessions")
+    .select("id, restaurant_id")
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  if (!session || session.restaurant_id !== staff.restaurantId) {
+    return { ok: false, message: "Bordets nota hittades inte." };
+  }
+
+  const { error } = await createAdminClient().rpc("close_table_session", {
+    p_session_id: sessionId,
+    p_actor_id: staff.userId,
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/dashboard/kassa");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 /* ── Återbetalning ───────────────────────────────────────────────────────── */
 
 /**

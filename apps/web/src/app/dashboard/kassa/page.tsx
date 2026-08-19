@@ -26,17 +26,21 @@ export const dynamic = "force-dynamic";
 
 export default async function CashRegisterPage() {
   const staff = await requireStaff(["owner", "manager", "staff"]);
-  const { unsettled, settled } = await getCashRegister(staff.restaurantId, staff.timeZone);
+  const { tables, unsettled, settled } = await getCashRegister(
+    staff.restaurantId,
+    staff.timeZone,
+  );
 
   return (
     <StaffShell
       staff={staff}
       current="kassa"
       title="Kassa"
-      intro="Slutförda order från det senaste dygnet. Kortbetalda order är redan kvitterade av leverantören; kontanter kvitteras här — utan det finns ingen kassaavstämning, och avgiften räknas på en siffra ingen sett."
+      intro="Slutförda order från det senaste dygnet. Ett bordssällskap står som en nota och kvitteras i ett svep; beloppet fördelas på beställningarna åt er. Kortbetalda order är redan kvitterade av leverantören."
       width="narrow"
     >
       <CashRegister
+        tables={tables}
         unsettled={unsettled}
         settled={settled}
         canRefund={staff.role === "owner" || staff.role === "manager"}

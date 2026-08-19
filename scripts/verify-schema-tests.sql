@@ -2054,4 +2054,143 @@ begin
 end
 $$;
 
+\echo '   bordets nota kvitteras i ett svep och fördelas per order'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_table_id uuid;
+  v_session  uuid;
+  v_a        uuid;
+  v_b        uuid;
+  v_c        uuid;
+  v_together uuid;
+  v_sum      integer;
+  v_rows     integer;
+  v_status   public.table_session_status;
+begin
+  select t.id into v_table_id
+  from public.tables t
+  where t.restaurant_id = v_rest_id
+    and not exists (
+      select 1 from public.table_sessions s where s.table_id = t.id and s.status = 'OPEN'
+    )
+  limit 1;
+
+  v_session := public.open_table_session(v_table_id, v_rest_id);
+
+  -- Tre gäster vid samma bord: 1000, 2000 och 3000. Notan är 6000.
+  insert into public.orders (restaurant_id, table_id, table_session_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, v_table_id, v_session, 'TABLE', 'DRAFT', gen_random_uuid(), 1000)
+  returning id into v_a;
+  insert into public.orders (restaurant_id, table_id, table_session_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, v_table_id, v_session, 'TABLE', 'DRAFT', gen_random_uuid(), 2000)
+  returning id into v_b;
+  insert into public.orders (restaurant_id, table_id, table_session_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, v_table_id, v_session, 'TABLE', 'DRAFT', gen_random_uuid(), 3000)
+  returning id into v_c;
+
+  foreach v_a in array array[v_a, v_b, v_c] loop
+    update public.orders set status = 'PLACED'    where id = v_a;
+    update public.orders set status = 'ACCEPTED'  where id = v_a;
+    update public.orders set status = 'PREPARING' where id = v_a;
+    update public.orders set status = 'READY'     where id = v_a;
+    update public.orders set status = 'COMPLETED' where id = v_a;
+  end loop;
+
+  select sum(due_ore) into v_sum from public.table_session_bill(v_session);
+  if v_sum <> 6000 then
+    raise exception 'FEL: bordets nota blev % i stället för 6000', v_sum;
+  end if;
+
+  -- Gästen betalar 6100 — avrundning uppåt, som i verkligheten.
+  v_together := public.settle_table_session(v_session, 6100);
+
+  -- Summan av delarna måste bli exakt det som togs emot. En proportionell
+  -- fördelning som avrundar var för sig tappar eller hittar på pengar.
+  select sum(amount_ore), count(*) into v_sum, v_rows
+  from public.payments where settled_together_id = v_together;
+
+  if v_sum <> 6100 then
+    raise exception 'FEL: fördelningen summerade till % i stället för 6100', v_sum;
+  end if;
+
+  if v_rows <> 3 then
+    raise exception 'FEL: % betalrader i stället för 3', v_rows;
+  end if;
+
+  -- Ingenting kvar att betala.
+  select coalesce(sum(due_ore), 0) into v_sum
+  from public.table_session_bill(v_session) where due_ore > 0;
+  if v_sum <> 0 then
+    raise exception 'FEL: % kvar på notan efter kvittering', v_sum;
+  end if;
+
+  -- Notan är slut. Nästa sällskap ska inte ärva den.
+  select status into v_status from public.table_sessions where id = v_session;
+  if v_status <> 'CLOSED' then
+    raise exception 'FEL: notan blev % i stället för CLOSED', v_status;
+  end if;
+
+  -- Och den går inte att kvittera en gång till.
+  begin
+    perform public.settle_table_session(v_session, 100);
+    raise exception 'FEL: en betald nota gick att kvittera igen';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
+\echo '   en tyst nota ärvs inte av nästa sällskap'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_table_id uuid;
+  v_first    uuid;
+  v_again    uuid;
+  v_third    uuid;
+begin
+  select t.id into v_table_id
+  from public.tables t
+  where t.restaurant_id = v_rest_id
+    and not exists (
+      select 1 from public.table_sessions s where s.table_id = t.id and s.status = 'OPEN'
+    )
+  limit 1;
+
+  v_first := public.open_table_session(v_table_id, v_rest_id);
+
+  -- Samma sällskap, en stund senare: samma nota.
+  v_again := public.open_table_session(v_table_id, v_rest_id);
+  if v_again <> v_first then
+    raise exception 'FEL: sällskapet fick en ny nota mitt i måltiden';
+  end if;
+
+  -- Nästa dag. Notan har varit tyst i timmar.
+  --
+  -- Det här är det som gjorde att gäst B kunde läsa gäst A:s kvitto: sessionen
+  -- är det som bevisar åtkomst, och den återanvändes i evighet.
+  update public.table_sessions
+  set opened_at = now() - interval '20 hours'
+  where id = v_first;
+
+  v_third := public.open_table_session(v_table_id, v_rest_id);
+  if v_third = v_first then
+    raise exception 'FEL: nästa sällskap ärvde förra sällskapets nota';
+  end if;
+
+  if (select status from public.table_sessions where id = v_first) <> 'CLOSED' then
+    raise exception 'FEL: den utgångna notan stängdes inte';
+  end if;
+
+  -- Och bordet har fortfarande bara en öppen nota.
+  if (select count(*) from public.table_sessions
+      where table_id = v_table_id and status = 'OPEN') <> 1 then
+    raise exception 'FEL: bordet fick fler än en öppen nota';
+  end if;
+end
+$$;
+
 rollback;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Banknote, Check, RotateCcw, TriangleAlert } from "lucide-react";
+import { Banknote, Check, RotateCcw, TriangleAlert, Users } from "lucide-react";
 import {
   formatAmountInput,
   formatMoney,
@@ -9,9 +9,14 @@ import {
   settleCash,
   type CurrencyCode,
 } from "@burp/core";
-import { refundPayment, registerCashPayment } from "@/app/dashboard/kassa/actions";
+import {
+  closeTableSession,
+  refundPayment,
+  registerCashPayment,
+  settleTableSession,
+} from "@/app/dashboard/kassa/actions";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { RegisterOrder, SettledPayment } from "@/lib/cash-register";
+import type { RegisterOrder, RegisterTable, SettledPayment } from "@/lib/cash-register";
 
 /**
  * Kassavyn (öppen fråga 6).
@@ -32,10 +37,12 @@ import type { RegisterOrder, SettledPayment } from "@/lib/cash-register";
  */
 
 export function CashRegister({
+  tables,
   unsettled,
   settled,
   canRefund,
 }: {
+  tables: RegisterTable[];
   unsettled: RegisterOrder[];
   settled: RegisterOrder[];
   /**
@@ -44,12 +51,14 @@ export function CashRegister({
    */
   canRefund: boolean;
 }) {
+  const nothingLeft = tables.length === 0 && unsettled.length === 0;
+
   return (
     <div className="mt-8">
       <section>
         <h2 className="font-display text-2xl">Att kvittera</h2>
 
-        {unsettled.length === 0 ? (
+        {nothingLeft ? (
           <div className="mt-3">
             <EmptyState
               icon={Check}
@@ -59,6 +68,11 @@ export function CashRegister({
           </div>
         ) : (
           <ul className="mt-3 space-y-3">
+            {/* Borden först. Ett sällskap står och väntar med pengarna i handen;
+                en avhämtning som ingen kvitterat gör inte det. */}
+            {tables.map((table) => (
+              <TableBillRow key={table.sessionId} table={table} />
+            ))}
             {unsettled.map((order) => (
               <UnsettledRow key={order.id} order={order} />
             ))}
@@ -88,9 +102,158 @@ export function CashRegister({
   );
 }
 
+/* ── Bordets gemensamma nota ─────────────────────────────────────────────── */
+
+/**
+ * Ett bordssällskaps nota.
+ *
+ * Ser ut som en order i listan men är flera. Det är avsiktligt: servitören tar
+ * emot ETT handslag och ska trycka EN gång. Att fördelningen per order sker i
+ * databasen är bokföringens problem, inte hennes.
+ *
+ * Ordrarna går att fälla ut, för den som vill se vad sällskapet beställt eller
+ * behöver kvittera en enda av dem.
+ */
+function TableBillRow({ table }: { table: RegisterTable }) {
+  const [amount, setAmount] = useState(() => formatAmountInput(table.dueOre, table.currency));
+  const [expanded, setExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const receivedOre = parseAmount(amount, table.currency);
+  const settlement =
+    receivedOre !== null && receivedOre > 0 ? settleCash(receivedOre, table.dueOre) : null;
+
+  function settle() {
+    setError(null);
+    startTransition(async () => {
+      const result = await settleTableSession(table.sessionId, amount);
+      if (!result.ok) setError(result.message ?? "Kvitteringen gick inte igenom.");
+    });
+  }
+
+  function close() {
+    if (
+      !window.confirm(
+        "Stäng notan utan att kvittera något? Ordrarna ligger kvar och går att kvittera var för sig.",
+      )
+    ) {
+      return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      const result = await closeTableSession(table.sessionId);
+      if (!result.ok) setError(result.message ?? "Notan kunde inte stängas.");
+    });
+  }
+
+  return (
+    <li className="card p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="flex items-center gap-2 font-display text-xl">
+          <Users size={18} aria-hidden="true" className="text-[var(--muted)]" />
+          {table.tableNumber ? `Bord ${table.tableNumber}` : "Bord"}
+        </p>
+        <p className="text-lg font-semibold tabular-nums">
+          {formatMoney(table.dueOre, table.currency)}
+        </p>
+      </div>
+
+      <p className="mt-1 text-sm text-[var(--muted)]">
+        {table.orders.length === 1
+          ? "En beställning"
+          : `${table.orders.length} beställningar på samma nota`}
+        {table.paidOre > 0
+          ? ` · ${formatMoney(table.paidOre, table.currency)} redan betalt av ${formatMoney(table.totalOre, table.currency)}`
+          : ""}
+      </p>
+
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded(!expanded)}
+        className="mt-2 text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
+      >
+        {expanded ? "Dölj beställningarna" : "Visa beställningarna"}
+      </button>
+
+      {expanded ? (
+        <ul className="mt-3 space-y-3 border-l-2 border-[var(--rule)] pl-3">
+          {table.orders.map((order) => (
+            <UnsettledRow key={order.id} order={order} compact />
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap items-end gap-3">
+        <label className="min-w-40 flex-1">
+          <span className="label-caps">Mottaget belopp</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            className="field mt-1.5 tabular-nums"
+          />
+        </label>
+
+        <button
+          type="button"
+          disabled={pending || settlement === null}
+          onClick={settle}
+          className="btn btn-primary"
+        >
+          <Banknote size={16} aria-hidden="true" />
+          {pending ? "Kvitterar…" : "Kvittera hela bordet"}
+        </button>
+      </div>
+
+      {settlement && settlement.kind !== "EXACT" ? (
+        <p className="mt-3 flex items-start gap-2 text-sm text-[var(--muted)]">
+          <TriangleAlert size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span>
+            {settlement.kind === "OVER" ? "Över notan med " : "Under notan med "}
+            <span className="font-medium tabular-nums">
+              {formatMoney(Math.abs(settlement.differenceOre), table.currency)}
+            </span>
+            . Fördelas på bordets beställningar i proportion till vad var och en kostar.
+          </span>
+        </p>
+      ) : null}
+
+      {receivedOre === null && amount.trim() !== "" ? (
+        <p className="mt-3 text-sm text-burp-600">Beloppet gick inte att tolka.</p>
+      ) : null}
+
+      {error ? (
+        <p role="alert" className="mt-3 border-l-2 border-burp-600 bg-burp-50 px-3 py-2 text-sm text-burp-700 dark:bg-burp-900/40 dark:text-burp-100">
+          {error}
+        </p>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={close}
+        disabled={pending}
+        className="mt-3 text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
+      >
+        Stäng notan utan att kvittera
+      </button>
+    </li>
+  );
+}
+
 /* ── Att kvittera ────────────────────────────────────────────────────────── */
 
-function UnsettledRow({ order }: { order: RegisterOrder }) {
+function UnsettledRow({
+  order,
+  compact = false,
+}: {
+  order: RegisterOrder;
+  /** Inuti ett bords nota. Då bär bordet kortet, och raden ska inte ha ett eget. */
+  compact?: boolean;
+}) {
   // Förifyllt med vad som ÅTERSTÅR, inte med hela notan. Har gästen betalat
   // halva med presentkort är det bara resten som ska tas emot kontant, och ett
   // fält som föreslår hela notan hade fått kassan att gå plus varje gång.
@@ -111,9 +274,9 @@ function UnsettledRow({ order }: { order: RegisterOrder }) {
   }
 
   return (
-    <li className="card p-4">
+    <li className={compact ? "" : "card p-4"}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="font-display text-xl">{orderLabel(order)}</p>
+        <p className={compact ? "font-medium" : "font-display text-xl"}>{orderLabel(order)}</p>
         <p className="text-lg font-semibold tabular-nums">
           {formatMoney(order.dueOre, order.currency)}
         </p>

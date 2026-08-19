@@ -62,16 +62,37 @@ export interface RegisterOrder {
   paidOre: number;
   /** Notan minus det betalda. Noll eller mindre betyder färdigbetald. */
   dueOre: number;
+  /** Bordets nota, när ordern lades vid ett bord. */
+  tableSessionId: string | null;
+}
+
+/**
+ * Ett bordssällskaps gemensamma nota.
+ *
+ * Fyra personer vid samma bord beställer var för sig i sina egna telefoner men
+ * delar nota — det är hela poängen med att sessionen hör till bordet. Kassan
+ * såg fyra order och krävde fyra kvitteringar; restaurangen vill ha en.
+ */
+export interface RegisterTable {
+  sessionId: string;
+  tableNumber: string | null;
+  orders: RegisterOrder[];
+  totalOre: number;
+  paidOre: number;
+  dueOre: number;
+  currency: CurrencyCode;
 }
 
 export interface CashRegisterView {
   /**
-   * Slutförda order där notan inte är täckt. Det är de som ska betas av.
+   * Bordssällskap med något kvar att betala. Kvitteras i ett svep.
    *
    * Att gå på "har en betalningsrad" räcker inte sedan presentkorten kom: ett
    * kort på 50 mot en nota på 62 lämnar 12 att betala, och ordern hade sett
    * färdig ut medan tolv mark saknades i kassan.
    */
+  tables: RegisterTable[];
+  /** Avhämtning och leverans — order utan bord, som kvitteras var för sig. */
   unsettled: RegisterOrder[];
   /** Färdigbetalda order i samma period, som facit över passet. */
   settled: RegisterOrder[];
@@ -104,14 +125,14 @@ export async function getCashRegister(
 
   const { data: orders } = await supabase
     .from("orders")
-    .select("id, type, total_ore, currency, table_id, completed_at")
+    .select("id, type, total_ore, currency, table_id, table_session_id, completed_at")
     .eq("restaurant_id", restaurantId)
     .eq("status", "COMPLETED")
     .gte("completed_at", since)
     // Senast slutförda först: notan som just lämnades i kassan ligger överst.
     .order("completed_at", { ascending: false });
 
-  if (!orders || orders.length === 0) return { unsettled: [], settled: [] };
+  if (!orders || orders.length === 0) return { tables: [], unsettled: [], settled: [] };
 
   const orderIds = orders.map((order) => order.id);
   const tableIds = [
@@ -202,6 +223,7 @@ export async function getCashRegister(
       payments,
       paidOre,
       dueOre: order.total_ore - paidOre,
+      tableSessionId: order.table_session_id,
     };
 
     // Notan är täckt eller den är det inte. Att gå på om det FINNS en
@@ -210,5 +232,41 @@ export async function getCashRegister(
     else unsettled.push(mapped);
   }
 
-  return { unsettled, settled };
+  /*
+   * Bordssällskapen slås ihop till en nota var.
+   *
+   * Grupperingen sker på bordssessionen och inte på bordet: samma bord kan ha
+   * haft två sällskap under dygnet kassavyn tittar på, och de ska inte betala
+   * varandras mat.
+   */
+  const bySession = new Map<string, RegisterOrder[]>();
+  const singles: RegisterOrder[] = [];
+
+  for (const order of unsettled) {
+    if (order.tableSessionId === null) {
+      singles.push(order);
+      continue;
+    }
+
+    const existing = bySession.get(order.tableSessionId);
+    if (existing) existing.push(order);
+    else bySession.set(order.tableSessionId, [order]);
+  }
+
+  const tables: RegisterTable[] = [...bySession.entries()].map(([sessionId, group]) => {
+    const totalOre = group.reduce((sum, order) => sum + order.totalOre, 0);
+    const paidOre = group.reduce((sum, order) => sum + order.paidOre, 0);
+
+    return {
+      sessionId,
+      tableNumber: group[0]?.tableNumber ?? null,
+      orders: group,
+      totalOre,
+      paidOre,
+      dueOre: totalOre - paidOre,
+      currency: group[0]!.currency,
+    };
+  });
+
+  return { tables, unsettled: singles, settled };
 }

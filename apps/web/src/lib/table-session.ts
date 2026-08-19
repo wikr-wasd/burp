@@ -142,25 +142,27 @@ export async function lookupTable(token: string): Promise<TableLookup> {
 export async function getOrCreateTableSession(table: TableContext): Promise<string> {
   const supabase = createAdminClient();
 
-  const { data: existing } = await supabase
-    .from("table_sessions")
-    .select("id")
-    .eq("table_id", table.tableId)
-    .eq("status", "OPEN")
-    .maybeSingle();
+  /*
+   * Uppslaget och skapandet sker i databasen, i en transaktion.
+   *
+   * Två skäl, båda funna som riktiga fel:
+   *
+   *   1. En kapplöpning. Koden här läste "finns ingen session" och skapade en.
+   *      Två gäster som skannade samtidigt gjorde båda det, och det unika
+   *      indexet fångade den andra — som ett fel. Gästen fick en 500:a i
+   *      stället för en nota.
+   *
+   *   2. Ingen utgång. Sessionen återanvändes i evighet, och eftersom den är
+   *      det som bevisar åtkomst till ett kvitto kunde nästa sällskap vid
+   *      bordet läsa förra sällskapets order.
+   */
+  const { data: sessionId, error } = await supabase.rpc("open_table_session", {
+    p_table_id: table.tableId,
+    p_restaurant_id: table.restaurantId,
+  });
 
-  const sessionId =
-    existing?.id ??
-    (
-      await supabase
-        .from("table_sessions")
-        .insert({ table_id: table.tableId, restaurant_id: table.restaurantId, status: "OPEN" })
-        .select("id")
-        .single()
-    ).data?.id;
-
-  if (!sessionId) {
-    throw new Error("Kunde inte skapa bordssession.");
+  if (error || typeof sessionId !== "string") {
+    throw new Error(`Kunde inte öppna bordssession: ${error?.message ?? "okänt fel"}`);
   }
 
   const cookieStore = await cookies();

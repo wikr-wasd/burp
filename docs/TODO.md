@@ -146,9 +146,12 @@ avvek från planen och det står varför i respektive commit.
 
 ## Näst på tur
 
-- [ ] **Push, inte bara e-post.** Brevet går fram, men en inkorg är inget
-      larm. Köket behöver något som låter. Kräver ett beslut om bäraren:
-      webbpush i PWA:n, eller vänta på mobilappen i Fas 3.
+- [ ] **Webbpush i PWA:n.** *Beslutat 2026-08-19.* Köksskärmen har redan ett
+      ljudlarm när den är öppen — det som saknas är larm när ingen har den uppe.
+      VAPID-nycklar genereras utan leverantör; det som behövs är en service
+      worker, en prenumerationstabell med RLS och ett ja från personalen en
+      gång. Fungerar på Android, Windows och Mac, och på iPhone när PWA:n lagts
+      till på hemskärmen.
 - [ ] **Mobilvyn sedd på riktigt.** Verifierad strukturellt (inget element utan
       radbrytning är bredare än 390 px) men aldrig sedd på en telefon.
       QR-flödet lever på telefon och har högst kvalitetskrav i produkten.
@@ -189,7 +192,6 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Ingen Monri-adapter — kort fungerar bara där Stripe finns (HR, SE) | `lib/payments/` | Lansering i BA och RS. Kontant fungerar under tiden |
 | Fiskalisering är inte byggd — kvittot är märkt som orderbekräftelse | `register_receipts` är tom | Lansering. Öppen fråga 4 |
 | Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
-| Betalning per order, inte per bordssällskap | `payments.order_id` är `not null` | Kräver schemaändring om gemensam nota per bord ska finnas |
 | Ingen GDPR-export eller radering | — | Fas 4 |
 | Personalytorna är enbart svenska | — | Medvetet. Köket ska inte byta språk för att en gäst gjorde det |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
@@ -275,6 +277,24 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       att testa nu** — en Upstash-adapter hade varit otestad kod tills någon
       skaffade ett konto. Räknaren i minnet är kvar som reserv när databasen
       inte svarar.
+
+- [x] **Gemensam nota per bord** (migration 0035). Fyra personer vid samma bord
+      beställer var för sig men delar nota — det är hela poängen med att
+      sessionen hör till bordet. Kassan visar dem som EN nota och kvitterar dem
+      i ett svep; beloppet fördelas per order med största-rest-metoden, så att
+      summan av delarna blir exakt det som togs emot. `payments.order_id` är
+      fortfarande `not null` — avgiften, momsen och återbetalningen räknas per
+      order, och det som saknades var bara att kunna säga att fyra rader kom
+      från ett handslag (`settled_together_id`).
+- [x] **Bordets nota tar slut.** Under arbetet visade det sig att **ingen kod
+      någonsin stängde en session**. Två fel följde, och det andra är
+      allvarligt: Översikten visade varje bord som upptaget i evighet, och
+      **nästa sällskap vid bordet ärvde förra sällskapets nota** — sessionen är
+      det som bevisar åtkomst till ett kvitto, så gäst B kunde läsa gäst A:s
+      order. Notan stängs nu när den kvitteras, när personalen stänger den för
+      hand, eller av sig själv efter fyra timmars tystnad. Uppslaget flyttade
+      dessutom till databasen, vilket samtidigt tog bort en kapplöpning: två
+      gäster som skannade samtidigt fick förut en 500:a i stället för en nota.
 
 ### Öppettider
 
