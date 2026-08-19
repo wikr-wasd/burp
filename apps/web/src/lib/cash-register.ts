@@ -107,6 +107,51 @@ export interface CashRegisterView {
  */
 const WINDOW_HOURS = 24;
 
+/**
+ * Dricks att fördela under samma dygn som kassavyn visar.
+ *
+ * Egen fråga och inte en summa över raderna ovan. Dricksen har en egen liggare
+ * (migration 0040) därför att den inte är restaurangens omsättning utan
+ * personalens pengar, och den enda siffra i produkten som är det. Att räkna den
+ * ur `orders.tip_ore` i komponenten hade gett en andra sanning — och den hade
+ * fortsatt räkna dricks på notor som lämnats tillbaka.
+ *
+ * Servitören ser den. Att låta ägaren ensam se hur mycket dricks som kommit in
+ * vore att göra personalens pengar till en företagsuppgift.
+ */
+export interface TipsSummary {
+  /** Allt som står kvar, alltså utan det som lämnats tillbaka. */
+  totalOre: number;
+  /** Kom in som sedlar. */
+  cashOre: number;
+  /** Kom in genom en betalleverantör eller ett presentkort. */
+  cardOre: number;
+  /** Notan är serverad men inte betald — pengarna finns inte än. */
+  pendingOre: number;
+}
+
+export async function getTipsSummary(
+  restaurantId: string,
+  now = new Date(),
+): Promise<TipsSummary> {
+  const supabase = await createClient();
+
+  const { data } = await supabase.rpc("restaurant_tips_summary", {
+    p_restaurant_id: restaurantId,
+    p_from: new Date(now.getTime() - WINDOW_HOURS * 3_600_000).toISOString(),
+    p_to: now.toISOString(),
+  });
+
+  const row = Array.isArray(data) ? (data[0] as Record<string, unknown> | undefined) : undefined;
+
+  return {
+    totalOre: Number(row?.["tips_ore"] ?? 0),
+    cashOre: Number(row?.["cash_ore"] ?? 0),
+    cardOre: Number(row?.["card_ore"] ?? 0),
+    pendingOre: Number(row?.["pending_ore"] ?? 0),
+  };
+}
+
 export async function getCashRegister(
   restaurantId: string,
   timeZone: string,

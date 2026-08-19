@@ -147,7 +147,8 @@ Kärntabeller i Postgres. Alla rader som tillhör en restaurang bär
 **Pengar** — migration `0006`
 
 - `payments` — belopp, leverantörsreferens, status
-- `tips` — dricks separat från ordersumman
+- `tips` — dricks personalen faktiskt fick, skild från `orders.tip_ore` som är
+  vad gästen valde på notan *(liggaren gjordes verklig i migration `0040`)*
 - `fees` — Burps avgift per order
 - `settlements` — vad restaurangen är skyldig Burp för en period *(migration `0039`)*
 - `register_receipts` — förberedd för kassaregisterintegration, används inte än

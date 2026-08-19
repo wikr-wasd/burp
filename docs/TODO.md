@@ -169,8 +169,9 @@ avvek från planen och det står varför i respektive commit.
       flyttade till `/dashboard/order`. Typkontroll, lint och bygge passerar,
       och Översiktens fyra frågor är körda direkt mot databasen som ägaren med
       RLS påslagen — men ingen har sett sidan. **Behöver göras av William.**
-- [ ] **Avräkningen sedd i webbläsaren.** Två nya ytor: `/dashboard/avrakning`
-      (ägare och chef) och `/backoffice/avrakning` (Burp). Beräkningen är körd
+- [ ] **Avräkningen och dricksrutan sedda i webbläsaren.** Två nya ytor:
+      `/dashboard/avrakning` (ägare och chef) och `/backoffice/avrakning`
+      (Burp), plus "Dricks att fördela" överst i Kassa. Beräkningarna är körda
       mot en riktig PostgreSQL och RLS mot fem olika roller i psql, men ingen
       har sett sidorna. **Behöver göras av William** — se spärren om lösenord.
       Kör `npm run db:demo` först, annars står de tomma.
@@ -277,6 +278,22 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **Dricksen blir verklig** (migration 0040). `tips` skrevs av
+      `place_order` men lästes inte av någon kod — statistiken,
+      plattformsöversikten och avräkningen summerade `orders.tip_ore` i stället.
+      Två svar på samma fråga, och regel 8 finns just för att dricksen inte ska
+      blandas ihop med omsättningen. Fyra fel, alla mätta mot en riktig databas
+      innan raden skrevs: **kopplingen till betalningen sattes bara i
+      kortflödet**, så efter en kontant kvittering — det vanligaste betalsättet
+      i BA och RS — stod `payment_id` kvar som null och frågan "vem betalade in
+      den här dricksen" hade inget svar. **En helt återbetald order behöll sin
+      dricksrad**; gästen fick tillbaka allt, personalen stod kvar som
+      mottagare. **Ett utkast som aldrig betalades behöll sin**, alltså dricks
+      på mat ingen fick. Och **raderna gick att skriva om och radera.**
+      Kassan visar nu "Dricks att fördela" för det senaste dygnet, delad på
+      kontant, kort och notor som inte betalats än. Servitören ser den med
+      flit — att låta ägaren ensam se den vore att göra personalens pengar till
+      en företagsuppgift.
 - [x] **Avräkning: vad restaurangen är skyldig Burp** (migration 0039).
       `payouts` fanns sedan 0006 och ingen kod hade någonsin skrivit eller läst
       den — och den bar dessutom fel modell. Tabellen beskrev en utbetalning

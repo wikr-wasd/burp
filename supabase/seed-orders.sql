@@ -168,6 +168,14 @@ begin
             total_ore       = v_gross + v_tip
         where id = v_order_id;
 
+        -- Dricksen har en egen liggare sedan migration 0040, och det är den
+        -- statistiken och avräkningen läser. `orders.tip_ore` ensam ger noll
+        -- i dricks på varje yta.
+        if v_tip > 0 then
+          insert into public.tips (order_id, restaurant_id, amount_ore, created_at)
+          values (v_order_id, v_rest.id, v_tip, v_completed);
+        end if;
+
         v_bps := v_rest.bps;
         insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore, created_at)
         values (v_order_id, v_rest.id, 'GROSS_ITEMS', v_gross, v_bps,

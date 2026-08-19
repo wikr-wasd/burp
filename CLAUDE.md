@@ -167,6 +167,16 @@ sina transaktioner; en summa över loggen kan det inte.
 Egen tabell, egen rad, aldrig i avgiftsunderlaget. Dricks är gästens pengar till
 personalen.
 
+**`orders.tip_ore` är vad gästen valde på notan. `tips` är pengar personalen
+faktiskt fick.** Det första hör till kvittot och ändras aldrig i efterhand; det
+andra är det enda som får räknas. Allt som rapporterar dricks — statistiken,
+plattformsöversikten, avräkningen, kassan — läser `tips` där `released_at` är
+null. Raden släpps när ordern avbryts eller återbetalas i sin helhet.
+
+Tabellen låg som ett skal fram till migration 0040: den skrevs men lästes inte,
+kopplingen till betalningen sattes bara i kortflödet, och dricks på avbrutna och
+återbetalda order räknades som personalens.
+
 ### 9. Landet avgör, inte koden
 
 Landet är en egenskap hos restaurangen och styr valuta, momssatser,

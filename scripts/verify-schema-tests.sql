@@ -429,6 +429,12 @@ begin
     insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
     values (v_order_id, v_rest_id, 'GROSS_ITEMS', 10000, 340, 340);
 
+    -- `place_order` skriver dricksraden; den här ordern skrivs för hand och
+    -- måste göra det själv. Statistiken läser liggaren och inte `tip_ore`
+    -- sedan migration 0040 — den avbrutna orderns dricks släpps av triggern.
+    insert into public.tips (order_id, restaurant_id, amount_ore)
+    values (v_order_id, v_rest_id, 500);
+
     update public.orders set status = 'PLACED'    where id = v_order_id;
 
     if i = 2 then
@@ -2505,6 +2511,10 @@ begin
          (v_b, v_rest, 'GROSS_ITEMS', 20000, 340, 680),
          (v_c, v_rest, 'GROSS_ITEMS', 90000, 340, 3060);
 
+  -- Dricksen läses ur liggaren sedan 0040, inte ur `orders.tip_ore`.
+  insert into public.tips (order_id, restaurant_id, amount_ore)
+  values (v_a, v_rest, 500);
+
   select * into v_row from public.settlement_preview(v_rest, '2026-06-01', '2026-06-30');
 
   if v_row.orders_count <> 2 then
@@ -2742,6 +2752,233 @@ begin
   exception
     when check_violation then null;
   end;
+end
+$$;
+
+\echo '   dricksen knyts till betalningen som gör notan slut — även kontant'
+
+do $$
+declare
+  v_rest    uuid := '11111111-1111-1111-1111-111111111111';
+  v_order   uuid;
+  v_card    uuid;
+  v_cash    uuid;
+  v_gift    uuid;
+  v_pid     uuid;
+begin
+  -- Nota på 10000 med 1000 i dricks. Presentkortet tar 5000, kontanterna 6000.
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, tip_ore, total_ore)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 10000, 1000, 11000)
+  returning id into v_order;
+
+  insert into public.tips (order_id, restaurant_id, amount_ore)
+  values (v_order, v_rest, 1000);
+
+  v_card := public.issue_gift_card(v_rest, 'K3L4M5N6P7Q8', 5000, 'BAM');
+  v_gift := public.redeem_gift_card('K3L4M5N6P7Q8', v_order, 5000);
+
+  -- Halva notan betald. Dricksen ligger kvar i det som återstår.
+  select payment_id into v_pid from public.tips where order_id = v_order;
+  if v_pid is not null then
+    raise exception 'FEL: dricksen knöts till en betalning som inte gjorde notan slut';
+  end if;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_order, v_rest, 6000, 'CASH', 'CAPTURED', gen_random_uuid(), now())
+  returning id into v_cash;
+
+  -- Kontantvägen har ingen webhook att haka på och gick förut tomhänt.
+  select payment_id into v_pid from public.tips where order_id = v_order;
+  if v_pid is distinct from v_cash then
+    raise exception 'FEL: dricksen knöts till % i stället för kontantraden %', v_pid, v_cash;
+  end if;
+
+  -- Och den flyttar sig inte när något annat händer med betalningen.
+  begin
+    update public.tips set payment_id = v_gift where order_id = v_order;
+    raise exception 'FEL: dricksen gick att knyta om till en annan betalning';
+  exception
+    when insufficient_privilege then null;
+  end;
+end
+$$;
+
+\echo '   dricks på en avbruten eller återbetald order räknas inte'
+
+do $$
+declare
+  v_rest    uuid := '11111111-1111-1111-1111-111111111111';
+  v_draft   uuid;
+  v_paid    uuid;
+  v_payment uuid;
+  v_kvar    integer;
+begin
+  -- 1. Ett utkast som aldrig betalades. Dricks på mat ingen fick.
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, tip_ore, total_ore)
+  values (v_rest, 'PICKUP', 'DRAFT', gen_random_uuid(), 5000, 500, 5500)
+  returning id into v_draft;
+
+  insert into public.tips (order_id, restaurant_id, amount_ore)
+  values (v_draft, v_rest, 500);
+
+  update public.orders set status = 'CANCELLED' where id = v_draft;
+
+  if (select released_at from public.tips where order_id = v_draft) is null then
+    raise exception 'FEL: dricksen stod kvar på en avbruten order';
+  end if;
+
+  -- 2. En nota som betalats och sedan lämnats tillbaka i sin helhet.
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, tip_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 4000, 400, 4400, now())
+  returning id into v_paid;
+
+  insert into public.tips (order_id, restaurant_id, amount_ore)
+  values (v_paid, v_rest, 400);
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_paid, v_rest, 4400, 'CASH', 'CAPTURED', gen_random_uuid(), now())
+  returning id into v_payment;
+
+  -- En DELåterbetalning rör inte dricksen: ordern är fortfarande genomförd.
+  perform public.request_refund(v_payment, 1000, 'Kall förrätt');
+
+  if (select released_at from public.tips where order_id = v_paid) is not null then
+    raise exception 'FEL: en delåterbetalning tog dricksen';
+  end if;
+
+  -- Resten tillbaka. Nu är hela notan borta och dricksen med den.
+  perform public.request_refund(v_payment, 3400, 'Gästen blev sjuk');
+
+  if (select status from public.orders where id = v_paid) <> 'REFUNDED' then
+    raise exception 'FEL: ordern blev inte REFUNDED av den andra motbokningen';
+  end if;
+
+  if (select released_at from public.tips where order_id = v_paid) is null then
+    raise exception 'FEL: dricksen stod kvar efter att hela notan lämnats tillbaka';
+  end if;
+
+  -- Raden står kvar. Historiken ska visa både att dricksen togs emot och att
+  -- den gick tillbaka.
+  select count(*) into v_kvar from public.tips where order_id in (v_draft, v_paid);
+  if v_kvar <> 2 then
+    raise exception 'FEL: % dricksrader kvar i stället för 2 — de raderades', v_kvar;
+  end if;
+
+  -- Och de räknas inte längre.
+  if (select tips_ore from public.restaurant_tips_summary(
+        v_rest, now() - interval '1 hour', now() + interval '1 hour')) <> 0 then
+    raise exception 'FEL: återlämnad dricks räknas fortfarande som att fördela';
+  end if;
+end
+$$;
+
+\echo '   dricksliggaren går inte att skriva om'
+
+do $$
+declare
+  v_rest  uuid := '11111111-1111-1111-1111-111111111111';
+  v_order uuid;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, tip_ore, total_ore)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 2000, 200, 2200)
+  returning id into v_order;
+
+  insert into public.tips (order_id, restaurant_id, amount_ore)
+  values (v_order, v_rest, 200);
+
+  -- Beloppet är det som gör raden till bevis.
+  begin
+    update public.tips set amount_ore = 99999 where order_id = v_order;
+    raise exception 'FEL: dricksbeloppet gick att skriva om';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    delete from public.tips where order_id = v_order;
+    raise exception 'FEL: en dricksrad gick att radera';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  update public.tips set released_at = now() where order_id = v_order;
+
+  begin
+    update public.tips set released_at = now() where order_id = v_order;
+    raise exception 'FEL: samma dricks gick att lämna tillbaka två gånger';
+  exception
+    when insufficient_privilege then null;
+  end;
+end
+$$;
+
+\echo '   statistiken och avräkningen läser samma dricks'
+
+do $$
+declare
+  v_rest      uuid;
+  v_kvar      uuid;
+  v_borta     uuid;
+  v_payment   uuid;
+  v_stat      bigint;
+  v_settle    bigint;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Dricks Test', 'dricks-test', '4200000000066',
+          'Ferhadija 20', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  -- En nota som står kvar, och en som lämnas tillbaka i sin helhet.
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, tip_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 10000, 1000, 11000,
+          '2026-06-15 10:00:00+00')
+  returning id into v_kvar;
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, tip_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 5000, 500, 5500,
+          '2026-06-16 10:00:00+00')
+  returning id into v_borta;
+
+  insert into public.tips (order_id, restaurant_id, amount_ore)
+  values (v_kvar, v_rest, 1000), (v_borta, v_rest, 500);
+
+  insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
+  values (v_kvar, v_rest, 'GROSS_ITEMS', 10000, 340, 340),
+         (v_borta, v_rest, 'GROSS_ITEMS', 5000, 340, 170);
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_borta, v_rest, 5500, 'CASH', 'CAPTURED', gen_random_uuid(), '2026-06-16 10:05:00+00')
+  returning id into v_payment;
+
+  perform public.request_refund(v_payment, 5500, 'Hela notan tillbaka');
+
+  select tips_ore into v_stat
+  from public.restaurant_revenue_summary(v_rest, '2026-06-01', '2026-07-01');
+
+  select tips_ore into v_settle
+  from public.settlement_preview(v_rest, '2026-06-01', '2026-06-30');
+
+  -- Statistiken räknar bara COMPLETED, avräkningen tar med REFUNDED för att
+  -- bruttot ska stämma. Dricksen ska ändå bli densamma: den återlämnade räknas
+  -- inte på något av ställena.
+  if v_stat <> 1000 then
+    raise exception 'FEL: statistiken sa % i dricks, väntade 1000', v_stat;
+  end if;
+
+  if v_settle <> 1000 then
+    raise exception 'FEL: avräkningen sa % i dricks, väntade 1000', v_settle;
+  end if;
 end
 $$;
 
