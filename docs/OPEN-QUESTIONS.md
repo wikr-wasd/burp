@@ -58,41 +58,92 @@ blockerar ingenting före Fas 4.
 
 ## 3. Vem bekostar inlösta lojalitetsbelöningar?
 
-**Status:** obesvarad · **Blockerar:** Fas 3
+**Status:** obesvarad för POÄNGEN · **Blockerar:** Fas 3
 
 Burp, restaurangen eller delat? Det påverkar hela ekonomin i lojalitetsprogrammet.
 
-`loyalty_transactions` är en händelselogg utan kostnadsbärare idag. När svaret
-kommer läggs en kolumn `funded_by` till — loggen behöver inte skrivas om.
+`loyalty_transactions` är fortfarande en händelselogg utan kostnadsbärare.
+
+**Två delsvar finns dock, båda tvingade fram av kod som byggdes 2026-08-19:**
+
+- **Klippkortet** bekostas av restaurangen. Det är vad rubriken säger — "tionde
+  besöket bjuder restaurangen på" — och kortet kunde inte byggas utan ett svar.
+  `punch_card_redemptions.funded_by` står på raden, så beslutet går att ändra
+  utan att historiken skrivs om.
+- **Kuponger** bekostas i praktiken delat, eftersom `feeBaseAmount()` drar av
+  rabatten ur avgiftsunderlaget: Burp avstår sin avgift på rabatterade pengar.
+  `coupons.funded_by` säger vem som äger kampanjen.
+
+Kvar är poängen: vem betalar när en gäst löser in intjänade poäng?
 
 ---
 
 ## 4. Vilka krav på kassaregister gäller i Bosnien, Kroatien och Serbien?
 
-**Status:** obesvarad · **Kan blockera lansering av Fas 2**
+**Status:** KARTLAGD 2026-08-19, fortfarande obesvarad · **Kan blockera lansering**
 
-> Frågan gällde tidigare Skatteverkets krav på certifierat kassaregister.
-> Marknaden är en annan nu, och alla tre länderna har egna regler — Kroatien
-> och Serbien har dessutom system för **fiskalisering** där varje kvitto ska
-> rapporteras i realtid till skattemyndigheten och förses med en signatur.
-> Det är en tyngre integration än det svenska kassaregisterkravet, och den
-> skiljer sig mellan länderna.
+Fiskalisering betyder att varje kvitto rapporteras till skattemyndigheten i
+realtid och förses med en signatur som ska stå på det. Det är inte bokföring —
+det är att staten ser varje försäljning i samma sekund den sker.
 
-Hur det slår mot ett flöde där gästen beställer i sin egen telefon vid bordet
-är inte utrett. **Detta är en fråga för en lokal skattejurist i varje land,
-inte för utvecklingsteamet** — och sannolikt tre olika svar.
+| Land | System | Läge |
+|---|---|---|
+| **Kroatien** | Fiskalizacija 2.0. Varje B2C-kvitto ska fiskaliseras **oavsett betalsätt**. Kvittot får JIR + ZKI + QR-kod | **Obligatoriskt sedan 2026-01-01** |
+| **Serbien** | ESIR (fakturaprogram) + LPFR/VPFR (signaturprocessor). Realtid till Poreska uprava, QR på kvittot, offline max 5 dygn | Gäller sedan 2022 |
+| **Bosnien (FBiH)** | *Zakon o fiskalizaciji transakcija*, mjukvarubaserat ESET i stället för fiskalkassa. I kraft 2026-02-12, tillämpas när föreskrifterna är klara — senast omkring augusti 2027 | Övergångsperiod |
+| **Republika Srpska** | Eget regelverk, skilt från FBiH | Eget spår |
 
-`register_receipts` finns i schemat så att en integration kan läggas till utan
-ombyggnad. Tabellen fylls inte av någon kod idag.
+**Beslutet 2026-08-19: Burp blir inte ett certifierat kassasystem nu.**
+Restaurangen har redan en fiskalkassa och fortsätter använda den.
+
+Det som gjordes i stället kostade nästan ingenting och tar bort den värsta
+risken: **Burps kvitto säger rakt ut att det inte är ett kvitto.** Ett dokument
+med ordersumma och momsuppdelning, utan JIR och utan signatur, kan i Kroatien
+läsas som ett kvitto som borde ha fiskaliserats — och den missuppfattningen
+kostar restaurangen, inte oss. Raden visas när landet kräver fiskalisering,
+styrt av `CountryInfo.fiscalReceiptRequired` och inte av en hårdkodning.
+
+**Kvar:** integrationen i sig. `register_receipts` finns i schemat och fylls
+fortfarande inte av någon kod. **Detta är en fråga för en lokal skattejurist i
+varje land, inte för utvecklingsteamet** — och sannolikt tre olika svar.
+Kroatien är mest brådskande; kravet gäller sedan januari.
 
 ---
 
 ## 5. Hur tas betalt i Bosnien, Kroatien och Serbien?
 
-> **Williams inriktning 2026-08-17:** "betalväg kan vara paypal, kort,
-> kontant, vilka andra alternativ finns det därute?"
+**Status:** BESVARAD 2026-08-19 · **Blockerar:** ingenting längre i kod
 
-Kartan över vad som faktiskt går att använda i regionen:
+> **Williams svar:** väg **A** — restaurangen äger sitt eget inlösenavtal.
+> Pengarna går från gästen till restaurangen, Burp rör dem aldrig.
+
+Det är svaret som gör att kortbetalning kunde byggas nu i stället för efter ett
+betaltjänsttillstånd i två länder utanför EU/EES. Burps avgift tas antingen som
+en application fee hos leverantören (Stripe) eller faktureras i efterhand ur
+`fees` (Monri).
+
+**Det som avgjorde leverantörsvalet:** Stripe finns i Kroatien och Sverige men
+**inte i Bosnien och inte i Serbien** — varken för att ta emot kort eller för
+utbetalningskonton. Huvudmarknaden är alltså den Stripe inte täcker. Monri
+(Payten/Asseco SEE) täcker BA, HR, RS, ME och SI, är PCI DSS nivå 1 och payment
+facilitator för Visa och Mastercard.
+
+**Byggt:** ett leverantörsneutralt skikt (`apps/web/src/lib/payments/`) där allt
+som skiljer leverantörerna åt ligger bakom fyra metoder. Stripe-adaptern finns
+och går att köra mot testnycklar. Monri läggs på samma gränssnitt när avtalet
+finns — ingen stubbe under tiden, eftersom en adapter som svarar men inte
+fungerar är sämre än ingen adapter alls.
+
+**Apple Pay och Google Pay** är inte egna avtalsparter utan plånböcker ovanpå
+kortet. De dyker upp av sig själva i Payment Element på enheter som har dem;
+det som krävs är en verifierad domän hos leverantören.
+
+**Kvar att göra, och det kräver dig:** avtal med Monri för BA och RS. Fråga dem
+uttryckligen om DinaCard i Serbien, om utbetalning i BAM och RSD, och vem som
+bär växlingen om de avräknar i euro.
+
+Kartan över vad som faktiskt går att använda i regionen, som den såg ut när
+beslutet fattades:
 
 | Väg | Läge i BA / HR / RS |
 |---|---|
@@ -110,11 +161,8 @@ till en restaurang i Sarajevo eller Belgrad är det inte, med en internationell
 leverantör. Antingen ett lokalt avtal per land, eller börja i Kroatien (EU och
 SEPA) och låt BA och RS köra kontant tills volymen bär ett avtal.
 
-Beslutet är fortfarande ditt. Frågan nedan står kvar som den skrevs.
-
-
-
-**Status:** obesvarad · **Blockerar:** kortbetalning, men troligen inte lansering
+Resonemanget nedan står kvar som det skrevs, eftersom det är det som gör svaret
+begripligt om ett år.
 
 > Frågan var tidigare ställd för Sverige, med Swish och Klarna som alternativ.
 > Den formuleringen var kvar från innan marknaden bestämdes och hade skickat
@@ -165,15 +213,23 @@ var sann förra året kan vara fel idag:
 Punkt 3 och 4 är de som brukar glömmas och som avgör om lösningen fungerar i
 praktiken snarare än på papperet.
 
-### Vad koden redan tål
+### Vad koden tålde, och vad som ändå behövde rättas
 
-Schemat är leverantörsneutralt: `payments.provider` och `provider_reference`
-räcker för vilken som helst av vägarna utan schemaändring. `orders.currency`
-är fryst per order (migration 0020), så en utbetalning kan alltid härledas till
-rätt valuta i efterhand.
+Schemat var leverantörsneutralt och höll: `payments.provider` och
+`provider_reference` räckte. Två saker stämde ändå inte och rättades i
+migration 0026:
 
-Ingen kod behöver skrivas om beroende på vilket svar frågan får. Det som
-tillkommer är en webhook-hanterare och en statusövergång — inte en ommöblering.
+- `payments.currency` var `char(3)` med `'SEK'` som default, alltså från innan
+  marknaden bestämdes. En betalning kunde få en annan valuta än sin order trots
+  att valutan är fryst där. Nu enum och satt av trigger ur ordern.
+- `place_order` satte `placed_at` på varje order oavsett status. En kortorder
+  skapas som `DRAFT` och ska inte ha en läggtidpunkt förrän den lagts — annars
+  visar kvittot och statistiken att ordern lades klockan sju medan gästen
+  aldrig betalade.
+
+Migration 0024:s krav att en kontantrad står i `CAPTURED` skrevs innan
+återbetalning fanns och gjorde en felaktig kontantnota omöjlig att motboka.
+Villkoret släpper nu även `PARTIALLY_REFUNDED` och `REFUNDED` (0027).
 
 ## 6. Ska Burp ta betalt av gästen också, eller bara av restaurangen?
 
@@ -373,6 +429,11 @@ enumet inte lägger till knappen i tron att den saknas.
 
 | Fråga | Beslut | Var |
 |---|---|---|
+| Hur tas betalt? | Restaurangen äger sitt eget inlösenavtal. Burp håller aldrig gästens pengar | `lib/payments/`, migration 0026 |
+| Vilken leverantör? | Stripe i HR och SE. Monri för BA och RS när avtalet finns — samma gränssnitt | `lib/payments/stripe.ts` |
+| Ska Burp fiskalisera kvitton? | Nej. Restaurangen har sin egen fiskalkassa; Burps kvitto säger att det inte är ett kvitto | `CountryInfo.fiscalReceiptRequired` |
+| Får gästen ha en plånbok hos Burp? | Nej — det är utgivning av elektroniska pengar. Presentkort hos EN restaurang i stället | Migration 0030 |
+| Vem bekostar klippkortet? | Restaurangen | `punch_card_redemptions.funded_by` |
 | Vad räknas 3,4 % på? | Ordersumman inkl. moms, utan dricks — `GROSS_ITEMS` | `calculateFee()`, `restaurants.fee_base` |
 | Ligger kortavgiften ovanpå? | Ja. 3,4 % är Burps netto; restaurangen bär leverantörens avgift | `fees.provider_fee_ore` |
 | Ska gästen kunna betala i plattformen? | Ja — men väntar på fråga 5 | — |

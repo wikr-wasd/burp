@@ -228,6 +228,114 @@ RESPONSE=$(order_request "{
 }")
 assert_order_status "tillval från annan rätt avvisas" 400 "$(tail -1 <<<"$RESPONSE")"
 
+echo "→ Betalvägar"
+
+# Kortbetalning utan betalkonto ska nekas, inte tyst falla tillbaka på kontant.
+# Klienten visar bara kortknappen när kontot finns, men den som anropar API:t
+# direkt har aldrig sett gränssnittet — och en order som läggs som "kontant"
+# när gästen bad om kort är en order ingen kommer att betala.
+RESPONSE=$(order_request "{
+  \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"payment_method\": \"CARD\",
+  \"idempotency_key\": \"$(uuid)\",
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
+}")
+assert_order_status "kort utan betalkonto avvisas" 409 "$(tail -1 <<<"$RESPONSE")"
+
+echo "→ Kuponger"
+
+# Rabattkoden slås in av gästen; beloppet räknas av servern. Skulle klienten få
+# skicka beloppet vore varje kupong i praktiken obegränsad.
+COUPON_CODE="ROKTEST$(node -e 'process.stdout.write(String(Date.now()).slice(-6))')"
+sql "insert into public.coupons (restaurant_id, code, discount_bps, max_per_guest)
+     values ('$SEED_RESTAURANT', '$COUPON_CODE', 2500, 0);" > /dev/null
+
+# Ćevapi 12,00 KM − 25 % = 9,00 KM.
+RESPONSE=$(order_request "{
+  \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"coupon_code\": \"$COUPON_CODE\",
+  \"client_total_ore\": 900, \"idempotency_key\": \"$(uuid)\",
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
+}")
+STATUS=$(tail -1 <<<"$RESPONSE")
+COUPON_ORDER=$(sed '$d' <<<"$RESPONSE" | json_field order_id)
+
+if [ "$STATUS" = "201" ] && [ -n "$COUPON_ORDER" ]; then
+  DISCOUNT=$(sql "select discount_ore from public.orders where id = '$COUPON_ORDER';")
+  if [ "$DISCOUNT" = "-300" ]; then
+    pass "kupongen drog 3,00 KM"
+  else
+    fail "rabatten blev '$DISCOUNT', väntade -300"
+  fi
+
+  # Avgiften räknas efter rabatt: 3,40 % av 900 = 30,6 → 31 fening.
+  FEE=$(sql "select fee_ore from public.fees where order_id = '$COUPON_ORDER';")
+  if [ "$FEE" = "31" ]; then
+    pass "avgiften räknas efter rabatt (31 fening)"
+  else
+    fail "avgiften blev '$FEE', väntade 31"
+  fi
+
+  REDEEMED=$(sql "select count(*) from public.coupon_redemptions where order_id = '$COUPON_ORDER';")
+  if [ "$REDEEMED" = "1" ]; then pass "inlösen bokförd"; else fail "ingen inlösenrad skrevs"; fi
+else
+  assert_order_status "kupongorder" 201 "$STATUS"
+fi
+
+# En okänd kod ska ge ett begripligt nej, inte en tyst order utan rabatt.
+RESPONSE=$(order_request "{
+  \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"coupon_code\": \"FINNSINTE\",
+  \"idempotency_key\": \"$(uuid)\",
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
+}")
+assert_order_status "okänd kupongkod avvisas" 409 "$(tail -1 <<<"$RESPONSE")"
+
+sql "delete from public.coupons where code = '$COUPON_CODE'
+     and not exists (select 1 from public.coupon_redemptions r where r.coupon_id = coupons.id);" > /dev/null
+
+echo "→ Presentkort"
+
+# Ett presentkort är BETALMEDEL och inte rabatt: ordersumman och momsen står
+# orörda, det som sjunker är vad som ska debiteras.
+GIFT_CODE="A2B3C4D5E6F7"
+sql "delete from public.gift_card_transactions
+     where gift_card_id in (select id from public.gift_cards where code = '$GIFT_CODE');
+     delete from public.gift_cards where code = '$GIFT_CODE';" > /dev/null
+sql "select public.issue_gift_card('$SEED_RESTAURANT', '$GIFT_CODE', 500, 'BAM');" > /dev/null
+
+# Ćevapi 12,00 KM, varav 5,00 betalas med kortet. 7,00 kvar att betala på plats.
+RESPONSE=$(order_request "{
+  \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"gift_card_code\": \"$GIFT_CODE\",
+  \"client_total_ore\": 1200, \"idempotency_key\": \"$(uuid)\",
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
+}")
+STATUS=$(tail -1 <<<"$RESPONSE")
+GIFT_ORDER=$(sed '$d' <<<"$RESPONSE" | json_field order_id)
+
+if [ "$STATUS" = "201" ] && [ -n "$GIFT_ORDER" ]; then
+  TOTAL=$(sql "select total_ore from public.orders where id = '$GIFT_ORDER';")
+  if [ "$TOTAL" = "1200" ]; then
+    pass "presentkortet ändrade inte ordersumman"
+  else
+    fail "ordersumman blev '$TOTAL', väntade 1200 — presentkortet behandlades som rabatt"
+  fi
+
+  PAID=$(sql "select coalesce(sum(amount_ore), 0) from public.payments
+              where order_id = '$GIFT_ORDER' and provider = 'GIFT_CARD';")
+  if [ "$PAID" = "500" ]; then pass "presentkortet bokfört som betalning"; else fail "presentkortsbetalningen blev '$PAID', väntade 500"; fi
+
+  BALANCE=$(sql "select public.gift_card_balance(id) from public.gift_cards where code = '$GIFT_CODE';")
+  if [ "$BALANCE" = "0" ]; then pass "saldot räknat ur loggen (0)"; else fail "saldot blev '$BALANCE', väntade 0"; fi
+else
+  assert_order_status "presentkortsorder" 201 "$STATUS"
+fi
+
+# Ett tomt kort ska nekas, inte tyst ignoreras.
+RESPONSE=$(order_request "{
+  \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"gift_card_code\": \"$GIFT_CODE\",
+  \"idempotency_key\": \"$(uuid)\",
+  \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
+}")
+assert_order_status "tomt presentkort avvisas" 409 "$(tail -1 <<<"$RESPONSE")"
+
 echo "→ Idempotens"
 KEY="$(uuid)"
 PAYLOAD="{\"type\":\"TABLE\",\"table_token\":\"$TOKEN\",\"idempotency_key\":\"$KEY\",\"items\":[{\"menu_item_id\":\"$CEVAPI\",\"quantity\":1,\"options\":[]}]}"

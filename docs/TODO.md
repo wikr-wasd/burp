@@ -11,24 +11,33 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-08-17**, branch `dev`.
+Senast uppdaterad **2026-08-19**, branch `dev`.
 
-Fas 1 är byggd i sin helhet. Produkten går att använda rakt igenom: en gäst
-skannar en dekal, beställer vid bordet, ser sin nota och sin orderstatus;
-köket ser beställningen och får dessutom ett brev om den; personalen kvitterar
-betalningen i kassan. Allt utom kortbetalning fungerar, och kortbetalning är
-blockerad av ett beslut, inte av kod.
+Fas 1 är byggd i sin helhet, och **kortbetalning ingår nu**. Produkten går att
+använda rakt igenom: en gäst skannar en dekal, beställer vid bordet, betalar med
+kort, Apple Pay eller på plats, ser sin nota och sin orderstatus; köket ser
+beställningen och får ett brev om den; personalen kvitterar kontanter i kassan
+och kan betala tillbaka.
 
-Kartsidan `/upptack` är byggd — det första steget in i Fas 2. Den fungerar, men
-kartrutorna kommer tills vidare från OpenStreetMaps egna servrar, vilket inte
-är tillåtet för en publik tjänst. Se öppen fråga 8.
+Öppen fråga 5 är besvarad — **restaurangen äger sitt eget inlösenavtal och Burp
+håller aldrig gästens pengar.** Det är det som gjorde att kortbetalning kunde
+byggas utan betaltjänsttillstånd i Bosnien och Serbien. Stripe-adaptern är klar
+och går att köra mot testnycklar; Monri läggs på samma gränssnitt när avtalet
+finns.
+
+Dessutom byggt 2026-08-19: omdöme på bordskvittot, kuponger, presentkort,
+klippkort och planritning över lokalen.
+
+Kartsidan `/upptack` fungerar, men kartrutorna kommer tills vidare från
+OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. Se
+öppen fråga 8.
 
 Det som återstår är i tur och ordning:
 
-1. **Fyra beslut** som ligger hos William (nedan). Två av dem blockerar
-   lansering, ett blockerar kartsidan.
+1. **Konton och avtal** som ligger hos William (nedan). Inget av det är kod.
 2. **Att se produkten på riktig hårdvara** — telefon och surfplatta. Byggd för
-   båda, provad på ingen.
+   båda, provad på ingen. Planritningens redigerare är byggd för fingrar och
+   har aldrig rörts av ett.
 3. Resten av Fas 2 och framåt: surfplatta vid bordet, mobilapp.
 
 ### Två spärrar som gäller varje session
@@ -58,16 +67,31 @@ migration 0024 och är mönstret att följa för nästa.
 
 Ingenting går vidare här utan svar.
 
-- [ ] **Betalväg.** `OPEN-QUESTIONS.md` fråga 5. **Blockerar lansering av
-      kortbetalning.** Det svåra är utbetalningar till restauranger i Bosnien
-      och Serbien, som ligger utanför EU/EES — inte att ta emot kort. Fråga 6 är
-      besvarad (gästen ska kunna betala i plattformen), men den raden kan inte
-      byggas förrän den här har ett svar. Betalning på plats fungerar idag och
-      är möjligen rätt v1; det avgör om frågan blockerar lansering eller bara
-      intäktsmodellen.
-- [ ] **Fiskalisering.** `OPEN-QUESTIONS.md` fråga 4. **Kan blockera lansering
-      helt.** Kroatien och Serbien kräver realtidsrapportering av kvitton. Tre
-      länder, tre lokala jurister.
+- [ ] **Stripe-konto i testläge.** `STRIPE_SECRET_KEY`,
+      `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
+      Testnycklar räcker för att köra hela kortflödet — utan dem visar
+      QR-kassan bara "betala på plats", vilket är korrekt beteende och inte ett
+      fel. Webhooken tar emot på `/api/payments/webhook/stripe`; lokalt via
+      `stripe listen --forward-to`.
+- [ ] **Monri-avtal för Bosnien och Serbien.** Stripe finns inte där.
+      **Fråga dem uttryckligen om fyra saker** — det är de som brukar glömmas
+      och de som avgör om lösningen fungerar i praktiken: stödjer de utbetalning
+      till företag i BA respektive RS, klarar de **DinaCard** i Serbien, vad
+      kostar en utbetalning i **BAM och RSD**, och vem bär växlingen om de
+      avräknar i euro. Adaptern läggs på samma gränssnitt som Stripe när avtalet
+      finns.
+- [ ] **Apple Pay-domän verifierad** hos inlösaren. Knappen dyker inte upp
+      förrän det är gjort.
+- [ ] **Fiskalisering — skattejurist i tre länder.** `OPEN-QUESTIONS.md`
+      fråga 4, nu kartlagd. **Kan blockera lansering helt.** Kroatien kräver
+      sedan 2026-01-01 att varje B2C-kvitto rapporteras i realtid oavsett
+      betalsätt; Serbien sedan 2022; Bosnien har en ny lag i kraft som börjar
+      tillämpas inom 18 månader. Burp fiskaliserar inte — restaurangen har sin
+      egen kassa — och kvittot säger numera rakt ut att det inte är ett kvitto.
+      Det tar bort den värsta risken men inte frågan.
+- [ ] **Jurist: presentkort.** Förbetalt värde hos EN restaurang faller
+      normalt under undantaget för begränsade nätverk, men "normalt" är inte
+      ett juridiskt besked. Kontrollera per land innan kort säljs skarpt.
 - [ ] **Supabase och Vercel i molnet.** Kräver din inloggning. Supabase-orgen
       har två projektplatser på gratisnivån och båda är upptagna av 123Connect —
       antingen uppgradering eller ett frigjort projekt.
@@ -85,73 +109,38 @@ Ingenting går vidare här utan svar.
 
 ---
 
-## Beställt 2026-08-17 — inte påbörjat
+## Beställt 2026-08-17 — byggt 2026-08-19
 
-Fyra önskemål från William, i den ordning jag skulle bygga dem. Storleken är
-ärlig: ingen av dem är en eftermiddag, och tre av dem kräver nytt schema med
-egna RLS-policyer.
+Alla fyra är byggda, verifierade mot en riktig PostgreSQL och committade. Två
+avvek från planen och det står varför i respektive commit.
 
-- [ ] **Be om omdöme efter besöket.** *Minst arbete, störst effekt.*
-
-      Omdömesformuläret finns redan — men bara på `/konto`, alltså bara för
-      inloggade gäster. **QR-gästen är anonym och ser det aldrig**, vilket är
-      precis den gäst som just ätit och har mest att säga.
-
-      Vägen: när bordskvittot visar en order i `COMPLETED`, fråga direkt på
-      kvittosidan. Kräver att `reviews` går att skriva med en bordssession i
-      stället för `auth.uid()` — ny RLS-policy i samma anda som QR-flödets
-      övriga: bevisa åtkomst med sessionen, inte med ett konto. Spärren mot
-      dubbla omdömen per order finns redan i databasen.
-
-      Ett brev efteråt är sämre: den anonyma gästen har ingen adress, och den
-      som fått maten svarar på plats eller inte alls.
-
-- [ ] **Kuponger och erbjudanden till registrerade gäster.**
-
-      Nytt: `coupons` (kod, rabatt i öre eller baspunkter, giltighetstid,
-      användningsgräns, per restaurang eller plattformsbred) och
-      `coupon_redemptions` (vem, vilken order, när). Båda med RLS.
-
-      **Rabatten måste räknas i `packages/core/src/pricing.ts`**, aldrig i en
-      komponent och aldrig i en route handler. `orders.discount_ore` finns
-      redan och är `<= 0`. Klienten skickar en kod, aldrig ett belopp — samma
-      regel som priset.
-
-      Avgiftsunderlaget behöver ett beslut: räknas Burps 3,4 % på beloppet före
-      eller efter rabatt? Om Burp bekostar kampanjen är det efter; om
-      restaurangen gör det är det före. Det är en följdfråga till fråga 1.
-
-- [ ] **Klippkort — tionde besöket bjuder restaurangen på.**
-
-      Lojalitetssystemet finns men räknar **poäng per krona**, inte besök.
-      Klippkort är en annan mekanik: räkna slutförda order per gäst och
-      restaurang, och lös ut en belöning vid tio.
-
-      Räkna aldrig fram och lagra ett antal — samma skäl som lojalitetssaldot
-      inte lagras (regel 7). Antalet är en `count(*)` över ordrarna, belöningen
-      en rad i `loyalty_transactions`.
-
-      Två saker behöver beslut: gäller kortet per restaurang eller över hela
-      Burp, och **vem betalar den tionde måltiden**. Det senare är inte en
-      detalj — det är skillnaden mellan en kampanj restaurangen äger och en
-      kostnad Burp tar.
-
-      Fungerar bara för inloggade gäster. En anonym QR-gäst går inte att räkna
-      besök på, och ska inte gå att räkna besök på.
-
-- [ ] **Restaurangen ritar sin egen bordsplacering.** *Störst arbete.*
-
-      I dag är bord en lista. Önskemålet är en planritning: dra ut bord, sätta
-      dem i en sal, se vilka som är upptagna i rummets faktiska form.
-
-      Schemat är den enkla delen — `tables` behöver `x`, `y`, `rotation`,
-      `shape`, `seats` och en `floor_plans`-tabell per våning eller uteservering.
-      Redigeraren är den svåra: dra-och-släpp med rutnät, undo, och något som
-      fungerar med fingrar på en surfplatta.
-
-      Betalar sig först när Översiktens bordsrutnät byts mot planritningen —
-      då ser en servitör vilket bord som ropar, inte vilken ruta i ordningen.
-      Bör byggas efter surfplattan vid bordet, som delar mycket av samma yta.
+- [x] **Omdöme på bordskvittot.** Frågan ställs när ordern är `COMPLETED`, på
+      gästens eget språk. Åtkomsten bevisas med bordssessionen — den ligger i en
+      cookie och inte i en JWT, så den går inte att skriva en RLS-policy mot;
+      servern verifierar och skriver med service role, som `POST /api/orders`.
+      En trigger kräver att det är **ordernas egen** session, annars kunde nästa
+      gäst vid samma bord sätta betyg på förra gästens mat. Migration 0028.
+- [x] **Kuponger och erbjudanden.** `coupons` + `coupon_redemptions` med RLS.
+      Rabatten räknas i `@burp/core`; klienten skickar en kod, aldrig ett
+      belopp. Förhandsvisningen (`/api/coupons/preview`) sparar ingenting —
+      kupongen tas i anspråk först när ordern läggs, under lås. Migration 0029.
+      **Avgiftsunderlaget:** `feeBaseAmount()` drog redan av rabatten, alltså
+      räknas 3,4 % efter rabatt och Burp är med och bekostar kampanjen.
+      `coupons.funded_by` står på raden så att beslutet kan ändras.
+- [x] **Presentkort per restaurang.** Ersatte plånboksidén: förbetalt värde som
+      går att lösa in var som helst är utgivning av elektroniska pengar och
+      kräver tillstånd. Kortet är **betalmedel och inte rabatt** — ordersumman
+      och momsen står orörda, det som sjunker är vad som ska debiteras.
+      Migration 0030.
+- [x] **Klippkort.** Räknar besök och inte kronor. Antalet lagras aldrig.
+      **Avvek från planen:** belöningen blev inte en rad i
+      `loyalty_transactions` — tabellen saknar `restaurant_id` och har
+      `check (points <> 0)`, och en klippkortsbelöning kostar noll poäng.
+      Egen tabell med samma egenskaper i stället. Migration 0031.
+- [x] **Bordsplacering.** `floor_plans` + koordinater på `tables`, i
+      rutnätsenheter och inte pixlar. Redigeraren använder pointer events så att
+      den fungerar med fingrar. Översikten byter till ritningen så fort en
+      finns; outplacerade bord ligger kvar som rutor bredvid. Migration 0032.
 
 ---
 
@@ -198,7 +187,9 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 |---|---|---|
 | Rate limiter i processminnet — fungerar inte över flera Vercel-instanser | `lib/rate-limit.ts` | Fas 2 live |
 | Öppettider stödjer inte pass över midnatt | `is_restaurant_open()`, migration 0004 | Nattöppet |
-| Ingen kortbetalning — bara kontant kan registreras | Öppen fråga 5 | Fas 1 |
+| Ingen Monri-adapter — kort fungerar bara där Stripe finns (HR, SE) | `lib/payments/` | Lansering i BA och RS. Kontant fungerar under tiden |
+| Fiskalisering är inte byggd — kvittot är märkt som orderbekräftelse | `register_receipts` är tom | Lansering. Öppen fråga 4 |
+| Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
 | Betalning per order, inte per bordssällskap | `payments.order_id` är `not null` | Kräver schemaändring om gemensam nota per bord ska finnas |
 | Ingen GDPR-export eller radering | — | Fas 4 |
 | Personalytorna är enbart svenska | — | Medvetet. Köket ska inte byta språk för att en gäst gjorde det |
@@ -267,6 +258,17 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       tretton fall. **Inte sedd i webbläsaren.**
 - [x] **Avgiftsunderlaget avgjort** — `GROSS_ITEMS`, kortavgiften ovanpå.
       `OPEN-QUESTIONS.md` fråga 1, besvarad 2026-08-16.
+- [x] **Kortbetalning** (öppen fråga 5, besvarad 2026-08-19). Restaurangen äger
+      sitt eget inlösenavtal; Burp håller aldrig gästens pengar. Ett
+      leverantörsneutralt skikt med Stripe-adapter; Monri läggs till på samma
+      gränssnitt. Kortordern skapas som `DRAFT` och lyfts av webhooken — köket
+      ska aldrig se en obetald order. Migration 0026.
+- [x] **Återbetalning** som motbokning i en egen tabell. Beloppet på en
+      betalning skrivs aldrig om. Ägare och chef, i kassavyn. Migration 0027.
+- [x] **Kassavyn räknar rätt med flera betalmedel.** Den läste förut bara
+      kontantrader, så en kortbetald order såg obetald ut och hamnade bland
+      notorna att kvittera — personalen hade registrerat kontanter ovanpå en
+      betalning som redan gått igenom.
 
 ### Design och form
 

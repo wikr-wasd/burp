@@ -123,6 +123,15 @@ hämtar priserna ur menyn och räknar med `@burp/core`. Skickar klienten sin ege
 summa används den bara som kontroll — avviker den avbryts ordern, den justeras
 aldrig tyst.
 
+Samma regel gäller allt som ändrar summan: klienten skickar en **kupongkod**,
+en **presentkortskod** eller en begäran att lösa ut klippkortet — aldrig
+rabatten, aldrig beloppet. Servern slår upp villkoren och räknar.
+
+Uträkningen ligger i `lib/order-pricing.ts` och används av både orderrutten och
+förhandsvisningarna. Två kopior av det steget glider isär, och då visar menyn en
+rabatt servern räknar annorlunda — vilket avbryter beställningen med "priset har
+ändrats" utan att någon förstår varför.
+
 ### 3. Priset räknas på ett enda ställe
 
 `packages/core/src/pricing.ts`. Duplicera aldrig prislogik i en komponent, en
@@ -271,10 +280,28 @@ där Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat
 | `packages/core` | All affärslogik: pris, moms, avgift, statusmaskin, orderregler, QR-token, lojalitet, tillgänglighet, koordinater | inget |
 | `apps/web` | Rena moduler: öppen vidarebefordran, rate limiter, JSON-LD, i18n | inget |
 | `scripts/verify-schema.sh` | Migrationer, RLS, grants, triggers, plpgsql | PostgreSQL + PostGIS |
+| `packages/core` (forts.) | Betalningens statusmaskin, kupong, presentkort, klippkort | inget |
 | `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder | Docker + Supabase |
 
 Route handlers och server components har medvetet inga enhetstester — de kräver
 databas och session för att säga något meningsfullt, och täcks av `smoke.sh`.
+
+### `verify-schema.sh` går att köra utan psql på maskinen
+
+Det finns ingen `psql` installerad här, men skriptet behöver ingen — det räcker
+med en container. Ett PostGIS-avbild med repot monterat kör hela schemat och
+samtliga logiktester:
+
+```bash
+docker run -d --name burp-verify -e POSTGRES_PASSWORD=burp -e POSTGRES_DB=burp_verify \
+  -v "C:\Users\wikr\.claude\burp:/repo:ro" postgis/postgis:17-3.5
+
+docker exec -u postgres -e DB_NAME=burp_check burp-verify bash /repo/scripts/verify-schema.sh
+```
+
+Det här är det snabbaste sättet att bevisa att en migration faktiskt fungerar,
+och till skillnad från `smoke.sh` fungerar det på den här maskinen. `bash -n`
+inuti samma container syntaxkontrollerar dessutom skript som inte går att köra.
 
 ### `smoke.sh` når inte appen från WSL
 
