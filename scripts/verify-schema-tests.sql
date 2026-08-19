@@ -2456,4 +2456,293 @@ begin
 end
 $$;
 
+\echo '   avräkningen räknar periodens egna dygn i restaurangens tid'
+
+do $$
+declare
+  v_rest    uuid;
+  v_a       uuid;
+  v_b       uuid;
+  v_c       uuid;
+  v_row     record;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Avräkning Test', 'avrakning-test', '4200000000022',
+          'Ferhadija 12', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  -- Mitt i juni. Ligger i perioden hur man än räknar.
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, tip_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(),
+          10000, 500, 10500, '2026-06-15 10:00:00+00')
+  returning id into v_a;
+
+  -- Sista kvällen, 23:30 lokal tid i Sarajevo (= 21:30 UTC). Inne.
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, tip_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(),
+          20000, 0, 20000, '2026-06-30 21:30:00+00')
+  returning id into v_b;
+
+  /*
+   * En timme senare: 00:30 lokal tid den 1 juli, men fortfarande 30 juni i UTC.
+   *
+   * Det här är hela skälet till att perioden räknas i restaurangens tidszon.
+   * En avräkning som räknar i UTC lägger den här ordern i juni, och en kafana
+   * som stänger efter midnatt får varje månadsskifte fel faktura.
+   */
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, tip_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(),
+          90000, 0, 90000, '2026-06-30 22:30:00+00')
+  returning id into v_c;
+
+  insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
+  values (v_a, v_rest, 'GROSS_ITEMS', 10000, 340, 340),
+         (v_b, v_rest, 'GROSS_ITEMS', 20000, 340, 680),
+         (v_c, v_rest, 'GROSS_ITEMS', 90000, 340, 3060);
+
+  select * into v_row from public.settlement_preview(v_rest, '2026-06-01', '2026-06-30');
+
+  if v_row.orders_count <> 2 then
+    raise exception 'FEL: % order i juni, väntade 2 (nattordern hörde till juli)', v_row.orders_count;
+  end if;
+
+  if v_row.gross_ore <> 30000 then
+    raise exception 'FEL: bruttot blev %, väntade 30000', v_row.gross_ore;
+  end if;
+
+  if v_row.tips_ore <> 500 then
+    raise exception 'FEL: dricksen blev %, väntade 500', v_row.tips_ore;
+  end if;
+
+  if v_row.fees_ore <> 1020 then
+    raise exception 'FEL: avgiften blev %, väntade 1020', v_row.fees_ore;
+  end if;
+
+  if v_row.currency <> 'BAM' then
+    raise exception 'FEL: valutan blev %, väntade BAM', v_row.currency;
+  end if;
+
+  -- Nattordern ska finnas i juli i stället, inte försvinna.
+  select * into v_row from public.settlement_preview(v_rest, '2026-07-01', '2026-07-31');
+  if v_row.orders_count <> 1 or v_row.gross_ore <> 90000 then
+    raise exception 'FEL: nattordern hamnade inte i juli (% order, brutto %)',
+      v_row.orders_count, v_row.gross_ore;
+  end if;
+end
+$$;
+
+\echo '   en helt återbetald order krediterar avgiften, en delåterbetald inte'
+
+do $$
+declare
+  v_rest     uuid;
+  v_hel      uuid;
+  v_del      uuid;
+  v_bet_hel  uuid;
+  v_bet_del  uuid;
+  v_row      record;
+  v_status   public.order_status;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Kredit Test', 'kredit-test', '4200000000033',
+          'Ferhadija 14', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 5000, 5000, '2026-06-10 10:00:00+00')
+  returning id into v_hel;
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 8000, 8000, '2026-06-12 10:00:00+00')
+  returning id into v_del;
+
+  insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
+  values (v_hel, v_rest, 'GROSS_ITEMS', 5000, 340, 170),
+         (v_del, v_rest, 'GROSS_ITEMS', 8000, 340, 272);
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_hel, v_rest, 5000, 'CASH', 'CAPTURED', gen_random_uuid(), '2026-06-10 10:05:00+00')
+  returning id into v_bet_hel;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_del, v_rest, 8000, 'CASH', 'CAPTURED', gen_random_uuid(), '2026-06-12 10:05:00+00')
+  returning id into v_bet_del;
+
+  -- Hela notan tillbaka, och bara en del av den andra.
+  perform public.request_refund(v_bet_hel, 5000, 'Maten kom aldrig fram');
+  perform public.request_refund(v_bet_del, 2000, 'Kall förrätt');
+
+  -- Motbokningarna avslutades nyss; flytta dem in i perioden.
+  update public.refunds set settled_at = '2026-06-20 10:00:00+00' where payment_id = v_bet_hel;
+  update public.refunds set settled_at = '2026-06-22 10:00:00+00' where payment_id = v_bet_del;
+
+  select status into v_status from public.orders where id = v_hel;
+  if v_status <> 'REFUNDED' then
+    raise exception 'FEL: den helt återbetalda ordern blev % i stället för REFUNDED', v_status;
+  end if;
+
+  select * into v_row from public.settlement_preview(v_rest, '2026-06-01', '2026-06-30');
+
+  /*
+   * Bruttot rymmer BÅDA order.
+   *
+   * En helt återbetald order byter status från COMPLETED till REFUNDED och hade
+   * fallit ur underlaget helt om filtret bara tog COMPLETED — samtidigt som
+   * återbetalningen drogs av. Samma order hade då räknats bort två gånger.
+   */
+  if v_row.orders_count <> 2 or v_row.gross_ore <> 13000 then
+    raise exception 'FEL: % order och brutto %, väntade 2 och 13000',
+      v_row.orders_count, v_row.gross_ore;
+  end if;
+
+  if v_row.cash_ore <> 13000 then
+    raise exception 'FEL: kontanterna blev %, väntade 13000', v_row.cash_ore;
+  end if;
+
+  if v_row.refunds_ore <> 7000 then
+    raise exception 'FEL: återbetalt blev %, väntade 7000', v_row.refunds_ore;
+  end if;
+
+  -- Bara den hela ordern krediterar. Delåterbetalningen upphäver inte att
+  -- måltiden såldes — gästen satt kvar och åt resten.
+  if v_row.fee_credit_ore <> 170 then
+    raise exception 'FEL: krediten blev %, väntade 170 (bara den hela ordern)',
+      v_row.fee_credit_ore;
+  end if;
+
+  if v_row.amount_due_ore <> 272 then
+    raise exception 'FEL: att fakturera blev %, väntade 272', v_row.amount_due_ore;
+  end if;
+end
+$$;
+
+\echo '   en stängd period är oföränderlig och överlappar ingen annan'
+
+do $$
+declare
+  v_rest uuid;
+  v_id   uuid;
+  v_due  integer;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Period Test', 'period-test', '4200000000044',
+          'Ferhadija 16', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 10000, 10000, '2026-06-15 10:00:00+00')
+  returning id into v_id;
+
+  insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
+  values (v_id, v_rest, 'GROSS_ITEMS', 10000, 340, 340);
+
+  v_id := public.close_settlement_period(v_rest, '2026-06-01', '2026-06-30');
+
+  select amount_due_ore into v_due from public.settlements where id = v_id;
+  if v_due <> 340 then
+    raise exception 'FEL: att fakturera blev %, väntade 340', v_due;
+  end if;
+
+  -- Samma period igen, och en som bara delvis överlappar. Ett unikt index på
+  -- (restaurang, start, slut) hade släppt igenom den andra, och sex dagar hade
+  -- fakturerats två gånger.
+  begin
+    perform public.close_settlement_period(v_rest, '2026-06-01', '2026-06-30');
+    raise exception 'FEL: samma period gick att stänga två gånger';
+  exception
+    when exclusion_violation then null;
+  end;
+
+  begin
+    perform public.close_settlement_period(v_rest, '2026-06-15', '2026-06-20');
+    raise exception 'FEL: en överlappande period gick att stänga';
+  exception
+    when exclusion_violation then null;
+  end;
+
+  -- Maj ligger bredvid och ska gå bra.
+  perform public.close_settlement_period(v_rest, '2026-05-01', '2026-05-31');
+
+  -- Ett utkast får räknas om.
+  update public.settlements set fees_ore = 500 where id = v_id;
+
+  -- Skickad är skickad.
+  update public.settlements set status = 'INVOICED', invoice_number = 'B-2026-0001'
+  where id = v_id;
+
+  if (select invoiced_at from public.settlements where id = v_id) is null then
+    raise exception 'FEL: invoiced_at sattes inte av triggern';
+  end if;
+
+  begin
+    update public.settlements set fees_ore = 1 where id = v_id;
+    raise exception 'FEL: en skickad avräkning gick att räkna om';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    delete from public.settlements where id = v_id;
+    raise exception 'FEL: en skickad avräkning gick att radera';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- Statusmaskinen: PAID är slutläge.
+  update public.settlements set status = 'PAID' where id = v_id;
+
+  if (select paid_at from public.settlements where id = v_id) is null then
+    raise exception 'FEL: paid_at sattes inte av triggern';
+  end if;
+
+  begin
+    update public.settlements set status = 'VOID' where id = v_id;
+    raise exception 'FEL: en betald avräkning gick att makulera';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
+\echo '   en period som inte är slut går inte att fakturera'
+
+do $$
+declare
+  v_rest uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Framtid Test', 'framtid-test', '4200000000055',
+          'Ferhadija 18', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  -- Innevarande dygn är inte slut. Order som läggs i kväll hade annars aldrig
+  -- hamnat i någon avräkning alls — överlappsspärren gör att perioden inte kan
+  -- köras om.
+  begin
+    perform public.close_settlement_period(
+      v_rest, (now() at time zone 'Europe/Sarajevo')::date, (now() at time zone 'Europe/Sarajevo')::date
+    );
+    raise exception 'FEL: en pågående period gick att fakturera';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
 rollback;

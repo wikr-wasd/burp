@@ -96,6 +96,7 @@ npm run lint
 npm run db:validate        # migrations genom PG17:s parser — inget Docker
 npx supabase start         # lokal stack i Docker
 npx supabase db reset      # migrations + seed + personalkonton
+npm run db:demo            # 75 dagars orderhistorik — utan den står pengaytorna tomma
 npm run db:types           # TypeScript-typer ur schemat
 
 node scripts/print-qr-links.mjs   # QR-länkar för seed-borden
@@ -279,7 +280,7 @@ där Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat
 | Var | Vad | Kräver |
 |---|---|---|
 | `packages/core` | All affärslogik: pris, moms, avgift, statusmaskin, orderregler, QR-token, lojalitet, tillgänglighet, koordinater | inget |
-| `apps/web` | Rena moduler: öppen vidarebefordran, rate limiter, JSON-LD, i18n | inget |
+| `apps/web` | Rena moduler: öppen vidarebefordran, rate limiter, JSON-LD, i18n, avräkningens periodräkning | inget |
 | `scripts/verify-schema.sh` | Migrationer, RLS, grants, triggers, plpgsql | PostgreSQL + PostGIS |
 | `packages/core` (forts.) | Betalningens statusmaskin, kupong, presentkort, klippkort | inget |
 | `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder | Docker + Supabase |

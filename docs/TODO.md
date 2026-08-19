@@ -26,7 +26,8 @@ och går att köra mot testnycklar; Monri läggs på samma gränssnitt när avta
 finns.
 
 Dessutom byggt 2026-08-19: omdöme på bordskvittot, kuponger, presentkort,
-klippkort och planritning över lokalen.
+klippkort, planritning över lokalen och **avräkningen** — den sista delen av
+"ta betalt" som var ren kod.
 
 Kartsidan `/upptack` fungerar, men kartrutorna kommer tills vidare från
 OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. Se
@@ -168,6 +169,11 @@ avvek från planen och det står varför i respektive commit.
       flyttade till `/dashboard/order`. Typkontroll, lint och bygge passerar,
       och Översiktens fyra frågor är körda direkt mot databasen som ägaren med
       RLS påslagen — men ingen har sett sidan. **Behöver göras av William.**
+- [ ] **Avräkningen sedd i webbläsaren.** Två nya ytor: `/dashboard/avrakning`
+      (ägare och chef) och `/backoffice/avrakning` (Burp). Beräkningen är körd
+      mot en riktig PostgreSQL och RLS mot fem olika roller i psql, men ingen
+      har sett sidorna. **Behöver göras av William** — se spärren om lösenord.
+      Kör `npm run db:demo` först, annars står de tomma.
 - [ ] **Riktiga bilder i seed-datan.** Platshållaren är så bra den kan bli;
       nästa steg kräver fotografier. Utan dem går det inte att bedöma hur
       sajten faktiskt ser ut för en gäst.
@@ -198,6 +204,9 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av `/upptack`. Öppen fråga 8 |
 | Push är byggt men tyst utan VAPID-nycklar | `lib/notify/push.ts` | Nycklarna genereras på en minut, men de måste finnas i miljön |
 | Push aldrig sedd på en riktig enhet | `components/staff/push-toggle.tsx` | Kräver nycklar, https och en telefon. iPhone kräver dessutom att PWA:n lagts till på hemskärmen |
+| En delåterbetalning krediterar inte Burps avgift | Migration 0039 | Beslut, inte lucka. Öppen fråga 12 |
+| Avräkningen faktureras för hand — ingen faktura genereras | `settlements.invoice_number` | Fakturan skrivs i Burps bokföring; produkten håller bara underlaget och numret |
+| Seeden har inga order alls | `supabase/seed-orders.sql`, `npm run db:demo` | Medvetet skild från seeden. Utan den står Kassa, Statistik, Översikt och Avräkning tomma lokalt |
 
 ---
 
@@ -268,6 +277,23 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **Avräkning: vad restaurangen är skyldig Burp** (migration 0039).
+      `payouts` fanns sedan 0006 och ingen kod hade någonsin skrivit eller läst
+      den — och den bar dessutom fel modell. Tabellen beskrev en utbetalning
+      FRÅN Burp, alltså marknadsplatsupplägget. Svaret på öppen fråga 5 blev
+      motsatsen: restaurangen äger sitt eget inlösenavtal, gästens pengar går
+      direkt dit, och det enda som rör sig mellan parterna är avgiften — åt
+      andra hållet. Ersatt av `settlements`, som är en faktura och inte en
+      utbetalning.
+      **Perioden räknas i restaurangens egen tidszon.** En kafana som stänger
+      efter midnatt hade annars fått sista kvällens order i nästa månads
+      faktura. **Överlappande perioder är omöjliga** — en exclusion constraint
+      och inte ett unikt index, för det gamla indexet hade släppt igenom
+      1–31 augusti bredvid 15–20 augusti och fakturerat sex dagar två gånger.
+      Beloppen fryses när avräkningen lämnat utkastet; en felaktig faktura
+      makuleras och ersätts, den skrivs inte om.
+      Statistiksidans rad "Till utbetalning" byggde på samma gamla modell och
+      heter nu "Kvar efter Burps avgift".
 - [x] **Delad rate limiter** (migration 0034). Räknaren låg i processminnet, och
       på Vercel har varje serverlös instans sitt eget: en angripare vars anrop
       fördelades över tio instanser fick tio gånger så många försök, och gränsen

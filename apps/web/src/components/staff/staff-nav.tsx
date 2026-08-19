@@ -8,6 +8,7 @@ import {
   MessageSquare,
   QrCode,
   Receipt,
+  ReceiptText,
   Settings,
   Ticket,
   TrendingUp,
@@ -46,6 +47,7 @@ export type StaffSection =
   | "erbjudanden"
   | "omdomen"
   | "statistik"
+  | "avrakning"
   | "installningar";
 
 interface NavItem {
@@ -70,6 +72,7 @@ export const STAFF_NAV: readonly NavItem[] = [
   { section: "erbjudanden", href: "/dashboard/erbjudanden", label: "Erbjudanden", icon: Ticket, roles: MANAGEMENT },
   { section: "omdomen", href: "/dashboard/omdomen", label: "Omdömen", icon: MessageSquare, roles: MANAGEMENT },
   { section: "statistik", href: "/dashboard/statistik", label: "Statistik", icon: TrendingUp, roles: MANAGEMENT },
+  { section: "avrakning", href: "/dashboard/avrakning", label: "Avräkning", icon: ReceiptText, roles: MANAGEMENT },
 ];
 
 const SETTINGS: NavItem = {

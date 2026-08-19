@@ -2,7 +2,7 @@
 
 De sju frågorna ur arkitekturunderlaget, med status och var i koden svaret ska
 landa. Fråga 8 tillkom när kartsidan byggdes, fråga 9 och 10 när koden mättes
-mot UI-mockuperna.
+mot UI-mockuperna, och fråga 12 när avräkningen byggdes.
 
 Frågorna är inte formaliteter. Fråga 5 blockerar Fas 1 — utan svar går det inte
 att ta betalt med kort. Fråga 4 kan blockera lanseringen av QR-flödet helt.
@@ -295,11 +295,20 @@ schemaändring.
 
 ## 7. Hur hanteras moms på Burps avgift gentemot restaurangen?
 
-**Status:** obesvarad · **Blockerar:** Fas 1 (bokföringsunderlag)
+**Status:** obesvarad · **Blockerar:** fakturan, inte underlaget
 
-Burps avgift är en tjänst till restaurangen och bär sannolikt 25 % moms. Det
-påverkar vad som ska stå på restaurangens underlag och hur `payouts` redovisas.
-Fråga en revisor.
+Burps avgift är en tjänst till restaurangen och bär moms — med vilken sats beror
+på var Burp är etablerat och var restaurangen är det, och det är en fråga för en
+revisor och inte för utvecklingsteamet.
+
+**Vad som byggdes trots att svaret saknas (2026-08-19):** avräkningen räknar
+`amount_due_ore` **exklusive moms på avgiften**. Det är beloppet fakturan ska
+utgå från, oavsett vilken sats som sedan läggs på — och det är därför frågan
+inte blockerade bygget. Momsraden hör hemma på fakturan, som skrivs i Burps
+bokföring, inte i produkten. `settlements.invoice_number` binder ihop de två.
+
+Skulle svaret bli att momsen ska stå på underlaget också är det en kolumn till
+och ingen omräkning.
 
 ---
 
@@ -425,6 +434,30 @@ enumet inte lägger till knappen i tron att den saknas.
 
 ---
 
+## 12. Ska en delåterbetalning kreditera Burps avgift?
+
+**Status:** obesvarad · **Blockerar:** ingenting — ett beslut är fattat och går
+att ändra
+
+Avräkningen (migration 0039) krediterar avgiften för order som blivit **helt**
+återbetalda. En delåterbetalning gör det inte.
+
+**Skälet är att alternativet kräver ett svar produkten inte har.** En
+proportionell kreditering måste veta hur mycket av avgiften som redan
+krediterats i en TIDIGARE period, annars kan summan över tid överstiga
+avgiften — och det kräver en post per order och period i stället för en summa
+per period. Det är en tabell till, och den ska inte byggas på en gissning.
+
+**Sakskälet håller ändå på egen hand:** en delåterbetalning — en kall förrätt
+som kompenseras — upphäver inte att måltiden såldes. Gästen satt kvar och åt
+resten. En hel återbetalning upphäver den.
+
+Vill du ha proportionell kreditering är det en `settlement_lines`-tabell med en
+rad per krediterad order, och krediten räknas då mot vad som redan tagits ut.
+Historiken skrivs inte om — gamla perioder står kvar som de fakturerades.
+
+---
+
 ## Beslutade frågor
 
 | Fråga | Beslut | Var |
@@ -442,3 +475,5 @@ enumet inte lägger till knappen i tron att den saknas.
 | Får klienten skicka priser? | Nej. Servern räknar om från menyn | `POST /api/orders` |
 | Statiska eller dynamiska QR-koder? | Statiska. De trycks på dekaler | `tables.qr_public_id` |
 | Pengar som decimaltal? | Nej. Heltal öre överallt | `@burp/core/money` |
+| Betalar Burp ut något till restaurangen? | Nej. Pengarna går direkt dit; Burp fakturerar sin avgift i efterhand | `settlements`, migration 0039 |
+| Krediteras avgiften vid återbetalning? | Ja vid hel återbetalning, nej vid del | Fråga 12 |

@@ -39,10 +39,19 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
   const { summary } = stats;
 
-  // Vad restaurangen får ut: omsättning minus Burps avgift, plus dricksen som
-  // passerar orörd. Kortavgiften är inte med — det är öppen fråga 1, och
-  // ingenting här ska låtsas veta svaret.
-  const payoutOre = summary.itemsGrossOre - summary.feesOre + summary.tipsOre;
+  /*
+   * Vad som blir kvar när Burps avgift är betald.
+   *
+   * Raden hette "Till utbetalning" och byggde på marknadsplatsmodellen: gästen
+   * betalar plattformen, plattformen betalar ut resten. Öppen fråga 5 besvarades
+   * med motsatsen — restaurangen äger sitt eget inlösenavtal och pengarna går
+   * direkt till den. Ingen betalar ut något; avgiften faktureras i efterhand.
+   * Se /dashboard/avrakning och migration 0039.
+   *
+   * Kortavgiften är fortfarande inte med. Den ligger mellan restaurangen och
+   * dess inlösare, inte mellan restaurangen och Burp.
+   */
+  const afterFeeOre = summary.itemsGrossOre - summary.feesOre + summary.tipsOre;
 
   return (
     <StaffShell
@@ -109,12 +118,20 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
                   }
                 />
                 <Row label="Dricks" value={`+${formatMoney(summary.tipsOre, staff.currency)}`} />
-                <Row label="Till utbetalning" value={formatMoney(payoutOre, staff.currency)} strong />
+                <Row
+                  label="Kvar efter Burps avgift"
+                  value={formatMoney(afterFeeOre, staff.currency)}
+                  strong
+                />
               </dl>
 
               <p className="mt-3 text-sm opacity-60">
-                Betalleverantörens kortavgift ingår inte. Det är inte beslutat om den ligger
-                ovanpå eller inuti Burps avgift — se docs/OPEN-QUESTIONS.md fråga 1.
+                Gästernas pengar går direkt till er — Burp håller dem aldrig. Avgiften samlas per
+                månad och faktureras i efterhand; den står på{" "}
+                <Link href="/dashboard/avrakning" className="underline">
+                  Avräkning
+                </Link>
+                . Betalleverantörens kortavgift ingår inte, den ligger mellan er och er inlösare.
               </p>
             </section>
 

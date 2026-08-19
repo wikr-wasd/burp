@@ -44,6 +44,9 @@ const targets = [
   ...files.map((name) => ({ label: `migrations/${name}`, path: join(migrationsDir, name) })),
   { label: "seed.sql", path: join(root, "supabase", "seed.sql") },
   { label: "seed-staff.sql", path: join(root, "supabase", "seed-staff.sql") },
+  // Demodatan körs inte av `db reset` men körs mot samma databas, och ett
+  // syntaxfel där ska falla här och inte när någon vill se sidorna med siffror.
+  { label: "seed-orders.sql", path: join(root, "supabase", "seed-orders.sql") },
 ];
 
 await loadModule();

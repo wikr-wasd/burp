@@ -24,7 +24,8 @@
     "db:env": "node scripts/write-local-env.mjs",
     "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID --schema public > packages/core/src/database.types.ts",
     "db:push": "supabase db push",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "db:demo": "node scripts/seed-demo-orders.mjs"
   },
   "devDependencies": {
     "libpg-query": "^17.7.4",

@@ -148,9 +148,15 @@ Kärntabeller i Postgres. Alla rader som tillhör en restaurang bär
 
 - `payments` — belopp, leverantörsreferens, status
 - `tips` — dricks separat från ordersumman
-- `payouts` — utbetalningar till restaurang
 - `fees` — Burps avgift per order
+- `settlements` — vad restaurangen är skyldig Burp för en period *(migration `0039`)*
 - `register_receipts` — förberedd för kassaregisterintegration, används inte än
+
+`payouts` fanns här till migration `0039` och beskrev en utbetalning **från**
+Burp till restaurangen. Modellen föll när öppen fråga 5 besvarades: restaurangen
+äger sitt eget inlösenavtal, gästens pengar går direkt dit och Burp håller dem
+aldrig. Det enda som rör sig mellan parterna är avgiften, och den går åt andra
+hållet. Tabellen var tom och byttes mot `settlements`.
 
 **Gäst** — migration `0007`
 
