@@ -520,6 +520,17 @@ function RefundForm({
         </label>
       </div>
 
+      {/* Var pengarna hamnar. Ett presentkort löses aldrig in mot kontanter —
+          det är det som gör att Burp får ge ut dem utan tillstånd — och
+          personalen ska inte stå och öppna kassalådan i onödan. */}
+      <p className="mt-2 text-xs text-[var(--muted)]">
+        {payment.provider === "GIFT_CARD"
+          ? "Värdet läggs tillbaka på presentkortet, inte i kassan."
+          : payment.provider === "CASH"
+            ? "Registreras som en motbokning. Sedlarna lämnar ni tillbaka över disk."
+            : "Går tillbaka till gästens kort via leverantören. Kan ta några dagar."}
+      </p>
+
       {tooMuch ? (
         <p className="mt-2 text-sm text-burp-600">
           Mer än vad som återstår ({formatMoney(remainingOre, currency)}).

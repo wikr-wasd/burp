@@ -295,6 +295,21 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       dessutom till databasen, vilket samtidigt tog bort en kapplöpning: två
       gäster som skannade samtidigt fick förut en 500:a i stället för en nota.
 
+- [x] **Presentkortets värde försvann vid återbetalning** (migration 0037).
+      En återbetald presentkortsbetalning markerades som återbetald men
+      ingenting skrev tillbaka värdet: gästen betalade 50 med sitt kort, fick
+      notan återbetald på papperet och stod med ett tomt kort. `REFUND` fanns i
+      `gift_card_transactions.kind` och räknades av `giftCardBalance()`, men
+      ingen kod skrev en sådan rad — precis den sortens halvfärdiga skal
+      grundregeln förbjuder. Värdet går tillbaka till KORTET och inte till
+      kassan: ett presentkort som går att lösa in mot kontanter är inte längre
+      ett begränsat nätverk, och skälet till att Burp får ge ut dem utan
+      tillstånd faller.
+- [x] **Presentkortet kunde överbetala en order** (migration 0037). Inlösen
+      jämförde mot `total_ore` i stället för mot vad som faktiskt återstod, så
+      en order som redan hade en betalning kunde betalas två gånger —
+      och överskottet fanns ingenstans att hämta.
+
 ### Notiser
 
 - [x] **Webbpush** (migration 0036). Köksskärmen larmade bara när den var

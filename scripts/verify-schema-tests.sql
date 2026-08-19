@@ -2237,4 +2237,96 @@ begin
 end
 $$;
 
+\echo '   en återbetald presentkortsbetalning går tillbaka till kortet'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+  v_card    uuid;
+  v_order   uuid;
+  v_payment uuid;
+  v_refund  uuid;
+  v_status  public.payment_status;
+begin
+  v_card := public.issue_gift_card(v_rest_id, 'D2E3F4G5H6J7', 5000, 'BAM');
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 5000)
+  returning id into v_order;
+
+  update public.orders set status = 'PLACED'    where id = v_order;
+  update public.orders set status = 'ACCEPTED'  where id = v_order;
+  update public.orders set status = 'PREPARING' where id = v_order;
+  update public.orders set status = 'READY'     where id = v_order;
+  update public.orders set status = 'COMPLETED' where id = v_order;
+
+  v_payment := public.redeem_gift_card('D2E3F4G5H6J7', v_order, 5000);
+
+  if public.gift_card_balance(v_card) <> 0 then
+    raise exception 'FEL: saldot blev % efter inlösen, väntade 0', public.gift_card_balance(v_card);
+  end if;
+
+  -- Hela notan tillbaka. Värdet ska hamna på KORTET — ett presentkort som går
+  -- att lösa in mot kontanter är inte längre ett begränsat nätverk, och hela
+  -- skälet till att Burp får ge ut dem utan tillstånd faller.
+  v_refund := public.request_refund(v_payment, 5000, 'Ordern avbröts');
+
+  if public.gift_card_balance(v_card) <> 5000 then
+    raise exception 'FEL: saldot blev % efter återbetalning, väntade 5000',
+      public.gift_card_balance(v_card);
+  end if;
+
+  select status into v_status from public.payments where id = v_payment;
+  if v_status <> 'REFUNDED' then
+    raise exception 'FEL: betalningen blev % i stället för REFUNDED', v_status;
+  end if;
+
+  -- Och kortet går att använda igen.
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'PLACED', gen_random_uuid(), 2000)
+  returning id into v_order;
+
+  perform public.redeem_gift_card('D2E3F4G5H6J7', v_order, 2000);
+
+  if public.gift_card_balance(v_card) <> 3000 then
+    raise exception 'FEL: saldot blev % efter ny inlösen, väntade 3000',
+      public.gift_card_balance(v_card);
+  end if;
+end
+$$;
+
+\echo '   presentkortet kan inte betala mer än vad som återstår'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+  v_card    uuid;
+  v_order   uuid;
+begin
+  v_card := public.issue_gift_card(v_rest_id, 'M2N3P4Q5R6S7', 5000, 'BAM');
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'COMPLETED', gen_random_uuid(), 1200)
+  returning id into v_order;
+
+  -- Ordern är redan betald kontant.
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_order, v_rest_id, 1200, 'CASH', 'CAPTURED', gen_random_uuid(), now());
+
+  -- Kortet ska inte kunna överbetala ordern. Överskottet fanns ingenstans att
+  -- hämta, eftersom ett presentkort inte löses in mot kontanter.
+  begin
+    perform public.redeem_gift_card('M2N3P4Q5R6S7', v_order, 1200);
+    raise exception 'FEL: presentkortet betalade en order som redan var betald';
+  exception
+    when check_violation then null;
+  end;
+
+  if public.gift_card_balance(v_card) <> 5000 then
+    raise exception 'FEL: saldot rördes trots att inlösen avvisades';
+  end if;
+end
+$$;
+
 rollback;
