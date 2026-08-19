@@ -44,6 +44,15 @@ export const RATE_LIMITS = {
   orderCreate: { limit: 10, windowSeconds: 60 },
   /** Inloggning. */
   auth: { limit: 10, windowSeconds: 60 },
+  /**
+   * Kupongkoder. Snävast av alla.
+   *
+   * Endpointen svarar på frågan "gäller den här koden" och är därför en
+   * orakelmaskin: utan gräns går det att prova sig igenom kodrymden tills en
+   * fungerar. Tio försök i minuten räcker gott för någon som skriver av en kod
+   * från en skylt och slår fel ett par gånger.
+   */
+  couponPreview: { limit: 10, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitOptions>;
 
 export function rateLimit(key: string, options: RateLimitOptions): RateLimitResult {

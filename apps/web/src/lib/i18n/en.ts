@@ -178,6 +178,13 @@ export const en: Dictionary = {
     paymentCancel: "Cancel",
     paymentFailed: "The payment did not go through. Try again or pay in person.",
     paymentAbandoned: "The payment was cancelled. Your order was never placed.",
+
+    coupon: "Discount code",
+    couponPlaceholder: "e.g. SUMMER25",
+    couponApply: "Apply",
+    couponChecking: "Checking…",
+    couponRemove: "Remove code",
+    discount: "Discount",
   },
 
   table: {
@@ -198,6 +205,7 @@ export const en: Dictionary = {
     pickupAt: "Collect from",
     yourBill: "Your bill",
     foodAndDrink: "Food and drink",
+    discount: "Discount",
     tip: "Tip",
     total: "Total",
     payOnPickup: "Payment is taken in person on collection.",

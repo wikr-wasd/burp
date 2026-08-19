@@ -1,11 +1,9 @@
 import { after, NextResponse } from "next/server";
 import {
-  availabilityState,
-  COUNTRY_INFO,
   assertClientTotalMatches,
-  buildPricedLines,
   calculateFee,
   calculateOrderTotals,
+  COUPON_PROBLEM_MESSAGES,
   createOrderSchema,
   DEFAULT_FEE_BASE,
   parseOpeningHours,
@@ -14,9 +12,10 @@ import {
   SCHEDULE_PROBLEM_MESSAGES,
   statusAfterPlacement,
   validateScheduledFor,
-  type CountryCode,
 } from "@burp/core";
+import { resolveCoupon } from "@/lib/coupons";
 import { serverEnv } from "@/lib/env";
+import { priceRequestedItems } from "@/lib/order-pricing";
 import { rememberGuestOrder } from "@/lib/guest-orders";
 import { notifyNewOrder } from "@/lib/notify";
 import { getCardAccount, paymentProvider, PaymentProviderError } from "@/lib/payments";
@@ -101,142 +100,51 @@ export async function POST(request: Request) {
     restaurantId = "";
   }
 
-  /* ── 2. Hämta katalogen ────────────────────────────────────────────────── */
+  /* ── 2. Räkna om priset från menyn, inte från klienten ─────────────────── */
 
-  const menuItemIds = [...new Set(input.items.map((item) => item.menu_item_id))];
-
-  const { data: menuItems, error: menuError } = await supabase
-    .from("menu_items")
-    .select("id, restaurant_id, name, price_ore, vat_rate_bps, is_available, status")
-    .in("id", menuItemIds);
-
-  if (menuError || !menuItems || menuItems.length !== menuItemIds.length) {
-    return problem(400, "Okänd menyrad", "En eller flera rätter finns inte längre.");
-  }
-
-  // Grupperna hämtas per RÄTT, inte per valt tillval. Det är den kopplingen
-  // som avgör vilka tillval som faktiskt får väljas — hämtas tillvalen bara på
-  // sina egna id:n går det att hänga ett tillval från en annan rätt på ordern.
-  const { data: optionGroups, error: groupsError } = await supabase
-    .from("option_groups")
-    .select("id, menu_item_id, name, min_select, max_select")
-    .in("menu_item_id", menuItemIds);
-
-  if (groupsError || !optionGroups) {
-    return problem(500, "Menyn kunde inte läsas", "Försök igen.");
-  }
-
-  const { data: options, error: optionsError } = optionGroups.length
-    ? await supabase
-        .from("options")
-        .select("id, option_group_id, name, price_ore, is_available")
-        .in(
-          "option_group_id",
-          optionGroups.map((group) => group.id),
-        )
-    : { data: [], error: null };
-
-  if (optionsError || !options) {
-    return problem(500, "Menyn kunde inte läsas", "Försök igen.");
-  }
-
-  /*
-   * Schemalagd otillgänglighet gäller även här.
-   *
-   * `is_available` är dagens av/på-knapp; `item_availability` bär reglerna som
-   * släcker sig själva ("slut till fredag"). Menyvyn respekterar båda — men
-   * menyvyn är klientkod, och den som anropar API:t direkt har aldrig sett
-   * den. Utan kontrollen här går en schemalagt slutsåld rätt att beställa,
-   * och köket får en biljett på något de inte har.
-   */
-  const { data: availabilityRows, error: availabilityError } = await supabase
-    .from("item_availability")
-    .select("menu_item_id, available_from, available_to, weekday, reason")
-    .in("menu_item_id", menuItemIds);
-
-  if (availabilityError) {
-    return problem(500, "Menyn kunde inte läsas", "Försök igen.");
-  }
-
-  /*
-   * Tidszonen är restaurangens, inte serverns.
-   *
-   * Veckodagen i en tillgänglighetsregel måste räknas där restaurangen står:
-   * 00:30 i Sarajevo är fortfarande föregående dag i UTC, och på Vercel kör
-   * servern i UTC. En fredagsregel hade då gällt en timme in på lördagen.
-   * Restaurangen är känd via menyraderna även för avhämtning, där `restaurantId`
-   * ännu är tom.
-   */
-  const { data: catalogRestaurant } = await supabase
-    .from("restaurants")
-    .select("country")
-    .eq("id", menuItems[0]!.restaurant_id)
-    .maybeSingle();
-
-  const timeZone = COUNTRY_INFO[
-    (catalogRestaurant?.country as CountryCode | undefined) ?? "BA"
-  ].timeZone;
-  const scheduledOut = new Set(
-    menuItemIds.filter((id) => {
-      const rules = (availabilityRows ?? [])
-        .filter((row) => row.menu_item_id === id)
-        .map((row) => ({
-          availableFrom: row.available_from,
-          availableTo: row.available_to,
-          weekday: row.weekday,
-          reason: row.reason,
-        }));
-
-      return !availabilityState(rules, timeZone).isAvailable;
-    }),
-  );
-
-  /* ── 3. Räkna om priset från menyn, inte från klienten ─────────────────── */
-
-  const built = buildPricedLines(input.items, {
-    menuItems: menuItems.map((row) => ({
-      id: row.id,
-      restaurantId: row.restaurant_id,
-      name: row.name,
-      priceOre: row.price_ore,
-      vatRateBps: row.vat_rate_bps,
-      isAvailable: row.is_available && !scheduledOut.has(row.id),
-      status: row.status,
-    })),
-    optionGroups: optionGroups.map((row) => ({
-      id: row.id,
-      menuItemId: row.menu_item_id,
-      name: row.name,
-      minSelect: row.min_select,
-      maxSelect: row.max_select,
-    })),
-    options: options.map((row) => ({
-      id: row.id,
-      optionGroupId: row.option_group_id,
-      name: row.name,
-      priceOre: row.price_ore,
-      isAvailable: row.is_available,
-    })),
+  // Första passet, utan rabatt: kupongen behöver veta vad varukorgen är värd
+  // innan den kan räknas.
+  const priced = await priceRequestedItems({
+    items: input.items,
+    tipOre: input.tip_ore,
+    expectedRestaurantId: restaurantId || null,
   });
 
-  if (!built.ok) {
-    // 409 för sådant som ändrats sedan gästen laddade menyn, 400 för sådant
-    // som aldrig var giltigt.
-    const status =
-      built.error.code === "ITEM_UNAVAILABLE" || built.error.code === "OPTION_UNAVAILABLE"
-        ? 409
-        : 400;
-    return problem(status, "Beställningen kan inte läggas", built.error.message, undefined, {
-      code: built.error.code,
+  if (!priced.ok) {
+    return problem(priced.status, priced.title, priced.detail, undefined,
+      priced.code ? { code: priced.code } : undefined);
+  }
+
+  restaurantId = priced.restaurantId;
+
+  /* ── 3. Kupongen ───────────────────────────────────────────────────────── */
+
+  let couponId: string | null = null;
+  let discountOre = 0;
+
+  if (input.coupon_code) {
+    const coupon = await resolveCoupon({
+      code: input.coupon_code,
+      restaurantId,
+      currency: priced.currency,
+      itemsGrossOre: priced.totals.itemsGrossOre,
+      guestId,
     });
+
+    if (!coupon.ok) {
+      // Koden är gästens fel eller kampanjens slut, aldrig ett serverfel.
+      return problem(409, "Koden gäller inte", COUPON_PROBLEM_MESSAGES[coupon.problem], undefined, {
+        code: coupon.problem,
+      });
+    }
+
+    couponId = coupon.couponId;
+    discountOre = coupon.discountOre;
   }
 
-  if (restaurantId && built.restaurantId !== restaurantId) {
-    return problem(400, "Fel restaurang", "Rätterna hör inte till det här bordet.");
-  }
-  restaurantId = built.restaurantId;
-
-  const totals = calculateOrderTotals({ lines: built.lines, tipOre: input.tip_ore });
+  const totals = discountOre
+    ? calculateOrderTotals({ lines: priced.lines, tipOre: input.tip_ore, discountOre })
+    : priced.totals;
 
   if (input.client_total_ore !== undefined) {
     try {
@@ -369,10 +277,10 @@ export async function POST(request: Request) {
       fee_bps: fee.bps,
       fee_base_amount_ore: fee.baseAmountOre,
       fee_ore: fee.feeOre,
-      // Raderna byggs ur `built.lines`, inte ur klientens request. Namn och
-      // pris sparas som ögonblicksbild — ändras menyn i morgon ska gårdagens
-      // kvitto fortfarande visa vad gästen faktiskt betalade.
-      lines: built.lines.map((line, index) => ({
+      // Raderna byggs ur menyn, inte ur klientens request. Namn och pris
+      // sparas som ögonblicksbild — ändras menyn i morgon ska gårdagens kvitto
+      // fortfarande visa vad gästen faktiskt betalade.
+      lines: priced.lines.map((line, index) => ({
         menu_item_id: line.menuItemId,
         name_snapshot: line.name,
         unit_price_ore: line.unitPriceOre,
@@ -391,6 +299,33 @@ export async function POST(request: Request) {
 
   if (writeError || typeof order !== "string") {
     return problem(500, "Beställningen kunde inte sparas", writeError?.message ?? "Okänt fel.");
+  }
+
+  /*
+   * Inlösenraden.
+   *
+   * Räkningen görs om i databasen under lås, och det är inte överdrivet:
+   * mellan att `resolveCoupon` räknade och att ordern skrevs kan någon annan ha
+   * tagit den sista kupongen. Faller den här har ordern redan lagts — då
+   * avbryts den, eftersom en order lagd på ett pris gästen inte får ha är
+   * värre än en order som inte blev av.
+   */
+  if (couponId) {
+    const { error: redeemError } = await supabase.rpc("redeem_coupon", {
+      p_coupon_id: couponId,
+      p_order_id: order,
+      p_guest_id: guestId,
+      p_discount_ore: discountOre,
+    });
+
+    if (redeemError) {
+      await supabase
+        .from("orders")
+        .update({ status: "CANCELLED", cancelled_at: new Date().toISOString() })
+        .eq("id", order);
+
+      return problem(409, "Koden gäller inte", "Koden hann ta slut. Försök igen utan den.");
+    }
   }
 
   // Kvittosidan för avhämtning har varken bordssession eller inloggning att gå

@@ -112,6 +112,14 @@ export const createOrderSchema = z
      * klienten och aldrig av landet i en komponent.
      */
     payment_method: z.enum(["CASH", "CARD"]).default("CASH"),
+    /**
+     * En kupongKOD, aldrig ett rabattbelopp.
+     *
+     * Samma regel som priset: servern slår upp kupongen, kontrollerar villkoren
+     * och räknar rabatten själv. Skickade klienten beloppet vore varje kupong i
+     * praktiken obegränsad.
+     */
+    coupon_code: z.string().min(3).max(40).optional(),
   })
   .refine((order) => order.type !== "TABLE" || order.table_token !== undefined, {
     message: "Bordsbeställning kräver ett bordstoken",

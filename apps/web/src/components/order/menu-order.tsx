@@ -115,6 +115,12 @@ interface PendingPayment {
   stripeAccount: string;
 }
 
+/** En kupong som servern godkänt, med rabatten som servern räknade. */
+interface AppliedCoupon {
+  code: string;
+  discountOre: Ore;
+}
+
 export function MenuOrder({
   menu,
   restaurantName,
@@ -160,6 +166,17 @@ export function MenuOrder({
   /** Sätts när servern svarat med en betalning som väntar på gästen. */
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
 
+  /**
+   * Kupongen, som servern räknat fram den.
+   *
+   * Beloppet kommer från `/api/coupons/preview` och aldrig från en uträkning
+   * här. Klienten känner inte kupongens villkor och ska inte gissa dem —
+   * samma regel som gäller priser, och samma skäl: en siffra som räknas på två
+   * ställen glider isär, och då avbryts beställningen med "priset har ändrats"
+   * utan att någon förstår varför.
+   */
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
+
   const money = useMemo(
     () => (amount: Ore) => formatMoney(amount, currency),
     [currency],
@@ -204,8 +221,18 @@ export function MenuOrder({
   );
 
   const totals = useMemo(
-    () => (pricedLines.length > 0 ? calculateOrderTotals({ lines: pricedLines, tipOre }) : null),
-    [pricedLines, tipOre],
+    () =>
+      pricedLines.length > 0
+        ? calculateOrderTotals({
+            lines: pricedLines,
+            tipOre,
+            // Rabatten kommer från servern, inte från en uträkning här. Klienten
+            // vet inte vad koden är värd och ska inte gissa — samma regel som
+            // gäller priser.
+            discountOre: coupon?.discountOre ?? 0,
+          })
+        : null,
+    [pricedLines, tipOre, coupon],
   );
 
   const navRef = useRef<HTMLElement>(null);
@@ -330,6 +357,40 @@ export function MenuOrder({
       : `/order/${orderId}`;
   }
 
+  /**
+   * Prövar en kod mot varukorgen.
+   *
+   * Sparar ingenting. Kupongen tas i anspråk först när ordern läggs, i samma
+   * transaktion som inlösenraden skrivs — annars hade en gäst som bara ville se
+   * vad koden var värd blockerat den sista för någon annan.
+   */
+  async function applyCoupon(code: string): Promise<string | null> {
+    const response = await fetch("/api/coupons/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code,
+        tip_ore: tipOre,
+        items: cart.map((line) => ({
+          menu_item_id: line.item.id,
+          quantity: line.quantity,
+          options: line.optionIds.map((optionId) => ({ option_id: optionId })),
+        })),
+      }),
+    }).catch(() => null);
+
+    if (!response) return labels.noConnection;
+
+    const body = await response.json().catch(() => null);
+
+    if (!response.ok || !body?.ok) {
+      return body?.detail ?? labels.orderFailed;
+    }
+
+    setCoupon({ code, discountOre: body.discount_ore });
+    return null;
+  }
+
   async function placeOrder() {
     if (!totals || cart.length === 0) return;
 
@@ -349,6 +410,9 @@ export function MenuOrder({
           // Betalsätt, inte leverantör. Vilken inlösare kortet går genom
           // avgörs av restaurangens betalkonto, på servern.
           payment_method: payWithCard && card ? "CARD" : "CASH",
+          // Koden, aldrig beloppet. Servern räknar om rabatten och avvisar
+          // ordern om klientens summa inte stämmer.
+          ...(coupon ? { coupon_code: coupon.code } : {}),
           // Nyckeln skapas en gång per försök. Dubbeltryck på knappen ger
           // samma nyckel och därmed samma order, inte två notor.
           idempotency_key: crypto.randomUUID(),
@@ -586,6 +650,9 @@ export function MenuOrder({
           cardAvailable={card !== null}
           payWithCard={payWithCard}
           onPayWithCardChange={setPayWithCard}
+          coupon={coupon}
+          onApplyCoupon={applyCoupon}
+          onRemoveCoupon={() => setCoupon(null)}
         />
       ) : null}
 
@@ -887,6 +954,9 @@ function CartBar({
   cardAvailable,
   payWithCard,
   onPayWithCardChange,
+  coupon,
+  onApplyCoupon,
+  onRemoveCoupon,
 }: {
   cart: CartLine[];
   totals: ReturnType<typeof calculateOrderTotals>;
@@ -908,6 +978,10 @@ function CartBar({
   cardAvailable: boolean;
   payWithCard: boolean;
   onPayWithCardChange: (value: boolean) => void;
+  coupon: AppliedCoupon | null;
+  /** Returnerar ett felmeddelande, eller null när koden gick igenom. */
+  onApplyCoupon: (code: string) => Promise<string | null>;
+  onRemoveCoupon: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -1052,11 +1126,25 @@ function CartBar({
               </div>
             ) : null}
 
+            <CouponField
+              labels={labels}
+              coupon={coupon}
+              money={money}
+              onApply={onApplyCoupon}
+              onRemove={onRemoveCoupon}
+            />
+
             <dl className="mt-5 space-y-1 text-sm">
               <div className="flex justify-between">
                 <dt className="text-[var(--muted)]">{labels.foodAndDrink}</dt>
                 <dd className="tabular-nums">{money(totals.itemsGrossOre)}</dd>
               </div>
+              {totals.discountOre < 0 ? (
+                <div className="flex justify-between text-green-700 dark:text-green-400">
+                  <dt>{labels.discount}</dt>
+                  <dd className="tabular-nums">{money(totals.discountOre)}</dd>
+                </div>
+              ) : null}
               {tipOre > 0 ? (
                 <div className="flex justify-between">
                   <dt className="text-[var(--muted)]">{labels.tip}</dt>
@@ -1106,6 +1194,105 @@ function CartBar({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Rabattkodsfältet.
+ *
+ * Ligger hopfällt tills gästen ber om det. De flesta har ingen kod, och ett
+ * öppet fält i kassan är en fråga som får den som inte har någon att undra om
+ * hen betalar för mycket.
+ */
+function CouponField({
+  labels,
+  coupon,
+  money,
+  onApply,
+  onRemove,
+}: {
+  labels: Dictionary["menu"];
+  coupon: AppliedCoupon | null;
+  money: (amount: Ore) => string;
+  onApply: (code: string) => Promise<string | null>;
+  onRemove: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (coupon) {
+    return (
+      <div className="mt-5 flex items-center justify-between gap-3 rounded-lg border border-green-600/40 bg-green-50 px-3 py-2 text-sm dark:bg-green-900/30">
+        <span className="font-medium">
+          {coupon.code} · −{money(coupon.discountOre)}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            onRemove();
+            setOpen(false);
+            setCode("");
+          }}
+          className="min-h-11 text-[var(--muted)] underline underline-offset-2"
+        >
+          {labels.couponRemove}
+        </button>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-5 text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
+      >
+        {labels.coupon}
+      </button>
+    );
+  }
+
+  async function submit() {
+    if (!code.trim()) return;
+    setChecking(true);
+    setError(await onApply(code.trim()));
+    setChecking(false);
+  }
+
+  return (
+    <div className="mt-5">
+      <p className="label-caps">{labels.coupon}</p>
+      <div className="mt-1.5 flex gap-2">
+        <input
+          type="text"
+          value={code}
+          onChange={(event) => {
+            setCode(event.target.value);
+            setError(null);
+          }}
+          placeholder={labels.couponPlaceholder}
+          autoCapitalize="characters"
+          autoComplete="off"
+          className="field flex-1 uppercase"
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={checking || !code.trim()}
+          className="btn btn-secondary"
+        >
+          {checking ? labels.couponChecking : labels.couponApply}
+        </button>
+      </div>
+      {error ? (
+        <p role="alert" className="mt-2 text-sm text-burp-600">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

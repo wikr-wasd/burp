@@ -1448,4 +1448,142 @@ begin
 end
 $$;
 
+\echo '   en kupong ger en sorts rabatt, aldrig två'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+begin
+  -- Både procent och belopp: en kupong ingen kan svara på vad den ger.
+  begin
+    insert into public.coupons (restaurant_id, code, discount_bps, discount_ore, currency)
+    values (v_rest_id, 'BADA', 2500, 500, 'BAM');
+    raise exception 'FEL: en kupong med både procent och belopp accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Ingendera: en kupong som inte ger något.
+  begin
+    insert into public.coupons (restaurant_id, code) values (v_rest_id, 'TOM');
+    raise exception 'FEL: en kupong utan rabatt accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Fast belopp utan valuta. 500 är fem mark i Sarajevo och fem dinarer i
+  -- Beograd — utan valuta betyder siffran ingenting.
+  begin
+    insert into public.coupons (restaurant_id, code, discount_ore) values (v_rest_id, 'UTAN', 500);
+    raise exception 'FEL: ett fast belopp utan valuta accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Fel valuta mot restaurangens.
+  begin
+    insert into public.coupons (restaurant_id, code, discount_ore, currency)
+    values (v_rest_id, 'FELVALUTA', 500, 'EUR');
+    raise exception 'FEL: en kupong i annan valuta än restaurangens accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  insert into public.coupons (restaurant_id, code, discount_bps)
+  values (v_rest_id, 'SOMMAR25', 2500);
+
+  -- Samma kod två gånger hos samma restaurang.
+  begin
+    insert into public.coupons (restaurant_id, code, discount_bps)
+    values (v_rest_id, 'SOMMAR25', 1000);
+    raise exception 'FEL: samma kod gick att skapa två gånger';
+  exception
+    when unique_violation then null;
+  end;
+
+  -- Två plattformsbreda med samma kod. `unique (restaurant_id, code)` hade
+  -- inte hindrat det, eftersom null aldrig krockar med null i ett unikt index.
+  insert into public.coupons (code, discount_bps, funded_by) values ('BURPVECKA', 1000, 'BURP');
+  begin
+    insert into public.coupons (code, discount_bps, funded_by) values ('BURPVECKA', 2000, 'BURP');
+    raise exception 'FEL: två plattformsbreda kuponger med samma kod accepterades';
+  exception
+    when unique_violation then null;
+  end;
+end
+$$;
+
+\echo '   kupongens upplaga tar slut, och gränsen per gäst håller'
+
+do $$
+declare
+  v_rest_id   uuid := '11111111-1111-1111-1111-111111111111';
+  v_coupon_id uuid;
+  v_user_id   uuid;
+  v_order_a   uuid;
+  v_order_b   uuid;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'kupong@example.com')
+  returning id into v_user_id;
+
+  insert into public.coupons (restaurant_id, code, discount_bps, max_redemptions, max_per_guest)
+  values (v_rest_id, 'ENGANG', 1000, 1, 1)
+  returning id into v_coupon_id;
+
+  insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore, discount_ore)
+  values (v_rest_id, v_user_id, 'PICKUP', 'PLACED', gen_random_uuid(), 1080, -120)
+  returning id into v_order_a;
+
+  insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore, discount_ore)
+  values (v_rest_id, v_user_id, 'PICKUP', 'PLACED', gen_random_uuid(), 1080, -120)
+  returning id into v_order_b;
+
+  perform public.redeem_coupon(v_coupon_id, v_order_a, v_user_id, 120);
+
+  -- Upplagan var ett. Räkningen sker under lås i samma transaktion som raden
+  -- skrivs, annars kan två gäster ta den sista samtidigt.
+  begin
+    perform public.redeem_coupon(v_coupon_id, v_order_b, v_user_id, 120);
+    raise exception 'FEL: kupongen gick att lösa in fler gånger än upplagan';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Loggen går inte att skriva om.
+  begin
+    delete from public.coupon_redemptions where coupon_id = v_coupon_id;
+    raise exception 'FEL: en inlösen gick att radera';
+  exception
+    when insufficient_privilege then null;
+  end;
+end
+$$;
+
+\echo '   en kupong med gräns per gäst kräver ett konto'
+
+do $$
+declare
+  v_rest_id   uuid := '11111111-1111-1111-1111-111111111111';
+  v_coupon_id uuid;
+  v_order_id  uuid;
+begin
+  insert into public.coupons (restaurant_id, code, discount_bps, max_per_guest)
+  values (v_rest_id, 'PERGAST', 1000, 1)
+  returning id into v_coupon_id;
+
+  -- Anonym bordsgäst: det finns ingenting att räkna inlösen på. Att låta
+  -- gränsen gälla ändå hade betytt att den inte gällde alls vid bordet.
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'PLACED', gen_random_uuid(), 1080)
+  returning id into v_order_id;
+
+  begin
+    perform public.redeem_coupon(v_coupon_id, v_order_id, null, 120);
+    raise exception 'FEL: en kupong med gräns per gäst löstes in utan konto';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
 rollback;

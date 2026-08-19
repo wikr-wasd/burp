@@ -58,7 +58,7 @@ export default async function OrderPage({ params }: PageProps) {
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, status, total_ore, currency, items_gross_ore, tip_ore, placed_at, table_session_id, restaurant_id",
+      "id, status, total_ore, currency, items_gross_ore, discount_ore, tip_ore, placed_at, table_session_id, restaurant_id",
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -174,6 +174,12 @@ export default async function OrderPage({ params }: PageProps) {
           <dt className="text-[var(--muted)]">{t.receipt.foodAndDrink}</dt>
           <dd className="tabular-nums">{formatMoney(order.items_gross_ore, order.currency)}</dd>
         </div>
+        {order.discount_ore < 0 ? (
+          <div className="flex justify-between text-green-700 dark:text-green-400">
+            <dt>{t.receipt.discount}</dt>
+            <dd className="tabular-nums">{formatMoney(order.discount_ore, order.currency)}</dd>
+          </div>
+        ) : null}
         {order.tip_ore > 0 ? (
           <div className="flex justify-between">
             <dt className="text-[var(--muted)]">{t.receipt.tip}</dt>

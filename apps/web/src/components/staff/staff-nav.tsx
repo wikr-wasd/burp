@@ -9,6 +9,7 @@ import {
   QrCode,
   Receipt,
   Settings,
+  Ticket,
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
@@ -42,6 +43,7 @@ export type StaffSection =
   | "kassa"
   | "meny"
   | "bord"
+  | "erbjudanden"
   | "omdomen"
   | "statistik"
   | "installningar";
@@ -65,6 +67,7 @@ export const STAFF_NAV: readonly NavItem[] = [
   { section: "kassa", href: "/dashboard/kassa", label: "Kassa", icon: Banknote, roles: ALL_BUT_KITCHEN },
   { section: "meny", href: "/dashboard/meny", label: "Meny", icon: BookOpen, roles: MANAGEMENT },
   { section: "bord", href: "/dashboard/bord", label: "Bord & QR", icon: QrCode, roles: MANAGEMENT },
+  { section: "erbjudanden", href: "/dashboard/erbjudanden", label: "Erbjudanden", icon: Ticket, roles: MANAGEMENT },
   { section: "omdomen", href: "/dashboard/omdomen", label: "Omdömen", icon: MessageSquare, roles: MANAGEMENT },
   { section: "statistik", href: "/dashboard/statistik", label: "Statistik", icon: TrendingUp, roles: MANAGEMENT },
 ];

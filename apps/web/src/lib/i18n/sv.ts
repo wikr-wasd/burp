@@ -195,6 +195,19 @@ export const sv = {
     paymentCancel: "Avbryt",
     paymentFailed: "Betalningen gick inte igenom. Försök igen eller betala på plats.",
     paymentAbandoned: "Betalningen avbröts. Beställningen lades aldrig.",
+
+    /*
+     * Rabattkoden.
+     *
+     * Gästen skriver en kod, aldrig ett belopp. Servern slår upp kupongen och
+     * räknar rabatten — samma regel som gäller priser.
+     */
+    coupon: "Rabattkod",
+    couponPlaceholder: "T.ex. SOMMAR25",
+    couponApply: "Använd",
+    couponChecking: "Kontrollerar…",
+    couponRemove: "Ta bort koden",
+    discount: "Rabatt",
   },
 
   /** Meddelanden på QR-sidan innan menyn visas. */
@@ -226,6 +239,7 @@ export const sv = {
     pickupAt: "Hämtas hos",
     yourBill: "Din nota",
     foodAndDrink: "Mat och dryck",
+    discount: "Rabatt",
     tip: "Dricks",
     total: "Totalt",
     payOnPickup: "Betalning sker på plats vid upphämtning.",
