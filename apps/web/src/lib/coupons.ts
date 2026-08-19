@@ -59,17 +59,21 @@ export async function resolveCoupon(input: {
 
   if (!row) return { ok: false, problem: "UNKNOWN_CODE" };
 
+  // Släppta inlösen räknas inte. En kupong som förbrukades på en order som
+  // sedan avbröts ska vara tillbaka hos gästen (migration 0038).
   const [{ count: totalRedemptions }, { count: guestRedemptions }] = await Promise.all([
     supabase
       .from("coupon_redemptions")
       .select("id", { count: "exact", head: true })
-      .eq("coupon_id", row.id),
+      .eq("coupon_id", row.id)
+      .is("released_at", null),
     input.guestId
       ? supabase
           .from("coupon_redemptions")
           .select("id", { count: "exact", head: true })
           .eq("coupon_id", row.id)
           .eq("guest_id", input.guestId)
+          .is("released_at", null)
       : Promise.resolve({ count: 0 }),
   ]);
 

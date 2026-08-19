@@ -2329,4 +2329,131 @@ begin
 end
 $$;
 
+\echo '   en avbruten order lämnar tillbaka kupong, klippkort och presentkort'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_user_id  uuid;
+  v_coupon   uuid;
+  v_card     uuid;
+  v_order    uuid;
+  v_kvar     integer;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'avbruten@example.com')
+  returning id into v_user_id;
+
+  -- En kupong som bara får användas en gång per gäst.
+  insert into public.coupons (restaurant_id, code, discount_bps, max_per_guest, max_redemptions)
+  values (v_rest_id, 'ENDAST1', 1000, 1, 1)
+  returning id into v_coupon;
+
+  v_card := public.issue_gift_card(v_rest_id, 'T2U3V4W5X6Y7', 4000, 'BAM');
+
+  -- Ett fullt klippkort: tre besök av tre.
+  update public.restaurants set punch_card_size = 3 where id = v_rest_id;
+  for i in 1..3 loop
+    insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore)
+    values (v_rest_id, v_user_id, 'PICKUP', 'COMPLETED', gen_random_uuid(), 1000);
+  end loop;
+
+  -- Kortordern: ligger som utkast och förbrukar allt gästen valt.
+  insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, v_user_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 4000)
+  returning id into v_order;
+
+  perform public.redeem_coupon(v_coupon, v_order, v_user_id, 100);
+  perform public.redeem_punch_card(v_rest_id, v_user_id, v_order, 1000);
+  perform public.redeem_gift_card('T2U3V4W5X6Y7', v_order, 4000);
+
+  if public.gift_card_balance(v_card) <> 0 then
+    raise exception 'FEL: presentkortet drogs inte';
+  end if;
+
+  -- Kortet nekas. Ordern avbryts — och allt ska tillbaka.
+  update public.orders set status = 'CANCELLED' where id = v_order;
+
+  if public.gift_card_balance(v_card) <> 4000 then
+    raise exception 'FEL: presentkortets värde blev % efter avbrott, väntade 4000',
+      public.gift_card_balance(v_card);
+  end if;
+
+  select count(*) into v_kvar
+  from public.coupon_redemptions
+  where coupon_id = v_coupon and released_at is null;
+  if v_kvar <> 0 then
+    raise exception 'FEL: kupongen räknas fortfarande som använd';
+  end if;
+
+  -- Raden står kvar. Historiken ska visa både att den användes och att den
+  -- lämnades tillbaka.
+  if not exists (select 1 from public.coupon_redemptions where order_id = v_order) then
+    raise exception 'FEL: inlösenraden raderades i stället för att märkas';
+  end if;
+
+  select count(*) into v_kvar
+  from public.punch_card_redemptions
+  where guest_id = v_user_id and released_at is null;
+  if v_kvar <> 0 then
+    raise exception 'FEL: klippkortet räknas fortfarande som uttaget';
+  end if;
+
+  -- Och gästen kan använda allt igen på en ny order.
+  insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, v_user_id, 'PICKUP', 'PLACED', gen_random_uuid(), 4000)
+  returning id into v_order;
+
+  perform public.redeem_coupon(v_coupon, v_order, v_user_id, 100);
+  perform public.redeem_punch_card(v_rest_id, v_user_id, v_order, 1000);
+  perform public.redeem_gift_card('T2U3V4W5X6Y7', v_order, 4000);
+end
+$$;
+
+\echo '   en inlösen går bara att märka som återlämnad, inte skriva om'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+  v_coupon  uuid;
+  v_order   uuid;
+  v_row     uuid;
+begin
+  insert into public.coupons (restaurant_id, code, discount_bps, max_per_guest)
+  values (v_rest_id, 'OFORANDERLIG', 1000, 0)
+  returning id into v_coupon;
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'PLACED', gen_random_uuid(), 1000)
+  returning id into v_order;
+
+  perform public.redeem_coupon(v_coupon, v_order, null, 100);
+  select id into v_row from public.coupon_redemptions where order_id = v_order;
+
+  -- Beloppet är det som gör raden till bevis.
+  begin
+    update public.coupon_redemptions set discount_ore = 99999 where id = v_row;
+    raise exception 'FEL: rabatten på en inlösen gick att skriva om';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    delete from public.coupon_redemptions where id = v_row;
+    raise exception 'FEL: en inlösen gick att radera';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  update public.coupon_redemptions set released_at = now() where id = v_row;
+
+  -- Och bara en gång: en kupong kan inte lämnas tillbaka två gånger.
+  begin
+    update public.coupon_redemptions set released_at = now() where id = v_row;
+    raise exception 'FEL: samma inlösen gick att lämna tillbaka två gånger';
+  exception
+    when insufficient_privilege then null;
+  end;
+end
+$$;
+
 rollback;

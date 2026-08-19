@@ -309,6 +309,16 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       jämförde mot `total_ore` i stället för mot vad som faktiskt återstod, så
       en order som redan hade en betalning kunde betalas två gånger —
       och överskottet fanns ingenstans att hämta.
+- [x] **En avbruten order lämnar tillbaka det den tog** (migration 0038). En
+      kortorder förbrukar kupong, klippkort och presentkort redan som utkast och
+      lyfts först när betalningen bekräftats. Gick betalningen inte igenom
+      avbröts ordern — men kupongen var använd, klippkortet uttaget och
+      presentkortet tömt, för mat gästen aldrig fick. Rättat med en **trigger**
+      och inte i route handlern: ordern kan avbrytas av webhooken, av gästen, av
+      personalen och av kupongvägen, och den femte vägen är inte skriven än.
+      Loggarna förblir append-only — raden står kvar och får en `released_at`,
+      så historiken visar både att kupongen användes och att den lämnades
+      tillbaka.
 
 ### Notiser
 

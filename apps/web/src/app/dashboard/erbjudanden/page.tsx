@@ -40,8 +40,14 @@ export default async function OffersPage() {
 
   // Antalet inlösen räknas ur loggen och lagras aldrig — samma skäl som
   // lojalitetssaldot (regel 7).
+  // Släppta inlösen räknas inte — de hörde till order som avbröts, och kupongen
+  // är tillbaka hos gästen (migration 0038).
   const { data: redemptions } = ids.length
-    ? await supabase.from("coupon_redemptions").select("coupon_id, discount_ore").in("coupon_id", ids)
+    ? await supabase
+        .from("coupon_redemptions")
+        .select("coupon_id, discount_ore")
+        .in("coupon_id", ids)
+        .is("released_at", null)
     : { data: [] as { coupon_id: string; discount_ore: number }[] };
 
   const usedByCoupon = new Map<string, { count: number; totalOre: number }>();
