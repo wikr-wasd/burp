@@ -146,12 +146,10 @@ avvek från planen och det står varför i respektive commit.
 
 ## Näst på tur
 
-- [ ] **Webbpush i PWA:n.** *Beslutat 2026-08-19.* Köksskärmen har redan ett
-      ljudlarm när den är öppen — det som saknas är larm när ingen har den uppe.
-      VAPID-nycklar genereras utan leverantör; det som behövs är en service
-      worker, en prenumerationstabell med RLS och ett ja från personalen en
-      gång. Fungerar på Android, Windows och Mac, och på iPhone när PWA:n lagts
-      till på hemskärmen.
+- [ ] **VAPID-nycklar.** Push är byggt men skickar ingenting utan nycklar.
+      `npx web-push generate-vapid-keys`, sedan `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+      och `VAPID_PRIVATE_KEY` i miljön. Ingen leverantör, ingen kostnad —
+      **kräver dig, inte kod.**
 - [ ] **Mobilvyn sedd på riktigt.** Verifierad strukturellt (inget element utan
       radbrytning är bredare än 390 px) men aldrig sedd på en telefon.
       QR-flödet lever på telefon och har högst kvalitetskrav i produkten.
@@ -198,7 +196,8 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Inga laddningsskelett på publika sidor | — | `loading.tsx` gör varje `notFound()` till en 200:a. Se CLAUDE.md |
 | `smoke.sh` går inte att köra på den här maskinen | `bash` är WSL2, inte Git Bash | Kräver Git Bash eller en miljö som delar Windows nätverksstack. Se CLAUDE.md |
 | Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av `/upptack`. Öppen fråga 8 |
-| Notiser går bara som e-post | `lib/notify/` | Köket behöver något som låter. Kräver ett beslut om bäraren |
+| Push är byggt men tyst utan VAPID-nycklar | `lib/notify/push.ts` | Nycklarna genereras på en minut, men de måste finnas i miljön |
+| Push aldrig sedd på en riktig enhet | `components/staff/push-toggle.tsx` | Kräver nycklar, https och en telefon. iPhone kräver dessutom att PWA:n lagts till på hemskärmen |
 
 ---
 
@@ -295,6 +294,18 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       hand, eller av sig själv efter fyra timmars tystnad. Uppslaget flyttade
       dessutom till databasen, vilket samtidigt tog bort en kapplöpning: två
       gäster som skannade samtidigt fick förut en 500:a i stället för en nota.
+
+### Notiser
+
+- [x] **Webbpush** (migration 0036). Köksskärmen larmade bara när den var
+      öppen; den lilla restaurangen har ingen surfplatta utan en telefon i
+      fickan, och brevet hamnar i en inkorg ingen öppnar en fredag kväll.
+      Ingen leverantör — VAPID-nycklarna är våra och webbläsarens egen
+      pushtjänst gör resten. Meddelandet krypteras med prenumerationens
+      nycklar, så varken pushtjänsten eller någon på vägen kan läsa notisen.
+      Brev **och** push, inte det ena eller det andra: brevet är underlaget som
+      går att gå tillbaka till, pushen är larmet som når fram i samma minut.
+      En prenumeration som svarar 404 eller 410 tas bort automatiskt.
 
 ### Öppettider
 

@@ -16,8 +16,10 @@ import { OpeningHoursEditor } from "@/components/staff/opening-hours-editor";
 import { PresentationEditor } from "@/components/staff/presentation-editor";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
 import { PunchCardEditor } from "@/components/staff/punch-card-editor";
+import { PushToggle } from "@/components/staff/push-toggle";
 import { StaffManager } from "@/components/staff/staff-manager";
 import { requireStaff } from "@/lib/auth";
+import { publicEnv } from "@/lib/env";
 import { connectableProviders, getPaymentAccounts } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -187,6 +189,17 @@ export default async function SettingsPage() {
             currency={staff.currency}
             isOwner={staff.role === "owner"}
           />
+        </section>
+
+        <hr className="rule mt-14" />
+
+        <section className="mt-10">
+          <h2 className="font-display text-2xl">Notiser</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Köksskärmen låter redan när den är öppen. Det här är för när den inte är det —
+            notisen kommer fram i telefonen även om ingen sitter framför skärmen.
+          </p>
+          <PushToggle vapidPublicKey={publicEnv.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
         </section>
 
         <hr className="rule mt-14" />

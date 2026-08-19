@@ -38,6 +38,14 @@ const publicSchema = z.object({
    * "betala på plats". Motsvarande hemligheter ligger i `serverSchema`.
    */
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+
+  /**
+   * VAPID:s publika nyckel, som webbläsaren behöver för att prenumerera.
+   *
+   * Publik med flit — den är halva ett nyckelpar och säger bara vem som får
+   * skicka. Den privata ligger i `serverSchema` och lämnar aldrig servern.
+   */
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
 });
 
 const serverSchema = z.object({
@@ -75,6 +83,22 @@ const serverSchema = z.object({
    */
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+
+  /*
+   * Webbpush.
+   *
+   * VAPID-nycklarna genereras av oss och identifierar Burp för webbläsarens
+   * pushtjänst — ingen leverantör, ingen kostnad. Generera ett par:
+   *
+   *   npx web-push generate-vapid-keys
+   *
+   * Frivilliga: utan dem erbjuds ingen push och köksskärmens ljud står kvar.
+   * `VAPID_SUBJECT` måste vara en mailto:- eller https:-adress; pushtjänsterna
+   * använder den för att kunna höra av sig om något missbrukas.
+   */
+  VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+  VAPID_SUBJECT: z.string().min(1).default("mailto:notiser@burp.se"),
 });
 
 export const publicEnv = publicSchema.parse({
@@ -84,6 +108,7 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_MAP_TILE_URL: process.env.NEXT_PUBLIC_MAP_TILE_URL,
   NEXT_PUBLIC_MAP_TILE_ATTRIBUTION: process.env.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;

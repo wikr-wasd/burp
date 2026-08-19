@@ -34,6 +34,21 @@ export default tseslint.config(
   },
 
   {
+    /*
+     * Service workern körs varken i en webbläsarflik eller i Node.
+     *
+     * `self`, `clients` och `registration` är globaler som bara finns i en
+     * worker. Utan den här raden rapporterar ESLint varje rad i filen som en
+     * odefinierad variabel — och den bruskaskaden döljer riktiga varningar i
+     * resten av kodbasen.
+     */
+    files: ["public/sw.js"],
+    languageOptions: {
+      globals: { self: "readonly", clients: "readonly", registration: "readonly" },
+    },
+  },
+
+  {
     plugins: { "@next/next": nextPlugin },
     rules: {
       ...nextPlugin.configs.recommended.rules,

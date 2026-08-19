@@ -2193,4 +2193,48 @@ begin
 end
 $$;
 
+\echo '   en notisprenumeration hör till en enhet och en restaurang'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_annan    uuid;
+  v_user_id  uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Push Test', 'push-test', '4200000000011',
+          'Zelenih beretki 1', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_annan;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'push@example.com')
+  returning id into v_user_id;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest_id, v_user_id, 'kitchen', true);
+
+  insert into public.push_subscriptions (user_id, restaurant_id, endpoint, p256dh, auth)
+  values (v_user_id, v_rest_id, 'https://push.example/abc', 'nyckel', 'hemlighet');
+
+  -- En webbläsare har EN prenumeration. Samma endpoint igen är samma enhet som
+  -- prenumererat om, inte en ny rad.
+  begin
+    insert into public.push_subscriptions (user_id, restaurant_id, endpoint, p256dh, auth)
+    values (v_user_id, v_annan, 'https://push.example/abc', 'nyckel', 'hemlighet');
+    raise exception 'FEL: samma endpoint gick att registrera två gånger';
+  exception
+    when unique_violation then null;
+  end;
+
+  -- Raden följer med när kontot försvinner. En adress till en telefon som ingen
+  -- äger är en adress vi skickar till i evighet.
+  delete from auth.users where id = v_user_id;
+
+  if exists (select 1 from public.push_subscriptions where user_id = v_user_id) then
+    raise exception 'FEL: prenumerationen låg kvar när kontot togs bort';
+  end if;
+end
+$$;
+
 rollback;

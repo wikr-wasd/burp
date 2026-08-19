@@ -5,6 +5,7 @@ import { publicEnv, serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, type EmailOutcome } from "./email";
 import { applicationEmail, orderEmail, type OrderNoticeLine } from "./messages";
+import { sendPush } from "./push";
 
 /**
  * Notiser.
@@ -117,7 +118,41 @@ export async function notifyNewOrder(orderId: string): Promise<void> {
     });
 
     const recipients = await orderRecipients(restaurantId, restaurant.email as string | null);
-    report(await sendEmail(recipients, message), `order ${orderId}`);
+
+    /*
+     * Brev OCH push, inte det ena eller det andra.
+     *
+     * De löser olika problem. Brevet är underlaget som ligger kvar i en inkorg
+     * och går att gå tillbaka till; pushen är larmet som når fram i samma
+     * minut. En restaurang utan uppkopplad telefon behöver det första, en som
+     * står mitt i en rush behöver det andra.
+     *
+     * Parallellt, eftersom ingen väntar på den andra. Båda körs efter svaret.
+     */
+    const [emailOutcome, pushOutcome] = await Promise.all([
+      sendEmail(recipients, message),
+      sendPush(restaurantId, {
+        title: table
+          ? `Ny beställning · bord ${table.table_number as string}`
+          : "Ny beställning",
+        body: lines
+          .map((line) => `${line.quantity}× ${line.name}`)
+          .join(", ")
+          .slice(0, 160),
+        url: `${publicEnv.NEXT_PUBLIC_SITE_URL}/dashboard/order`,
+        // Order-id som tagg: en gäst som ändrar sin beställning lämnar inte två
+        // notiser efter sig, men två olika order larmar var för sig.
+        tag: orderId,
+      }),
+    ]);
+
+    report(emailOutcome, `order ${orderId}`);
+
+    if (!pushOutcome.delivered && pushOutcome.reason === "NO_SUBSCRIBERS") {
+      // Ingen har slagit på notiser än. Inget fel — men värt att veta för den
+      // som undrar varför telefonen är tyst.
+      console.info(`[push] Ingen enhet prenumererar för restaurang ${restaurantId}.`);
+    }
   } catch (error) {
     // En notis får aldrig bli ett fel gästen ser. Ordern ligger redan i
     // databasen när den här körs.
