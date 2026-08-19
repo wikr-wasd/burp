@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { QrCode } from "lucide-react";
 import { signTableToken, tableQrUrl } from "@burp/core";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FloorPlanEditor } from "@/components/staff/floor-plan-editor";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { TableList } from "@/components/staff/table-list";
 import { NewTableForm } from "@/components/staff/new-table-form";
@@ -42,10 +43,18 @@ export default async function TablesPage() {
 
   const { data: rows } = await supabase
     .from("tables")
-    .select("id, table_number, zone, capacity, status, qr_public_id")
+    .select(
+      "id, table_number, zone, capacity, status, qr_public_id, floor_plan_id, pos_x, pos_y, rotation, shape, width, height",
+    )
     .eq("restaurant_id", staff.restaurantId)
     .neq("status", "ARCHIVED")
     .order("table_number", { ascending: true });
+
+  const { data: floorPlans } = await supabase
+    .from("floor_plans")
+    .select("id, name, width, height")
+    .eq("restaurant_id", staff.restaurantId)
+    .order("sort_order", { ascending: true });
 
   const { data: openSessions } = await supabase
     .from("table_sessions")
@@ -101,6 +110,46 @@ export default async function TablesPage() {
       ) : (
         <TableList tables={tables} />
       )}
+
+      {/*
+        Planritningen kommer efter listan, inte före.
+
+        Listan är det som måste fungera: varje bord behöver en QR-kod, och den
+        som just lagt till ett bord ska se koden direkt. Ritningen är det som
+        gör Översikten begriplig, och den byggs när borden finns.
+      */}
+      {tables.length > 0 ? (
+        <section className="mt-14 border-t border-[var(--rule)] pt-10">
+          <h2 className="font-display text-2xl">Planritning</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Dra ut borden så att de står som i lokalen. Översikten visar dem sedan i rummets
+            form i stället för som ett rutnät — en servitör ser då vilket bord som ropar, inte
+            vilken ruta i ordningen.
+          </p>
+
+          <FloorPlanEditor
+            plans={(floorPlans ?? []).map((plan) => ({
+              id: plan.id,
+              name: plan.name,
+              width: plan.width,
+              height: plan.height,
+            }))}
+            tables={(rows ?? []).map((row) => ({
+              id: row.id,
+              tableNumber: row.table_number,
+              zone: row.zone,
+              capacity: row.capacity,
+              floorPlanId: row.floor_plan_id,
+              x: row.pos_x,
+              y: row.pos_y,
+              rotation: row.rotation,
+              shape: row.shape as "ROUND" | "SQUARE" | "RECT",
+              width: row.width,
+              height: row.height,
+            }))}
+          />
+        </section>
+      ) : null}
     </StaffShell>
   );
 }

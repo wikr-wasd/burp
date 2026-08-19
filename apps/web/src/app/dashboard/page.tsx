@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChefHat, LayoutGrid, Receipt, Utensils } from "lucide-react";
 import { formatMoney } from "@burp/core";
+import { FloorPlanView } from "@/components/staff/floor-plan-view";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireStaff } from "@/lib/auth";
@@ -61,11 +62,18 @@ const TABLE_STATES: { state: TableState; label: string; cell: string; swatch: st
 export default async function OverviewPage() {
   const staff = await requireStaff(["owner", "manager", "staff"]);
 
-  const [{ due }, tables, statistics] = await Promise.all([
+  const [{ due }, { tables, floorPlans }, statistics] = await Promise.all([
     getActiveOrders(staff.restaurantId),
     getTableSnapshots(staff.restaurantId),
     getStatistics(staff.restaurantId, periodFor("idag")),
   ]);
+
+  // Borden som ligger utanför varje ritning. De visas som rutor bredvid —
+  // ett bord med en öppen nota måste synas någonstans.
+  const placedIds = new Set(
+    tables.filter((table) => table.floorPlanId !== null && table.x !== null).map((t) => t.id),
+  );
+  const unplacedTables = tables.filter((table) => !placedIds.has(table.id));
 
   const today = new Intl.DateTimeFormat("sv-SE", {
     weekday: "long",
@@ -201,11 +209,29 @@ export default async function OverviewPage() {
             </div>
           ) : (
             <>
-              <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-4">
-                {tables.map((table) => (
-                  <TableCell key={table.id} table={table} />
-                ))}
-              </ul>
+              {/*
+                Planritningen först när den finns.
+
+                Ett rutnät säger vilket bord som ropar men inte var det står.
+                Ritningen gör "bord 7 väntar" till en punkt att gå till — och
+                det är hela skälet att den byggdes.
+              */}
+              {floorPlans.map((plan) => (
+                <FloorPlanView key={plan.id} plan={plan} tables={tables} />
+              ))}
+
+              {/*
+                Rutnätet står kvar för borden som inte är utplacerade. Att gissa
+                en plats åt dem hade betytt att ritningen ljuger; att dölja dem
+                hade betytt att ett bord med en öppen nota inte syns någonstans.
+              */}
+              {unplacedTables.length > 0 ? (
+                <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-4">
+                  {unplacedTables.map((table) => (
+                    <TableCell key={table.id} table={table} />
+                  ))}
+                </ul>
+              ) : null}
 
               {/* Färgerna betyder ingenting utan den här listan. En rutnätsvy
                   utan teckenförklaring är en gåta, inte en översikt. */}

@@ -1820,4 +1820,70 @@ begin
 end
 $$;
 
+\echo '   ett bord kan bara stå på sin egen restaurangs ritning'
+
+do $$
+declare
+  v_zeljo  uuid := '11111111-1111-1111-1111-111111111111';
+  v_annan  uuid;
+  v_plan_a uuid;
+  v_plan_b uuid;
+  v_table  uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Planritning Test', 'planritning-test', '4200000000010',
+          'Ferhadija 1', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_annan;
+
+  insert into public.floor_plans (restaurant_id, name) values (v_zeljo, 'Nedre våningen')
+  returning id into v_plan_a;
+
+  insert into public.floor_plans (restaurant_id, name) values (v_annan, 'Uteserveringen')
+  returning id into v_plan_b;
+
+  select id into v_table from public.tables where restaurant_id = v_zeljo limit 1;
+
+  -- En främmande ritning. Utan spärren går det att flytta ett bord till en
+  -- annan restaurangs rum genom att skicka dess id.
+  begin
+    update public.tables set floor_plan_id = v_plan_b, pos_x = 5, pos_y = 5 where id = v_table;
+    raise exception 'FEL: bordet placerades på en annan restaurangs ritning';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- Ritning utan position finns inte: ett sådant bord går inte att rita.
+  begin
+    update public.tables set floor_plan_id = v_plan_a, pos_x = null where id = v_table;
+    raise exception 'FEL: ett bord på en ritning accepterades utan position';
+  exception
+    when check_violation then null;
+  end;
+
+  update public.tables set floor_plan_id = v_plan_a, pos_x = 5, pos_y = 8 where id = v_table;
+
+  -- Två ritningar med samma namn hos samma restaurang.
+  begin
+    insert into public.floor_plans (restaurant_id, name) values (v_zeljo, 'Nedre våningen');
+    raise exception 'FEL: två ritningar med samma namn accepterades';
+  exception
+    when unique_violation then null;
+  end;
+
+  -- Bordet blir kvar när ritningen tas bort. Ett bord är en beställningspunkt
+  -- med historik och får inte försvinna för att någon ångrade en ritning.
+  delete from public.floor_plans where id = v_plan_a;
+
+  if not exists (select 1 from public.tables where id = v_table) then
+    raise exception 'FEL: bordet försvann med ritningen';
+  end if;
+
+  if (select floor_plan_id from public.tables where id = v_table) is not null then
+    raise exception 'FEL: bordet pekar på en borttagen ritning';
+  end if;
+end
+$$;
+
 rollback;
