@@ -55,11 +55,13 @@ export async function saveOpeningHours(hours: OpeningHours): Promise<ActionResul
     const first = problems[0]!;
     const day = WEEKDAY_LABELS[first.day];
 
+    // Överlapp kan numera korsa dygnsgränsen: fredagens nattpass mot lördagens
+    // morgonpass rapporteras på lördagen, som är den dag som lades till sist.
     const message =
       first.kind === "OVERLAP"
-        ? `${day}: två pass överlappar varandra.`
-        : first.kind === "CLOSES_BEFORE_OPENS"
-          ? `${day}: stängningstiden ligger före öppningstiden.`
+        ? `${day}: passet överlappar ett annat. Kom ihåg att ett nattpass fortsätter in på nästa dag.`
+        : first.kind === "ZERO_LENGTH"
+          ? `${day}: öppnar och stänger på samma klockslag.`
           : `${day}: ogiltigt klockslag. Använd formatet 11:00.`;
 
     return fail(message);

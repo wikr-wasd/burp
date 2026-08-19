@@ -32,9 +32,33 @@ export const WEEKDAY_LABELS: Record<WeekdayKey, string> = {
 export interface OpeningSlot {
   /** "11:00" — timmar och minuter, alltid två siffror. */
   opens: string;
-  /** "14:00". Exklusiv: 14:00 räknas som stängt. */
+  /**
+   * "14:00". Exklusiv: 14:00 räknas som stängt.
+   *
+   * Ligger tiden FÖRE `opens` går passet över midnatt och slutar dagen efter:
+   * `{"opens": "22:00", "closes": "02:00"}` betyder tio på kvällen till två på
+   * natten. En kafana i Sarajevo eller Beograd stänger sällan före midnatt, och
+   * utan det här går det inte att beskriva deras faktiska öppettider.
+   *
+   * `"18:00"–"00:00"` fungerar och betyder till midnatt.
+   */
   closes: string;
 }
+
+/** Går passet över midnatt? Slutet ligger då på nästa dygn. */
+export function crossesMidnight(slot: OpeningSlot): boolean {
+  return timeToMinutes(slot.closes) < timeToMinutes(slot.opens);
+}
+
+/** Passets längd i minuter, även när det går över midnatt. */
+export function slotDuration(slot: OpeningSlot): number {
+  const opens = timeToMinutes(slot.opens);
+  const closes = timeToMinutes(slot.closes);
+  return closes > opens ? closes - opens : MINUTES_PER_DAY - opens + closes;
+}
+
+const MINUTES_PER_DAY = 24 * 60;
+const MINUTES_PER_WEEK = 7 * MINUTES_PER_DAY;
 
 export type OpeningHours = Record<WeekdayKey, OpeningSlot[]>;
 
@@ -81,9 +105,11 @@ export function parseOpeningHours(raw: unknown): OpeningHours {
       .filter((slot): slot is Record<string, unknown> => slot !== null && typeof slot === "object")
       .map((slot) => ({ opens: String(slot["opens"] ?? ""), closes: String(slot["closes"] ?? "") }))
       .filter((slot) => isValidTime(slot.opens) && isValidTime(slot.closes))
-      // Ett pass som slutar innan det börjar är alltid ett misstag, och
-      // is_restaurant_open() skulle aldrig matcha det ändå.
-      .filter((slot) => timeToMinutes(slot.opens) < timeToMinutes(slot.closes))
+      // Ett pass som börjar och slutar på samma klockslag är noll minuter långt
+      // — eller ett dygn, och det går inte att veta vilket. Det tas bort.
+      // Ett pass som SLUTAR före det börjar är däremot giltigt: det går över
+      // midnatt.
+      .filter((slot) => slot.opens !== slot.closes)
       .sort((a, b) => timeToMinutes(a.opens) - timeToMinutes(b.opens));
   }
 
@@ -92,7 +118,7 @@ export function parseOpeningHours(raw: unknown): OpeningHours {
 
 export type OpeningHoursProblem =
   | { day: WeekdayKey; kind: "INVALID_TIME"; slot: number }
-  | { day: WeekdayKey; kind: "CLOSES_BEFORE_OPENS"; slot: number }
+  | { day: WeekdayKey; kind: "ZERO_LENGTH"; slot: number }
   | { day: WeekdayKey; kind: "OVERLAP"; slot: number };
 
 /**
@@ -102,33 +128,59 @@ export type OpeningHoursProblem =
  * 11–15 och 14–22 ser rimligt ut i ett formulär, men beskriver samma timme
  * två gånger. `is_restaurant_open()` skulle svara rätt ändå, men
  * omsättningsstatistik per pass och kommande schemaläggning skulle inte.
+ *
+ * Sedan pass över midnatt stöds räcker det inte att jämföra inom en dag.
+ * Fredag 22:00–03:00 och lördag 01:00–05:00 ligger i olika dagsnycklar men
+ * beskriver samma timmar — och söndagens nattpass krockar med måndag morgon.
+ * Kontrollen görs därför på en veckolång tidslinje som viker runt.
  */
 export function validateOpeningHours(hours: OpeningHours): OpeningHoursProblem[] {
   const problems: OpeningHoursProblem[] = [];
 
-  for (const day of WEEKDAY_KEYS) {
-    const slots = hours[day];
+  interface WeeklySpan {
+    day: WeekdayKey;
+    index: number;
+    start: number;
+    end: number;
+  }
 
-    slots.forEach((slot, index) => {
+  const spans: WeeklySpan[] = [];
+
+  WEEKDAY_KEYS.forEach((day, dayIndex) => {
+    hours[day].forEach((slot, index) => {
       if (!isValidTime(slot.opens) || !isValidTime(slot.closes)) {
         problems.push({ day, kind: "INVALID_TIME", slot: index });
         return;
       }
-      if (timeToMinutes(slot.opens) >= timeToMinutes(slot.closes)) {
-        problems.push({ day, kind: "CLOSES_BEFORE_OPENS", slot: index });
+
+      if (slot.opens === slot.closes) {
+        problems.push({ day, kind: "ZERO_LENGTH", slot: index });
+        return;
       }
+
+      const start = dayIndex * MINUTES_PER_DAY + timeToMinutes(slot.opens);
+      spans.push({ day, index, start, end: start + slotDuration(slot) });
     });
+  });
 
-    const sorted = [...slots]
-      .map((slot, index) => ({ ...slot, index }))
-      .filter((slot) => isValidTime(slot.opens) && isValidTime(slot.closes))
-      .sort((a, b) => timeToMinutes(a.opens) - timeToMinutes(b.opens));
+  // Sorterade efter när de börjar i veckan, så att felet rapporteras på det
+  // senare passet — det är det som lades till av misstag.
+  spans.sort((a, b) => a.start - b.start);
 
-    for (let i = 1; i < sorted.length; i++) {
-      const previous = sorted[i - 1]!;
-      const current = sorted[i]!;
-      if (timeToMinutes(current.opens) < timeToMinutes(previous.closes)) {
-        problems.push({ day, kind: "OVERLAP", slot: current.index });
+  for (let i = 0; i < spans.length; i++) {
+    for (let j = i + 1; j < spans.length; j++) {
+      const first = spans[i]!;
+      const second = spans[j]!;
+
+      // Veckan viker runt: söndagens nattpass fortsätter in i måndagen, som
+      // ligger i början av tidslinjen och inte i slutet.
+      const collides =
+        overlaps(first, second) ||
+        overlaps(first, shift(second, MINUTES_PER_WEEK)) ||
+        overlaps(first, shift(second, -MINUTES_PER_WEEK));
+
+      if (collides) {
+        problems.push({ day: second.day, kind: "OVERLAP", slot: second.index });
       }
     }
   }
@@ -136,10 +188,30 @@ export function validateOpeningHours(hours: OpeningHours): OpeningHoursProblem[]
   return problems;
 }
 
-/** Läsbar sammanfattning av en dag: "11:00–14:00, 17:00–22:00" eller "Stängt". */
+function overlaps(a: { start: number; end: number }, b: { start: number; end: number }): boolean {
+  return a.start < b.end && b.start < a.end;
+}
+
+function shift(span: { start: number; end: number }, by: number) {
+  return { start: span.start + by, end: span.end + by };
+}
+
+/**
+ * Läsbar sammanfattning av en dag: "11:00–14:00, 17:00–22:00" eller "Stängt".
+ *
+ * Ett pass över midnatt märks ut. "22:00–02:00" ensamt läser som ett fel —
+ * det ser ut som att någon skrivit tiderna i fel ordning.
+ */
 export function describeDay(slots: readonly OpeningSlot[]): string {
   if (slots.length === 0) return "Stängt";
-  return slots.map((slot) => `${slot.opens}–${slot.closes}`).join(", ");
+
+  return slots
+    .map((slot) =>
+      crossesMidnight(slot)
+        ? `${slot.opens}–${slot.closes} (nästa dag)`
+        : `${slot.opens}–${slot.closes}`,
+    )
+    .join(", ");
 }
 
 /**
@@ -149,14 +221,28 @@ export function describeDay(slots: readonly OpeningSlot[]): string {
  * stängt i gränssnittet — beslutet om en order får läggas fattas alltid på
  * servern, eftersom klientens klocka inte går att lita på.
  *
- * Pass över midnatt stöds inte, precis som i databasfunktionen.
+ * **Gårdagen måste vägas in.** Ett pass som börjar 22:00 och slutar 02:00 hör
+ * till gårdagens nyckel när klockan är ett på natten. Utan den kontrollen är en
+ * kafana stängd i egna ögon under precis de timmar den har flest gäster.
  */
 export function isOpenAt(hours: OpeningHours, dayIndex: number, minutes: number): boolean {
   // dayIndex följer Postgres dow: 0 = söndag. WEEKDAY_KEYS börjar på måndag.
-  const key = WEEKDAY_KEYS[(dayIndex + 6) % 7];
-  if (!key) return false;
+  const today = WEEKDAY_KEYS[(dayIndex + 6) % 7];
+  const yesterday = WEEKDAY_KEYS[(dayIndex + 5) % 7];
+  if (!today || !yesterday) return false;
 
-  return hours[key].some(
-    (slot) => timeToMinutes(slot.opens) <= minutes && timeToMinutes(slot.closes) > minutes,
+  const openToday = hours[today].some((slot) => {
+    const opens = timeToMinutes(slot.opens);
+    const closes = timeToMinutes(slot.closes);
+
+    return crossesMidnight(slot)
+      ? minutes >= opens // Resten av passet ligger på morgondagen.
+      : minutes >= opens && minutes < closes;
+  });
+
+  if (openToday) return true;
+
+  return hours[yesterday].some(
+    (slot) => crossesMidnight(slot) && minutes < timeToMinutes(slot.closes),
   );
 }

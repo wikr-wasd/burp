@@ -1,12 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clientIp, rateLimit, RATE_LIMITS } from "./rate-limit";
+import { clientIp, memoryRateLimit, RATE_LIMITS } from "./rate-limit";
 
 /**
  * Rate limitern skyddar QR-endpoints mot att påhittade koder blir gratis att
  * prova. Fönsterlogiken är lätt att få subtilt fel — av på ett, eller ett
  * fönster som aldrig nollställs — och båda felen syns först under angrepp.
+ *
+ * Det som testas här är RESERVEN, den som räknar i processminnet. Den riktiga
+ * räknaren ligger i databasen (migration 0034) och täcks av `verify-schema.sh`
+ * — den kan inte testas utan en databas, och en mockad databas hade bara
+ * bekräftat att mocken fungerar.
+ *
+ * Reserven är ändå värd sina tester: den används när databasen inte svarar, och
+ * en reserv som ingen provat är ingen reserv.
  */
-describe("rateLimit", () => {
+describe("memoryRateLimit", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-14T12:00:00Z"));
@@ -16,38 +24,38 @@ describe("rateLimit", () => {
     const key = `test:${Math.random()}`;
     const options = { limit: 3, windowSeconds: 60 };
 
-    expect(rateLimit(key, options).success).toBe(true);
-    expect(rateLimit(key, options).success).toBe(true);
-    expect(rateLimit(key, options).success).toBe(true);
+    expect(memoryRateLimit(key, options).success).toBe(true);
+    expect(memoryRateLimit(key, options).success).toBe(true);
+    expect(memoryRateLimit(key, options).success).toBe(true);
   });
 
   it("blockerar anropet efter gränsen", () => {
     const key = `test:${Math.random()}`;
     const options = { limit: 2, windowSeconds: 60 };
 
-    rateLimit(key, options);
-    rateLimit(key, options);
-    expect(rateLimit(key, options).success).toBe(false);
+    memoryRateLimit(key, options);
+    memoryRateLimit(key, options);
+    expect(memoryRateLimit(key, options).success).toBe(false);
   });
 
   it("räknar ned remaining och aldrig under noll", () => {
     const key = `test:${Math.random()}`;
     const options = { limit: 2, windowSeconds: 60 };
 
-    expect(rateLimit(key, options).remaining).toBe(1);
-    expect(rateLimit(key, options).remaining).toBe(0);
-    expect(rateLimit(key, options).remaining).toBe(0);
+    expect(memoryRateLimit(key, options).remaining).toBe(1);
+    expect(memoryRateLimit(key, options).remaining).toBe(0);
+    expect(memoryRateLimit(key, options).remaining).toBe(0);
   });
 
   it("nollställs när fönstret löpt ut", () => {
     const key = `test:${Math.random()}`;
     const options = { limit: 1, windowSeconds: 60 };
 
-    expect(rateLimit(key, options).success).toBe(true);
-    expect(rateLimit(key, options).success).toBe(false);
+    expect(memoryRateLimit(key, options).success).toBe(true);
+    expect(memoryRateLimit(key, options).success).toBe(false);
 
     vi.advanceTimersByTime(60_001);
-    expect(rateLimit(key, options).success).toBe(true);
+    expect(memoryRateLimit(key, options).success).toBe(true);
   });
 
   it("håller isär olika nycklar", () => {
@@ -55,15 +63,15 @@ describe("rateLimit", () => {
     const a = `a:${Math.random()}`;
     const b = `b:${Math.random()}`;
 
-    expect(rateLimit(a, options).success).toBe(true);
-    expect(rateLimit(a, options).success).toBe(false);
+    expect(memoryRateLimit(a, options).success).toBe(true);
+    expect(memoryRateLimit(a, options).success).toBe(false);
     // B ska vara opåverkad — annars slår en enda ivrig gäst ut hela lokalen.
-    expect(rateLimit(b, options).success).toBe(true);
+    expect(memoryRateLimit(b, options).success).toBe(true);
   });
 
   it("rapporterar när fönstret nollställs", () => {
     const key = `test:${Math.random()}`;
-    const result = rateLimit(key, { limit: 5, windowSeconds: 30 });
+    const result = memoryRateLimit(key, { limit: 5, windowSeconds: 30 });
     expect(result.reset).toBe(Date.now() + 30_000);
   });
 });

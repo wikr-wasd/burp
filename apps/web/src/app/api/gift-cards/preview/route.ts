@@ -33,7 +33,7 @@ const bodySchema = z.object({
 
 export async function POST(request: Request) {
   const ip = clientIp(request.headers);
-  const limit = rateLimit(`giftcard:${ip}`, RATE_LIMITS.giftCardPreview);
+  const limit = await rateLimit(`giftcard:${ip}`, RATE_LIMITS.giftCardPreview);
   if (!limit.success) {
     return NextResponse.json(
       { ok: false, detail: "Vänta en stund och försök igen." },

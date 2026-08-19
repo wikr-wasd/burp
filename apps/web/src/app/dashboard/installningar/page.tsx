@@ -159,7 +159,8 @@ export default async function SettingsPage() {
           <h2 className="font-display text-2xl">Öppettider</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             Gäster kan bara beställa när ni är öppna. Flera pass per dag för lunch och kväll.
-            Pass över midnatt stöds inte än.
+            Stänger ni efter midnatt skriver ni sluttiden som den är — 22:00 till 02:00 betyder
+            att ni har öppet till två på natten.
           </p>
           <OpeningHoursEditor initial={hours} />
         </section>

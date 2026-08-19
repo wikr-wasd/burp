@@ -47,7 +47,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const ip = clientIp(request.headers);
-  const limit = rateLimit(`order:${ip}`, RATE_LIMITS.orderCreate);
+  const limit = await rateLimit(`order:${ip}`, RATE_LIMITS.orderCreate);
   if (!limit.success) {
     return problem(429, "För många beställningar", "Vänta en stund och försök igen.", {
       "Retry-After": String(Math.ceil((limit.reset - Date.now()) / 1000)),

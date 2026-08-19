@@ -185,8 +185,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 
 | Vad | Var | Före |
 |---|---|---|
-| Rate limiter i processminnet — fungerar inte över flera Vercel-instanser | `lib/rate-limit.ts` | Fas 2 live |
-| Öppettider stödjer inte pass över midnatt | `is_restaurant_open()`, migration 0004 | Nattöppet |
+| Rate limiterns reserv räknar per instans när databasen inte svarar | `lib/rate-limit.ts` | Medvetet. Sämre än den delade räknaren men bättre än ingen gräns alls |
 | Ingen Monri-adapter — kort fungerar bara där Stripe finns (HR, SE) | `lib/payments/` | Lansering i BA och RS. Kontant fungerar under tiden |
 | Fiskalisering är inte byggd — kvittot är märkt som orderbekräftelse | `register_receipts` är tom | Lansering. Öppen fråga 4 |
 | Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
@@ -197,7 +196,6 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Inga laddningsskelett på publika sidor | — | `loading.tsx` gör varje `notFound()` till en 200:a. Se CLAUDE.md |
 | `smoke.sh` går inte att köra på den här maskinen | `bash` är WSL2, inte Git Bash | Kräver Git Bash eller en miljö som delar Windows nätverksstack. Se CLAUDE.md |
 | Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av `/upptack`. Öppen fråga 8 |
-| `is_restaurant_open()` räknar i `Europe/Stockholm` oavsett land | Migration 0004 | Ofarligt idag — BA, HR, RS och SE ligger alla i CET. Bryter mot regel 9 och måste läsa restaurangens land innan en marknad utanför CET tillkommer |
 | Notiser går bara som e-post | `lib/notify/` | Köket behöver något som låter. Kräver ett beslut om bäraren |
 
 ---
@@ -269,6 +267,32 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **Delad rate limiter** (migration 0034). Räknaren låg i processminnet, och
+      på Vercel har varje serverlös instans sitt eget: en angripare vars anrop
+      fördelades över tio instanser fick tio gånger så många försök, och gränsen
+      nollställdes vid varje kallstart. Räkningen sker nu atomärt i databasen.
+      Planen var Upstash Redis; Postgres gör samma sak, finns redan och **går
+      att testa nu** — en Upstash-adapter hade varit otestad kod tills någon
+      skaffade ett konto. Räknaren i minnet är kvar som reserv när databasen
+      inte svarar.
+
+### Öppettider
+
+- [x] **Pass över midnatt** (migration 0033). En kafana i Sarajevo eller Beograd
+      stänger sällan före tolv. Ett pass där sluttiden ligger före starttiden
+      slutar dagen efter: `22:00–02:00` betyder till två på natten. Både
+      `is_restaurant_open()` och `isOpenAt()` väger in gårdagens nattpass, och
+      överlappskontrollen räknar på en veckolång tidslinje som viker runt —
+      fredagens nattpass mot lördagens morgonpass ligger i olika dagsnycklar men
+      beskriver samma timmar.
+- [x] **Restaurangens egen tidszon** (migration 0033). `is_restaurant_open()`
+      räknade i `Europe/Stockholm` oavsett land, vilket bröt mot regel 9.
+      Tidszonen kommer nu ur landet via `country_time_zone()`, som speglar
+      `COUNTRY_INFO` i `@burp/core` — **ändras den ena måste den andra följa
+      med.** Veckodagen läses dessutom med `extract(isodow)` i stället för
+      `to_char(..., 'dy')`: det senare påverkas av `lc_time`, och på en server
+      med svensk locale hade nyckeln blivit `mån` i stället för `mon`. Då är
+      varje restaurang stängd jämt och ingenting säger varför.
 
 ### Design och form
 

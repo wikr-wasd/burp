@@ -170,8 +170,9 @@ personalen.
 
 Landet är en egenskap hos restaurangen och styr valuta, momssatser,
 organisationsnummerformat och tidszon. Allt ligger i
-`packages/core/src/country.ts` och speglas av `allowed_vat_rates()` i migration
-0019 — **ändras den ena måste den andra följa med**.
+`packages/core/src/country.ts` och speglas i databasen av `allowed_vat_rates()`
+(migration 0019) och `country_time_zone()` (migration 0033) — **ändras den ena
+måste den andra följa med**.
 
 | Land | Valuta | Moms | Org.nr |
 |---|---|---|---|

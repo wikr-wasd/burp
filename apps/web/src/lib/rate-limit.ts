@@ -1,17 +1,18 @@
 /**
  * Rate limiting för QR-endpoints och orderskapande (avsnitt 4.4, 12).
  *
- * ⚠️ DEN HÄR IMPLEMENTATIONEN RÄCKER INTE I PRODUKTION.
+ * Räknaren är DELAD och ligger i databasen (migration 0034). Det är hela
+ * poängen: på Vercel har varje serverlös instans sitt eget minne, så en
+ * räknare i processen betyder att en angripare vars anrop fördelas över tio
+ * instanser får tio gånger så många försök — och att gränsen nollställs vid
+ * varje kallstart. Gränsen fanns alltså på papperet.
  *
- * Räknaren ligger i processminnet. På Vercel betyder det att varje
- * serverlös instans har sin egen räknare, och en angripare som får sina
- * anrop fördelade över tio instanser får tio gånger så många försök.
- * Den nollställs dessutom vid varje kallstart.
+ * Planen var Upstash Redis. Postgres gör samma sak och finns redan: ingen ny
+ * leverantör, ingen ny hemlighet, och det går att testa nu.
  *
- * Innan Fas 2 går live ska den bytas mot en delad räknare —
- * `@upstash/ratelimit` mot Redis är det som används i 123Connect och är det
- * enklaste bytet. Gränssnittet nedan är medvetet detsamma som Upstash
- * `limit()`, så bytet blir en ändring i den här filen och ingen annanstans.
+ * `memoryRateLimit` nedan är kvar som reserv. Svarar databasen inte ska ett
+ * QR-uppslag inte falla — men gränsen ska inte heller försvinna, och en räknare
+ * per instans är bättre än ingen alls.
  */
 
 interface Bucket {
@@ -62,7 +63,68 @@ export const RATE_LIMITS = {
   giftCardPreview: { limit: 10, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitOptions>;
 
-export function rateLimit(key: string, options: RateLimitOptions): RateLimitResult {
+/**
+ * Räknar ett anrop mot den delade räknaren.
+ *
+ * Räkningen sker atomärt i databasen. En läsning följd av en skrivning härifrån
+ * hade tappat anrop som kommer samtidigt — vilket är precis de anrop en gräns
+ * finns till för.
+ *
+ * Service role av samma skäl som webhooken: det finns inget användarsammanhang,
+ * och räknaren ska inte gå att läsa eller nollställa av den som räknas.
+ */
+export async function rateLimit(
+  key: string,
+  options: RateLimitOptions,
+): Promise<RateLimitResult> {
+  try {
+    /*
+     * Importeras här och inte överst.
+     *
+     * `supabase/admin` bär `import "server-only"`, som kastar utanför en
+     * serverkörning. Med en toppimport hade den här modulen — och därmed
+     * `memoryRateLimit`, som är reserven — blivit omöjlig att enhetstesta.
+     */
+    const { createAdminClient } = await import("./supabase/admin");
+
+    const { data, error } = await createAdminClient()
+      .rpc("rate_limit_hit", {
+        p_key: key,
+        p_limit: options.limit,
+        p_window_seconds: options.windowSeconds,
+      })
+      .maybeSingle();
+
+    if (error || !data) throw error ?? new Error("rate_limit_hit gav inget svar");
+
+    const row = data as { allowed: boolean; remaining: number; reset_at: string };
+
+    return {
+      success: row.allowed,
+      limit: options.limit,
+      remaining: row.remaining,
+      reset: new Date(row.reset_at).getTime(),
+    };
+  } catch {
+    /*
+     * Databasen svarade inte.
+     *
+     * Att släppa igenom allt vore att stänga av skyddet just när något är fel,
+     * och att neka allt vore att låta en databasstörning stänga QR-flödet.
+     * Räknaren i processminnet är sämre än den delade men bättre än båda.
+     */
+    return memoryRateLimit(key, options);
+  }
+}
+
+/**
+ * Räknaren i processminnet.
+ *
+ * Exporterad därför att den testas för sig: den är reserven, och en reserv som
+ * ingen provat är ingen reserv. Den delade räknaren kräver en databas och täcks
+ * av `verify-schema.sh` i stället.
+ */
+export function memoryRateLimit(key: string, options: RateLimitOptions): RateLimitResult {
   const now = Date.now();
   const windowMs = options.windowSeconds * 1000;
 

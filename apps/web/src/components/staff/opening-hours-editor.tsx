@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
+  crossesMidnight,
   describeDay,
   WEEKDAY_KEYS,
   WEEKDAY_LABELS,
@@ -84,6 +85,12 @@ export function OpeningHoursEditor({ initial }: { initial: OpeningHours }) {
                     }
                     className="min-h-11 border border-[var(--rule)] bg-transparent px-3"
                   />
+                  {/* Ett nattpass ser ut som ett skrivfel tills någon säger att
+                      det inte är det. Märkningen står bredvid sluttiden, där
+                      tvivlet uppstår. */}
+                  {crossesMidnight(slot) ? (
+                    <span className="text-xs whitespace-nowrap opacity-60">nästa dag</span>
+                  ) : null}
                   <button
                     type="button"
                     aria-label={`Ta bort pass ${index + 1} på ${WEEKDAY_LABELS[day]}`}

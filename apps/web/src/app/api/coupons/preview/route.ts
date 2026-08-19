@@ -38,7 +38,7 @@ const bodySchema = z.object({
 
 export async function POST(request: Request) {
   const ip = clientIp(request.headers);
-  const limit = rateLimit(`coupon:${ip}`, RATE_LIMITS.couponPreview);
+  const limit = await rateLimit(`coupon:${ip}`, RATE_LIMITS.couponPreview);
   if (!limit.success) {
     return NextResponse.json(
       { ok: false, detail: "Vänta en stund och försök igen." },

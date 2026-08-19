@@ -46,13 +46,24 @@ describe("parseOpeningHours", () => {
       mon: [
         { opens: "25:00", closes: "26:00" },
         { opens: "11:00", closes: "14:00" },
-        { opens: "22:00", closes: "17:00" },
+        // Noll minuter långt — eller ett dygn, och det går inte att veta vilket.
+        { opens: "18:00", closes: "18:00" },
         "inte ett objekt",
         null,
       ],
     });
 
     expect(parsed.mon).toEqual([{ opens: "11:00", closes: "14:00" }]);
+  });
+
+  it("behåller pass som går över midnatt", () => {
+    // Tiderna ser omvända ut men är avsiktliga: en kafana som stänger klockan
+    // två. Tidigare filtrerades de här bort som trasiga.
+    const parsed = parseOpeningHours({
+      fri: [{ opens: "22:00", closes: "02:00" }],
+    });
+
+    expect(parsed.fri).toEqual([{ opens: "22:00", closes: "02:00" }]);
   });
 
   it("hanterar null, fel typ och okända veckodagar", () => {
@@ -120,9 +131,52 @@ describe("validateOpeningHours", () => {
     expect(problems).toHaveLength(0);
   });
 
-  it("hittar sluttid före starttid", () => {
-    const problems = validateOpeningHours(hours({ thu: [{ opens: "22:00", closes: "11:00" }] }));
-    expect(problems[0]).toMatchObject({ kind: "CLOSES_BEFORE_OPENS" });
+  it("godkänner ett pass över midnatt", () => {
+    const problems = validateOpeningHours(hours({ thu: [{ opens: "22:00", closes: "02:00" }] }));
+    expect(problems).toHaveLength(0);
+  });
+
+  it("hittar ett pass som är noll minuter långt", () => {
+    const problems = validateOpeningHours(hours({ thu: [{ opens: "18:00", closes: "18:00" }] }));
+    expect(problems[0]).toMatchObject({ kind: "ZERO_LENGTH" });
+  });
+
+  /**
+   * Fredag 22:00–03:00 och lördag 01:00–05:00 ligger i olika dagsnycklar men
+   * beskriver samma timmar. En kontroll som bara jämför inom en dag ser det
+   * inte, och restaurangen tror att den har två pass när den har ett.
+   */
+  it("hittar överlapp över dygnsgränsen", () => {
+    const problems = validateOpeningHours(
+      hours({
+        fri: [{ opens: "22:00", closes: "03:00" }],
+        sat: [{ opens: "01:00", closes: "05:00" }],
+      }),
+    );
+
+    expect(problems.some((problem) => problem.kind === "OVERLAP")).toBe(true);
+  });
+
+  it("hittar överlapp när söndagsnatten viker in i måndagen", () => {
+    const problems = validateOpeningHours(
+      hours({
+        sun: [{ opens: "22:00", closes: "04:00" }],
+        mon: [{ opens: "02:00", closes: "06:00" }],
+      }),
+    );
+
+    expect(problems.some((problem) => problem.kind === "OVERLAP")).toBe(true);
+  });
+
+  it("godkänner ett nattpass som slutar innan nästa dag öppnar", () => {
+    const problems = validateOpeningHours(
+      hours({
+        fri: [{ opens: "22:00", closes: "02:00" }],
+        sat: [{ opens: "11:00", closes: "14:00" }],
+      }),
+    );
+
+    expect(problems).toHaveLength(0);
   });
 
   it("hittar ogiltiga klockslag", () => {
@@ -168,6 +222,50 @@ describe("isOpenAt", () => {
     expect(isOpenAt(sunday, 0, timeToMinutes("13:00"))).toBe(true);
     expect(isOpenAt(sunday, 1, timeToMinutes("13:00"))).toBe(false);
   });
+
+  describe("pass över midnatt", () => {
+    // Fredag 22:00 till lördag 02:00. dayIndex: 5 = fredag, 6 = lördag.
+    const kafana = hours({ fri: [{ opens: "22:00", closes: "02:00" }] });
+
+    it("är öppen sent på fredagskvällen", () => {
+      expect(isOpenAt(kafana, 5, timeToMinutes("23:30"))).toBe(true);
+    });
+
+    it("är öppen efter midnatt, alltså på lördagen", () => {
+      // Det här är hela poängen. Passet ligger under fredagens nyckel men
+      // timmarna hör till lördagen, och utan gårdagskontrollen är kafanan
+      // stängd i egna ögon under precis de timmar den har flest gäster.
+      expect(isOpenAt(kafana, 6, timeToMinutes("01:00"))).toBe(true);
+    });
+
+    it("stänger exakt på sluttiden", () => {
+      expect(isOpenAt(kafana, 6, timeToMinutes("01:59"))).toBe(true);
+      expect(isOpenAt(kafana, 6, timeToMinutes("02:00"))).toBe(false);
+    });
+
+    it("är inte öppen tidigare på fredagen", () => {
+      expect(isOpenAt(kafana, 5, timeToMinutes("21:59"))).toBe(false);
+    });
+
+    it("smetar inte ut sig till andra dagar", () => {
+      // Söndag natt: fredagens pass hör inte hit.
+      expect(isOpenAt(kafana, 0, timeToMinutes("01:00"))).toBe(false);
+    });
+
+    it("viker runt från söndag till måndag", () => {
+      const sundayNight = hours({ sun: [{ opens: "20:00", closes: "01:00" }] });
+      // dayIndex 1 = måndag.
+      expect(isOpenAt(sundayNight, 1, timeToMinutes("00:30"))).toBe(true);
+      expect(isOpenAt(sundayNight, 1, timeToMinutes("01:00"))).toBe(false);
+    });
+
+    it("ett pass som slutar 00:00 räknas som över midnatt och stänger där", () => {
+      const untilMidnight = hours({ tue: [{ opens: "18:00", closes: "00:00" }] });
+      expect(isOpenAt(untilMidnight, 2, timeToMinutes("23:59"))).toBe(true);
+      // dayIndex 3 = onsdag, klockan noll.
+      expect(isOpenAt(untilMidnight, 3, timeToMinutes("00:00"))).toBe(false);
+    });
+  });
 });
 
 describe("describeDay", () => {
@@ -182,5 +280,11 @@ describe("describeDay", () => {
 
   it("säger Stängt när dagen är tom", () => {
     expect(describeDay([])).toBe("Stängt");
+  });
+
+  it("märker ut ett pass över midnatt", () => {
+    // "22:00–02:00" ensamt läser som ett fel — det ser ut som att någon skrivit
+    // tiderna i fel ordning.
+    expect(describeDay([{ opens: "22:00", closes: "02:00" }])).toBe("22:00–02:00 (nästa dag)");
   });
 });

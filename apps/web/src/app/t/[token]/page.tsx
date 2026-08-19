@@ -49,7 +49,7 @@ export default async function TablePage({ params }: PageProps) {
   const t = dictionary(await requestLocale());
 
   const requestHeaders = await headers();
-  const limit = rateLimit(`qr:${clientIp(requestHeaders)}`, RATE_LIMITS.qrLookup);
+  const limit = await rateLimit(`qr:${clientIp(requestHeaders)}`, RATE_LIMITS.qrLookup);
   if (!limit.success) {
     return <TableMessage title={t.table.tooManyTitle} body={t.table.tooManyBody} />;
   }

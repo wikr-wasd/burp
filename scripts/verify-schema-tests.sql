@@ -1886,4 +1886,172 @@ begin
 end
 $$;
 
+\echo '   öppettider räknas i restaurangens egen tidszon'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+begin
+  -- Seedrestaurangen ligger i Sarajevo. Öppet 11–14 lokal tid.
+  update public.restaurants
+  set opening_hours = '{"wed": [{"opens": "11:00", "closes": "14:00"}]}'::jsonb
+  where id = v_rest_id;
+
+  -- Onsdag 2026-08-19, 11:30 i Sarajevo = 09:30 UTC (CEST, UTC+2).
+  if not public.is_restaurant_open(v_rest_id, '2026-08-19 09:30:00+00'::timestamptz) then
+    raise exception 'FEL: stängd 11:30 lokal tid trots att passet är 11–14';
+  end if;
+
+  -- 10:30 UTC är 12:30 lokalt — fortfarande öppet.
+  if not public.is_restaurant_open(v_rest_id, '2026-08-19 10:30:00+00'::timestamptz) then
+    raise exception 'FEL: stängd 12:30 lokal tid';
+  end if;
+
+  -- 08:30 UTC är 10:30 lokalt — ännu inte öppet.
+  if public.is_restaurant_open(v_rest_id, '2026-08-19 08:30:00+00'::timestamptz) then
+    raise exception 'FEL: öppen 10:30 lokal tid trots att passet börjar 11:00';
+  end if;
+
+  -- Tidszonen ska komma från landet och inte från en hårdkodning.
+  if public.country_time_zone('RS') <> 'Europe/Belgrade' then
+    raise exception 'FEL: serbisk tidszon blev %', public.country_time_zone('RS');
+  end if;
+  if public.country_time_zone('SE') <> 'Europe/Stockholm' then
+    raise exception 'FEL: svensk tidszon blev %', public.country_time_zone('SE');
+  end if;
+end
+$$;
+
+\echo '   ett pass över midnatt håller kafanan öppen efter tolv'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+begin
+  -- Fredag 22:00 till lördag 02:00.
+  update public.restaurants
+  set opening_hours = '{"fri": [{"opens": "22:00", "closes": "02:00"}]}'::jsonb
+  where id = v_rest_id;
+
+  -- Fredag 2026-08-21, 23:30 lokalt = 21:30 UTC.
+  if not public.is_restaurant_open(v_rest_id, '2026-08-21 21:30:00+00'::timestamptz) then
+    raise exception 'FEL: stängd 23:30 på fredagen';
+  end if;
+
+  -- Lördag 01:00 lokalt = fredag 23:00 UTC. Passet ligger under fredagens
+  -- nyckel men timmen hör till lördagen — det är hela poängen.
+  if not public.is_restaurant_open(v_rest_id, '2026-08-21 23:00:00+00'::timestamptz) then
+    raise exception 'FEL: stängd 01:00 på natten trots pass till 02:00';
+  end if;
+
+  -- Lördag 02:00 lokalt = 00:00 UTC. Stängningstiden är exklusiv.
+  if public.is_restaurant_open(v_rest_id, '2026-08-22 00:00:00+00'::timestamptz) then
+    raise exception 'FEL: öppen 02:00, sluttiden ska vara exklusiv';
+  end if;
+
+  -- Fredag 21:59 lokalt = 19:59 UTC. Ännu inte öppet.
+  if public.is_restaurant_open(v_rest_id, '2026-08-21 19:59:00+00'::timestamptz) then
+    raise exception 'FEL: öppen 21:59 trots att passet börjar 22:00';
+  end if;
+
+  -- Söndag natt hör inte till fredagens pass.
+  if public.is_restaurant_open(v_rest_id, '2026-08-23 23:00:00+00'::timestamptz) then
+    raise exception 'FEL: fredagens nattpass smetade ut sig till andra dagar';
+  end if;
+end
+$$;
+
+\echo '   söndagsnatten viker in i måndagen'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+begin
+  update public.restaurants
+  set opening_hours = '{"sun": [{"opens": "20:00", "closes": "01:00"}]}'::jsonb
+  where id = v_rest_id;
+
+  -- Måndag 2026-08-24 00:30 lokalt = söndag 22:30 UTC. Veckan viker runt.
+  if not public.is_restaurant_open(v_rest_id, '2026-08-23 22:30:00+00'::timestamptz) then
+    raise exception 'FEL: stängd 00:30 på måndagen trots söndagens nattpass';
+  end if;
+
+  -- Öppet-nu-filtret på kartsidan måste svara likadant. Två svar på samma
+  -- fråga glider isär, och den dagen visar listan öppet medan ordern nekas.
+  if not exists (
+    select 1 from public.open_restaurant_ids('2026-08-23 22:30:00+00'::timestamptz)
+    where restaurant_id = v_rest_id
+  ) then
+    raise exception 'FEL: open_restaurant_ids svarade något annat än is_restaurant_open';
+  end if;
+end
+$$;
+
+\echo '   rate limitern räknar delat och nollställs med fönstret'
+
+do $$
+declare
+  v_key   text := 'test:' || gen_random_uuid()::text;
+  v_at    timestamptz := '2026-08-19 12:00:30+00';
+  v_ok    boolean;
+  v_left  integer;
+  v_reset timestamptz;
+begin
+  -- Tre anrop av tre tillåtna.
+  for i in 1..3 loop
+    select allowed, remaining into v_ok, v_left
+    from public.rate_limit_hit(v_key, 3, 60, v_at);
+
+    if not v_ok then
+      raise exception 'FEL: anrop % av 3 blockerades', i;
+    end if;
+  end loop;
+
+  if v_left <> 0 then
+    raise exception 'FEL: remaining blev % efter tre av tre', v_left;
+  end if;
+
+  -- Fjärde anropet i samma fönster ska stoppas.
+  select allowed, remaining, reset_at into v_ok, v_left, v_reset
+  from public.rate_limit_hit(v_key, 3, 60, v_at);
+
+  if v_ok then
+    raise exception 'FEL: fjärde anropet släpptes igenom';
+  end if;
+
+  if v_left <> 0 then
+    raise exception 'FEL: remaining gick under noll (%)', v_left;
+  end if;
+
+  -- Fönstret är avrundat nedåt till en jämn minut, alltså slutar det 12:01:00.
+  if v_reset <> '2026-08-19 12:01:00+00'::timestamptz then
+    raise exception 'FEL: fönstret nollställs %, väntade 12:01:00', v_reset;
+  end if;
+
+  -- Nästa fönster börjar om.
+  select allowed into v_ok
+  from public.rate_limit_hit(v_key, 3, 60, '2026-08-19 12:01:05+00'::timestamptz);
+
+  if not v_ok then
+    raise exception 'FEL: räknaren nollställdes inte när fönstret löpte ut';
+  end if;
+
+  -- Olika nycklar delar inte kvot. Annars slår en enda ivrig gäst ut lokalen.
+  select allowed into v_ok
+  from public.rate_limit_hit('annan:' || v_key, 1, 60, v_at);
+
+  if not v_ok then
+    raise exception 'FEL: en främmande nyckel påverkades av kvoten';
+  end if;
+
+  -- En orimlig gräns ska avvisas och inte tyst bli obegränsad.
+  begin
+    perform public.rate_limit_hit(v_key, 0, 60, v_at);
+    raise exception 'FEL: gränsen noll accepterades';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
 rollback;
