@@ -193,6 +193,12 @@ export const en: Dictionary = {
     giftCardRemove: "Remove gift card",
     giftCardLeft: "{amount} left afterwards",
     toPay: "To pay",
+
+    punchCard: "Loyalty card",
+    punchCardProgress: "{visits} of {size} visits",
+    punchCardRemaining: "{n} visits to go until a free meal",
+    punchCardEarned: "This meal is on the restaurant",
+    punchCardUse: "Use the loyalty card",
   },
 
   table: {

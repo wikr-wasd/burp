@@ -128,6 +128,13 @@ export const createOrderSchema = z
      * kortet som får användas.
      */
     gift_card_code: z.string().min(4).max(40).optional(),
+    /**
+     * Lös ut klippkortet på den här ordern.
+     *
+     * En begäran, inte ett belopp. Servern räknar om antalet besök och avgör
+     * själv om kortet är fullt — och vad belöningen är värd.
+     */
+    use_punch_card: z.boolean().default(false),
   })
   .refine((order) => order.type !== "TABLE" || order.table_token !== undefined, {
     message: "Bordsbeställning kräver ett bordstoken",

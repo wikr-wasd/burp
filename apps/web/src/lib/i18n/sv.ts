@@ -223,6 +223,18 @@ export const sv = {
     giftCardRemove: "Ta bort presentkortet",
     giftCardLeft: "{amount} kvar efteråt",
     toPay: "Att betala",
+
+    /*
+     * Klippkortet.
+     *
+     * Räknar besök och inte kronor — det är hela skillnaden mot poängen, och
+     * det är därför texten säger "besök" och aldrig "poäng".
+     */
+    punchCard: "Klippkort",
+    punchCardProgress: "{visits} av {size} besök",
+    punchCardRemaining: "{n} besök kvar till en gratis måltid",
+    punchCardEarned: "Den här måltiden bjuder restaurangen på",
+    punchCardUse: "Använd klippkortet",
   },
 
   /** Meddelanden på QR-sidan innan menyn visas. */

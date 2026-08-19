@@ -7,6 +7,7 @@ import {
   createOrderSchema,
   DEFAULT_FEE_BASE,
   GIFT_CARD_PROBLEM_MESSAGES,
+  punchCardReward,
   parseOpeningHours,
   parseOrderPolicy,
   PriceMismatchError,
@@ -18,6 +19,7 @@ import { resolveCoupon } from "@/lib/coupons";
 import { serverEnv } from "@/lib/env";
 import { resolveGiftCard } from "@/lib/gift-cards";
 import { priceRequestedItems } from "@/lib/order-pricing";
+import { getPunchCard } from "@/lib/punch-cards";
 import { rememberGuestOrder } from "@/lib/guest-orders";
 import { notifyNewOrder } from "@/lib/notify";
 import { getCardAccount, paymentProvider, PaymentProviderError } from "@/lib/payments";
@@ -142,6 +144,38 @@ export async function POST(request: Request) {
 
     couponId = coupon.couponId;
     discountOre = coupon.discountOre;
+  }
+
+  /* ── 3b. Klippkortet ───────────────────────────────────────────────────── */
+
+  /*
+   * Belöningen är en RABATT och inte ett betalmedel: restaurangen bjuder på
+   * måltiden, alltså blir den aldrig fakturerad. Notan sjunker, och därmed
+   * också momsen och Burps avgiftsunderlag — vilket är rätt, eftersom
+   * restaurangen inte fick in några pengar att betala avgift på.
+   */
+  let punchCardRewardOre = 0;
+
+  if (input.use_punch_card) {
+    const state = await getPunchCard(restaurantId, guestId);
+
+    if (!state?.isEarned) {
+      return problem(
+        409,
+        "Klippkortet är inte fullt",
+        state
+          ? `Det är ${state.remaining} besök kvar till nästa gratis måltid.`
+          : "Klippkort kräver att du är inloggad hos en restaurang som har ett.",
+      );
+    }
+
+    punchCardRewardOre = punchCardReward({
+      itemsGrossOre: priced.totals.itemsGrossOre,
+      discountOre,
+      maxRewardOre: state.maxRewardOre,
+    });
+
+    discountOre += punchCardRewardOre;
   }
 
   const totals = discountOre
@@ -367,6 +401,35 @@ export async function POST(request: Request) {
         .eq("id", order);
 
       return problem(409, "Koden gäller inte", "Koden hann ta slut. Försök igen utan den.");
+    }
+  }
+
+  /*
+   * Klippkortets uttag.
+   *
+   * Räkningen görs om i databasen under lås av samma skäl som kupongens: två
+   * beställningar från samma konto samtidigt skulle annars kunna lösa ut samma
+   * belöning två gånger, och restaurangen bjuda på två måltider för tio besök.
+   */
+  if (input.use_punch_card) {
+    const { error: punchError } = await supabase.rpc("redeem_punch_card", {
+      p_restaurant_id: restaurantId,
+      p_guest_id: guestId,
+      p_order_id: order,
+      p_reward_ore: punchCardRewardOre,
+    });
+
+    if (punchError) {
+      await supabase
+        .from("orders")
+        .update({ status: "CANCELLED", cancelled_at: new Date().toISOString() })
+        .eq("id", order);
+
+      return problem(
+        409,
+        "Klippkortet gick inte att lösa ut",
+        "Belöningen hann tas ut på en annan beställning. Försök igen.",
+      );
     }
   }
 

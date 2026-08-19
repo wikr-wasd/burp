@@ -15,6 +15,7 @@ import {
 import { OpeningHoursEditor } from "@/components/staff/opening-hours-editor";
 import { PresentationEditor } from "@/components/staff/presentation-editor";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
+import { PunchCardEditor } from "@/components/staff/punch-card-editor";
 import { StaffManager } from "@/components/staff/staff-manager";
 import { requireStaff } from "@/lib/auth";
 import { connectableProviders, getPaymentAccounts } from "@/lib/payments";
@@ -56,7 +57,7 @@ export default async function SettingsPage() {
     // select-uttrycket, och en konkatenering ger `GenericStringError` i stället
     // för kolumnerna.
     .select(
-      "opening_hours, order_policy, description, phone, cuisines, price_tier, street_address, postal_code, city, city_slug, slug, latitude, longitude, hero_image_url",
+      "opening_hours, order_policy, description, phone, cuisines, price_tier, street_address, postal_code, city, city_slug, slug, latitude, longitude, hero_image_url, punch_card_size, punch_card_max_reward_ore",
     )
     .eq("id", staff.restaurantId)
     .single();
@@ -184,6 +185,20 @@ export default async function SettingsPage() {
             connectable={connectable}
             currency={staff.currency}
             isOwner={staff.role === "owner"}
+          />
+        </section>
+
+        <hr className="rule mt-14" />
+
+        <section className="mt-10">
+          <h2 className="font-display text-2xl">Klippkort</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Tionde besöket bjuder ni på. Räknar besök, inte belopp.
+          </p>
+          <PunchCardEditor
+            initialSize={restaurant?.punch_card_size ?? null}
+            initialMaxRewardOre={restaurant?.punch_card_max_reward_ore ?? null}
+            currency={staff.currency}
           />
         </section>
 

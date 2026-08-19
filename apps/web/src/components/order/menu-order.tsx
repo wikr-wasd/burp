@@ -7,10 +7,12 @@ import {
   calculateOrderTotals,
   formatMoney,
   itemPriceRange,
+  punchCardReward,
   roundHalfEven,
   type CurrencyCode,
   type Ore,
   type PricedLine,
+  type PunchCardState,
 } from "@burp/core";
 import { CardPayment } from "@/components/order/card-payment";
 import { FoodImage } from "@/components/media/food-image";
@@ -102,6 +104,19 @@ interface Props {
    * kortknapp som sedan nekar varje betalning vore sämre än att inte visa den.
    */
   card?: CardOption | null;
+  /**
+   * Gästens klippkort hos restaurangen, eller null.
+   *
+   * Null för en anonym QR-gäst, och det är avsiktligt: besök går inte att
+   * räkna utan konto, och klippkortet ska inte bli ett skäl att spåra den som
+   * valt bort ett.
+   */
+  punchCard?: PunchCardOffer | null;
+}
+
+/** Klippkortets läge plus restaurangens tak, så att belöningen går att räkna. */
+export interface PunchCardOffer extends PunchCardState {
+  maxRewardOre: number | null;
 }
 
 export interface CardOption {
@@ -140,6 +155,7 @@ export function MenuOrder({
   pickupSlots = [],
   showHeading = true,
   card = null,
+  punchCard = null,
 }: Props) {
   const router = useRouter();
 
@@ -195,6 +211,15 @@ export function MenuOrder({
    */
   const [giftCard, setGiftCard] = useState<AppliedGiftCard | null>(null);
 
+  /**
+   * Klippkortet är ett aktivt val och inte något som händer av sig självt.
+   *
+   * Den som har en full stämpelkarta vill inte alltid ta ut den på en kaffe.
+   * Att lösa ut den automatiskt hade tagit beslutet ifrån gästen — och en
+   * belöning som förbrukas utan att man ville det är sämre än ingen belöning.
+   */
+  const [usePunchCard, setUsePunchCard] = useState(false);
+
   const money = useMemo(
     () => (amount: Ore) => formatMoney(amount, currency),
     [currency],
@@ -238,19 +263,44 @@ export function MenuOrder({
     [itemsGrossOre, tipBps],
   );
 
+  const itemsGrossForDiscount = useMemo(
+    () =>
+      pricedLines.length > 0
+        ? calculateOrderTotals({ lines: pricedLines }).itemsGrossOre
+        : 0,
+    [pricedLines],
+  );
+
+  /**
+   * Klippkortets belöning, räknad med samma funktion som servern använder.
+   *
+   * Kupongens belopp kommer från servern eftersom klienten inte känner
+   * kupongens villkor. Klippkortet är tvärtom: villkoren är kända här (kortets
+   * storlek och restaurangens tak), och summan MÅSTE gå att räkna lokalt —
+   * annars stämmer inte `client_total_ore` och servern avbryter ordern.
+   */
+  const punchCardRewardOre = useMemo(() => {
+    if (!usePunchCard || !punchCard?.isEarned) return 0;
+    return punchCardReward({
+      itemsGrossOre: itemsGrossForDiscount,
+      discountOre: coupon?.discountOre ?? 0,
+      maxRewardOre: punchCard.maxRewardOre,
+    });
+  }, [usePunchCard, punchCard, itemsGrossForDiscount, coupon]);
+
   const totals = useMemo(
     () =>
       pricedLines.length > 0
         ? calculateOrderTotals({
             lines: pricedLines,
             tipOre,
-            // Rabatten kommer från servern, inte från en uträkning här. Klienten
-            // vet inte vad koden är värd och ska inte gissa — samma regel som
-            // gäller priser.
-            discountOre: coupon?.discountOre ?? 0,
+            // Kupongens rabatt kommer från servern, inte från en uträkning här.
+            // Klienten känner inte kupongens villkor och ska inte gissa — samma
+            // regel som gäller priser.
+            discountOre: (coupon?.discountOre ?? 0) + punchCardRewardOre,
           })
         : null,
-    [pricedLines, tipOre, coupon],
+    [pricedLines, tipOre, coupon, punchCardRewardOre],
   );
 
   const navRef = useRef<HTMLElement>(null);
@@ -468,6 +518,9 @@ export function MenuOrder({
           // ordern om klientens summa inte stämmer.
           ...(coupon ? { coupon_code: coupon.code } : {}),
           ...(giftCard ? { gift_card_code: giftCard.code } : {}),
+          // En begäran, inte ett belopp. Servern räknar om antalet besök och
+          // avgör själv om kortet är fullt.
+          ...(usePunchCard && punchCard?.isEarned ? { use_punch_card: true } : {}),
           // Nyckeln skapas en gång per försök. Dubbeltryck på knappen ger
           // samma nyckel och därmed samma order, inte två notor.
           idempotency_key: crypto.randomUUID(),
@@ -711,6 +764,9 @@ export function MenuOrder({
           giftCard={giftCard}
           onApplyGiftCard={applyGiftCardCode}
           onRemoveGiftCard={() => setGiftCard(null)}
+          punchCard={punchCard}
+          usePunchCard={usePunchCard}
+          onUsePunchCardChange={setUsePunchCard}
         />
       ) : null}
 
@@ -1018,6 +1074,9 @@ function CartBar({
   giftCard,
   onApplyGiftCard,
   onRemoveGiftCard,
+  punchCard,
+  usePunchCard,
+  onUsePunchCardChange,
 }: {
   cart: CartLine[];
   totals: ReturnType<typeof calculateOrderTotals>;
@@ -1046,6 +1105,9 @@ function CartBar({
   giftCard: AppliedGiftCard | null;
   onApplyGiftCard: (code: string) => Promise<string | null>;
   onRemoveGiftCard: () => void;
+  punchCard: PunchCardOffer | null;
+  usePunchCard: boolean;
+  onUsePunchCardChange: (value: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -1187,6 +1249,56 @@ function CartBar({
                 {payWithCard ? (
                   <p className="mt-1.5 text-xs text-[var(--muted)]">{labels.payByCardHint}</p>
                 ) : null}
+              </div>
+            ) : null}
+
+            {/*
+              Klippkortet ligger överst bland betalvalen.
+
+              Den som har en full stämpelkarta ska se det innan hon börjar leta
+              efter rabattkoder — och den som har tre klipp kvar ska se att det
+              finns ett kort alls. Ett lojalitetsprogram ingen känner till är
+              inget lojalitetsprogram.
+            */}
+            {punchCard ? (
+              <div className="mt-5 rounded-lg border border-[var(--rule)] px-3 py-2">
+                <p className="label-caps">{labels.punchCard}</p>
+
+                <div className="mt-1.5 flex gap-1" aria-hidden="true">
+                  {Array.from({ length: punchCard.size }, (_, index) => (
+                    <span
+                      key={index}
+                      className={`h-2.5 flex-1 rounded-full ${
+                        index < punchCard.visits ? "bg-amber-400" : "bg-[var(--rule)]"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <p className="mt-2 text-sm">
+                  {punchCard.isEarned
+                    ? labels.punchCardEarned
+                    : fill(labels.punchCardRemaining, { n: punchCard.remaining })}
+                </p>
+
+                {punchCard.isEarned ? (
+                  <label className="mt-2 flex min-h-11 items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={usePunchCard}
+                      onChange={(event) => onUsePunchCardChange(event.target.checked)}
+                      className="h-5 w-5 accent-[var(--burp-600,#dc2626)]"
+                    />
+                    {labels.punchCardUse}
+                  </label>
+                ) : (
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">
+                    {fill(labels.punchCardProgress, {
+                      visits: punchCard.visits,
+                      size: punchCard.size,
+                    })}
+                  </p>
+                )}
               </div>
             ) : null}
 

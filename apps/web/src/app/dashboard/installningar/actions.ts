@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import {
   COUNTRY_INFO,
   normalizePostalCode,
+  parseAmount,
   parseCoordinates,
   parseOrderPolicy,
   toWkt,
@@ -11,6 +12,7 @@ import {
   validateOpeningHours,
   WEEKDAY_KEYS,
   WEEKDAY_LABELS,
+  type CurrencyCode,
   type OpeningHours,
   type OrderStatus,
   type StaffRole,
@@ -314,6 +316,58 @@ export async function savePresentation(input: PresentationInput): Promise<Action
       );
     }
     update["location"] = toWkt(point);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("restaurants")
+    .update(update)
+    .eq("id", staff.restaurantId);
+
+  return error ? fail(error.message) : done();
+}
+
+/* ── Klippkort ───────────────────────────────────────────────────────────── */
+
+/**
+ * Tionde besöket bjuder restaurangen på.
+ *
+ * En annan mekanik än lojalitetspoängen: poäng räknar kronor, klippkortet
+ * räknar besök. Storleken lagras på restaurangen; antalet besök lagras aldrig
+ * utan räknas ur ordrarna (regel 7).
+ *
+ * Ändrad storlek gäller framåt. Gamla uttag bär sin egen storlek på raden, så
+ * att "tionde måltiden" inte blir obegriplig den dag restaurangen byter till
+ * åtta.
+ */
+export async function savePunchCard(input: {
+  /** Tom sträng stänger av klippkortet. */
+  size: string;
+  /** Tom sträng = hela ordern bjuds. */
+  maxReward: string;
+}): Promise<ActionResult> {
+  const staff = await requireStaff(["owner", "manager"]);
+  const currency = staff.currency as CurrencyCode;
+
+  const update: Record<string, unknown> = {};
+
+  if (!input.size.trim()) {
+    update["punch_card_size"] = null;
+    update["punch_card_max_reward_ore"] = null;
+  } else {
+    const size = Number(input.size.trim());
+    if (!Number.isInteger(size) || size < 2 || size > 50) {
+      return fail("Antalet besök ska vara mellan 2 och 50. Ett kort på ett besök är inget kort.");
+    }
+    update["punch_card_size"] = size;
+
+    if (input.maxReward.trim()) {
+      const cap = parseAmount(input.maxReward, currency);
+      if (cap === null || cap <= 0) return fail("Taket gick inte att tolka.");
+      update["punch_card_max_reward_ore"] = cap;
+    } else {
+      update["punch_card_max_reward_ore"] = null;
+    }
   }
 
   const supabase = await createClient();

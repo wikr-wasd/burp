@@ -1717,4 +1717,107 @@ begin
 end
 $$;
 
+\echo '   klippkortet räknar besök och börjar om efter en belöning'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+  v_user_id uuid;
+  v_order   uuid;
+  v_size    smallint;
+  v_done    bigint;
+  v_taken   bigint;
+begin
+  update public.restaurants set punch_card_size = 3 where id = v_rest_id;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'klipp@example.com')
+  returning id into v_user_id;
+
+  -- Två besök räcker inte till ett kort på tre.
+  for i in 1..2 loop
+    insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore)
+    values (v_rest_id, v_user_id, 'PICKUP', 'COMPLETED', gen_random_uuid(), 1200);
+  end loop;
+
+  insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, v_user_id, 'PICKUP', 'PLACED', gen_random_uuid(), 1200)
+  returning id into v_order;
+
+  begin
+    perform public.redeem_punch_card(v_rest_id, v_user_id, v_order, 1200);
+    raise exception 'FEL: klippkortet löstes ut på två besök av tre';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Tredje besöket fyller kortet.
+  insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, v_user_id, 'PICKUP', 'COMPLETED', gen_random_uuid(), 1200);
+
+  select size, completed_orders, rewards_redeemed
+  into v_size, v_done, v_taken
+  from public.punch_card_status(v_rest_id, v_user_id);
+
+  if v_size <> 3 or v_done <> 3 or v_taken <> 0 then
+    raise exception 'FEL: klippkortets läge blev % / % / %', v_size, v_done, v_taken;
+  end if;
+
+  perform public.redeem_punch_card(v_rest_id, v_user_id, v_order, 1200);
+
+  -- Kortet börjar om. Utan avdraget för uttagna belöningar hade gästen kunnat
+  -- lösa ut en till direkt.
+  begin
+    insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore)
+    values (v_rest_id, v_user_id, 'PICKUP', 'PLACED', gen_random_uuid(), 1200)
+    returning id into v_order;
+
+    perform public.redeem_punch_card(v_rest_id, v_user_id, v_order, 1200);
+    raise exception 'FEL: två belöningar gick att lösa ut på tre besök';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Loggen går inte att skriva om.
+  begin
+    delete from public.punch_card_redemptions where guest_id = v_user_id;
+    raise exception 'FEL: ett klippkortsuttag gick att radera';
+  exception
+    when insufficient_privilege then null;
+  end;
+end
+$$;
+
+\echo '   klippkort kräver ett konto'
+
+do $$
+declare
+  v_rest_id uuid := '11111111-1111-1111-1111-111111111111';
+  v_order   uuid;
+begin
+  update public.restaurants set punch_card_size = 3 where id = v_rest_id;
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'PLACED', gen_random_uuid(), 1200)
+  returning id into v_order;
+
+  -- Den anonyma bordsgästen går inte att räkna besök på, och SKA inte gå att
+  -- räkna besök på.
+  begin
+    perform public.redeem_punch_card(v_rest_id, null, v_order, 1200);
+    raise exception 'FEL: klippkort löstes ut utan konto';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Och en restaurang utan klippkort har inget att lösa ut.
+  update public.restaurants set punch_card_size = null where id = v_rest_id;
+  begin
+    perform public.redeem_punch_card(v_rest_id, gen_random_uuid(), v_order, 1200);
+    raise exception 'FEL: klippkort löstes ut hos en restaurang utan klippkort';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
 rollback;

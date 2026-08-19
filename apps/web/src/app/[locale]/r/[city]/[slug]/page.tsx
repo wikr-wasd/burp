@@ -11,6 +11,7 @@ import {
 import { FoodImage } from "@/components/media/food-image";
 import { MenuOrder } from "@/components/order/menu-order";
 import { cardOptionFor } from "@/lib/payments";
+import { getPunchCard } from "@/lib/punch-cards";
 import { SiteFooter } from "@/components/site/site-footer";
 import { Directions } from "@/components/site/directions";
 import { MapEmbed } from "@/components/site/map-embed";
@@ -151,6 +152,16 @@ export default async function RestaurantPage({ params }: PageProps) {
   // Kortknappen visas bara när restaurangen har ett aktivt betalkonto.
   const card = await cardOptionFor(restaurant.id);
 
+  /*
+   * Klippkortet kräver ett konto. En anonym gäst får null, och det är inte en
+   * lucka att beklaga: besök går inte att räkna utan konto, och klippkortet
+   * ska inte bli ett skäl att spåra den som valt bort ett.
+   */
+  const {
+    data: { user },
+  } = await (await createClient()).auth.getUser();
+  const punchCard = await getPunchCard(restaurant.id, user?.id ?? null);
+
   const url = new URL(`/r/${city}/${slug}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString();
 
   const jsonLd = restaurantJsonLd({
@@ -286,6 +297,7 @@ export default async function RestaurantPage({ params }: PageProps) {
               pickupSlots={pickupSlots}
               showHeading={false}
               card={card}
+              punchCard={punchCard}
             />
           </div>
         </section>
