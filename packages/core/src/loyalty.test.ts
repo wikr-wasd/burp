@@ -71,9 +71,34 @@ describe("calculateBalance", () => {
       ],
       NOW,
     );
-    // 500 räknas bort en gång av utgångsfiltret, EXPIRE-raden drar 500 till →
-    // clampningen till 0 hindrar ett negativt saldo.
-    expect(balance).toBe(0);
+    /*
+     * 100 kvar, inte 0.
+     *
+     * Testet hette redan så här och påstod motsatsen: det förväntade sig 0 och
+     * förklarade det med att clampningen hindrade ett negativt saldo. Det var
+     * inte ett medvetet val utan felet självt — 500 drogs bort av
+     * utgångsfiltret OCH av EXPIRE-raden. Så länge jobbet inte fanns syntes det
+     * aldrig, eftersom det inte fanns några EXPIRE-rader att dubbelräkna.
+     * Migration 0042 skrev jobbet, och då hade varje gäst tappat resten av sitt
+     * saldo första natten.
+     */
+    expect(balance).toBe(100);
+  });
+
+  it("ger samma svar före och efter att jobbet bokfört utgången", () => {
+    const expired = tx({ points: 500, expiresAt: daysFromNow(-1) });
+    const alive = tx({ points: 100 });
+
+    const before = calculateBalance([expired, alive], NOW);
+    const after = calculateBalance(
+      [expired, tx({ kind: "EXPIRE", points: -500, createdAt: NOW }), alive],
+      NOW,
+    );
+
+    // Bokföringen ska synas i loggen, inte i saldot. Ändras siffran när jobbet
+    // kör har gästen förlorat poäng på en administrativ åtgärd.
+    expect(before).toBe(100);
+    expect(after).toBe(before);
   });
 
   it("går aldrig under noll", () => {

@@ -99,6 +99,18 @@ const serverSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().min(1).optional(),
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   VAPID_SUBJECT: z.string().min(1).default("mailto:notiser@burp.se"),
+
+  /*
+   * Bakgrundsjobben (`/api/jobs/...`).
+   *
+   * Vercel Cron skickar den här som `Authorization: Bearer …` och sätter
+   * variabeln själv i projektinställningarna. Lokalt får den sättas för hand.
+   *
+   * Frivillig, men rutten svarar 503 utan den i stället för att köra öppet.
+   * Ett jobb som vem som helst på internet kan trigga är inte ett jobb — och
+   * det här jobbet skriver rader i en logg som inte går att ta bort.
+   */
+  CRON_SECRET: z.string().min(16).optional(),
 });
 
 export const publicEnv = publicSchema.parse({

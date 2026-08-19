@@ -169,6 +169,10 @@ avvek från planen och det står varför i respektive commit.
       flyttade till `/dashboard/order`. Typkontroll, lint och bygge passerar,
       och Översiktens fyra frågor är körda direkt mot databasen som ägaren med
       RLS påslagen — men ingen har sett sidan. **Behöver göras av William.**
+- [ ] **`CRON_SECRET` i produktionsmiljön.** Utan den svarar
+      `/api/jobs/expire-loyalty` 503 och poängen bokförs aldrig som utgången.
+      Vercel sätter den själv när cron-jobbet läggs upp; lokalt genereras den av
+      `node scripts/write-local-env.mjs`. **Kräver dig, inte kod.**
 - [ ] **Gällande gallring — hur länge sparas en gäst som slutat?** Öppen fråga
       13. Artikel 5.1 e kräver en gräns; Burp har ingen och raderar inget av sig
       självt. **Kräver ett beslut av dig**, sedan är det ett bakgrundsjobb.
@@ -284,6 +288,23 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **Poängen går faktiskt ut** (migration 0042). `expires_at` sattes på varje
+      EARN-rad av 0016 och `EXPIRE` fanns i enumet sedan 0001, men ingen kod
+      skrev någonsin en sådan rad. Kundpanelen visade ändå rätt siffra, för
+      `calculateBalance()` räknar bort utgångna poster — regeln fanns alltså
+      **bara i TypeScript**, och varje annan läsare av loggen hade ett annat
+      svar. Det märktes när GDPR-exporten dagen innan rapporterade 700 poäng för
+      ett konto som visade 200.
+      **Under fixen föll ett värre fel ut.** Saldoregeln drog bort utgången
+      poäng två gånger så fort en EXPIRE-rad fanns: en gång av utgångsfiltret
+      och en gång av raden. Det syntes aldrig, eftersom det inte fanns några
+      EXPIRE-rader — och `loyalty.test.ts` hade skrivit in beteendet som
+      avsiktligt med förklaringen att clampningen till noll hindrade ett
+      negativt saldo. Första natten jobbet kört hade varje gäst tappat resten av
+      sitt saldo. Rättat i både `@burp/core` och databasen, med ett test som
+      kräver att siffran är densamma före och efter en körning.
+      Jobbet ligger på `/api/jobs/expire-loyalty` bakom `CRON_SECRET` och körs
+      04:00 av Vercel Cron (`vercel.json`).
 - [x] **GDPR: kopia och radering** (migration 0041). Artikel 15 och 20 ger rätt
       till en maskinläsbar kopia, artikel 17 till radering. Exporten fanns inte,
       och raderingen var inte bara obyggd utan **omöjlig** — fyra oberoende

@@ -3154,4 +3154,150 @@ begin
 end
 $$;
 
+\echo '   saldot räknas likadant i databasen som i @burp/core'
+
+do $$
+declare
+  v_user    uuid;
+  v_account uuid;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'saldo@example.com')
+  returning id into v_user;
+
+  insert into public.loyalty_accounts (user_id, restaurant_id)
+  values (v_user, null)
+  returning id into v_account;
+
+  /*
+   * Exakt de fall loyalty.test.ts kör mot calculateBalance().
+   *
+   * Regeln fanns bara i TypeScript fram till migration 0042, och GDPR-exporten
+   * rapporterade därför ett annat saldo än kontosidan. Det här testet är det
+   * som håller de två i takt.
+   */
+
+  -- 500 som gick ut, 200 som lever. Bara de levande räknas.
+  insert into public.loyalty_transactions (account_id, kind, points, expires_at)
+  values (v_account, 'EARN', 500, now() - interval '1 day'),
+         (v_account, 'EARN', 200, now() + interval '90 days');
+
+  if public.loyalty_balance(v_account) <> 200 then
+    raise exception 'FEL: saldot blev %, väntade 200', public.loyalty_balance(v_account);
+  end if;
+
+  -- Poäng utan utgångsdatum lever för alltid.
+  insert into public.loyalty_transactions (account_id, kind, points)
+  values (v_account, 'ADJUSTMENT', 50);
+
+  if public.loyalty_balance(v_account) <> 250 then
+    raise exception 'FEL: saldot blev %, väntade 250', public.loyalty_balance(v_account);
+  end if;
+
+  -- Saldot går aldrig under noll.
+  insert into public.loyalty_transactions (account_id, kind, points)
+  values (v_account, 'REDEEM', -1000);
+
+  if public.loyalty_balance(v_account) <> 0 then
+    raise exception 'FEL: saldot blev negativt (%)', public.loyalty_balance(v_account);
+  end if;
+end
+$$;
+
+\echo '   jobbet bokför utgången en gång, och aldrig mer än saldot'
+
+do $$
+declare
+  v_user   uuid;
+  v_a      uuid;
+  v_b      uuid;
+  v_result record;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'jobb@example.com')
+  returning id into v_user;
+
+  insert into public.loyalty_accounts (user_id, restaurant_id)
+  values (v_user, null)
+  returning id into v_a;
+
+  insert into public.loyalty_accounts (user_id, restaurant_id)
+  values (v_user, '11111111-1111-1111-1111-111111111111')
+  returning id into v_b;
+
+  -- Konto A: 300 mognade, 100 lever.
+  insert into public.loyalty_transactions (account_id, kind, points, expires_at)
+  values (v_a, 'EARN', 300, now() - interval '1 day'),
+         (v_a, 'EARN', 100, now() + interval '90 days');
+
+  -- Konto B: 400 mognade, men 350 är redan inlösta. Bara 50 finns kvar att
+  -- boka bort — utan taket mot saldot hade kontot hamnat på minus 350.
+  insert into public.loyalty_transactions (account_id, kind, points, expires_at)
+  values (v_b, 'EARN', 400, now() - interval '1 day');
+  insert into public.loyalty_transactions (account_id, kind, points)
+  values (v_b, 'REDEEM', -350);
+
+  select * into v_result from public.expire_loyalty_points();
+
+  if v_result.points_expired <> 350 then
+    raise exception 'FEL: jobbet bokförde % poäng, väntade 350 (300 + 50)',
+      v_result.points_expired;
+  end if;
+
+  if public.loyalty_balance(v_a) <> 100 then
+    raise exception 'FEL: konto A blev %, väntade 100', public.loyalty_balance(v_a);
+  end if;
+
+  -- Rå summa, inte den filtrerade: den ska vara noll och inte negativ.
+  if (select sum(points) from public.loyalty_transactions where account_id = v_b) <> 0 then
+    raise exception 'FEL: konto B:s logg summerar till %, väntade 0',
+      (select sum(points) from public.loyalty_transactions where account_id = v_b);
+  end if;
+
+  -- En andra körning ska inte bokföra samma utgång igen.
+  select * into v_result from public.expire_loyalty_points();
+
+  if v_result.points_expired <> 0 then
+    raise exception 'FEL: andra körningen bokförde % poäng till', v_result.points_expired;
+  end if;
+
+  if public.loyalty_balance(v_a) <> 100 then
+    raise exception 'FEL: konto A ändrades av andra körningen (%)', public.loyalty_balance(v_a);
+  end if;
+end
+$$;
+
+\echo '   exporten visar samma saldo som gästen ser'
+
+do $$
+declare
+  v_user    uuid;
+  v_account uuid;
+  v_json    jsonb;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'export@example.com')
+  returning id into v_user;
+
+  insert into public.loyalty_accounts (user_id, restaurant_id)
+  values (v_user, null)
+  returning id into v_account;
+
+  insert into public.loyalty_transactions (account_id, kind, points, expires_at)
+  values (v_account, 'EARN', 500, now() - interval '30 days'),
+         (v_account, 'EARN', 200, now() + interval '90 days');
+
+  select public.export_guest_data(v_user) into v_json;
+
+  -- Före 0042 summerade exporten loggen rakt av och sa 700.
+  if (v_json #>> '{loyalty,0,balance_points}')::integer <> 200 then
+    raise exception 'FEL: exporten sa % poäng, kontosidan visar 200',
+      v_json #>> '{loyalty,0,balance_points}';
+  end if;
+
+  -- Händelserna ska ändå finnas med i sin helhet. Gästen har rätt till
+  -- underlaget, inte bara till slutsumman.
+  if jsonb_array_length(v_json #> '{loyalty,0,transactions}') <> 2 then
+    raise exception 'FEL: exporten tappade poänghändelser';
+  end if;
+end
+$$;
+
 rollback;

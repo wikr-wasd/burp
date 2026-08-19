@@ -49,24 +49,54 @@ export function pointsForOrder(itemsGrossOre: Ore, pointsPerKrona = BASE_POINTS_
 /**
  * Räknar fram saldot ur loggen vid en given tidpunkt.
  *
- * `EXPIRE`-rader skrivs av ett bakgrundsjobb. Funktionen räknar dessutom bort
- * poster vars `expiresAt` passerat men som jobbet ännu inte hunnit hantera, så
- * att gästen aldrig ser ett saldo hen inte kan använda.
+ * `EXPIRE`-rader skrivs av `expire_loyalty_points()` (migration 0042), som körs
+ * som ett nattligt jobb. Funktionen räknar dessutom bort poster vars
+ * `expiresAt` passerat men som jobbet ännu inte hunnit hantera, så att gästen
+ * aldrig ser ett saldo hen inte kan använda.
+ *
+ * **Speglar `loyalty_balance()` i databasen — ändras den ena måste den andra
+ * följa med.** Samma krav som gäller `country_time_zone()` och `COUNTRY_INFO`,
+ * och av samma skäl: två svar på frågan "hur mycket har gästen kvar" glider
+ * isär, och då visar kontosidan ett tal medan exporten visar ett annat. Det
+ * hände: GDPR-exporten rapporterade 700 poäng för ett konto som visade 200.
+ *
+ * Den dag inlösen byggs räcker ingen av dem. En REDEEM måste då veta VILKEN
+ * intjäning den förbrukade — partier med först-in-först-ut — annars kan en
+ * inlöst poäng gå ut en gång till. Se docs/OPEN-QUESTIONS.md fråga 3.
  */
 export function calculateBalance(
   transactions: readonly LoyaltyTransaction[],
   now = new Date(),
 ): number {
-  let balance = 0;
+  let raw = 0;
+  let matured = 0;
+  let booked = 0;
 
   for (const transaction of transactions) {
+    raw += transaction.points;
+
     if (transaction.points > 0 && transaction.expiresAt && transaction.expiresAt <= now) {
-      continue; // Utgången men ännu inte bokförd som EXPIRE.
+      matured += transaction.points;
     }
-    balance += transaction.points;
+
+    // EXPIRE-radernas poäng är negativa; `booked` räknas som ett positivt tal.
+    if (transaction.kind === "EXPIRE") {
+      booked -= transaction.points;
+    }
   }
 
-  return Math.max(0, balance);
+  /*
+   * Bara det som mognat men ÄNNU INTE bokförts dras bort här.
+   *
+   * Den tidigare varianten hoppade över varje mognad post och lät EXPIRE-raden
+   * dra av samma poäng en gång till. Så länge jobbet inte fanns märktes det
+   * inte — det fanns inga EXPIRE-rader. Första natten jobbet kört hade varje
+   * gäst sett sitt kvarvarande saldo falla till noll, eftersom clampningen
+   * dolde att avdraget skett dubbelt.
+   */
+  const unbooked = Math.max(0, matured - booked);
+
+  return Math.max(0, raw - unbooked);
 }
 
 /** Kan gästen lösa in en belöning som kostar `cost` poäng? */

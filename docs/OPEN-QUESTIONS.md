@@ -77,6 +77,17 @@ Burp, restaurangen eller delat? Det påverkar hela ekonomin i lojalitetsprogramm
 
 Kvar är poängen: vem betalar när en gäst löser in intjänade poäng?
 
+**Ett tekniskt beslut hänger på samma svar (2026-08-19).** När inlösen byggs
+måste varje REDEEM veta VILKEN intjäning den förbrukade — partier med
+först-in-först-ut. Utan det kan en poäng som redan lösts in gå ut en gång till,
+eller tvärtom överleva sitt datum.
+
+I dag skriver ingen kod REDEEM-rader, så frågan är inte akut. Både
+`loyalty_balance()` (migration 0042) och `calculateBalance()` i `@burp/core`
+räknar därför utan partier och tar ett tak mot saldot, så att det aldrig kan bli
+negativt. Det ger rätt svar så länge ingen löser in något — och fel svar första
+dagen någon gör det. Testet i `verify-schema-tests.sql` visar båda fallen.
+
 ---
 
 ## 4. Vilka krav på kassaregister gäller i Bosnien, Kroatien och Serbien?

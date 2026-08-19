@@ -162,6 +162,11 @@ DELETE.
 Det räknas ur `loyalty_transactions`. Ett lagrat saldo kan hamna i otakt med
 sina transaktioner; en summa över loggen kan det inte.
 
+**Regeln finns på två ställen och måste hållas i takt:** `loyalty_balance()`
+(migration 0042) och `calculateBalance()` i `@burp/core`. Samma krav som
+`country_time_zone()` och `COUNTRY_INFO`. Utgångna poäng räknas bort en gång —
+antingen av filtret eller av EXPIRE-raden, aldrig av båda.
+
 ### 8. Dricks är inte omsättning
 
 Egen tabell, egen rad, aldrig i avgiftsunderlaget. Dricks är gästens pengar till

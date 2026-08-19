@@ -84,6 +84,11 @@ if (!/^NEXT_PUBLIC_SITE_URL=.+$/m.test(existing)) {
 if (!/^BURP_DEFAULT_FEE_BPS=.+$/m.test(existing)) {
   updates.BURP_DEFAULT_FEE_BPS = "340";
 }
+// Bakgrundsjobben under /api/jobs. Utan den svarar de 503 i stället för att
+// köra öppet, och då går de inte att prova lokalt heller.
+if (!/^CRON_SECRET=.+$/m.test(existing)) {
+  updates.CRON_SECRET = randomBytes(24).toString("base64url");
+}
 
 let output = existing;
 for (const [key, value] of Object.entries(updates)) {
