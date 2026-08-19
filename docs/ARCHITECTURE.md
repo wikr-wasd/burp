@@ -170,6 +170,14 @@ hållet. Tabellen var tom och byttes mot `settlements`.
 
 - `media` — bild eller video kopplad till restaurang eller rätt med ordning och status
 
+**GDPR** — migration `0041`
+
+Ingen egen tabell. `export_guest_data()` samlar ihop allt Burp har om en gäst
+som JSON, och `erase_guest()` tar bort personen utan att röra bokföringen —
+order, avgifter och omdömesbetyg står kvar utan någon att peka på. Se
+`OPEN-QUESTIONS.md` fråga 13 för var gränsen mellan radering och
+avidentifiering går, och varför.
+
 ---
 
 ## 4. QR-beställning vid bordet

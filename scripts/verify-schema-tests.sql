@@ -2982,4 +2982,176 @@ begin
 end
 $$;
 
+\echo '   en gäst kan raderas trots att loggarna är oföränderliga'
+
+do $$
+declare
+  v_rest    uuid := '11111111-1111-1111-1111-111111111111';
+  v_user    uuid;
+  v_order   uuid;
+  v_coupon  uuid;
+  v_review  uuid;
+  v_summary jsonb;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'radera@example.com')
+  returning id into v_user;
+
+  update public.restaurants set punch_card_size = 2 where id = v_rest;
+
+  insert into public.coupons (restaurant_id, code, discount_bps, max_per_guest)
+  values (v_rest, 'RADERA10', 1000, 5)
+  returning id into v_coupon;
+
+  -- Tre genomförda order ger lojalitetspoäng och fyller klippkortet.
+  for i in 1..3 loop
+    insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key,
+                               items_gross_ore, total_ore)
+    values (v_rest, v_user, 'PICKUP', 'DRAFT', gen_random_uuid(), 10000, 10000)
+    returning id into v_order;
+
+    update public.orders set status = 'PLACED'    where id = v_order;
+    update public.orders set status = 'ACCEPTED'  where id = v_order;
+    update public.orders set status = 'PREPARING' where id = v_order;
+    update public.orders set status = 'READY'     where id = v_order;
+    update public.orders set status = 'COMPLETED' where id = v_order;
+  end loop;
+
+  -- En fjärde order som tar ut belöningen och använder kupongen.
+  insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key,
+                             items_gross_ore, total_ore)
+  values (v_rest, v_user, 'PICKUP', 'PLACED', gen_random_uuid(), 10000, 10000)
+  returning id into v_order;
+
+  perform public.redeem_punch_card(v_rest, v_user, v_order, 1000);
+  perform public.redeem_coupon(v_coupon, v_order, v_user, 1000);
+
+  insert into public.reviews (restaurant_id, user_id, order_id, rating_food, comment)
+  values (v_rest, v_user,
+          (select id from public.orders
+           where guest_id = v_user and status = 'COMPLETED' limit 1),
+          5, 'Bäst i stan, och jag heter Ivan Ivanović')
+  returning id into v_review;
+
+  insert into public.favorites (user_id, restaurant_id) values (v_user, v_rest);
+  insert into public.addresses (user_id, street_address, postal_code, city)
+  values (v_user, 'Ferhadija 1', '71000', 'Sarajevo');
+
+  -- Exporten måste innehålla allt innan något raderas.
+  select public.export_guest_data(v_user) into v_summary;
+
+  if jsonb_array_length(v_summary -> 'orders') <> 4 then
+    raise exception 'FEL: exporten hade % order, väntade 4',
+      jsonb_array_length(v_summary -> 'orders');
+  end if;
+  if jsonb_array_length(v_summary -> 'reviews') <> 1
+     or jsonb_array_length(v_summary -> 'addresses') <> 1
+     or jsonb_array_length(v_summary -> 'favourites') <> 1
+     or jsonb_array_length(v_summary -> 'coupons_used') <> 1
+     or jsonb_array_length(v_summary -> 'punch_card_rewards') <> 1
+     or jsonb_array_length(v_summary -> 'loyalty') <> 1 then
+    raise exception 'FEL: exporten saknade något: %', v_summary;
+  end if;
+
+  -- Fritexten gästen skrev ska stå som hon skrev den.
+  if v_summary #>> '{reviews,0,comment}' not like '%Ivan%' then
+    raise exception 'FEL: exporten tappade omdömets text';
+  end if;
+
+  /*
+   * Raderingen. Före migration 0041 föll den på fyra olika spärrar i tur och
+   * ordning — omdömets check, lojalitetsloggen, klippkortet och kupongen.
+   */
+  select public.erase_guest(v_user) into v_summary;
+
+  if exists (select 1 from auth.users where id = v_user) then
+    raise exception 'FEL: kontot fanns kvar';
+  end if;
+
+  -- Bokföringen står kvar, utan köpare.
+  if (select count(*) from public.orders where guest_id = v_user) <> 0 then
+    raise exception 'FEL: order pekade fortfarande på gästen';
+  end if;
+
+  if (v_summary ->> 'orders_anonymised')::integer <> 4 then
+    raise exception 'FEL: kvittot sa % avidentifierade order, väntade 4',
+      v_summary ->> 'orders_anonymised';
+  end if;
+
+  -- Omdömet: betyget kvar, orden borta, författaren borta.
+  if not exists (
+    select 1 from public.reviews
+    where id = v_review
+      and user_id is null
+      and comment is null
+      and anonymised_at is not null
+      and rating_food = 5
+  ) then
+    raise exception 'FEL: omdömet avidentifierades inte som avsett';
+  end if;
+
+  -- Loggarna står kvar och är fortfarande oföränderliga.
+  if (select count(*) from public.punch_card_redemptions
+      where restaurant_id = v_rest and guest_id is null) < 1 then
+    raise exception 'FEL: klippkortsuttaget försvann i stället för att lossas';
+  end if;
+
+  if (select count(*) from public.coupon_redemptions
+      where coupon_id = v_coupon and guest_id is null) <> 1 then
+    raise exception 'FEL: kuponginlösen försvann i stället för att lossas';
+  end if;
+
+  if (select count(*) from public.loyalty_accounts where user_id is null) < 1 then
+    raise exception 'FEL: lojalitetskontot raderades i stället för att lossas';
+  end if;
+
+  -- Det rent personliga är borta.
+  if exists (select 1 from public.addresses where user_id = v_user)
+     or exists (select 1 from public.favorites where user_id = v_user)
+     or exists (select 1 from public.profiles where id = v_user) then
+    raise exception 'FEL: personuppgifter låg kvar';
+  end if;
+
+  -- Och en avidentifierad rad går inte att knyta till någon igen.
+  begin
+    update public.coupon_redemptions
+    set guest_id = '11111111-1111-1111-1111-111111111111'
+    where coupon_id = v_coupon;
+    raise exception 'FEL: en avidentifierad inlösen gick att knyta till en person';
+  exception
+    when insufficient_privilege then null;
+    when foreign_key_violation then null;
+  end;
+end
+$$;
+
+\echo '   personal raderas inte utan att anställningen avslutas först'
+
+do $$
+declare
+  v_rest uuid := '11111111-1111-1111-1111-111111111111';
+  v_user uuid;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'anstalld@example.com')
+  returning id into v_user;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_user, 'staff', true);
+
+  begin
+    perform public.erase_guest(v_user);
+    raise exception 'FEL: en anställd raderades, och tog sin anställning med sig';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Utan anställning går det.
+  delete from public.staff where user_id = v_user;
+  perform public.erase_guest(v_user);
+
+  if exists (select 1 from auth.users where id = v_user) then
+    raise exception 'FEL: kontot fanns kvar efter att anställningen tagits bort';
+  end if;
+end
+$$;
+
 rollback;

@@ -14,7 +14,7 @@ export function GuestHeader({
   current,
 }: {
   guest: Guest;
-  current: "bestallningar" | "favoriter" | "adresser";
+  current: "bestallningar" | "favoriter" | "adresser" | "uppgifter";
 }) {
   return (
     <header className="border-b border-[var(--rule)]">
@@ -39,6 +39,9 @@ export function GuestHeader({
           </NavLink>
           <NavLink href="/konto/adresser" active={current === "adresser"}>
             Adresser
+          </NavLink>
+          <NavLink href="/konto/uppgifter" active={current === "uppgifter"}>
+            Mina uppgifter
           </NavLink>
 
           <form action="/logga-ut" method="post">

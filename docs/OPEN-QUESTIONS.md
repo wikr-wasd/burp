@@ -2,7 +2,8 @@
 
 De sju frågorna ur arkitekturunderlaget, med status och var i koden svaret ska
 landa. Fråga 8 tillkom när kartsidan byggdes, fråga 9 och 10 när koden mättes
-mot UI-mockuperna, och fråga 12 när avräkningen byggdes.
+mot UI-mockuperna, fråga 12 när avräkningen byggdes och fråga 13 när GDPR-flödet
+byggdes.
 
 Frågorna är inte formaliteter. Fråga 5 blockerar Fas 1 — utan svar går det inte
 att ta betalt med kort. Fråga 4 kan blockera lanseringen av QR-flödet helt.
@@ -455,6 +456,45 @@ resten. En hel återbetalning upphäver den.
 Vill du ha proportionell kreditering är det en `settlement_lines`-tabell med en
 rad per krediterad order, och krediten räknas då mot vad som redan tagits ut.
 Historiken skrivs inte om — gamla perioder står kvar som de fakturerades.
+
+---
+
+## 13. Vad ska raderas och vad ska avidentifieras?
+
+**Status:** BYGGT PÅ ETT ANTAGANDE 2026-08-19 · **Blockerar:** ingenting — men
+bör bekräftas av jurist före lansering
+
+Rätten till radering (artikel 17) väger inte över en rättslig förpliktelse
+(17.3 b). Order, betalningar, avgifter och moms är bokföring och måste sparas —
+sju år i regionen. Det som ska bort är **personen**, inte affärshändelsen.
+
+Så här drogs gränsen i migration 0041. Varje rad är ett val, och varje val går
+att ändra utan att bygga om:
+
+| Vad | Vad som händer | Varför |
+|---|---|---|
+| Konto, profil, adresser, favoriter, notisprenumerationer | **Raderas** | Rena personuppgifter utan bokföringsvärde |
+| Beställningar, orderrader, betalningar, avgifter | **Står kvar, utan köpare** | Bokföring. `guest_id` nollas |
+| Omdömets betyg | **Står kvar, utan författare** | En siffra pekar inte ut någon, och restaurangens snittbetyg ska inte skrivas om för att en gäst lämnar |
+| Omdömets fritext och bild | **Raderas** | Gästens egna ord kan bära vad som helst om henne själv |
+| Lojalitetspoäng | **Kontot lossas, loggen står kvar** | Loggen är oföränderlig. Poängen går inte längre att nå av någon |
+| Kuponginlösen och klippkortsuttag | **Står kvar, utan gäst** | Restaurangen bekostade en rabatt; det är en affärshändelse |
+
+**Den svåraste raden är omdömet.** Att behålla betyget men stryka texten är
+vanlig praxis och rimligt, men det är inte ett juridiskt besked. Vill du i
+stället radera hela omdömet är ändringen en rad i `erase_guest()` — och
+restaurangens snittbetyg ändras då i efterhand varje gång någon lämnar.
+
+**Personal och Burp-anställda kan inte radera sig själva** genom flödet.
+`staff` och `platform_admins` kaskaderar från kontot, så en radering hade tyst
+tagit bort någons anställning — och med den en restaurangs sista ägare. Vägen
+dit går genom att först avsluta anställningen. Rätten gäller dem också; det som
+saknas är en yta för det.
+
+**Kvar att besluta:** gallringstid. Burp raderar inget av sig självt i dag — en
+gäst som slutar använda tjänsten ligger kvar för alltid. Artikel 5.1 e kräver
+att uppgifter inte sparas längre än nödvändigt, alltså behövs en gräns och ett
+jobb som städar. Det kräver ett svar på "hur länge är nödvändigt".
 
 ---
 

@@ -169,12 +169,17 @@ avvek från planen och det står varför i respektive commit.
       flyttade till `/dashboard/order`. Typkontroll, lint och bygge passerar,
       och Översiktens fyra frågor är körda direkt mot databasen som ägaren med
       RLS påslagen — men ingen har sett sidan. **Behöver göras av William.**
-- [ ] **Avräkningen och dricksrutan sedda i webbläsaren.** Två nya ytor:
-      `/dashboard/avrakning` (ägare och chef) och `/backoffice/avrakning`
-      (Burp), plus "Dricks att fördela" överst i Kassa. Beräkningarna är körda
-      mot en riktig PostgreSQL och RLS mot fem olika roller i psql, men ingen
-      har sett sidorna. **Behöver göras av William** — se spärren om lösenord.
-      Kör `npm run db:demo` först, annars står de tomma.
+- [ ] **Gällande gallring — hur länge sparas en gäst som slutat?** Öppen fråga
+      13. Artikel 5.1 e kräver en gräns; Burp har ingen och raderar inget av sig
+      självt. **Kräver ett beslut av dig**, sedan är det ett bakgrundsjobb.
+- [ ] **De nya ytorna sedda i webbläsaren.** `/dashboard/avrakning` (ägare och
+      chef), `/backoffice/avrakning` (Burp), "Dricks att fördela" överst i Kassa
+      och `/konto/uppgifter` (gästen). Beräkningarna är körda mot en riktig
+      PostgreSQL, RLS mot fem roller i psql, och export och radering hela vägen
+      mot den lokala Supabase-stacken — men ingen har sett sidorna.
+      **Behöver göras av William** — se spärren om lösenord.
+      Kör `npm run db:demo` först, annars står pengaytorna tomma.
+      Raderingen behöver ett engångskonto att prova på; den går inte att ångra.
 - [ ] **Riktiga bilder i seed-datan.** Platshållaren är så bra den kan bli;
       nästa steg kräver fotografier. Utan dem går det inte att bedöma hur
       sajten faktiskt ser ut för en gäst.
@@ -197,7 +202,8 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Ingen Monri-adapter — kort fungerar bara där Stripe finns (HR, SE) | `lib/payments/` | Lansering i BA och RS. Kontant fungerar under tiden |
 | Fiskalisering är inte byggd — kvittot är märkt som orderbekräftelse | `register_receipts` är tom | Lansering. Öppen fråga 4 |
 | Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
-| Ingen GDPR-export eller radering | — | Fas 4 |
+| Ingen automatisk gallring — en gäst som slutar använda tjänsten ligger kvar för alltid | — | Kräver ett svar på hur länge. Öppen fråga 13 |
+| Personal kan inte radera sig själv genom flödet | `erase_guest()` | Anställningen måste avslutas först; ytan för det saknas |
 | Personalytorna är enbart svenska | — | Medvetet. Köket ska inte byta språk för att en gäst gjorde det |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett på publika sidor | — | `loading.tsx` gör varje `notFound()` till en 200:a. Se CLAUDE.md |
@@ -278,6 +284,21 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **GDPR: kopia och radering** (migration 0041). Artikel 15 och 20 ger rätt
+      till en maskinläsbar kopia, artikel 17 till radering. Exporten fanns inte,
+      och raderingen var inte bara obyggd utan **omöjlig** — fyra oberoende
+      spärrar stoppade den, var och en rätt i sig: omdömets krav på en
+      avsändare, den oföränderliga lojalitetsloggen, klippkortets append-only,
+      och kupongvakten. Kombinationen betydde att en gäst inte kunde lämna.
+      **Radering betyder avidentifiering.** Order, betalningar och moms är
+      bokföring som måste sparas i sju år; det som ska bort är personen, inte
+      affärshändelsen. Efter en radering finns beställningen kvar utan köpare,
+      avgiften utan gäst och omdömets betyg utan författare — fritexten och
+      bilden är borta. Gränsdragningen står i öppen fråga 13 med vad som krävs
+      för att ändra varje rad i den.
+      Hela raderingen ligger i en transaktion i databasen. Alternativet — att
+      avidentifiera i appen och ta bort kontot i ett andra steg — hade lämnat ett
+      läge där omdömet är tömt men kontot finns kvar.
 - [x] **Dricksen blir verklig** (migration 0040). `tips` skrevs av
       `place_order` men lästes inte av någon kod — statistiken,
       plattformsöversikten och avräkningen summerade `orders.tip_ore` i stället.
