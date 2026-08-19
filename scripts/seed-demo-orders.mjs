@@ -67,8 +67,12 @@ if (result.error) {
 }
 
 if (result.status !== 0) {
-  console.error("\nDemodatan kunde inte läggas in. Kör `npx supabase start` först.");
+  // Felet står redan ovanför — psql skrev det. Den här raden pekade förut på
+  // `supabase start` oavsett orsak, vilket är fel svar på nästan varje fel och
+  // skickar den som läser åt fel håll när stacken är igång hela tiden.
+  console.error("\nDemodatan kunde inte läggas in. Felet står ovanför.");
+  console.error("Svarar databasen inte alls? Kontrollera att stacken är igång: npx supabase status");
   process.exit(result.status ?? 1);
 }
 
-console.log("\nDemodata inlagd. Kör `npm run db:reset` för att bli av med den.");
+console.log("\nKlart. `npm run db:reset` tar bort demodatan; kör db:demo igen efteråt.");

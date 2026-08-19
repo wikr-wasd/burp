@@ -52,6 +52,23 @@ declare
   v_payment_id   uuid;
   v_refunded     boolean;
 begin
+  /*
+   * Kör en gång, inte varje gång.
+   *
+   * En andra körning hade lagt 246 order till de 246 som redan fanns och
+   * dubblat varje siffra på varje yta — tyst, eftersom ingenting i schemat
+   * hindrar fler order. Att i stället falla på överlappsspärren när
+   * avräkningarna skulle stängas var ett sämre sätt att upptäcka det: då är
+   * ordern redan inlagd och databasen halvvägs.
+   *
+   * En färsk `supabase db reset` har noll order, så tabellen är signalen.
+   */
+  if exists (select 1 from public.orders limit 1) then
+    raise notice 'Databasen har redan order — demodatan läggs inte in igen.';
+    raise notice 'Kör `npm run db:reset` först om du vill ha en färsk omgång.';
+    return;
+  end if;
+
   for v_rest in
     select r.id, r.name, r.country, coalesce(r.fee_override_bps, 340) as bps
     from public.restaurants r
@@ -234,8 +251,32 @@ begin
       (v_this_month - interval '1 month')::date
     ]
     loop
-      v_id := public.close_settlement_period(
-        v_rest, v_month, (v_month + interval '1 month' - interval '1 day')::date);
+      /*
+       * Hoppa över det som redan är stängt.
+       *
+       * Två perioder får inte överlappa (0039), och spärren är en exclusion
+       * constraint som med rätta vägrar. Här är det inget fel — perioden är
+       * redan avräknad — så demodatan ska gå vidare i stället för att falla.
+       */
+      if exists (
+        select 1 from public.settlements s
+        where s.restaurant_id = v_rest
+          and s.period_start  = v_month
+      ) then
+        continue;
+      end if;
+
+      begin
+        v_id := public.close_settlement_period(
+          v_rest, v_month, (v_month + interval '1 month' - interval '1 day')::date);
+      exception
+        -- En period som delvis överlappar en befintlig. Sällsynt, och det är
+        -- fortfarande inte demodatans sak att avgöra vad som ska hända med den.
+        when exclusion_violation then
+          raise notice 'Perioden % för restaurang % överlappar en avräkning som finns — hoppar över',
+            to_char(v_month, 'YYYY-MM'), v_rest;
+          continue;
+      end;
 
       if v_month < (v_this_month - interval '1 month')::date then
         update public.settlements
