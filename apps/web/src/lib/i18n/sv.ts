@@ -245,6 +245,26 @@ export const sv = {
      * nedan är hela skillnaden mellan en orderbekräftelse och ett skattekvitto.
      */
     notFiscalReceipt: "Det här är en orderbekräftelse, inte ett kvitto. Kvittot får du av restaurangen.",
+
+    /*
+     * Omdömet, frågat på plats.
+     *
+     * QR-gästen är anonym och har ingen adress — ett brev efteråt når aldrig
+     * fram. Den som just ätit svarar vid bordet eller inte alls.
+     */
+    reviewPrompt: "Hur var maten?",
+    reviewOpen: "Lämna omdöme",
+    reviewFood: "Maten",
+    reviewService: "Servicen",
+    reviewOptional: "valfritt",
+    reviewComment: "Kommentar",
+    reviewStar: "{n} av 5",
+    reviewSubmit: "Skicka",
+    reviewSending: "Skickar…",
+    reviewCancel: "Avbryt",
+    reviewThanks: "Tack. Omdömet hjälper nästa gäst.",
+    reviewAlready: "Du har redan lämnat ett omdöme på den här beställningen.",
+    reviewFailed: "Omdömet kunde inte sparas. Försök igen.",
     backTo: "Tillbaka till {name}",
     progress: "Orderns förlopp",
     // Neutral med flit. Blocket visas på både bordskvittot och

@@ -215,18 +215,25 @@ do $$
 declare
   v_order_id uuid;
   v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_user_id  uuid;
   v_snitt    numeric;
   v_antal    integer;
 begin
-  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
-  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 12900)
+  -- Omdömet behöver en avsändare sedan 0028: ett konto eller en bordssession.
+  -- Det här är avhämtning, alltså en inloggad gäst.
+  insert into auth.users (id, email) values (gen_random_uuid(), 'betyg@example.com')
+  returning id into v_user_id;
+
+  insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, v_user_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 12900)
   returning id into v_order_id;
 
   update public.orders set status = 'PLACED' where id = v_order_id;
 
   -- Ordern är inte klar än — betyget ska avvisas.
   begin
-    insert into public.reviews (order_id, restaurant_id, rating_food) values (v_order_id, v_rest_id, 5);
+    insert into public.reviews (order_id, restaurant_id, user_id, rating_food)
+    values (v_order_id, v_rest_id, v_user_id, 5);
     raise exception 'FEL: betyg gick att lämna på en order som inte var genomförd';
   exception
     when check_violation then null;
@@ -237,7 +244,8 @@ begin
   update public.orders set status = 'READY'     where id = v_order_id;
   update public.orders set status = 'COMPLETED' where id = v_order_id;
 
-  insert into public.reviews (order_id, restaurant_id, rating_food) values (v_order_id, v_rest_id, 4);
+  insert into public.reviews (order_id, restaurant_id, user_id, rating_food)
+  values (v_order_id, v_rest_id, v_user_id, 4);
 
   -- Snittbetyget ska ha cachats på restaurangen av triggern.
   select rating_average, rating_count into v_snitt, v_antal
@@ -249,7 +257,8 @@ begin
 
   -- Ett betyg per order.
   begin
-    insert into public.reviews (order_id, restaurant_id, rating_food) values (v_order_id, v_rest_id, 1);
+    insert into public.reviews (order_id, restaurant_id, user_id, rating_food)
+    values (v_order_id, v_rest_id, v_user_id, 1);
     raise exception 'FEL: samma order gick att recensera två gånger';
   exception
     when unique_violation then null;
@@ -1333,6 +1342,108 @@ begin
     raise exception 'FEL: en motbokning gick att radera';
   exception
     when insufficient_privilege then null;
+  end;
+end
+$$;
+
+\echo '   omdöme från bordet kräver ordernas egen session'
+
+do $$
+declare
+  v_rest_id    uuid := '11111111-1111-1111-1111-111111111111';
+  v_table_id   uuid;
+  v_session_a  uuid;
+  v_session_b  uuid;
+  v_order_id   uuid;
+begin
+  -- Ett bord som inte redan har en öppen nota från ett tidigare test. Bordet
+  -- kan bara ha en åt gången (`table_sessions_one_open_per_table`).
+  select t.id into v_table_id
+  from public.tables t
+  where t.restaurant_id = v_rest_id
+    and not exists (
+      select 1 from public.table_sessions s
+      where s.table_id = t.id and s.status = 'OPEN'
+    )
+  limit 1;
+
+  insert into public.table_sessions (table_id, restaurant_id, status)
+  values (v_table_id, v_rest_id, 'OPEN') returning id into v_session_a;
+
+  -- En order i session A, slutförd.
+  insert into public.orders (
+    restaurant_id, table_id, table_session_id, type, status, idempotency_key, total_ore
+  )
+  values (v_rest_id, v_table_id, v_session_a, 'TABLE', 'DRAFT', gen_random_uuid(), 1200)
+  returning id into v_order_id;
+
+  update public.orders set status = 'PLACED'    where id = v_order_id;
+  update public.orders set status = 'ACCEPTED'  where id = v_order_id;
+  update public.orders set status = 'PREPARING' where id = v_order_id;
+  update public.orders set status = 'READY'     where id = v_order_id;
+  update public.orders set status = 'COMPLETED' where id = v_order_id;
+
+  -- Notan stängs så att bordet kan få en ny session.
+  update public.table_sessions set status = 'CLOSED', closed_at = now() where id = v_session_a;
+
+  insert into public.table_sessions (table_id, restaurant_id, status)
+  values (v_table_id, v_rest_id, 'OPEN') returning id into v_session_b;
+
+  -- Nästa gäst vid samma bord ska inte kunna sätta betyg på förra gästens mat
+  -- genom att skicka sitt eget sessions-id.
+  begin
+    insert into public.reviews (order_id, restaurant_id, table_session_id, rating_food)
+    values (v_order_id, v_rest_id, v_session_b, 1);
+    raise exception 'FEL: en främmande bordssession fick lämna omdöme';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- Ordernas egen session får.
+  insert into public.reviews (order_id, restaurant_id, table_session_id, rating_food, comment)
+  values (v_order_id, v_rest_id, v_session_a, 5, 'Bästa ćevapi i stan');
+
+  -- Och bara en gång.
+  begin
+    insert into public.reviews (order_id, restaurant_id, table_session_id, rating_food)
+    values (v_order_id, v_rest_id, v_session_a, 1);
+    raise exception 'FEL: samma order gick att betygsätta två gånger';
+  exception
+    when unique_violation then null;
+  end;
+
+  -- Snittbetyget ska ha räknats om av triggern från 0010, trots att omdömet
+  -- kom från en anonym gäst.
+  if (select rating_count from public.restaurants where id = v_rest_id) = 0 then
+    raise exception 'FEL: snittbetyget räknades inte om för ett anonymt omdöme';
+  end if;
+end
+$$;
+
+\echo '   ett omdöme utan avsändare finns inte'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_order_id uuid;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest_id, 'PICKUP', 'DRAFT', gen_random_uuid(), 1200)
+  returning id into v_order_id;
+
+  update public.orders set status = 'PLACED'    where id = v_order_id;
+  update public.orders set status = 'ACCEPTED'  where id = v_order_id;
+  update public.orders set status = 'PREPARING' where id = v_order_id;
+  update public.orders set status = 'READY'     where id = v_order_id;
+  update public.orders set status = 'COMPLETED' where id = v_order_id;
+
+  -- Varken konto eller bordssession. Ett omdöme utan avsändare är ingen källa.
+  begin
+    insert into public.reviews (order_id, restaurant_id, rating_food)
+    values (v_order_id, v_rest_id, 5);
+    raise exception 'FEL: ett omdöme utan avsändare accepterades';
+  exception
+    when check_violation then null;
   end;
 end
 $$;

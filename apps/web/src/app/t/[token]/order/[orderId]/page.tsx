@@ -10,6 +10,7 @@ import {
 import { OrderActions } from "@/components/order/order-actions";
 import { OrderStatusView } from "@/components/order/order-status";
 import { PaymentNotice } from "@/components/order/payment-notice";
+import { TableReview } from "@/components/order/table-review";
 import { paymentSummaryFor } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { currentTableSessionId, lookupTable } from "@/lib/table-session";
@@ -90,6 +91,17 @@ export default async function OrderPage({ params }: PageProps) {
 
   const policy = parseOrderPolicy(restaurant?.order_policy);
   const payment = await paymentSummaryFor(order.id);
+
+  // Har gästen redan svarat ska frågan inte ställas igen. Databasen hindrar
+  // dubbletten ändå (`reviews_order_key`), men en knapp som alltid nekar är
+  // sämre än ingen knapp.
+  const { data: existingReview } = await supabase
+    .from("reviews")
+    .select("id")
+    .eq("order_id", order.id)
+    .maybeSingle();
+
+  const hasReview = existingReview !== null;
 
   const optionsByItem = new Map<string, string[]>();
   for (const option of options ?? []) {
@@ -173,6 +185,17 @@ export default async function OrderPage({ params }: PageProps) {
           <dd className="tabular-nums">{formatMoney(order.total_ore, order.currency)}</dd>
         </div>
       </dl>
+
+      {/*
+        Frågan ställs när måltiden är över och inte innan.
+
+        En gäst som fortfarande väntar på maten har ingenting att säga om den,
+        och en fråga i fel ögonblick är hur man lär folk att ignorera frågan.
+        Har gästen redan svarat visas ingenting alls.
+      */}
+      {order.status === "COMPLETED" && !hasReview ? (
+        <TableReview token={token} orderId={order.id} labels={t.receipt} />
+      ) : null}
 
       {/* Vad som hänt med pengarna, och att det här inte är ett fiskalt
           kvitto. Båda ska stå rakt ut, inte antydas. */}
