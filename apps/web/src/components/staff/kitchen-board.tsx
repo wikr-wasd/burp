@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   allowedTransitions,
   formatMoney,
+  isActiveForKitchen,
   ORDER_STATUS_LABELS,
   type CurrencyCode,
   type OrderStatus,
@@ -112,7 +113,25 @@ export function KitchenBoard({
         (payload) => {
           const row = payload.new as { id?: string; status?: string } | null;
 
-          if (payload.eventType === "INSERT" && row?.id && !knownIds.current.has(row.id)) {
+          /*
+           * Larmet går när ordern kommer IN I KÖKET, inte när raden skapas.
+           *
+           * Det var samma sak så länge varje order lades direkt. Med
+           * kortbetalning är det inte det: en kortorder skapas som `DRAFT`
+           * innan gästen betalat och lyfts till `PLACED` först av webhooken.
+           * Med en kontroll på INSERT tjöt köksskärmen för en obetald order som
+           * inte syns någonstans — och var tyst i det ögonblick pengarna kom in
+           * och maten faktiskt skulle lagas.
+           *
+           * `knownIds` bär de order köket redan larmat för, så en statusändring
+           * längre fram i flödet inte låter en gång till.
+           */
+          if (
+            row?.id &&
+            row.status !== undefined &&
+            isActiveForKitchen(row.status as OrderStatus) &&
+            !knownIds.current.has(row.id)
+          ) {
             knownIds.current.add(row.id);
             playChime();
           }

@@ -1,6 +1,12 @@
 import "server-only";
 
-import { isDueForKitchen, parseOrderPolicy, type OrderStatus, type OrderType } from "@burp/core";
+import {
+  ACTIVE_STATUSES,
+  isDueForKitchen,
+  parseOrderPolicy,
+  type OrderStatus,
+  type OrderType,
+} from "@burp/core";
 import { createClient } from "./supabase/server";
 
 /**
@@ -46,8 +52,14 @@ export interface ActiveOrders {
   upcoming: KitchenOrder[];
 }
 
-/** Statusarna som betyder "köket har något att göra med den här". */
-export const ACTIVE_STATUSES: OrderStatus[] = ["PLACED", "ACCEPTED", "PREPARING", "READY"];
+/**
+ * Statusarna som betyder "köket har något att göra med den här".
+ *
+ * Bor i `@burp/core` sedan köksskärmens larm behövde samma lista — larmet körs
+ * i webbläsaren och den här filen är `server-only`. Re-exporten står kvar så
+ * att befintliga anrop inte behöver veta att den flyttat.
+ */
+export { ACTIVE_STATUSES };
 
 export async function getActiveOrders(restaurantId: string): Promise<ActiveOrders> {
   const supabase = await createClient();

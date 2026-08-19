@@ -34,6 +34,29 @@ const HAPPY_PATH: readonly OrderStatus[] = [
 
 export const TERMINAL_STATUSES: readonly OrderStatus[] = ["COMPLETED", "CANCELLED", "REFUNDED"];
 
+/**
+ * Statusarna som betyder "köket har något att göra med den här".
+ *
+ * `DRAFT` ingår inte, och det är hela poängen sedan kortbetalning finns: en
+ * kortorder skapas som utkast innan gästen betalat och lyfts till `PLACED`
+ * först av leverantörens webhook. Köket ska aldrig se en obetald order.
+ *
+ * Ligger här och inte i webbens datalager därför att både köksskärmens fråga
+ * och dess larm behöver samma lista — och den ena körs på servern medan den
+ * andra körs i webbläsaren.
+ */
+export const ACTIVE_STATUSES: readonly OrderStatus[] = [
+  "PLACED",
+  "ACCEPTED",
+  "PREPARING",
+  "READY",
+];
+
+/** Har köket något ogjort med den här ordern? */
+export function isActiveForKitchen(status: OrderStatus): boolean {
+  return ACTIVE_STATUSES.includes(status);
+}
+
 export function isTerminal(status: OrderStatus): boolean {
   return TERMINAL_STATUSES.includes(status);
 }

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  ACTIVE_STATUSES,
   allowedTransitions,
   assertTransition,
   canTransition,
   hasReachedStatus,
   InvalidTransitionError,
+  isActiveForKitchen,
   isTerminal,
   statusAfterPlacement,
 } from "./order-status";
@@ -61,6 +63,34 @@ describe("statusmaskin", () => {
 
   it("räknar status utanför flödet som passerad", () => {
     expect(hasReachedStatus("CANCELLED", "ACCEPTED")).toBe(true);
+  });
+});
+
+describe("isActiveForKitchen", () => {
+  it("köket ser en lagd order", () => {
+    expect(isActiveForKitchen("PLACED")).toBe(true);
+    expect(isActiveForKitchen("ACCEPTED")).toBe(true);
+    expect(isActiveForKitchen("PREPARING")).toBe(true);
+    expect(isActiveForKitchen("READY")).toBe(true);
+  });
+
+  /**
+   * Det här är det som gick sönder när kortbetalning byggdes.
+   *
+   * En kortorder skapas som DRAFT innan gästen betalat och lyfts till PLACED
+   * först av webhooken. Köksskärmens larm gick på INSERT, alltså tjöt det för
+   * en obetald order som inte syns någonstans — och var tyst i det ögonblick
+   * pengarna kom in och maten faktiskt skulle lagas.
+   */
+  it("köket ser aldrig ett utkast", () => {
+    expect(isActiveForKitchen("DRAFT")).toBe(false);
+    expect(ACTIVE_STATUSES).not.toContain("DRAFT");
+  });
+
+  it("en avslutad order hör inte till köket", () => {
+    expect(isActiveForKitchen("COMPLETED")).toBe(false);
+    expect(isActiveForKitchen("CANCELLED")).toBe(false);
+    expect(isActiveForKitchen("REFUNDED")).toBe(false);
   });
 });
 
