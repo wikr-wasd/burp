@@ -10,7 +10,8 @@ import {
   type CurrencyCode,
   type OrderStatus,
 } from "@burp/core";
-import { CheckCheck } from "lucide-react";
+import { CheckCheck, Layers } from "lucide-react";
+import { groupByTable } from "@/lib/kitchen-queue";
 import { createClient } from "@/lib/supabase/client";
 import type { KitchenOrder } from "@/lib/orders";
 
@@ -176,6 +177,11 @@ export function KitchenBoard({
     setPending(null);
   }
 
+  // Samma bords biljetter läggs bredvid varandra. Regeln och skälen till den
+  // står i `lib/kitchen-queue.ts`, som har egna tester — kön är en produktregel
+  // och ska gå att pröva utan att rendera en skärm.
+  const byTable = groupByTable(orders);
+
   return (
     <div className="kds-screen">
       <div className="mb-6 flex items-center gap-4">
@@ -212,10 +218,11 @@ export function KitchenBoard({
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {orders.map((order) => (
+          {byTable.map(({ order, index, count }) => (
             <OrderCard
               key={order.id}
               order={order}
+              sibling={count > 1 ? { index, count } : null}
               pending={pending === order.id}
               onAdvance={advance}
               canCancel={canCancel}
@@ -236,8 +243,11 @@ function OrderCard({
   canCancel,
   showTotals,
   currency,
+  sibling,
 }: {
   order: KitchenOrder;
+  /** Null när bordet bara har en aktiv beställning. */
+  sibling: { index: number; count: number } | null;
   pending: boolean;
   onAdvance: (order: KitchenOrder, to: OrderStatus) => void;
   canCancel: boolean;
@@ -264,6 +274,25 @@ function OrderCard({
         </h2>
         <Elapsed since={order.placedAt} />
       </header>
+
+      {/*
+        Bordet har fler beställningar inne.
+
+        Biljetterna ligger bredvid varandra i kön, men "bredvid" räcker inte på
+        en skärm som läses på några meters håll och som bryter till en spalt på
+        en smal surfplatta. Raden säger rakt ut hur många notan består av, så
+        att den som kör ut vet att det finns en till innan hon lämnar köket.
+
+        Egen rad över statusen och inte inbakad i den: det här är det enda på
+        biljetten som handlar om något UTANFÖR den, och ska inte läsas som en
+        egenskap hos den här ordern.
+      */}
+      {sibling ? (
+        <p className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-burp-600/10 px-2 py-1 text-sm font-semibold text-burp-700 dark:text-burp-400">
+          <Layers size={15} aria-hidden="true" />
+          Beställning {sibling.index} av {sibling.count} på bordet
+        </p>
+      ) : null}
 
       {/*
         Rummet står på samma rad som statusen, inte som en egen rubrik.

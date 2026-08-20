@@ -352,10 +352,27 @@ begin
   -- till köket och en radnotering. Två identiska biljetter visar inte om
   -- biljetten går att läsa — det gör den först när den är olika lång, har en
   -- rad med tillval och en rad utan, och en notering som ska sticka ut.
+  --
+  -- BORD 6 HAR TVÅ. Det är inte utfyllnad: notan är gemensam per bord, och två
+  -- gäster som beställer var för sig är normalfallet vid ett sällskapsbord.
+  -- Köksskärmen grupperar biljetterna och märker dem "1 av 2" — och den
+  -- funktionen går inte att bedöma i en demomiljö där varje bord har en enda
+  -- beställning. Samma skäl som femton bord i stället för tre.
   for v_spec in
-    select * from (values
-      ('6',  'PREPARING',  6, 0, 3, 'Allergi: en gäst tål inte mjölk.'),
-      ('11', 'READY',     14, 4, 2, null)
+    select *, row_number() over (partition by nr order by minutes desc) as nth
+    from (values
+      -- Tiderna FLÄTAR bord 6 och 11 med flit: 6 kom in för 14 minuter sedan,
+      -- 11 för 9, och bord 6 fyllde på för 4 minuter sedan. Rak FIFO hade
+      -- radat dem 6 · 11 · 6 och lagt en annan nota mitt i sällskapets.
+      -- Grupperingen ska ge 6 · 6 · 11. Med tiderna i ordning hade båda
+      -- sorteringarna sett likadana ut, och funktionen inte gått att bedöma.
+      --
+      -- Bord 6 har dessutom en klar och en pågående order samtidigt — drycken
+      -- hann före maten. Det är precis läget där en biljett som inte säger
+      -- "1 av 2" får någon att köra ut halva bordet.
+      ('6',  'PREPARING', 14, 0, 3, 'Allergi: en gäst tål inte mjölk.'),
+      ('11', 'PREPARING',  9, 4, 2, null),
+      ('6',  'READY',      4, 6, 2, null)
     ) as s(nr, target, minutes, skip, lines, kitchen_note)
   loop
     select id into v_table from public.tables
@@ -365,11 +382,15 @@ begin
     -- Bordet lever redan. Att lägga en order till hade byggt på i stället för
     -- att återställa, och efter tre röktestkörningar stod det sex biljetter i
     -- köket för ett bord som har en.
-    continue when exists (
-      select 1 from public.orders
+    -- Bordet har redan så många aktiva beställningar som seeden vill ge det.
+    -- Räknat och inte bara "finns någon", eftersom bord 6 ska ha två: en
+    -- enkel existenskontroll hade lagt in den första och hoppat över den andra
+    -- för alltid, och grupperingen i köket hade aldrig gått att se.
+    continue when (
+      select count(*) from public.orders
       where table_id = v_table
         and status in ('PLACED', 'ACCEPTED', 'PREPARING', 'READY')
-    );
+    ) >= v_spec.nth;
 
     if not exists (
       select 1 from public.table_sessions where table_id = v_table and status = 'OPEN'

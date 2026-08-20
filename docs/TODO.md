@@ -178,6 +178,21 @@ avvek från planen och det står varför i respektive commit.
       intill statusen, så att bordsnumret förblir det största på biljetten.
       `lib/orders.ts`, `components/staff/kitchen-board.tsx`.
 
+- [x] **Köket ser att två biljetter hör till samma bord.** Notan var gemensam
+      men maten hölls inte ihop: listan sorterades enbart på `placed_at`, så två
+      gäster vid bord 6 kunde få sina biljetter åtskilda av ett annat bords
+      order — och ingenting sa att de hörde ihop.
+
+      Kön är nu först in, först ut **på notan** och inte på den enskilda ordern.
+      Ett bord tar plats när dess första beställning kom in och en påfyllning
+      ärver den platsen. Priset är att ett annat bord kan få vänta på en order
+      som lades senare; alternativet är att servera halva sällskapet.
+
+      Regeln ligger i `lib/kitchen-queue.ts` med åtta egna tester — den är en
+      produktregel och ska gå att pröva utan att rendera en skärm. Biljetten
+      märks "Beställning 1 av 2 på bordet". Seeden flätar bord 6 och 11 med
+      flit, annars hade rak FIFO och gruppering sett likadana ut.
+
 - [x] **Rundturen meny ⇄ kvitto.** Kvittosidan var en återvändsgränd utan en
       enda länk: en gäst som ville beställa en omgång till fick skanna dekalen
       på nytt. Nu leder kvittot tillbaka till menyn, och menyn visar en banner
@@ -218,13 +233,6 @@ eller ett beslut.
 
       Att köket inte ska byta språk för att en gäst gjorde det står kvar. Det
       handlar om ett val per anställd, inte om att följa `Accept-Language`.
-
-- [ ] **Köket ser inte att två biljetter hör till samma bord.** Notan är
-      gemensam sedan tidigare, men `kitchen-board.tsx` renderar `orders.map()`
-      sorterat på `placed_at` — två gäster vid bord 6 som beställer var för sig
-      ger två biljetter som kan hamna långt ifrån varandra med ett annat bords
-      order emellan. Den gemensamma notan håller ihop pengarna men inte maten.
-      Fynd ur jämförelsen mot Pinchos 2026-08-20.
 
 - [ ] **`/anslut` talar bara svenska — och det är värvningssidan.**
       `application-form.tsx` har fälten hårdkodade: Land, Restaurangens namn,
@@ -325,7 +333,6 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Personalytorna är enbart svenska | — | **Nästa steg, beslutat 2026-08-20.** Gästytorna talar fem språk; personalens gör det inte. Att köket inte byter språk för att en gäst gjorde det står kvar — men en serveringspersonal i Sarajevo ska inte behöva svenska. Strängarna ligger hårdkodade i komponenterna, inte i ordboken, och `ORDER_STATUS_LABELS`, `STAFF_ROLE_LABELS` och `PAYMENT_PROVIDER_LABELS` ligger på svenska i `@burp/core` |
 | `/anslut` talar bara svenska | `components/site/application-form.tsx` | Väger tyngre än `/konto`: det är den enda vägen in för en restaurang på marknaden, och den är indexerad. Behöver in under `[locale]`, inte bara `Accept-Language` |
 | `/konto`-ytorna talar bara svenska | `components/guest/` | Strukturfråga, inte glömda strängar: `/konto` ligger utanför `[locale]` och har inget språk i adressen alls. Ytorna är noindex — att läsa `Accept-Language` som kvittona gör räcker |
-| Köket ser inte att två biljetter hör till samma bord | `components/staff/kitchen-board.tsx` | Notan är gemensam men maten hålls inte ihop. Fynd ur jämförelsen mot Pinchos |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett | — | **Granskat 2026-08-20: bör inte byggas.** Se nedan |
 | Röktestet strypt av rate limitern vid två körningar i rad | `scripts/smoke.sh` | Inte ett fel. Kontrollerna rapporteras som `hopp`; vänta en minut |
@@ -748,8 +755,10 @@ vilka mekanismer som går att ta, inte om att likna dem.
       Röktestet kontrollerar båda riktningarna **och** att bannern inte syns
       utan session.
 
-- [ ] **Alla i sällskapet får maten samtidigt.** Se *Näst på tur*: köket ser
-      inte att två biljetter hör till samma bord.
+- [x] **Alla i sällskapet får maten samtidigt.** Deras löfte, och Burps
+      motsvarighet: köksbiljetterna grupperas per bord och kön är först in,
+      först ut på notan i stället för på den enskilda ordern. Byggt 2026-08-20,
+      se *Klart*.
 
 - [ ] **Notis till gästen när maten är klar** — Pinchos pingar telefonen, Burp
       pollar kvittosidan var tionde sekund. **Avrått tills vidare.** Web push
