@@ -206,6 +206,9 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Rate limiterns reserv räknar per instans när databasen inte svarar | `lib/rate-limit.ts` | Medvetet. Sämre än den delade räknaren men bättre än ingen gräns alls |
 | Ingen Monri-adapter — kort i Burps eget flöde fungerar bara där Stripe finns (HR, SE) | `lib/payments/` | Lansering i BA och RS. Kontant och kort i restaurangens egen terminal fungerar under tiden |
 | Burp läser inte kortterminalen — beloppet skrivs in av personalen | Migration 0044 | Kräver en terminal med moln-API. Öppen fråga 14 |
+| Restaurangen ser inte sina lojalitetsmedlemmar | `loyalty_accounts` saknar policy för personal | Medvetet: den ska inte kunna bläddra i vilka gäster som är med. Ingen kod skapar restaurangbundna konton än — poängen ligger i Burps globala program. Tas i Fas 3 |
+| Ingen tidsutlöst utloggning på delad kassaenhet | `lib/auth.ts` | Sessionen lever tills någon loggar ut. En surfplatta i baren står inloggad över natten |
+| Ingen kö med återförsök om nätet dör mitt i en beställning | `components/order/menu-order.tsx` | Gästen får ett tydligt fel och kan trycka igen — nyckeln är stabil, så ett andra försök ger samma order och inte två. En riktig offlinekö kräver service worker |
 | Fiskalisering är inte byggd — kvittot är märkt som orderbekräftelse | `register_receipts` är tom | Lansering. Öppen fråga 4 |
 | Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
 | Ingen automatisk gallring — en gäst som slutar använda tjänsten ligger kvar för alltid | — | Kräver ett svar på hur länge. Öppen fråga 13 |
@@ -310,6 +313,28 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **En order dubbleras inte när nätet blinkar.** Idempotensnyckeln skapades
+      inne i `placeOrder`, alltså på nytt vid varje knapptryck — och
+      kommentaren bredvid påstod motsatsen. Serverns skydd var därmed
+      verkningslöst: `place_order` slår upp en befintlig order på nyckeln, men
+      två försök hade två nycklar och blev två order.
+      Fallet är inte dubbelklick, som knappen redan låser. Det är att begäran
+      når servern, ordern skrivs, och svaret aldrig kommer fram. Gästen ser
+      "ingen anslutning", trycker igen, och restaurangen lagar två måltider
+      medan gästen får två notor. Vid ett bord i en källare är det inte ett
+      kantfall. Nyckeln hör nu till varukorgen och nollställs när beställningen
+      ändras, när ordern gått igenom, eller när ett kortutkast avbryts.
+- [x] **Hyresgästsvepet: ingen tabell läcker mellan restauranger.** De tidigare
+      RLS-testerna tog en tabell i taget, vilket betyder att en ny tabell är
+      oskyddad tills någon kommer ihåg att skriva ett test. Svepet frågar
+      katalogen vilka tabeller som bär `restaurant_id` och kontrollerar dem
+      allihop — **31 tabeller, varav 24 med data att gömma.**
+      Invarianten är inte "B ser inga av A:s rader" utan **"B ser inte mer av A
+      än en anonym besökare"**. Menyer, priser och omdömen är publika, och en
+      restaurangägare är också vem som helst. Formuleringen fångar det som
+      faktiskt är hemligt utan att kräva en undantagslista som någon måste hålla
+      aktuell. Svepet kontrollerar dessutom att ägaren SER sina egna rader —
+      annars hade en policy som nekar allting räknats som godkänd.
 - [x] **Kort i restaurangens egen terminal** (migration 0044). Kassan kunde bara
       registrera KONTANT. En gäst som drog sitt kort i restaurangens egen
       terminal — det enda kortalternativet i Bosnien och Serbien, där Stripe

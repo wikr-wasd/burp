@@ -181,6 +181,25 @@ export function MenuOrder({
   const [error, setError] = useState<string | null>(null);
 
   /*
+   * Idempotensnyckeln för DEN HÄR varukorgen, inte för det här försöket.
+   *
+   * Nyckeln skapades tidigare inne i `placeOrder`, alltså på nytt vid varje
+   * knapptryck. Serverns skydd var därmed verkningslöst: `place_order` slår upp
+   * en befintlig order på nyckeln och returnerar den i stället för att skapa en
+   * ny, men två försök hade två nycklar och blev två order.
+   *
+   * Fallet det gäller är inte dubbelklick — knappen är låst under `submitting`.
+   * Det är nätet som blinkar: begäran når servern, ordern skrivs, svaret kommer
+   * aldrig fram. Gästen ser "ingen anslutning", trycker igen, och restaurangen
+   * lagar två måltider medan gästen får två notor. Vid ett bord i en källare
+   * med dålig täckning är det inte ett kantfall.
+   *
+   * Nyckeln nollställs när varukorgen ändras — då är det en annan beställning
+   * och ska bli en annan order — och när ordern faktiskt gått igenom.
+   */
+  const idempotencyKey = useRef<string | null>(null);
+
+  /*
    * Kontant är förvalt.
    *
    * Inte av bekvämlighet: kontanter är fortfarande utbredda i restaurangledet
@@ -219,6 +238,20 @@ export function MenuOrder({
    * belöning som förbrukas utan att man ville det är sämre än ingen belöning.
    */
   const [usePunchCard, setUsePunchCard] = useState(false);
+
+  /*
+   * Ändras beställningen är det en annan order, och nyckeln ska inte återanvändas.
+   *
+   * Allt som påverkar vad servern skriver står i listan, inte bara varukorgen.
+   * Dricksen, kupongen, presentkortet, klippkortet, hämttiden och betalsättet
+   * hör till samma order — och `place_order` returnerar den BEFINTLIGA ordern
+   * när nyckeln känns igen. Utan de här beroendena hade en gäst som ändrade
+   * dricksen efter ett misslyckat försök fått tillbaka sin första order med den
+   * gamla dricksen, utan att något sa ifrån.
+   */
+  useEffect(() => {
+    idempotencyKey.current = null;
+  }, [cart, tipBps, coupon, giftCard, usePunchCard, scheduledFor, payWithCard]);
 
   const money = useMemo(
     () => (amount: Ore) => formatMoney(amount, currency),
@@ -521,9 +554,9 @@ export function MenuOrder({
           // En begäran, inte ett belopp. Servern räknar om antalet besök och
           // avgör själv om kortet är fullt.
           ...(usePunchCard && punchCard?.isEarned ? { use_punch_card: true } : {}),
-          // Nyckeln skapas en gång per försök. Dubbeltryck på knappen ger
-          // samma nyckel och därmed samma order, inte två notor.
-          idempotency_key: crypto.randomUUID(),
+          // Samma nyckel så länge varukorgen är densamma. Ett andra försök
+          // efter ett tappat svar ger därför samma order, inte en till.
+          idempotency_key: (idempotencyKey.current ??= crypto.randomUUID()),
           items: cart.map((line) => ({
             menu_item_id: line.item.id,
             quantity: line.quantity,
@@ -579,6 +612,15 @@ export function MenuOrder({
     setPendingPayment(null);
     setSubmitting(false);
     setError(labels.paymentAbandoned);
+
+    /*
+     * Utkastet avbryts nedan, och nyckeln får inte peka på det längre.
+     *
+     * `place_order` slår upp ordern på nyckeln utan att bry sig om dess status.
+     * Behölls nyckeln skulle gästen som väljer "betala på plats" i stället
+     * skickas till en AVBRUTEN order — en kvittosida för mat ingen lagar.
+     */
+    idempotencyKey.current = null;
 
     await fetch(`/api/orders/${orderId}`, {
       method: "PATCH",

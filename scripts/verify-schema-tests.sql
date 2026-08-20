@@ -3624,4 +3624,171 @@ begin
 end
 $$;
 
+\echo '   ingen tabell läcker mellan restauranger — svepet går över hela schemat'
+
+/*
+ * Det generella hyresgästtestet.
+ *
+ * De andra RLS-testerna kontrollerar en tabell i taget, vilket betyder att en
+ * ny tabell är oskyddad tills någon kommer ihåg att skriva ett test för den.
+ * Det här svepet frågar KATALOGEN vilka tabeller som bär `restaurant_id` och
+ * kontrollerar dem allihop. En tabell som läggs till i morgon täcks utan att
+ * någon rör den här filen — och en som saknar policy faller direkt.
+ *
+ * ── Vad som räknas som läckage ─────────────────────────────────────────────
+ *
+ * Inte "B ser rader som tillhör A". Menyer, priser, omdömen och godkända bilder
+ * är PUBLIKA — hela marknadsplatsen bygger på att vem som helst kan läsa dem,
+ * och en restaurangägare är också vem som helst.
+ *
+ * Invarianten är i stället: **B får inte se mer av A än en anonym besökare
+ * ser.** Det fångar det som faktiskt är hemligt — order, betalningar, avgifter,
+ * personal, presentkort — utan att en allmän meny räknas som ett läckage. Och
+ * den behöver ingen lista över undantag som någon måste hålla aktuell.
+ *
+ * Två riktningar mäts, och båda behövs:
+ *
+ *   1. B ser inte mer än anon. Det är läckaget.
+ *   2. A:s egen ägare MÅSTE se sina rader. Utan den kontrollen skulle en policy
+ *      som nekar allting räknas som godkänd, och testet vore värdelöst.
+ */
+do $$
+declare
+  v_a         uuid := '11111111-1111-1111-1111-111111111111';
+  v_b         uuid;
+  v_owner_a   uuid;
+  v_owner_b   uuid;
+  v_tbl       text;
+  v_leaked    bigint;
+  v_public    bigint;
+  v_own       bigint;
+  v_total     bigint;
+  v_checked   integer := 0;
+  v_with_data integer := 0;
+  v_blind     text[] := '{}';
+  v_leaks     text[] := '{}';
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Hyresgäst B', 'hyresgast-b', '4200000000088',
+          'Ferhadija 24', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_b;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-a@example.com')
+  returning id into v_owner_a;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-b@example.com')
+  returning id into v_owner_b;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_a, v_owner_a, 'owner', true), (v_b, v_owner_b, 'owner', true);
+
+  for v_tbl in
+    select c.relname
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    join pg_attribute a
+      on a.attrelid = c.oid and a.attname = 'restaurant_id' and a.attnum > 0 and not a.attisdropped
+    where n.nspname = 'public'
+      and c.relkind = 'r'
+      -- Tabeller som ägs av ett tillägg är inte våra.
+      and not exists (select 1 from pg_depend d where d.objid = c.oid and d.deptype = 'e')
+    order by c.relname
+  loop
+    v_checked := v_checked + 1;
+
+    -- Som ägaren (superuser här) — hur mycket finns det att gömma?
+    execute format('select count(*) from public.%I where restaurant_id = $1', v_tbl)
+      into v_total using v_a;
+
+    if v_total = 0 then
+      continue;  -- Ingenting att läcka. Räknas inte som bevis åt något håll.
+    end if;
+
+    v_with_data := v_with_data + 1;
+
+    /*
+     * Identiteten sätts som `request.jwt.claim.sub`, inte som JSON.
+     *
+     * Stubben i verify-schema.sh läser bara den formen; Supabases riktiga
+     * auth.uid() läser båda. Att sätta fel form ger en tyst null — alltså en
+     * anonym användare — och då hade svepet "passerat" för att INGEN såg
+     * någonting. Kontrollen att ägaren ser sina egna rader är det som avslöjar
+     * en sådan uppsättning, och den gjorde det.
+     */
+
+    -- Som en anonym besökare. Det här är måttstocken: vad som ändå är publikt.
+    execute 'set local role anon';
+    perform set_config('request.jwt.claim.sub', '', true);
+
+    execute format('select count(*) from public.%I where restaurant_id = $1', v_tbl)
+      into v_public using v_a;
+
+    -- Som restaurang B:s ägare.
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claim.sub', v_owner_b::text, true);
+
+    execute format('select count(*) from public.%I where restaurant_id = $1', v_tbl)
+      into v_leaked using v_a;
+
+    -- Som restaurang A:s egen ägare.
+    perform set_config('request.jwt.claim.sub', v_owner_a::text, true);
+
+    execute format('select count(*) from public.%I where restaurant_id = $1', v_tbl)
+      into v_own using v_a;
+
+    execute 'reset role';
+    perform set_config('request.jwt.claim.sub', '', true);
+
+    if v_leaked > v_public then
+      v_leaks := v_leaks
+        || format('%s (%s rader mot anons %s)', v_tbl, v_leaked, v_public);
+    end if;
+
+    if v_own = 0 then
+      v_blind := v_blind || v_tbl;
+    end if;
+  end loop;
+
+  if array_length(v_leaks, 1) > 0 then
+    raise exception 'FEL: restaurang B såg mer av A än en anonym besökare i %',
+      array_to_string(v_leaks, ', ');
+  end if;
+
+  /*
+   * Blinda tabeller är inte ett läckage men nästan alltid ett fel.
+   *
+   * Ägaren som inte ser sina egna rader betyder antingen en saknad policy eller
+   * en som filtrerar på fel kolumn. Båda upptäcks annars först när en sida står
+   * tom i produktion — och då läses det som att datan är borta.
+   *
+   * Två undantag, båda medvetna:
+   *
+   * `rate_limit_hits` är plattformens räknare och har ingen ägare att visa den
+   * för.
+   *
+   * `loyalty_accounts` har policy för gästen och för Burp men ingen för
+   * restaurangen — den ska inte kunna bläddra i vilka gäster som är med i
+   * programmet. Ingen kod skapar restaurangbundna konton i dag heller;
+   * poängen ligger i Burps globala program. Frågan tas när Fas 3 byggs, och
+   * står i docs/TODO.md så att den inte upptäcks som ett hål då.
+   */
+  v_blind := array_remove(v_blind, 'rate_limit_hits');
+  v_blind := array_remove(v_blind, 'loyalty_accounts');
+
+  if array_length(v_blind, 1) > 0 then
+    raise exception 'FEL: ägaren ser inte sina egna rader i %', array_to_string(v_blind, ', ');
+  end if;
+
+  -- Ett svep som inte hittade något att kontrollera bevisar ingenting.
+  if v_with_data < 8 then
+    raise exception 'FEL: bara % av % tabeller hade data att gömma — svepet säger inget',
+      v_with_data, v_checked;
+  end if;
+
+  raise notice '      % tabeller med restaurant_id, varav % med data att gömma',
+    v_checked, v_with_data;
+end
+$$;
+
 rollback;
