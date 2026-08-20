@@ -210,7 +210,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Personal kan inte radera sig själv genom flödet | `erase_guest()` | Anställningen måste avslutas först; ytan för det saknas |
 | Personalytorna är enbart svenska | — | Medvetet. Köket ska inte byta språk för att en gäst gjorde det |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
-| Inga laddningsskelett på publika sidor | — | `loading.tsx` gör varje `notFound()` till en 200:a. Se CLAUDE.md |
+| Inga laddningsskelett | — | **Granskat 2026-08-20: bör inte byggas.** Se nedan |
 | `smoke.sh` går inte att köra på den här maskinen | `bash` är WSL2, inte Git Bash | Kräver Git Bash eller en miljö som delar Windows nätverksstack. Se CLAUDE.md |
 | Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av `/upptack`. Öppen fråga 8 |
 | Push är byggt men tyst utan VAPID-nycklar | `lib/notify/push.ts` | Nycklarna genereras på en minut, men de måste finnas i miljön |
@@ -218,6 +218,26 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | En delåterbetalning krediterar inte Burps avgift | Migration 0039 | Beslut, inte lucka. Öppen fråga 12 |
 | Avräkningen faktureras för hand — ingen faktura genereras | `settlements.invoice_number` | Fakturan skrivs i Burps bokföring; produkten håller bara underlaget och numret |
 | Seeden har inga order alls | `supabase/seed-orders.sql`, `npm run db:demo` | Medvetet skild från seeden. Utan den står Kassa, Statistik, Översikt och Avräkning tomma lokalt. Kör den en gång per `db:reset` — en andra körning märker att det redan finns order och gör ingenting |
+
+### Laddningsskelett: granskat och avfört 2026-08-20
+
+Raden stod som en lucka att åtgärda. Den granskades och bör inte byggas, av tre
+skäl som var för sig räcker:
+
+- **De indexerade sidorna är ISR-cachade.** `/r/{stad}/{slug}`, `/{stad}` och
+  `/{stad}/{kok}` har alla `revalidate = 3600` och levereras färdiga. Ett
+  skelett hade synts på den första kalla renderingen i timmen och aldrig annars.
+- **QR-sidan renderas med flit utan klient-JS för första vyn.** En
+  Suspense-gräns byter det: skelettet ligger i HTML:en och innehållet flyttas in
+  av ett inline-skript. Med JS av hade gästen fått ett skelett för alltid, på
+  produktens viktigaste sida.
+- **Kvittot uppdaterar sig redan.** `OrderStatusView` ber servern rendera om var
+  tionde sekund och slutar när ordern nått ett slutläge.
+
+Fällan med `loading.tsx` står kvar och är fortfarande sann: en strömmande
+respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
+404:a indexeras av Google. Det som ändras är att luckan inte längre är något att
+åtgärda — den är rätt läge.
 
 ---
 

@@ -3300,4 +3300,148 @@ begin
 end
 $$;
 
+\echo '   hela pengavägen stämmer över alla ytor'
+
+/*
+ * Avstämning tvärs över migration 0027, 0039 och 0040.
+ *
+ * Varje funktion har egna tester. Det här testet finns för det ingen av dem kan
+ * fånga: att de säger SAMMA sak om samma order. Tre gånger under bygget har
+ * felet varit just det — samma fråga besvarad på två ställen med olika svar —
+ * och varje gång upptäcktes det av en slump snarare än av ett test.
+ *
+ * `smoke.sh` skulle göra det här mot en körande app. Det går inte på maskinen
+ * bygget sker på, och en avstämning som bara går att köra någon annanstans är
+ * ingen avstämning.
+ */
+do $$
+declare
+  v_rest    uuid;
+  v_order   uuid;
+  v_payment uuid;
+  v_stat    record;
+  v_settle  record;
+  v_tips    record;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Avstämning Test', 'avstamning-test', '4200000000077',
+          'Ferhadija 22', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  -- En nota: 100,00 KM mat och 10,00 KM dricks. Avgiften är 3,40 % av maten.
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, items_vat_ore, tip_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(),
+          10000, 1453, 1000, 11000, '2026-06-15 10:00:00+00')
+  returning id into v_order;
+
+  insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore)
+  values (v_order, v_rest, 'GROSS_ITEMS', 10000, 340, 340);
+
+  insert into public.tips (order_id, restaurant_id, amount_ore)
+  values (v_order, v_rest, 1000);
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, status, idempotency_key, captured_at)
+  values (v_order, v_rest, 11000, 'CASH', 'CAPTURED', gen_random_uuid(),
+          '2026-06-15 10:20:00+00')
+  returning id into v_payment;
+
+  -- ── Före återbetalningen ──────────────────────────────────────────────────
+
+  select * into v_stat
+  from public.restaurant_revenue_summary(v_rest, '2026-06-01', '2026-07-01');
+
+  select * into v_settle
+  from public.settlement_preview(v_rest, '2026-06-01', '2026-06-30');
+
+  select * into v_tips
+  from public.restaurant_tips_summary(v_rest, '2026-06-01', '2026-07-01');
+
+  if v_stat.items_gross_ore <> v_settle.gross_ore then
+    raise exception 'FEL: statistiken säger % i omsättning, avräkningen %',
+      v_stat.items_gross_ore, v_settle.gross_ore;
+  end if;
+
+  if v_stat.tips_ore <> v_settle.tips_ore or v_stat.tips_ore <> v_tips.tips_ore then
+    raise exception 'FEL: dricksen är %, % och % på tre ytor',
+      v_stat.tips_ore, v_settle.tips_ore, v_tips.tips_ore;
+  end if;
+
+  if v_stat.fees_ore <> v_settle.fees_ore then
+    raise exception 'FEL: avgiften är % i statistiken och % i avräkningen',
+      v_stat.fees_ore, v_settle.fees_ore;
+  end if;
+
+  -- Dricksen ligger i sedlarna, inte bland det obetalda.
+  if v_tips.cash_ore <> 1000 or v_tips.pending_ore <> 0 then
+    raise exception 'FEL: dricksen delades % kontant och % obetald',
+      v_tips.cash_ore, v_tips.pending_ore;
+  end if;
+
+  -- Kontantraden är hela notan, dricksen inräknad. Avgiften räknas bara på
+  -- maten: dricks är aldrig i avgiftsunderlaget (regel 8).
+  if v_settle.cash_ore <> 11000 then
+    raise exception 'FEL: kassan tog emot %, väntade 11000', v_settle.cash_ore;
+  end if;
+
+  if v_settle.amount_due_ore <> 340 then
+    raise exception 'FEL: att fakturera blev %, väntade 340', v_settle.amount_due_ore;
+  end if;
+
+  -- ── Hela notan tillbaka ───────────────────────────────────────────────────
+
+  perform public.request_refund(v_payment, 11000, 'Gästen blev sjuk');
+  update public.refunds set settled_at = '2026-06-16 10:00:00+00' where payment_id = v_payment;
+
+  select * into v_stat
+  from public.restaurant_revenue_summary(v_rest, '2026-06-01', '2026-07-01');
+
+  select * into v_settle
+  from public.settlement_preview(v_rest, '2026-06-01', '2026-06-30');
+
+  select * into v_tips
+  from public.restaurant_tips_summary(v_rest, '2026-06-01', '2026-07-01');
+
+  -- Statistiken räknar bara COMPLETED. En återbetald order är inte omsättning.
+  if v_stat.orders_count <> 0 or v_stat.items_gross_ore <> 0 or v_stat.tips_ore <> 0 then
+    raise exception 'FEL: statistiken räknade fortfarande den återbetalda ordern (% order, % brutto, % dricks)',
+      v_stat.orders_count, v_stat.items_gross_ore, v_stat.tips_ore;
+  end if;
+
+  /*
+   * Avräkningen tar med REFUNDED i bruttot med flit.
+   *
+   * Föll den ur skulle måltiden räknas bort en gång av bruttot och en gång av
+   * återbetalningen. Bruttot står alltså kvar — men dricksen gick tillbaka till
+   * gästen och krediten tar bort avgiften.
+   */
+  if v_settle.gross_ore <> 10000 then
+    raise exception 'FEL: avräkningens brutto blev %, väntade 10000', v_settle.gross_ore;
+  end if;
+
+  if v_settle.tips_ore <> 0 or v_tips.tips_ore <> 0 then
+    raise exception 'FEL: dricksen stod kvar efter återbetalningen (% respektive %)',
+      v_settle.tips_ore, v_tips.tips_ore;
+  end if;
+
+  if v_settle.refunds_ore <> 11000 then
+    raise exception 'FEL: återbetalt blev %, väntade 11000', v_settle.refunds_ore;
+  end if;
+
+  if v_settle.fee_credit_ore <> 340 then
+    raise exception 'FEL: krediten blev %, väntade 340', v_settle.fee_credit_ore;
+  end if;
+
+  -- Det som räknas: Burp fakturerar ingenting för en måltid som lämnats
+  -- tillbaka i sin helhet.
+  if v_settle.amount_due_ore <> 0 then
+    raise exception 'FEL: Burp fakturerade % för en helt återbetald måltid',
+      v_settle.amount_due_ore;
+  end if;
+end
+$$;
+
 rollback;
