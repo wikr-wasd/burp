@@ -1,6 +1,8 @@
 import { dictionary, fill, requestLocale } from "@/lib/i18n";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Plus } from "lucide-react";
 import {
   COUNTRY_INFO,
   formatMoney,
@@ -143,6 +145,27 @@ export default async function OrderPage({ params }: PageProps) {
           quantity: item.quantity,
         }))}
       />
+
+      {/*
+        Vägen tillbaka till menyn.
+
+        Kvittosidan var en återvändsgränd: inte en enda länk. En gäst som ville
+        ha en öl till fick skanna dekalen på nytt — trots att bordssessionen
+        levde, notan var gemensam och allt annat fanns byggt. Vid ett bord
+        beställer man i omgångar, och det gäller inte bara tapas: efterrätten
+        och kaffet bestäms när huvudrätten är uppäten.
+
+        Länken pekar på bordet och inte på ordern. Menyn avgör själv om det går
+        att beställa — är restaurangen stängd eller menyn obemannad möts gästen
+        av samma besked som vid en färsk skanning, i stället för av en knapp som
+        leder till ett fel.
+      */}
+      <div className="mt-8">
+        <Link href={`/t/${token}`} className="btn btn-primary w-full">
+          <Plus size={18} aria-hidden="true" />
+          {t.receipt.orderMore}
+        </Link>
+      </div>
 
       <h2 className="label-caps mt-8">{t.receipt.yourBill}</h2>
 

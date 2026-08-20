@@ -262,6 +262,34 @@ if [ -n "$ORDER_ID" ]; then
   # Utan bordssessionens cookie ska ordern inte gå att läsa. Annars räcker det
   # att gissa ett order-id för att se en främlings nota.
   check_status "kvittot är stängt utan session" "/t/$TOKEN/order/$ORDER_ID" 404
+
+  # ── Rundturen meny ⇄ kvitto ───────────────────────────────────────────────
+  #
+  # Vid ett bord beställs i omgångar: efterrätten bestäms när huvudrätten är
+  # uppäten. Kvittosidan var länge en återvändsgränd utan en enda länk, och
+  # gästen fick skanna dekalen på nytt. Båda riktningarna kontrolleras, för de
+  # går sönder var för sig.
+  RECEIPT=$(curl -s -b "$COOKIES" "$BASE/t/$TOKEN/order/$ORDER_ID")
+  if grep -q "\"/t/$TOKEN\"" <<<"$RECEIPT"; then
+    pass "kvittot leder tillbaka till menyn"
+  else
+    fail "kvittot saknar vägen tillbaka till menyn"
+  fi
+
+  MENU_AGAIN=$(curl -s -b "$COOKIES" "$BASE/t/$TOKEN")
+  if grep -q "/t/$TOKEN/order/$ORDER_ID" <<<"$MENU_AGAIN"; then
+    pass "menyn visar den pågående beställningen"
+  else
+    fail "menyn känner inte till gästens pågående order"
+  fi
+
+  # Utan session ska bannern inte finnas. Den bygger på en cookie, och en
+  # cookie är gästens att ändra på — bannern får aldrig vara en väg in.
+  if curl -s "$BASE/t/$TOKEN" | grep -q "/t/$TOKEN/order/"; then
+    fail "menyn läcker en order till den utan session"
+  else
+    pass "menyn visar ingen order utan session"
+  fi
 fi
 
 echo "→ Prisvalidering"

@@ -11,13 +11,13 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-08-19**, branch `dev`.
+Senast uppdaterad **2026-08-20**, branch `dev`.
 
 Fas 1 är byggd i sin helhet, och **kortbetalning ingår nu**. Produkten går att
 använda rakt igenom: en gäst skannar en dekal, beställer vid bordet, betalar med
-kort, Apple Pay eller på plats, ser sin nota och sin orderstatus; köket ser
-beställningen och får ett brev om den; personalen kvitterar kontanter i kassan
-och kan betala tillbaka.
+kort, Apple Pay eller på plats, ser sin nota och sin orderstatus, beställer en
+omgång till; köket ser beställningen och får ett brev om den; personalen
+kvitterar kontanter i kassan och kan betala tillbaka.
 
 Öppen fråga 5 är besvarad — **restaurangen äger sitt eget inlösenavtal och Burp
 håller aldrig gästens pengar.** Det är det som gjorde att kortbetalning kunde
@@ -29,6 +29,18 @@ Dessutom byggt 2026-08-19: omdöme på bordskvittot, kuponger, presentkort,
 klippkort, planritning över lokalen och **avräkningen** — den sista delen av
 "ta betalt" som var ren kod.
 
+### Byggt 2026-08-20
+
+- **Fem språk på gästytorna** — `bs`, `en`, `de`, `no`, `sv`. Se avsnittet
+  *Marknad och språk*.
+- **Seeden ritar två salar** åt Željo, femton bord. Planritningen låg färdig men
+  osynlig eftersom ingen restaurang i seeden hade en ritning.
+- **Fyra bordstillstånd** i stället för tre — `SERVERAS` skildes ut ur
+  `BESTALLNING` och är grönt.
+- **Zonen på köksbiljetten** — "Bord 6" var en halv adress i en lokal med två
+  rum.
+- **Rundturen meny ⇄ kvitto** — kvittosidan var en återvändsgränd.
+
 Kartsidan `/upptack` fungerar, men kartrutorna kommer tills vidare från
 OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. Se
 öppen fråga 8.
@@ -39,7 +51,9 @@ Det som återstår är i tur och ordning:
 2. **Att se produkten på riktig hårdvara** — telefon och surfplatta. Byggd för
    båda, provad på ingen. Planritningens redigerare är byggd för fingrar och
    har aldrig rörts av ett.
-3. Resten av Fas 2 och framåt: surfplatta vid bordet, mobilapp.
+3. **Personalytorna talar bara svenska.** Beslutat att de ska översättas, som
+   ett steg efter gästytorna. Se *Näst på tur*.
+4. Resten av Fas 2 och framåt: surfplatta vid bordet, mobilapp.
 
 ### Två spärrar som gäller varje session
 
@@ -163,9 +177,61 @@ avvek från planen och det står varför i respektive commit.
       intill statusen, så att bordsnumret förblir det största på biljetten.
       `lib/orders.ts`, `components/staff/kitchen-board.tsx`.
 
+- [x] **Rundturen meny ⇄ kvitto.** Kvittosidan var en återvändsgränd utan en
+      enda länk: en gäst som ville beställa en omgång till fick skanna dekalen
+      på nytt. Nu leder kvittot tillbaka till menyn, och menyn visar en banner
+      för den order som är i gång.
+
+      Bannern bygger på bordssessionen och inte på en cookielista, så den
+      fungerar även efter en omskanning. `DRAFT` räknas inte — en kortorder som
+      aldrig betalades är ingen pågående beställning. Röktestet kontrollerar
+      båda riktningarna och att bannern **inte** syns utan session; en cookie
+      är gästens att ändra på och får aldrig vara en väg in.
+
+- [x] **Avbryt-rutan i QR-flödet översattes.** "Ja, avbryt" och "Behåll" stod
+      kvar som literaler medan resten av rutan kom ur ordboken — en tysk gäst
+      fick tysk brödtext och två svenska knappar.
+
+      Fyndet kom av ett svep efter **textnoder i JSX**, inte efter svenska
+      tecken. Det tidigare svepet krävde å, ä eller ö, och "Ja, avbryt" har
+      inget av dem. En sökning som bara hittar det man redan misstänker hittar
+      ingenting nytt.
+
 ---
 
 ## Näst på tur
+
+De tre översta är kod och går att börja på direkt. Resten kräver dig, hårdvara
+eller ett beslut.
+
+- [ ] **Personalytorna översätts.** Beslutat 2026-08-19: gästytorna först,
+      personalen sedan. Gästytorna är klara sedan 2026-08-20, alltså är det här
+      på tur.
+
+      **Större än gästytorna var, inte mindre.** Strängarna ligger hårdkodade i
+      komponenterna och inte i en ordbok, och tre etikettabeller ligger på
+      svenska i `@burp/core`: `ORDER_STATUS_LABELS`, `STAFF_ROLE_LABELS` och
+      `PAYMENT_PROVIDER_LABELS`. `@burp/core` får inte importera i18n-modulen —
+      etiketterna måste därför flyttas ut till ordboken och kärnan lämna kvar
+      bara nycklarna.
+
+      Att köket inte ska byta språk för att en gäst gjorde det står kvar. Det
+      handlar om ett val per anställd, inte om att följa `Accept-Language`.
+
+- [ ] **Köket ser inte att två biljetter hör till samma bord.** Notan är
+      gemensam sedan tidigare, men `kitchen-board.tsx` renderar `orders.map()`
+      sorterat på `placed_at` — två gäster vid bord 6 som beställer var för sig
+      ger två biljetter som kan hamna långt ifrån varandra med ett annat bords
+      order emellan. Den gemensamma notan håller ihop pengarna men inte maten.
+      Fynd ur jämförelsen mot Pinchos 2026-08-20.
+
+- [ ] **`/konto`-ytorna talar bara svenska.** `guest-header.tsx`,
+      `address-list.tsx`, `review-form.tsx` och `delete-account.tsx` har
+      hårdkodade strängar. Till skillnad från QR-flödet är det inte en glömd
+      sträng utan en strukturfråga: `/konto` ligger **utanför** `[locale]` och
+      har alltså inget språk i adressen alls. Antingen flyttar de in under
+      `[locale]`, eller så läser de `Accept-Language` som kvittona gör.
+      Ytorna är noindex, så det senare räcker.
 
 - [ ] **VAPID-nycklar.** Push är byggt men skickar ingenting utan nycklar.
       `npx web-push generate-vapid-keys`, sedan `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
@@ -208,6 +274,13 @@ avvek från planen och det står varför i respektive commit.
       **Behöver göras av William** — se spärren om lösenord.
       Kör `npm run db:demo` först, annars står pengaytorna tomma.
       Raderingen behöver ett engångskonto att prova på; den går inte att ångra.
+- [ ] **Bordskartan sedd i webbläsaren.** `/dashboard` som `agare@burp.test`.
+      Seeden ritar numera två salar med femton bord, och `db:demo` lägger ett
+      pass som pågår så att alla fyra tillstånd syns samtidigt. Det som behöver
+      ögon är om **grönt går att skilja från guldgult på en meters håll** —
+      härledningen och färgvärdena är verifierade i SQL, men avståndet går inte
+      att mäta. **Behöver göras av William.**
+
 - [ ] **Riktiga bilder i seed-datan.** Platshållaren är så bra den kan bli;
       nästa steg kräver fotografier. Utan dem går det inte att bedöma hur
       sajten faktiskt ser ut för en gäst.
@@ -237,6 +310,8 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Ingen automatisk gallring — en gäst som slutar använda tjänsten ligger kvar för alltid | — | Kräver ett svar på hur länge. Öppen fråga 13 |
 | Personal kan inte radera sig själv genom flödet | `erase_guest()` | Anställningen måste avslutas först; ytan för det saknas |
 | Personalytorna är enbart svenska | — | **Nästa steg, beslutat 2026-08-20.** Gästytorna talar fem språk; personalens gör det inte. Att köket inte byter språk för att en gäst gjorde det står kvar — men en serveringspersonal i Sarajevo ska inte behöva svenska. Strängarna ligger hårdkodade i komponenterna, inte i ordboken, och `ORDER_STATUS_LABELS`, `STAFF_ROLE_LABELS` och `PAYMENT_PROVIDER_LABELS` ligger på svenska i `@burp/core` |
+| `/konto`-ytorna talar bara svenska | `components/guest/` | Strukturfråga, inte glömda strängar: `/konto` ligger utanför `[locale]` och har inget språk i adressen alls. Ytorna är noindex — att läsa `Accept-Language` som kvittona gör räcker |
+| Köket ser inte att två biljetter hör till samma bord | `components/staff/kitchen-board.tsx` | Notan är gemensam men maten hålls inte ihop. Fynd ur jämförelsen mot Pinchos |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett | — | **Granskat 2026-08-20: bör inte byggas.** Se nedan |
 | Röktestet strypt av rate limitern vid två körningar i rad | `scripts/smoke.sh` | Inte ett fel. Kontrollerna rapporteras som `hopp`; vänta en minut |
@@ -643,6 +718,44 @@ Referens: `qopla.com/restaurant/partille-sushi/…/order?qr=1`.
       kategorinavigeringen hade inget att navigera i, sökrutan visades aldrig
       och inget slutsålt kort syntes. Nu 27 rätter i sex avdelningar, en
       obligatorisk storleksgrupp och en slutsåld dryck
+
+### QR-flödet mätt mot Pinchos — 2026-08-20
+
+Pinchos är den närmaste jämförelsen som finns: hela deras koncept är beställning
+vid bordet. Skillnaden är att deras beställning kräver en **app och ett konto**,
+vilket är precis det Burp finns för att slippa. Genomgången handlade därför om
+vilka mekanismer som går att ta, inte om att likna dem.
+
+- [x] **Beställ i omgångar.** Deras kärnmekanik, och den avslöjade en lucka i
+      Burps eget flöde: kvittosidan innehöll inte en enda länk. En gäst som
+      ville ha en öl till fick skanna dekalen på nytt, trots att
+      bordssessionen levde och notan var gemensam. Byggt åt båda hållen —
+      kvittot leder till menyn, och menyn visar en pågående beställning.
+      Röktestet kontrollerar båda riktningarna **och** att bannern inte syns
+      utan session.
+
+- [ ] **Alla i sällskapet får maten samtidigt.** Se *Näst på tur*: köket ser
+      inte att två biljetter hör till samma bord.
+
+- [ ] **Notis till gästen när maten är klar** — Pinchos pingar telefonen, Burp
+      pollar kvittosidan var tionde sekund. **Avrått tills vidare.** Web push
+      kräver en behörighetsdialog, och den skulle dyka upp för en turist som
+      just skannat en dekal och inte vet vad Burp är. Det är exakt den friktion
+      "utan app, utan konto" finns för att slippa. Pinchos får be om det —
+      de har redan en app installerad. Ta upp igen först om pollningen visar
+      sig otillräcklig i verklig drift.
+
+- [ ] **Bordsbokning.** Pinchos har det som primär CTA. **Avrått nu.** Det är
+      ett eget produktområde — kalender, kapacitet, avbokning, no-shows — och
+      inte en del av ett beställningssystem. Konkurrerar med lansering.
+
+Avfört utan åtgärd: quiz i appen.
+
+Redan byggt och därmed inte hämtat härifrån: bordskod som låser upp
+beställning (Burp använder HMAC-token, ingenting att skriva av), flera
+telefoner mot samma nota, bonussystem (Burp har poäng, klippkort, presentkort
+och kupong), restaurangväljare (Burp är en marknadsplats med stad, kök, karta
+och omdömen).
 
 ### Genomgångar i webbläsaren
 

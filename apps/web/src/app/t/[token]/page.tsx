@@ -1,10 +1,12 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { ChevronRight, ReceiptText } from "lucide-react";
 import { getActiveMenu } from "@/lib/menu";
 import { cardOptionFor } from "@/lib/payments";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { lookupTable } from "@/lib/table-session";
+import { lookupTable, ongoingTableOrderId } from "@/lib/table-session";
 import { MenuOrder } from "@/components/order/menu-order";
 import { dictionary, requestLocale } from "@/lib/i18n";
 
@@ -93,6 +95,23 @@ export default async function TablePage({ params }: PageProps) {
     );
   }
 
+  /*
+   * Andra halvan av rundturen.
+   *
+   * Kvittot leder numera tillbaka hit, men vägen tillbaka DIT saknades: en
+   * gäst som skannat om dekalen, bytt flik eller tappat sidan hade ingen väg
+   * till sin egen nota. Bordssessionen vet vilka order som är i gång, så
+   * frågan behöver varken cookie-lista eller inloggning.
+   *
+   * Bara order som ännu inte är slutförda räknas. En färdigserverad order är
+   * historik, och en banner om den hade legat kvar hela kvällen.
+   *
+   * Är flera i gång pekar länken på den senaste. Notan är gemensam och
+   * kvittosidan visar hela ordern man kom till — den som vill se en tidigare
+   * hittar den därifrån.
+   */
+  const ongoingOrderId = await ongoingTableOrderId(table.restaurantId);
+
   return (
     /*
      * `.theme-table` — den enda ytan som följer telefonens mörka läge.
@@ -103,6 +122,28 @@ export default async function TablePage({ params }: PageProps) {
      */
     <div className="theme-table">
       <main className="mx-auto max-w-2xl px-6 py-10">
+        {/* Över menyn och inte i den. Gästen som redan beställt ska se det
+            innan hon börjar bläddra — inte upptäcka det längst ned. */}
+        {ongoingOrderId ? (
+          <Link
+            href={`/t/${token}/order/${ongoingOrderId}`}
+            className="card mb-6 flex items-center gap-3 px-4 py-3 no-underline"
+          >
+            <ReceiptText size={20} aria-hidden="true" className="shrink-0 text-burp-600" />
+            <span className="min-w-0">
+              <span className="block font-medium">{t.menu.ongoingOrder}</span>
+              <span className="block text-sm text-[var(--muted)]">
+                {t.menu.ongoingOrderLink}
+              </span>
+            </span>
+            <ChevronRight
+              size={18}
+              aria-hidden="true"
+              className="ml-auto shrink-0 text-[var(--muted)]"
+            />
+          </Link>
+        ) : null}
+
         <MenuOrder
           menu={menu}
           restaurantName={table.restaurantName}

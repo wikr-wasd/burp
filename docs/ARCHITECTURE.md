@@ -225,10 +225,18 @@ ska kunna läsas upp i telefon och skrivas in för hand när kameran krånglar.
 4. Sidan sätter en cookie med `table_session_id`
 5. Gästen beställer och betalar direkt i webbläsaren eller lägger på nota
 6. Ordern skapas med `table_id` och syns direkt på köksskärmen med bordsnummer
+   **och zon** — "Bord 6" ensamt är en halv adress i en lokal med två rum
 7. Servitören ser i dashboarden vilket bord som beställt vad och när
+8. Kvittot leder tillbaka till menyn, och menyn visar den order som är i gång
+
+Steg 8 är inte en detalj. Vid ett bord beställs i **omgångar** — efterrätten och
+kaffet bestäms när huvudrätten är uppäten — och kvittosidan var länge en
+återvändsgränd utan en enda länk. Gästen fick skanna dekalen på nytt, trots att
+bordssessionen levde och notan var gemensam. Bannern på menyn bygger på
+sessionen och inte på en cookielista, så den överlever en omskanning.
 
 *Implementation: `apps/web/src/app/t/[token]/page.tsx`,
-`apps/web/src/lib/table-session.ts`*
+`apps/web/src/lib/table-session.ts` (`ongoingTableOrderId`)*
 
 ### 4.3 Spårning till bord
 

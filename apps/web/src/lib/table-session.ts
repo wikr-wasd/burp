@@ -184,6 +184,40 @@ export async function currentTableSessionId(): Promise<string | null> {
 }
 
 /**
+ * Den senaste order i gästens bordssession som ännu inte är avslutad.
+ *
+ * Menyn använder den för att visa en väg tillbaka till kvittot. Utan den är
+ * rundturen enkelriktad: kvittot leder till menyn, men den som skannat om
+ * dekalen eller tappat fliken kommer aldrig tillbaka till sin egen nota.
+ *
+ * `restaurantId` filtreras trots att sessionen redan pekar ut ett bord. Varje
+ * fråga som går via service role måste filtrera själv — sessionen kommer ur en
+ * cookie, och en cookie är gästens att ändra på.
+ *
+ * `DRAFT` räknas inte. En kortorder som aldrig betalades är inte en pågående
+ * beställning, och en banner om den hade legat kvar och lovat något som inte
+ * finns.
+ */
+export async function ongoingTableOrderId(restaurantId: string): Promise<string | null> {
+  const sessionId = await currentTableSessionId();
+  if (!sessionId) return null;
+
+  const supabase = createAdminClient();
+
+  const { data } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("table_session_id", sessionId)
+    .eq("restaurant_id", restaurantId)
+    .in("status", ["PLACED", "ACCEPTED", "PREPARING", "READY"])
+    .order("placed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
+
+/**
  * Är restaurangen öppen just nu?
  *
  * Ett bord får bara ta emot order under öppettid (avsnitt 4.4). Kontrollen
