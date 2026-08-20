@@ -41,7 +41,8 @@ klippkort, planritning över lokalen och **avräkningen** — den sista delen av
   rum.
 - **Rundturen meny ⇄ kvitto** — kvittosidan var en återvändsgränd.
 
-Kartsidan `/upptack` fungerar, men kartrutorna kommer tills vidare från
+Kartan ligger på STARTSIDAN (`/sv`) sedan den flyttade dit; `/upptack` är en
+308 mot den. Den fungerar, men kartrutorna kommer tills vidare från
 OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. Se
 öppen fråga 8.
 
@@ -112,7 +113,7 @@ Ingenting går vidare här utan svar.
       har två projektplatser på gratisnivån och båda är upptagna av 123Connect —
       antingen uppgradering eller ett frigjort projekt.
 - [ ] **Kartleverantör.** `OPEN-QUESTIONS.md` fråga 8. **Blockerar lansering av
-      `/upptack`.** Sidan är byggd och fungerar; det som saknas är ett konto
+      startsidans karta.** Den är byggd och fungerar; det som saknas är ett konto
       hos någon som får leverera kartrutor. OSM:s egna servrar, som är
       standardvärdet, tillåter inte publika tjänster. Bytet är två
       miljövariabler och ingen kod. MapTiler är förstahandsförslaget — deras
@@ -315,7 +316,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett | — | **Granskat 2026-08-20: bör inte byggas.** Se nedan |
 | Röktestet strypt av rate limitern vid två körningar i rad | `scripts/smoke.sh` | Inte ett fel. Kontrollerna rapporteras som `hopp`; vänta en minut |
-| Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av `/upptack`. Öppen fråga 8 |
+| Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av startsidans karta. Öppen fråga 8 |
 | Push är byggt men tyst utan VAPID-nycklar | `lib/notify/push.ts` | Nycklarna genereras på en minut, men de måste finnas i miljön |
 | Push aldrig sedd på en riktig enhet | `components/staff/push-toggle.tsx` | Kräver nycklar, https och en telefon. iPhone kräver dessutom att PWA:n lagts till på hemskärmen |
 | En delåterbetalning krediterar inte Burps avgift | Migration 0039 | Beslut, inte lucka. Öppen fråga 12 |
