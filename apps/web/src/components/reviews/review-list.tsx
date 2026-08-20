@@ -1,6 +1,6 @@
 import { MessageSquareQuote, Star } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
-import { fill, type Dictionary, type Locale } from "@/lib/i18n";
+import { fill, LOCALE_DATE_TAGS, type Dictionary, type Locale } from "@/lib/i18n";
 import type { PublicReview } from "@/lib/reviews";
 
 /**
@@ -15,8 +15,14 @@ import type { PublicReview } from "@/lib/reviews";
  * vilket gav "Svar från restaurangen" mitt på den engelska sidan.
  */
 
-/** Datumformat per språk. Båda skriver dag före månad, som i hela regionen. */
-const DATE_LOCALE: Record<Locale, string> = { sv: "sv-SE", en: "en-GB" };
+/**
+ * Datumformatet ligger i i18n-konfigurationen, inte här.
+ *
+ * Listan stod tidigare i den här filen med två språk i sig. Nästa språk som
+ * lades till hade fått komponenten att sluta kompilera — vilket den gjorde —
+ * och nästa komponent som behövde ett datum hade fått en egen kopia.
+ */
+const DATE_LOCALE = LOCALE_DATE_TAGS;
 
 export function ReviewList({
   reviews,

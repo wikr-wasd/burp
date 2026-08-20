@@ -141,6 +141,7 @@ export const en: Dictionary = {
     searchEmpty: "Nothing on the menu matches “{query}”.",
     searchEmptyHint: "Try a shorter word, or browse the sections.",
     soldOut: "Sold out today",
+    allergens: "Allergens",
     chooseOptions: "Choose options",
     hideOptions: "Hide options",
     add: "Add",

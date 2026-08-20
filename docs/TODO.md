@@ -217,7 +217,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
 | Ingen automatisk gallring — en gäst som slutar använda tjänsten ligger kvar för alltid | — | Kräver ett svar på hur länge. Öppen fråga 13 |
 | Personal kan inte radera sig själv genom flödet | `erase_guest()` | Anställningen måste avslutas först; ytan för det saknas |
-| Personalytorna är enbart svenska | — | Medvetet. Köket ska inte byta språk för att en gäst gjorde det |
+| Personalytorna är enbart svenska | — | **Nästa steg, beslutat 2026-08-20.** Gästytorna talar fem språk; personalens gör det inte. Att köket inte byter språk för att en gäst gjorde det står kvar — men en serveringspersonal i Sarajevo ska inte behöva svenska. Strängarna ligger hårdkodade i komponenterna, inte i ordboken, och `ORDER_STATUS_LABELS`, `STAFF_ROLE_LABELS` och `PAYMENT_PROVIDER_LABELS` ligger på svenska i `@burp/core` |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett | — | **Granskat 2026-08-20: bör inte byggas.** Se nedan |
 | Röktestet strypt av rate limitern vid två körningar i rad | `scripts/smoke.sh` | Inte ett fel. Kontrollerna rapporteras som `hopp`; vänta en minut |
@@ -287,8 +287,18 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
 
 - [x] **Land och valuta per restaurang** — BA, HR, RS, SE. Valutan fryses på
       ordern; belopp från olika valutor summeras aldrig
-- [x] **Två språk** — svenska och engelska. Språket i URL:en för indexerade
-      ytor, via `Accept-Language` för QR och kvitton
+- [x] **Fem språk** — `bs` (bosniska/kroatiska/serbiska i latinsk skrift), `en`,
+      `de`, `no` och `sv`. Språket i URL:en för indexerade ytor, via
+      `Accept-Language` för QR och kvitton. `hr`, `sr`, `nb` och `nn` är alias
+      i headern men inte egna adresser — samma innehåll på två URL:er är
+      dubblettinnehåll för Google. `/bs/` märks med `hreflang` för alla tre
+      standarderna, annars hittas sidan bara av den som söker på bosniska och
+      inte av två tredjedelar av marknaden.
+
+      Gränssnittet översätts. Restaurangens egen text — namn, beskrivningar,
+      allergener — står kvar som den skrivits. Etiketten framför allergenerna
+      är dock gränssnitt och översätts, eftersom det är det enda stället på
+      menyn där oförstådd text är en säkerhetsfråga.
 - [x] **Restaurangens egen sida**, redigerbar av restaurangen: presentation,
       bild, kökstyper, prisklass, adress, kartnål
 - [x] **Kartor** — Google Maps, Apple Kartor, Waze, plus inbäddad OSM-karta

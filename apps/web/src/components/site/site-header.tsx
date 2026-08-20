@@ -1,7 +1,14 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Globe, Search } from "lucide-react";
 import { BurpMark } from "@/components/ui/burp-mark";
-import { dictionary, localePath, LOCALE_LABELS, LOCALES, type Locale } from "@/lib/i18n";
+import {
+  dictionary,
+  localePath,
+  LOCALE_LABELS,
+  LOCALE_SHORT_LABELS,
+  LOCALES,
+  type Locale,
+} from "@/lib/i18n";
 
 /**
  * Sidhuvudet — ett enda, på varje publik sida.
@@ -106,24 +113,51 @@ export function SiteHeader({
             </Link>
           </nav>
 
-          {/* Språkvalet pekar på SAMMA sida i det andra språket, inte på
-              startsidan. En växlare som kastar gästen till roten mitt i ett
-              besök är värre än ingen växlare. */}
-          <nav aria-label={t.site.language} className="flex items-center gap-2">
-            {LOCALES.map((entry) => (
-              <Link
-                key={entry}
-                href={localePath(entry, path)}
-                hrefLang={entry}
-                aria-current={entry === locale ? "true" : undefined}
-                className={`label-caps min-h-11 content-center ${
-                  entry === locale ? "text-burp-600" : "hover:text-[var(--foreground)]"
-                }`}
-              >
-                {LOCALE_LABELS[entry]}
-              </Link>
-            ))}
-          </nav>
+          {/*
+            Språkväljaren.
+
+            `<details>` och inte en rullgardin med JavaScript. Sidhuvudet ligger
+            på varje publik sida, och de sidorna ska kunna renderas och användas
+            utan klientkod — samma skäl som gör att restaurangsidan är
+            serverrenderad. Webbläsaren kan fälla ut och stänga en `<details>`
+            av sig själv, och en skärmläsare vet vad den är.
+
+            Med två språk stod båda utskrivna. Med fem gör de inte det:
+            "Bosanski / Hrvatski / Srpski" är ensamt tjugoåtta tecken.
+
+            Varje val pekar på SAMMA sida i det andra språket, inte på
+            startsidan. En växlare som kastar gästen till roten mitt i ett besök
+            är värre än ingen växlare.
+          */}
+          <details className="relative">
+            <summary className="label-caps flex min-h-11 cursor-pointer list-none content-center items-center gap-1.5 whitespace-nowrap">
+              <Globe size={14} aria-hidden="true" />
+              <span className="sr-only">{t.site.language}: </span>
+              {LOCALE_SHORT_LABELS[locale]}
+            </summary>
+
+            <nav
+              aria-label={t.site.language}
+              className="card absolute right-0 z-20 mt-1 flex min-w-52 flex-col p-1"
+            >
+              {LOCALES.map((entry) => (
+                <Link
+                  key={entry}
+                  href={localePath(entry, path)}
+                  hrefLang={entry}
+                  lang={entry}
+                  aria-current={entry === locale ? "true" : undefined}
+                  className={`min-h-11 content-center rounded-[0.5rem] px-3 text-sm whitespace-nowrap ${
+                    entry === locale
+                      ? "font-medium text-burp-600"
+                      : "hover:bg-[var(--background)]"
+                  }`}
+                >
+                  {LOCALE_LABELS[entry]}
+                </Link>
+              ))}
+            </nav>
+          </details>
 
           <Link href="/logga-in" className="link min-h-11 content-center text-sm whitespace-nowrap">
             {t.site.logIn}

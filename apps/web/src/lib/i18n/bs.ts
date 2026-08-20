@@ -1,0 +1,332 @@
+import type { Dictionary } from "./sv";
+
+/**
+ * Bosanski / hrvatski / srpski.
+ *
+ * EN ordbok för alla tre standarderna, latinsk skrift. Skillnaderna mellan dem
+ * är små i den här sortens text — knappar, kvitton, felmeddelanden — och tre
+ * nästan identiska filer hade blivit tre ställen att glömma uppdatera.
+ *
+ * Där standarderna faktiskt skiljer sig har den bosniska formen valts, eftersom
+ * Bosnien är huvudmarknaden: `sto` och inte `stol`, `radno vrijeme` och inte
+ * `radno vreme`. En kroatisk eller serbisk gäst läser det utan att stanna upp.
+ *
+ * `hreflang` pekar däremot ut alla tre (`bs`, `hr`, `sr-Latn`) mot samma URL —
+ * se `LOCALE_ALTERNATE_TAGS`. Google i Zagreb och Belgrad ska hitta sidan.
+ *
+ * ── Plural ──────────────────────────────────────────────────────────────────
+ *
+ * Språket har tre former: 1, 2–4 och 5+. Dessutom räknas 21 och 101 som 1 men
+ * 11 inte. Funktionerna nedan gör det rätt i stället för att välja pluralformen
+ * och hoppas — "1 rezultata" läser som ett trasigt system.
+ */
+
+/** 1, 21, 31 … men inte 11. */
+function isOne(count: number): boolean {
+  return count % 10 === 1 && count % 100 !== 11;
+}
+
+/** 2–4, 22–24 … men inte 12–14. */
+function isFew(count: number): boolean {
+  const last = count % 10;
+  const teens = count % 100;
+  return last >= 2 && last <= 4 && (teens < 12 || teens > 14);
+}
+
+export const bs: Dictionary = {
+  site: {
+    forRestaurants: "Za restorane",
+    home: "Burp — na početnu",
+    tagline:
+      "Svaki restoran sa svojom stranicom: jelovnik, fotografije, radno vrijeme i put do vrata. Skenirajte QR kod za stolom i naručite — bez aplikacije i bez naloga.",
+    cities: "Gradovi",
+    cuisines: "Kuhinje",
+    restaurantsIn: (city: string) => `Restorani u gradu ${city}`,
+    joinBurp: "Prijavite svoj restoran",
+    logIn: "Prijava",
+    createAccount: "Napravi nalog gosta",
+    myOrders: "Moje narudžbe",
+    breadcrumbs: "Putanja",
+    allCities: "Svi gradovi",
+    language: "Jezik",
+
+    /* Navigacija u zaglavlju. */
+    discover: "Otkrij",
+    map: "Mapa",
+    becomePartner: "Postanite partner",
+    mainNav: "Glavni meni",
+    searchLabel: "Pretraga restorana ili jela",
+    searchPlaceholder: "Pretraži restorane ili jela",
+  },
+
+  discover: {
+    title: "Svi restorani na mapi",
+    intro:
+      "Pogledajte gdje se nalaze prije nego što odlučite. Filtrirajte po kuhinji, gradu i po tome šta je otvoreno sada.",
+    openNow: "Otvoreno sada",
+    showAll: "Prikaži sve",
+    sort: "Sortiraj",
+    sortRating: "Najbolje ocijenjeni",
+    sortName: "Naziv A–Ž",
+    mapLabel: "Mapa restorana",
+    mapEmpty: "Nijedan od rezultata još nema oznaku na mapi.",
+    mapFailed: "Mapa se nije učitala. Lista pored prikazuje ista mjesta.",
+    results: "Rezultati",
+    empty: "Nijedan restoran ne odgovara filteru.",
+    emptyHint: "Uklonite jedan filter ili pretražite cijelo tržište.",
+  },
+
+  home: {
+    label: "Tržnica hrane",
+    headline: ["Svaki restoran,", "svoja stranica"],
+    headlineCity: (city: string) => `Projedite se kroz grad ${city}.`,
+    intro:
+      "Jelovnik sa fotografijama, radno vrijeme i put do vrata — i narudžba direktno za stolom preko QR koda. Bez aplikacije, bez naloga.",
+    searchLabel: "Pretraga restorana ili jela",
+    searchPlaceholder: "Pretraži restoran, jelo ili kuhinju",
+    searchButton: "Traži",
+    searchHint: "Pretražuje nazive i opise restorana.",
+    city: "Grad",
+    cuisine: "Kuhinja",
+    allCities: "Svi gradovi",
+    allCuisines: "Sve kuhinje",
+    seeAllIn: (city: string) => `Svi u gradu ${city}`,
+    allRestaurants: "Svi restorani",
+    hits: (count: number) => (isOne(count) ? `${count} rezultat` : `${count} rezultata`),
+    searchedFor: "Pretraga",
+    featured: "Izdvojeno",
+    seeMenu: "Pogledaj jelovnik",
+    noRatings: "Još nema recenzija",
+    ratingSummary: (average: string, count: number) =>
+      `${average} od 5 u prosjeku, ${count} ${isOne(count) ? "recenzija" : "recenzija"}`,
+    todayHours: (hours: string) => `Danas ${hours}`,
+    closedToday: "Danas zatvoreno",
+    emptyTitle: "Nijedan restoran ne odgovara.",
+    emptyFiltered: "Pokušajte drugu pretragu, drugi grad ili uklonite filtere.",
+    emptyAll: "Trenutno nema aktivnih restorana za prikaz.",
+    showAll: "Prikaži sve restorane",
+  },
+
+  city: {
+    label: "Grad",
+    title: (city: string) => `Restorani u gradu ${city}`,
+    intro: (count: number, city: string) =>
+      `${
+        isOne(count) ? "Jedan restoran prima" : `${count} ${isFew(count) ? "restorana primaju" : "restorana prima"}`
+      } narudžbe preko Burpa u gradu ${city}. Naručite za preuzimanje ili skenirajte QR kod za stolom.`,
+    cuisineLabel: (city: string) => `Kuhinje u gradu ${city}`,
+    cuisineTitle: (cuisine: string, city: string) => `${cuisine} u gradu ${city}`,
+    cuisineIntro: (count: number, cuisine: string, city: string) =>
+      `${
+        isOne(count) ? "Jedan restoran služi" : `${count} ${isFew(count) ? "restorana služe" : "restorana služi"}`
+      } ${cuisine.toLowerCase()} u gradu ${city}.`,
+    cuisineMeta: (cuisine: string, city: string) =>
+      `Naručite ${cuisine.toLowerCase()} u gradu ${city}. Preuzimanje ili narudžba direktno za stolom — bez aplikacije.`,
+    otherCuisines: (city: string) => `Druge kuhinje u gradu ${city}`,
+    emptyTitle: "Ovdje još nema restorana.",
+    emptyBody: "Vodite restoran u blizini?",
+    emptyAction: "Prijavite svoj restoran",
+  },
+
+  restaurant: {
+    onThisPage: "Na ovoj stranici",
+    menu: "Jelovnik",
+    findUs: "Kako do nas",
+    reviews: "Recenzije",
+    orderForPickup: "Naruči za preuzimanje",
+    noMenuTitle: "Trenutno nema jelovnika",
+    noMenuBody: (name: string) =>
+      `${name} nije objavio jelovnik za ovo doba dana. Slobodno ih nazovite.`,
+    openToday: (hours: string) => `Danas otvoreno ${hours}`,
+    closedToday: "Danas zatvoreno",
+    phone: "Telefon",
+    openingHours: "Radno vrijeme",
+    noOpeningHours: "Radno vrijeme nije navedeno.",
+    closed: "Zatvoreno",
+    reviewSummary: (average: string, count: number) =>
+      `${average} od 5 na osnovu ${count} ${isOne(count) ? "recenzije" : "recenzija"} iz završenih narudžbi.`,
+    reviewsEmptyTitle: "Još nema recenzija",
+    reviewsEmptyBody: "Ocjenu mogu ostaviti samo gosti koji su zaista naručili.",
+    reviewAuthorFallback: "Gost",
+    foodRating: "Ocjena hrane",
+    serviceRating: "Ocjena usluge",
+    ratingOutOf: "{n} od 5",
+    restaurantReply: "Odgovor restorana",
+  },
+
+  menu: {
+    table: "Sto {number}",
+    pickup: "Preuzimanje",
+    noAppNoAccount: "Bez aplikacije. Bez naloga. Samo naručite.",
+    sections: "Dijelovi jelovnika",
+    search: "Pretraži jelovnik",
+    searchPlaceholder: "Pronađi jelo",
+    searchClear: "Poništi pretragu",
+    searchEmpty: "Ništa na jelovniku ne odgovara upitu „{query}”.",
+    searchEmptyHint: "Probajte kraću riječ ili pregledajte dijelove jelovnika.",
+    soldOut: "Rasprodano za danas",
+    allergens: "Alergeni",
+    chooseOptions: "Odaberi dodatke",
+    hideOptions: "Sakrij dodatke",
+    add: "Dodaj",
+    added: "Dodano",
+    priceFrom: "Od {price}",
+    chooseExactly: "odaberite {n}",
+    chooseBetween: "odaberite {min}–{max}",
+    chooseUpTo: "odaberite najviše {n}",
+    optionSoldOut: "(nema)",
+    chooseFirst: 'Prvo odaberite u "{group}"',
+    noteToKitchen: "Poruka za kuhinju",
+    notePlaceholder: "Npr. bez luka",
+    pickupTime: "Kada želite preuzeti?",
+    asSoonAsPossible: "Što prije",
+    tip: "Napojnica",
+    noTip: "Bez napojnice",
+    foodAndDrink: "Hrana i piće",
+    ofWhichVat: "od toga PDV",
+    hide: "Sakrij",
+    itemCount: "{n} kom.",
+    order: "Naruči",
+    sending: "Šaljem…",
+    removeOne: "Ukloni jedno: {name}",
+    addOne: "Dodaj još jedno: {name}",
+    orderFailed: "Narudžba nije poslana. Pokušajte ponovo.",
+    noConnection: "Nema veze sa serverom. Provjerite mrežu i pokušajte ponovo.",
+    retrying: "Nema veze. Vaša narudžba je sačuvana i bit će poslana čim se mreža vrati.",
+    retryNow: "Pokušaj sada",
+    retryGaveUp: "Ne možemo doći do servera. Narudžba je sačuvana — dodirnite da pokušate ponovo.",
+
+    payHow: "Kako želite platiti?",
+    payAtPlace: "Na licu mjesta",
+    payByCard: "Karticom",
+    payByCardHint: "Kartica, Apple Pay i Google Pay",
+    payNow: "Plati",
+    paying: "Plaćam…",
+    paymentTitle: "Platite svoju narudžbu",
+    paymentCancel: "Odustani",
+    paymentFailed: "Plaćanje nije prošlo. Pokušajte ponovo ili platite na licu mjesta.",
+    paymentAbandoned: "Plaćanje je otkazano. Narudžba nije poslana.",
+
+    coupon: "Kod za popust",
+    couponPlaceholder: "Npr. LJETO25",
+    couponApply: "Primijeni",
+    couponChecking: "Provjeravam…",
+    couponRemove: "Ukloni kod",
+    discount: "Popust",
+
+    giftCard: "Poklon kartica",
+    giftCardPlaceholder: "ABCD-EFGH-JKLM",
+    giftCardApply: "Iskoristi",
+    giftCardChecking: "Provjeravam…",
+    giftCardRemove: "Ukloni poklon karticu",
+    giftCardLeft: "Ostaje {amount}",
+    toPay: "Za platiti",
+
+    punchCard: "Kartica vjernosti",
+    punchCardProgress: "{visits} od {size} posjeta",
+    punchCardRemaining: "Još {n} posjeta do besplatnog obroka",
+    punchCardEarned: "Ovaj obrok časti restoran",
+    punchCardUse: "Iskoristi karticu vjernosti",
+  },
+
+  table: {
+    tooManyTitle: "Previše pokušaja",
+    tooManyBody: "Sačekajte trenutak i ponovo skenirajte kod.",
+    lockedTitle: "Ovaj sto ne prima narudžbe",
+    lockedBody: "Obratite se osoblju i pomoći će vam.",
+    closedTitle: "Restoran je zatvoren",
+    closedBody: "Narudžbe je moguće poslati samo u toku radnog vremena.",
+    noMenuTitle: "Trenutno nema jelovnika",
+    noMenuBody: "Restoran nije objavio jelovnik za ovo doba dana. Obratite se osoblju.",
+  },
+
+  receipt: {
+    title: "Vaša narudžba",
+    table: "Sto {number}",
+    pickup: "Preuzimanje",
+    pickupAt: "Preuzima se kod",
+    yourBill: "Vaš račun",
+    foodAndDrink: "Hrana i piće",
+    discount: "Popust",
+    tip: "Napojnica",
+    total: "Ukupno",
+    payOnPickup: "Plaćanje se vrši na licu mjesta pri preuzimanju.",
+    payAtTable: "Plaćanje se vrši na licu mjesta.",
+    paidByCard: "Plaćeno karticom.",
+    paidInTerminal: "Plaćeno karticom u restoranu.",
+    refundedNotice: "Narudžba je refundirana.",
+    notFiscalReceipt:
+      "Ovo je potvrda narudžbe, a ne fiskalni račun. Račun dobijate od restorana.",
+
+    reviewPrompt: "Kakva je bila hrana?",
+    reviewOpen: "Ostavi recenziju",
+    reviewFood: "Hrana",
+    reviewService: "Usluga",
+    reviewOptional: "nije obavezno",
+    reviewComment: "Komentar",
+    reviewStar: "{n} od 5",
+    reviewSubmit: "Pošalji",
+    reviewSending: "Šaljem…",
+    reviewCancel: "Odustani",
+    reviewThanks: "Hvala. Vaša recenzija pomaže sljedećem gostu.",
+    reviewAlready: "Već ste ostavili recenziju za ovu narudžbu.",
+    reviewFailed: "Recenzija nije sačuvana. Pokušajte ponovo.",
+    backTo: "Nazad na {name}",
+    progress: "Tok narudžbe",
+    contactRestaurant: "Obratite se restoranu ako imate pitanja o narudžbi.",
+    enjoy: "Prijatno",
+    onTheWay: "Hrana je na putu do stola.",
+    minutesLeft: "Otprilike još {n} minuta.",
+    almostReady: "Uskoro gotovo.",
+    editTitle: "Izmijeni narudžbu",
+    editWindow: "Možete mijenjati još {n} sekundi.",
+    editExpired: "Vrijeme za izmjene je isteklo.",
+    removeItem: "Ukloni jelo",
+    remove: "Ukloni",
+    cancelOrder: "Otkaži narudžbu",
+    cancelWarning: "Cijela narudžba će biti otkazana.",
+    changeFailed: "Izmjena nije prošla.",
+    status: {
+      DRAFT: "Nacrt",
+      PLACED: "Poslana",
+      ACCEPTED: "Prihvaćena",
+      PREPARING: "Priprema se",
+      READY: "Gotova",
+      COMPLETED: "Servirana",
+      CANCELLED: "Otkazana",
+      REFUNDED: "Refundirana",
+    },
+  },
+
+  errors: {
+    notFoundLabel: "404",
+    notFoundTitle: "Ova stranica ne postoji.",
+    notFoundBody:
+      "Adresa se možda promijenila ili restoran više ne prima narudžbe preko Burpa. Probajte neki od gradova ispod.",
+    notFoundAction: "Na početnu stranicu",
+    errorLabel: "Greška",
+    errorTitle: "Nešto je pošlo po zlu.",
+    errorBody:
+      "Krivica je naša, ne vaša. Pokušajte ponovo — ako ni tada ne uspije, slobodno nazovite restoran direktno.",
+    errorRetry: "Pokušaj ponovo",
+    loading: "Učitavanje…",
+  },
+
+  directions: {
+    copy: "Kopiraj adresu",
+    copied: "Kopirano",
+    copiedNotice: "Adresa je kopirana.",
+    opensInNewTab: " — otvara upute u novoj kartici",
+    mapOf: (name: string) => `Mapa: ${name}`,
+  },
+
+  weekday: {
+    mon: "Ponedjeljak",
+    tue: "Utorak",
+    wed: "Srijeda",
+    thu: "Četvrtak",
+    fri: "Petak",
+    sat: "Subota",
+    sun: "Nedjelja",
+  },
+};

@@ -151,6 +151,7 @@ export const sv = {
     searchEmpty: "Ingenting på menyn matchar ”{query}”.",
     searchEmptyHint: "Prova ett kortare ord, eller bläddra i avdelningarna.",
     soldOut: "Slut för dagen",
+    allergens: "Allergener",
     chooseOptions: "Välj tillval",
     hideOptions: "Dölj tillval",
     add: "Lägg till",

@@ -126,7 +126,15 @@ echo "→ Publika sidor"
 check_status "roten väljer språk"    "/"                          307
 check_status "svensk startsida"      "/sv"                        200
 check_status "engelsk startsida"     "/en"                        200
-check_status "okänt språk 404:ar"    "/de"                        404
+check_status "bosnisk startsida"     "/bs"                        200
+check_status "tysk startsida"        "/de"                        200
+check_status "norsk startsida"       "/no"                        200
+
+# `hr` och `sr` är ALIAS i Accept-Language men inte egna adresser. Två URL:er
+# med samma innehåll är dubblerat innehåll för Google, och hela skälet till att
+# språket ligger i adressen är sökbarheten.
+check_status "okänt språk 404:ar"    "/fr"                        404
+check_status "hr är alias, inte adress" "/hr"                     404
 check_status "hälsokontroll"         "/api/health"                200
 check_status "restaurangsida (SEO)"  "/sv/r/sarajevo/cevabdzinica-zeljo"     200
 check_status "okänd restaurang"      "/sv/r/sarajevo/finns-inte"        404
@@ -1076,6 +1084,18 @@ if curl -s "$BASE/sitemap.xml" | grep -qE "/t/|/konto|/backoffice|/dashboard"; t
 else
   pass "sitemap innehåller bara publika sidor"
 fi
+
+# `/bs/` är en ordbok för tre standarder och pekas ut för alla tre. Utan de
+# extra taggarna hittas sidan bara av den som söker på bosniska — inte av den i
+# Zagreb eller Belgrad, alltså två av tre marknader.
+SITEMAP=$(curl -s "$BASE/sitemap.xml")
+for tag in 'hreflang="hr"' 'hreflang="sr-Latn"' 'hreflang="de"' 'hreflang="no"'; do
+  if grep -q "$tag" <<<"$SITEMAP"; then
+    pass "sitemap pekar ut $tag"
+  else
+    fail "sitemap saknar $tag"
+  fi
+done
 
 if curl -s "$BASE/sv/sarajevo" | grep -q '"@type":"ItemList"'; then
   pass "stadssidan har ItemList-markup"

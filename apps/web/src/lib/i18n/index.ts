@@ -1,18 +1,26 @@
 import { DEFAULT_LOCALE, isLocale, pickLocale, type Locale } from "./config";
+import { bs } from "./bs";
+import { de } from "./de";
 import { en } from "./en";
+import { no } from "./no";
 import { sv, type Dictionary } from "./sv";
 
 export * from "./config";
 export type { Dictionary };
 
-const DICTIONARIES: Record<Locale, Dictionary> = { sv, en };
+/**
+ * Alla ordböcker är typade som `Dictionary`, som härleds ur svenskan. En nyckel
+ * som läggs till där och glöms i något av de andra språken stoppar bygget —
+ * en oöversatt text ska aldrig nå en gäst som en tom sträng.
+ */
+const DICTIONARIES: Record<Locale, Dictionary> = { bs, en, de, no, sv };
 
 /**
  * Texterna för ett språk.
  *
  * Tar emot vad som helst och faller tillbaka på standardspråket. Anropas med
  * en ruttparameter som kommer rakt från URL:en, och en gäst som skriver
- * `/de/sarajevo` ska få svenska texter — inte en kraschad sida. Att rutten
+ * `/fr/sarajevo` ska få svenska texter — inte en kraschad sida. Att rutten
  * dessutom 404:ar på okänt språk är en separat sak; den här funktionen ska
  * aldrig vara den som fäller sidan.
  */

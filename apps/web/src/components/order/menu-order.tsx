@@ -1059,8 +1059,14 @@ function MenuItemCard({
           </span>
         ) : null}
 
+        {/* Etiketten är gränssnitt och översätts. Allergenerna själva är
+            restaurangens fritext och står kvar som de skrivits — men ordet
+            framför dem är det enda på menyn där en gäst som inte förstår
+            riskerar något värre än en missad rätt. */}
         {item.allergens.length > 0 ? (
-          <span className="label-caps mt-2 block">Allergener: {item.allergens.join(", ")}</span>
+          <span className="label-caps mt-2 block">
+            {labels.allergens}: {item.allergens.join(", ")}
+          </span>
         ) : null}
 
         {/* Uppmaningen ser ut som en knapp for att den ar kortets enda

@@ -1,4 +1,4 @@
-import { localePath, LOCALES, LOCALE_TAGS } from "@/lib/i18n";
+import { localePath, LOCALES, LOCALE_ALTERNATE_TAGS } from "@/lib/i18n";
 import type { MetadataRoute } from "next";
 import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -34,14 +34,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   /*
    * Varje sida en gång per språk, med `alternates` som knyter ihop dem.
    *
-   * Utan `hreflang` läser Google de två språkversionerna som dubblerat
-   * innehåll och väljer själv vilken som får synas — ofta fel. Med den vet den
-   * att `/sv/sarajevo` och `/en/sarajevo` är samma sida på två språk, och kan
-   * visa rätt version för rätt användare.
+   * Utan `hreflang` läser Google språkversionerna som dubblerat innehåll och
+   * väljer själv vilken som får synas — ofta fel. Med den vet den att
+   * `/sv/sarajevo` och `/bs/sarajevo` är samma sida på två språk, och kan visa
+   * rätt version för rätt användare.
+   *
+   * Ett språk kan peka ut FLERA taggar. `/bs/` är skriven på bosniska,
+   * kroatiska och serbiska på en gång — en ordbok för tre standarder — och ska
+   * hittas av någon som söker på kroatiska i Zagreb lika väl som av någon i
+   * Sarajevo. Flera `hreflang` mot samma URL är precis vad standarden finns för.
    */
   const languages = (path: string) =>
     Object.fromEntries(
-      LOCALES.map((locale) => [LOCALE_TAGS[locale], `${base}${localePath(locale, path)}`]),
+      LOCALES.flatMap((locale) =>
+        LOCALE_ALTERNATE_TAGS[locale].map(
+          (tag) => [tag, `${base}${localePath(locale, path)}`] as const,
+        ),
+      ),
     );
 
   const forEachLocale = <T extends Record<string, unknown>>(

@@ -213,7 +213,31 @@ Ett byte ogiltigförklarar samtliga utskrivna QR-dekaler hos alla restauranger.
 
 ## Språk
 
-Svenska och engelska. `apps/web/src/lib/i18n/`.
+Fem språk. `apps/web/src/lib/i18n/`.
+
+| Kod | Ordbok | Täcker |
+|---|---|---|
+| `bs` | `bs.ts` | Bosniska, kroatiska och serbiska i **latinsk** skrift |
+| `en` | `en.ts` | Turisten som inte talar något av de andra |
+| `de` | `de.ts` | Största turistgruppen i regionen. Genomgående `Sie` |
+| `no` | `no.ts` | Bokmål |
+| `sv` | `sv.ts` | Standardspråk, och det `Dictionary` härleds ur |
+
+`bs` är **en** ordbok och inte tre. Skillnaden mellan standarderna i latinsk
+skrift är ordval, inte grammatik, och tre nästan identiska filer glider isär på
+den nyckel någon glömmer i två av dem. Den som söker på kroatiska i Zagreb hittar
+ändå sidan: `LOCALE_ALTERNATE_TAGS` märker `/bs/` med `hreflang` för `bs`, `hr`
+**och** `sr-Latn`. Serbiskan märks `sr-Latn` med flit — ett omärkt `sr` lovar
+kyrilliska.
+
+`hr`, `sr`, `nb` och `nn` är **alias i `Accept-Language`, aldrig adresser**. En
+kroatisk telefon landar på `bs` utan att `/hr/` finns. Att ge dem egna URL:er
+hade gett Google samma innehåll på två adresser.
+
+**Bara gränssnittet översätts.** Restaurangens egen text — namn, beskrivningar,
+allergener — står kvar som den skrivits. Enda undantaget är *etiketten* framför
+allergenlistan, som är gränssnitt: det är det enda stället på menyn där en gäst
+som inte förstår riskerar något värre än en missad rätt.
 
 - **Indexerade ytor** har språket i URL:en — `/sv/...`, `/en/...`. Google
   indexerar en URL, inte en cookie; med språket dolt i sessionen kan bara en
@@ -223,10 +247,17 @@ Svenska och engelska. `apps/web/src/lib/i18n/`.
 - **Personalytorna är svenska.** Medvetet. Köket ska inte byta språk för att en
   gäst gjorde det.
 
-`Dictionary` härleds ur den svenska filen: en nyckel som glöms i engelskan
-stoppar bygget. Tre tester håller resten — identiska nyckelmängder åt båda
-hållen, inga tomma strängar, och ingen sträng identisk mellan språken utom de
-som uttryckligen listats.
+`Dictionary` härleds ur den svenska filen: en nyckel som glöms i något av de
+andra fyra språken stoppar bygget. Testerna i `i18n.test.ts` håller resten —
+identiska nyckelmängder åt alla håll, inga tomma strängar, språknamnen på sitt
+eget språk, och ingen sträng identisk med svenskan utom de som uttryckligen
+listats i `SAMMA_SOM_SVENSKAN`.
+
+Den listan har **ett eget test som faller på en post som inte längre behövs**.
+Utan det ruttnar listan: en nyckel byter namn eller översätts till slut, raden
+blir kvar, och nästa läsare tror att kollisionen finns. Norskan har flest poster
+av den enkla anledningen att "Allergener" och "Telefon" stavas likadant på
+svenska — vilka veckodagar som *inte* står med är kvittot på att filen är norsk.
 
 **Texter som skickas till klientkomponenter måste vara rena strängar.** En
 funktion går inte att serialisera över server/klient-gränsen och ger 500.

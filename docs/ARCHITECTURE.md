@@ -16,7 +16,7 @@ ett arkitekturdokument som tyst blivit fel är farligare än inget alls.
 | **Valutan fryses på ordern** | Ett kvitto ändrar sig aldrig i efterhand för att restaurangen bytt valuta. Plattformsöversikten redovisar per valuta — belopp från olika valutor summeras aldrig | Migration `0020` |
 | **Varje restaurang har en egen sida** | Marknadsplatsen är inte en katalog. Presentation, bild, kökstyper, prisklass, adress och kartnål redigeras av restaurangen själv | `components/staff/presentation-editor.tsx` |
 | **Kartor och vägbeskrivning** | Google Maps, Apple Kartor och Waze, byggt på koordinater i stället för adresstext. Karta via OpenStreetMap, utan API-nyckel | `components/site/directions.tsx`, `map-embed.tsx` |
-| **Två språk, med språket i URL:en** | `/sv/...` och `/en/...` för de indexerade ytorna; QR-sidan och kvittona väljer på `Accept-Language` eftersom de är noindex. Personalytorna är svenska med flit | `lib/i18n/` |
+| **Fem språk, med språket i URL:en** | `/bs/`, `/en/`, `/de/`, `/no/`, `/sv/` för de indexerade ytorna; QR-sidan och kvittona väljer på `Accept-Language` eftersom de är noindex. `bs` täcker bosniska, kroatiska och serbiska i latinsk skrift och pekas ut med `hreflang` för alla tre. Personalytorna är svenska med flit | `lib/i18n/` |
 | **Designspråket är ett, inte ett per sida** | Byggstenarna definieras en gång i `globals.css`. Inga rundade hörn, inga skuggor — det är signaturen | `CLAUDE.md`, `app/globals.css` |
 
 Avsnitt 14 (öppna frågor) har dessutom skrivits om: fråga 4 och 5 var ställda
