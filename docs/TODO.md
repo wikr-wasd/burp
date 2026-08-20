@@ -177,6 +177,10 @@ avvek från planen och det står varför i respektive commit.
 - [ ] **Gällande gallring — hur länge sparas en gäst som slutat?** Öppen fråga
       13. Artikel 5.1 e kräver en gräns; Burp har ingen och raderar inget av sig
       självt. **Kräver ett beslut av dig**, sedan är det ett bakgrundsjobb.
+- [ ] **Utloggningsvarningen provad på riktigt.** Trettio minuters väntan per
+      försök gör den obekväm att testa; sänk `IDLE_MS` i
+      `components/staff/idle-logout.tsx` tillfälligt om du vill se rutan.
+      Kontrollera också att köksskärmen INTE loggas ut.
 - [ ] **De nya ytorna sedda i webbläsaren.** `/dashboard/avrakning` (ägare och
       chef), `/backoffice/avrakning` (Burp), "Dricks att fördela" överst i Kassa
       och `/konto/uppgifter` (gästen). Beräkningarna är körda mot en riktig
@@ -207,7 +211,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Ingen Monri-adapter — kort i Burps eget flöde fungerar bara där Stripe finns (HR, SE) | `lib/payments/` | Lansering i BA och RS. Kontant och kort i restaurangens egen terminal fungerar under tiden |
 | Burp läser inte kortterminalen — beloppet skrivs in av personalen | Migration 0044 | Kräver en terminal med moln-API. Öppen fråga 14 |
 | Restaurangen ser inte sina lojalitetsmedlemmar | `loyalty_accounts` saknar policy för personal | Medvetet: den ska inte kunna bläddra i vilka gäster som är med. Ingen kod skapar restaurangbundna konton än — poängen ligger i Burps globala program. Tas i Fas 3 |
-| Ingen tidsutlöst utloggning på delad kassaenhet | `lib/auth.ts` | Sessionen lever tills någon loggar ut. En surfplatta i baren står inloggad över natten |
+| Köksskärmen loggas aldrig ut automatiskt | `/kok` bygger sin egen ram | Medvetet. Den är en tavla som ska stå hela passet; en utloggning mitt i lunchrushen är värre än allt den skyddar mot |
 | Återförsöket kräver att sidan är öppen | `components/order/menu-order.tsx` | Medvetet. Background Sync finns inte i Safari på iOS, och QR-flödet är fullt av iPhones — en kö i en service worker hade hjälpt hälften av gästerna och satt en worker framför produktens viktigaste sida. Stänger gästen fliken mitt i en blinkning är beställningen borta |
 | Fiskalisering är inte byggd — kvittot är märkt som orderbekräftelse | `register_receipts` är tom | Lansering. Öppen fråga 4 |
 | Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
@@ -313,6 +317,32 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **En glömd surfplatta loggas ut.** Kassan står på en disk och delas av
+      flera. Utan spärren är den inloggad tills någon aktivt loggar ut — alltså
+      över natten och över helgen, och den som går fram ser gårdagens
+      omsättning, kan kvittera notor och, med ägarens konto, betala tillbaka
+      pengar.
+      Trettio minuter utan att någon rör skärmen, med en minuts varning.
+      Kortare blir en plåga under service, och personal som loggas ut var femte
+      minut skriver lösenordet på en lapp vid kassan — vilket är sämre än ingen
+      utloggning alls. `mousemove` räknas inte som aktivitet: en pekare som
+      ligger still över skärmen hade hållit sessionen vid liv i evighet.
+      **Köksskärmen berörs inte.** `/kok` bygger sin egen ram och renderar
+      aldrig `StaffShell`. Det är avsiktligt: den är en tavla som ska stå på
+      hela passet. Burps backoffice har samma vakt — en obevakad skärm där visar
+      varje restaurangs omsättning.
+- [x] **Vem gjorde vad med pengarna** (migration 0045). Uppgifterna fanns hela
+      tiden — `refunds.created_by` säger vem som lämnade tillbaka pengar och
+      varför, `order_events.actor_id` vem som avbröt en order — men ingen yta
+      visade dem. Skillnaden är mellan att kunna svara på "vem betalade tillbaka
+      240 mark i fredags" och att behöva köra en fråga i databasen.
+      `/dashboard/handelser` visar återbetalningar och avbrutna beställningar
+      med namn, belopp och skäl. Ägare och chef; servitören står med i listan
+      men läser den inte.
+      Funktionen är SECURITY DEFINER därför att namnet ligger i `profiles`, som
+      bara går att läsa om sig själv — och kontrollerar därför rollen SJÄLV med
+      samma `has_role_at` som RLS. Alternativet, service role i appen, hade
+      flyttat behörigheten till app-lagret.
 - [x] **Beställningen ligger kvar och skickas om när nätet är tillbaka.**
       Gästen fick tidigare ett felmeddelande och fick trycka själv. Nu försöker
       appen om av sig själv — på `online`-händelsen och på en klocka som backar

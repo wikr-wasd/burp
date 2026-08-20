@@ -3791,4 +3791,107 @@ begin
 end
 $$;
 
+\echo '   händelseloggen visar vem som rörde pengarna, och bara för rätt roll'
+
+do $$
+declare
+  v_rest     uuid := '11111111-1111-1111-1111-111111111111';
+  v_owner    uuid;
+  v_waiter   uuid;
+  v_order    uuid;
+  v_refunded uuid;
+  v_payment  uuid;
+  v_rows     integer;
+  v_kind     text;
+  v_actor    text;
+  v_reason   text;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-logg@example.com')
+  returning id into v_owner;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'servitor-logg@example.com')
+  returning id into v_waiter;
+
+  update public.profiles set full_name = 'Amira Ägare' where id = v_owner;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_owner, 'owner', true), (v_rest, v_waiter, 'staff', true);
+
+  -- En nota som betalas och sedan lämnas tillbaka av ägaren.
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 9000, 9000, now())
+  returning id into v_refunded;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, method, status, idempotency_key, captured_at)
+  values (v_refunded, v_rest, 9000, 'CASH', 'cash', 'CAPTURED', gen_random_uuid(), now())
+  returning id into v_payment;
+
+  perform public.request_refund(v_payment, 9000, 'Gästen fick fel rätt', v_owner);
+
+  -- Och en order som avbryts.
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_rest, 'PICKUP', 'PLACED', gen_random_uuid(), 4000)
+  returning id into v_order;
+
+  update public.orders set status = 'CANCELLED' where id = v_order;
+
+  -- ── Som ägaren ────────────────────────────────────────────────────────────
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_owner::text, true);
+
+  select count(*) into v_rows
+  from public.restaurant_money_events(v_rest, now() - interval '1 hour', now() + interval '1 hour');
+
+  if v_rows < 2 then
+    raise exception 'FEL: loggen visade % rader, väntade minst 2', v_rows;
+  end if;
+
+  select kind, actor_name, reason into v_kind, v_actor, v_reason
+  from public.restaurant_money_events(v_rest, now() - interval '1 hour', now() + interval '1 hour')
+  -- Filtrerar på ORDERN och inte bara på sorten. Tidigare test i samma
+  -- transaktion har lämnat andra återbetalningar hos samma restaurang, och ett
+  -- `limit 1` hade plockat vilken som helst av dem.
+  where kind = 'REFUND' and order_id = v_refunded;
+
+  -- Namnet är hela poängen. Det ligger i `profiles`, som ägaren inte får läsa
+  -- direkt — funktionen är SECURITY DEFINER just för det.
+  if v_actor <> 'Amira Ägare' then
+    raise exception 'FEL: återbetalningen tillskrevs "%", väntade Amira Ägare', v_actor;
+  end if;
+
+  if v_reason <> 'Gästen fick fel rätt' then
+    raise exception 'FEL: skälet blev "%"', v_reason;
+  end if;
+
+  -- ── Som servitören ────────────────────────────────────────────────────────
+  --
+  -- Hon står med i listan; den ska ändå läsas av den som har ansvar för
+  -- pengarna, inte av alla som förekommer i den.
+  perform set_config('request.jwt.claim.sub', v_waiter::text, true);
+
+  begin
+    perform public.restaurant_money_events(
+      v_rest, now() - interval '1 hour', now() + interval '1 hour');
+    raise exception 'FEL: servitören fick läsa händelseloggen';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- ── Som en främling ───────────────────────────────────────────────────────
+  perform set_config('request.jwt.claim.sub', gen_random_uuid()::text, true);
+
+  begin
+    perform public.restaurant_money_events(
+      v_rest, now() - interval '1 hour', now() + interval '1 hour');
+    raise exception 'FEL: en utomstående fick läsa händelseloggen';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
 rollback;
