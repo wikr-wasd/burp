@@ -45,10 +45,11 @@ Det som återstår är i tur och ordning:
 
 Båda står utförligt i `CLAUDE.md`, men de kostar tid varje gång de glöms:
 
-- **`smoke.sh` går inte att köra på den här maskinen.** `bash` är WSL2, inte
-  Git Bash, och WSL2:s loopback är inte Windows. `curl` svarar `000` på varje
-  rad medan appen svarar 200 — det ser ut som att hela appen ligger nere.
-  Windows-`curl.exe` når appen och används i stället.
+- **`smoke.sh` går att köra här.** Det stod länge motsatsen: att `bash` var WSL2
+  och att loopbacken därför inte nådde appen. Skalet är Git Bash (`uname` säger
+  `MINGW64 … Msys`) och delar Windows nätverksstack. Det som saknades var
+  `/usr/bin` på `PATH` — utan den finns varken `ls` eller `curl`, och det läser
+  som ett trasigt skal. Kommandot står i `CLAUDE.md`.
 - **Öppna appen på `localhost`, aldrig på `127.0.0.1`.** Next 16 blockerar
   `/_next/`-resurser för värdar som inte står i `allowedDevOrigins`. Sidan
   renderas och svarar 200, men hydrerar aldrig — ingenting är klickbart, och
@@ -211,7 +212,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Personalytorna är enbart svenska | — | Medvetet. Köket ska inte byta språk för att en gäst gjorde det |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett | — | **Granskat 2026-08-20: bör inte byggas.** Se nedan |
-| `smoke.sh` går inte att köra på den här maskinen | `bash` är WSL2, inte Git Bash | Kräver Git Bash eller en miljö som delar Windows nätverksstack. Se CLAUDE.md |
+| Röktestet strypt av rate limitern vid två körningar i rad | `scripts/smoke.sh` | Inte ett fel. Kontrollerna rapporteras som `hopp`; vänta en minut |
 | Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av `/upptack`. Öppen fråga 8 |
 | Push är byggt men tyst utan VAPID-nycklar | `lib/notify/push.ts` | Nycklarna genereras på en minut, men de måste finnas i miljön |
 | Push aldrig sedd på en riktig enhet | `components/staff/push-toggle.tsx` | Kräver nycklar, https och en telefon. iPhone kräver dessutom att PWA:n lagts till på hemskärmen |
@@ -308,6 +309,20 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **Röktestet går att köra — och hittade två fel direkt.** Diagnosen att
+      `bash` var WSL2 var fel; skalet är Git Bash och saknade bara `/usr/bin` på
+      `PATH`. Röktestet har alltså aldrig körts här, trots att `CLAUDE.md` säger
+      att det är det som avgör om något fungerar. Det kör nu 109 kontroller,
+      inklusive de nya ytorna: avräkning, GDPR-export och poängjobbet bakom sin
+      nyckel.
+      Två fel föll ut. **Städningen av presentkortet kunde aldrig lyckas** —
+      `gift_card_transactions` är append-only och avvisar varje DELETE, felet
+      försvann i `2>/dev/null`, och kortet från förra körningen låg kvar tömt.
+      Testet gick alltså bara att köra mot en färsk databas och rapporterade
+      annars ett produktfel som inte fanns. **Och de två alfabetena skiljer sig:**
+      presentkortet utesluter 0 och 1, QR-tokenet L och U. Ett kort med en nolla
+      i koden gick att skriva in i databasen och kunde sedan aldrig lösas in —
+      rättat med en check-constraint i migration 0043.
 - [x] **Poängen går faktiskt ut** (migration 0042). `expires_at` sattes på varje
       EARN-rad av 0016 och `EXPIRE` fanns i enumet sedan 0001, men ingen kod
       skrev någonsin en sådan rad. Kundpanelen visade ändå rätt siffra, för

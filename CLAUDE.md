@@ -298,7 +298,7 @@ där Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat
 | `apps/web` | Rena moduler: öppen vidarebefordran, rate limiter, JSON-LD, i18n, avräkningens periodräkning | inget |
 | `scripts/verify-schema.sh` | Migrationer, RLS, grants, triggers, plpgsql | PostgreSQL + PostGIS |
 | `packages/core` (forts.) | Betalningens statusmaskin, kupong, presentkort, klippkort | inget |
-| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder | Docker + Supabase |
+| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 109 kontroller | Docker + Supabase + körande app |
 
 Route handlers och server components har medvetet inga enhetstester — de kräver
 databas och session för att säga något meningsfullt, och täcks av `smoke.sh`.
@@ -316,31 +316,41 @@ docker run -d --name burp-verify -e POSTGRES_PASSWORD=burp -e POSTGRES_DB=burp_v
 docker exec -u postgres -e DB_NAME=burp_check burp-verify bash /repo/scripts/verify-schema.sh
 ```
 
-Det här är det snabbaste sättet att bevisa att en migration faktiskt fungerar,
-och till skillnad från `smoke.sh` fungerar det på den här maskinen. `bash -n`
-inuti samma container syntaxkontrollerar dessutom skript som inte går att köra.
+Det här är det snabbaste sättet att bevisa att en migration faktiskt fungerar.
+`bash -n` inuti samma container syntaxkontrollerar dessutom skript.
 
-### `smoke.sh` når inte appen från WSL
+### `smoke.sh` GÅR att köra här — sätt bara PATH först
 
-`bash` på den här maskinen är **WSL2, inte Git Bash**. WSL2 har ett eget
-nätverksnamnrum: `127.0.0.1:3000` inuti WSL är WSL:s egen loopback, inte
-Windows. `curl` svarar därför `000` på varenda rad och testet ser ut som att
-hela appen ligger nere — den svarar 200 hela tiden.
-
-Windows brandvägg släpper inte heller in WSL-subnätet mot värdens portar, så
-varken `172.31.48.1` eller `host.docker.internal` hjälper. Att öppna
-brandväggen är en systeminställning och inte något som ska göras för ett test.
-
-Kontrollera först var man står:
+Det stod länge i den här filen att `bash` var WSL2 och att röktestet därför inte
+gick att köra. **Det stämde inte.** Skalet är Git Bash:
 
 ```bash
-uname -a                 # innehåller "microsoft-standard-WSL2" → problemet
-curl.exe -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/health
+uname -a     # MINGW64_NT-… … Msys      ← Git Bash
+             # …microsoft-standard-WSL2 ← WSL, ett annat problem
 ```
 
-`curl.exe` är Windows-binären via WSL-interop och når appen. `curl` gör det
-inte. En riktig lösning kräver antingen Git Bash installerat eller att
-`smoke.sh` körs från en miljö som delar Windows nätverksstack.
+Det som faktiskt saknades var `/usr/bin` på `PATH`. Utan den finns varken `ls`,
+`grep` eller `curl`, och den som provar drar slutsatsen att skalet är trasigt
+eller att nätverket inte når fram. Git Bash delar Windows nätverksstack, så
+`curl http://localhost:3000` fungerar direkt.
+
+Kör så här:
+
+```bash
+export PATH="/usr/bin:/bin:/mingw64/bin:/c/Program Files/nodejs:\
+/c/Users/wikr/AppData/Local/Programs/DockerDesktop/resources/bin:$PATH"
+export DOCKER_API_VERSION=1.47
+
+bash scripts/smoke.sh          # kräver körande app + supabase start
+```
+
+`curl` ligger i `/mingw64/bin`, inte i `/usr/bin`. Docker behöver sin
+versionspinning här som överallt annars.
+
+**Kör det två gånger i rad går kvoten i rate limitern åt** och några kontroller
+rapporteras som `hopp` i stället för `ok`. Det är inte ett fel — vänta en minut.
+En kontroll som svarar 429 säger ingenting om det som testas, och skriptet
+markerar det hellre än att ljuga.
 
 ---
 

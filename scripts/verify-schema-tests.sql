@@ -3444,4 +3444,44 @@ begin
 end
 $$;
 
+\echo '   ett presentkort med en kod som inte går att lösa in ges inte ut'
+
+do $$
+declare
+  v_rest uuid := '11111111-1111-1111-1111-111111111111';
+begin
+  -- Nolla och etta finns inte i presentkortets alfabet. De läses som O och I
+  -- när koden sägs högt, och kortet hade aldrig gått att lösa in.
+  begin
+    perform public.issue_gift_card(v_rest, 'A0B3C4D5E6F7', 5000, 'BAM');
+    raise exception 'FEL: ett kort med en nolla i koden gavs ut';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    perform public.issue_gift_card(v_rest, 'A1B3C4D5E6F7', 5000, 'BAM');
+    raise exception 'FEL: ett kort med en etta i koden gavs ut';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Fel längd är samma sak: koden trycks i tre grupper om fyra.
+  begin
+    perform public.issue_gift_card(v_rest, 'A2B3C4D5', 5000, 'BAM');
+    raise exception 'FEL: ett kort med åtta tecken gavs ut';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Och en giltig kod går fortfarande igenom.
+  perform public.issue_gift_card(v_rest, 'W2X3Y4Z5A6B7', 5000, 'BAM');
+
+  if public.gift_card_balance(
+       (select id from public.gift_cards where code = 'W2X3Y4Z5A6B7')) <> 5000 then
+    raise exception 'FEL: det giltiga kortet fick fel saldo';
+  end if;
+end
+$$;
+
 rollback;

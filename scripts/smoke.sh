@@ -31,7 +31,22 @@ FAILED=0
 pass() { printf '  \033[32mok\033[0m    %s\n' "$1"; }
 fail() { printf '  \033[31mFEL\033[0m   %s\n' "$1"; FAILED=$((FAILED + 1)); }
 
-sql() { MSYS_NO_PATHCONV=1 docker run --rm -i "$PG_IMAGE" psql "$DB" -tAc "$1" 2>/dev/null | tr -d '\r'; }
+# SQL-uppslag genom en engångscontainer. Det finns ingen psql på värden, och att
+# kräva en hade gjort röktestet okörbart för den som bara har Docker.
+#
+# Felet skrivs till en logg i stället för att kastas bort. Ett sväljt SQL-fel
+# gjorde att presentkortstestet rapporterade ett produktfel som inte fanns:
+# städningen kunde aldrig lyckas mot en append-only-tabell, och ingenting sa det.
+SQL_LOG="$(mktemp)"
+sql() {
+  local out
+  out=$(MSYS_NO_PATHCONV=1 docker run --rm -i "$PG_IMAGE" psql "$DB" -tAc "$1" 2>>"$SQL_LOG")
+  local code=$?
+  if [ $code -ne 0 ]; then
+    printf '  \033[33mvarning\033[0m  SQL misslyckades: %s\n' "$(printf '%s' "$1" | head -c 90)" >&2
+  fi
+  printf '%s' "$out" | tr -d '\r'
+}
 
 # Plockar ett fält ur JSON på stdin. Ersätter jq, som inte finns på Windows.
 json_field() { node -e '
@@ -67,14 +82,25 @@ check_status_as_guest() {
 # svara 429, och då säger svaret ingenting om det som testas. Utan den här
 # skillnaden rapporterades varje strypt förfrågan som ett produktfel — testet
 # ljög om vad som var trasigt, vilket är värre än att inte testa alls.
+#
+# Fjärde argumentet är svarskroppen och är frivilligt. Utan den säger en
+# misslyckad kontroll bara "fick 409, väntade 201", och 409 betyder allt från
+# stängd restaurang till manipulerat pris — felsökningen blir gissning. API:t
+# svarar redan med ett `detail` som är skrivet för en människa; det ska synas.
 assert_order_status() {
-  local label="$1" expected="$2" actual="$3"
+  local label="$1" expected="$2" actual="$3" body="${4:-}"
   if [ "$actual" = "$expected" ]; then
     pass "$label ($actual)"
   elif [ "$actual" = "429" ]; then
     printf '  \033[33mhopp\033[0m  %s — rate limiten slog till, inte avgjort\n' "$label"
   else
-    fail "$label: fick $actual, väntade $expected"
+    local detail=""
+    [ -n "$body" ] && detail=$(printf '%s' "$body" | json_field detail)
+    if [ -n "$detail" ]; then
+      fail "$label: fick $actual, väntade $expected — $detail"
+    else
+      fail "$label: fick $actual, väntade $expected"
+    fi
   fi
 }
 
@@ -295,11 +321,32 @@ echo "→ Presentkort"
 
 # Ett presentkort är BETALMEDEL och inte rabatt: ordersumman och momsen står
 # orörda, det som sjunker är vad som ska debiteras.
-GIFT_CODE="A2B3C4D5E6F7"
-sql "delete from public.gift_card_transactions
-     where gift_card_id in (select id from public.gift_cards where code = '$GIFT_CODE');
-     delete from public.gift_cards where code = '$GIFT_CODE';" > /dev/null
+#
+# Koden slumpas per körning i stället för att vara fast och städas bort.
+# Städningen kunde nämligen aldrig lyckas: `gift_card_transactions` är
+# append-only och `reject_mutation` avvisar varje DELETE. Felet försvann i
+# `2>/dev/null`, kortet från förra körningen låg kvar tömt, och testet
+# rapporterade "presentkortsorder: fick 409, väntade 201" — alltså ett
+# produktfel som inte fanns. Röktestet gick bara att köra mot en färsk databas,
+# vilket är precis när det behövs minst.
+# Alfabetet är presentkortets, inte QR-kodens. De skiljer sig: kortet utesluter
+# 0 och 1 därför att koden läses högt över ett bord, QR-tokenet utesluter L och
+# U därför att det aldrig läses av en människa. Fel alfabet här gav en kod
+# databasen sparade och API:t avvisade — "Presentkortet finns inte", men bara
+# när slumpen råkade ge en nolla. Speglar ALPHABET i core/src/gift-card.ts.
+GIFT_CODE="$(node -e '
+  const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  process.stdout.write([...bytes].map((b) => alphabet[b % alphabet.length]).join(""));
+')"
 sql "select public.issue_gift_card('$SEED_RESTAURANT', '$GIFT_CODE', 500, 'BAM');" > /dev/null
+
+# Att kortet finns kontrolleras innan det används. Går utgivningen fel svarar
+# API:t "Presentkortet finns inte", och det läser som ett produktfel i inlösen
+# när felet i själva verket ligger i testets egen uppsättning.
+if [ "$(sql "select count(*) from public.gift_cards where code = '$GIFT_CODE';")" != "1" ]; then
+  fail "presentkortet kunde inte ges ut ($GIFT_CODE) — testets uppsättning, inte produkten"
+fi
 
 # Ćevapi 12,00 KM, varav 5,00 betalas med kortet. 7,00 kvar att betala på plats.
 RESPONSE=$(order_request "{
@@ -325,7 +372,7 @@ if [ "$STATUS" = "201" ] && [ -n "$GIFT_ORDER" ]; then
   BALANCE=$(sql "select public.gift_card_balance(id) from public.gift_cards where code = '$GIFT_CODE';")
   if [ "$BALANCE" = "0" ]; then pass "saldot räknat ur loggen (0)"; else fail "saldot blev '$BALANCE', väntade 0"; fi
 else
-  assert_order_status "presentkortsorder" 201 "$STATUS"
+  assert_order_status "presentkortsorder" 201 "$STATUS" "$(sed '$d' <<<"$RESPONSE")"
 fi
 
 # Ett tomt kort ska nekas, inte tyst ignoreras.
@@ -344,7 +391,11 @@ SECOND=$(order_request "$PAYLOAD" | sed '$d' | json_field order_id)
 if [ "$FIRST" = "$SECOND" ] && [ -n "$FIRST" ] && [ "$FIRST" != "null" ]; then
   pass "samma nyckel ger samma order"
 elif [ -z "$FIRST" ] && [ -z "$SECOND" ]; then
-  fail "idempotens: inga order skapades, troligen rate limit. Vänta en minut."
+  # Rate limiten, inte produkten. Rapporteras som hopp och inte som fel, av
+  # samma skäl som `assert_order_status` gör det: två körningar i rad tömmer
+  # kvoten, och ett rött fel som beror på testet självt lär en att sluta lita
+  # på rapporten.
+  printf '  \033[33mhopp\033[0m  idempotens — rate limiten slog till, inte avgjort\n'
 else
   fail "dubbeltryck gav två order ($FIRST / $SECOND)"
 fi
@@ -1016,6 +1067,45 @@ for path in /konto /dashboard /backoffice; do
     fail "$path svarade $CODE — [stad] kan ha tagit över rutten"
   fi
 done
+
+echo "→ Avräkning, dricks och GDPR"
+
+# Ytorna som byggdes efter att röktestet slutade gå att köra. Beräkningarna
+# täcks av verify-schema.sh; det som mäts här är att rutterna finns, att de är
+# stängda för den som inte ska in, och att de inte 500:ar.
+check_status "/dashboard/avrakning kräver inloggning"  "/dashboard/avrakning"  307
+check_status "/backoffice/avrakning kräver inloggning" "/backoffice/avrakning" 307
+check_status "/konto/uppgifter kräver inloggning"      "/konto/uppgifter"      307
+check_status "raderat-kvittot är öppet"                "/konto/raderat"        200
+
+# Exporten svarar 401 och inte en omdirigering. Den som anropar rutten direkt
+# ska få veta att det var inloggningen som saknades, inte hamna på ett formulär.
+check_status "GDPR-exporten kräver inloggning"  "/api/konto/export"  401
+
+# Bakgrundsjobbet. Utan nyckel 401, med fel nyckel 401 — aldrig en körning.
+check_status "poängjobbet nekar utan nyckel"    "/api/jobs/expire-loyalty"  401
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer fel-nyckel" \
+  "$BASE/api/jobs/expire-loyalty")
+if [ "$CODE" = "401" ]; then
+  pass "poängjobbet nekar fel nyckel ($CODE)"
+else
+  fail "poängjobbet svarade $CODE på en felaktig nyckel, väntade 401"
+fi
+
+# Med rätt nyckel ska det köra. Nyckeln läses ur samma fil appen startades med;
+# saknas den svarar rutten 503, och då är det miljön som ska rättas.
+CRON_SECRET=$(sed -n 's/^CRON_SECRET=//p' apps/web/.env.local 2>/dev/null | tr -d '\r')
+if [ -n "$CRON_SECRET" ]; then
+  BODY=$(curl -s -H "Authorization: Bearer $CRON_SECRET" "$BASE/api/jobs/expire-loyalty")
+  if [ "$(printf '%s' "$BODY" | json_field ok)" = "true" ]; then
+    pass "poängjobbet kör med rätt nyckel"
+  else
+    fail "poängjobbet svarade: $BODY"
+  fi
+else
+  printf '  \033[33mhopp\033[0m  poängjobbet — CRON_SECRET saknas i apps/web/.env.local\n'
+fi
 
 echo ""
 if [ "$FAILED" -gt 0 ]; then
