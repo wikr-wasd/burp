@@ -226,6 +226,18 @@ eller ett beslut.
       order emellan. Den gemensamma notan håller ihop pengarna men inte maten.
       Fynd ur jämförelsen mot Pinchos 2026-08-20.
 
+- [ ] **`/anslut` talar bara svenska — och det är värvningssidan.**
+      `application-form.tsx` har fälten hårdkodade: Land, Restaurangens namn,
+      Gatuadress, Postnummer, Stad, Telefon. Sidan ligger utanför `[locale]`,
+      precis som `/konto`, men den väger tyngre: **det är den enda vägen in för
+      en restaurang i Sarajevo, Zagreb eller Belgrad.** En restauratör som
+      landar på ett svenskt formulär fyller inte i det.
+
+      Till skillnad från `/konto` är den här indexerad och länkad från varje
+      sidfot, så `Accept-Language` räcker inte — den behöver in under
+      `[locale]` för att kunna hittas på rätt språk i sökresultaten.
+      Fynd 2026-08-20.
+
 - [ ] **`/konto`-ytorna talar bara svenska.** `guest-header.tsx`,
       `address-list.tsx`, `review-form.tsx` och `delete-account.tsx` har
       hårdkodade strängar. Till skillnad från QR-flödet är det inte en glömd
@@ -311,6 +323,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Ingen automatisk gallring — en gäst som slutar använda tjänsten ligger kvar för alltid | — | Kräver ett svar på hur länge. Öppen fråga 13 |
 | Personal kan inte radera sig själv genom flödet | `erase_guest()` | Anställningen måste avslutas först; ytan för det saknas |
 | Personalytorna är enbart svenska | — | **Nästa steg, beslutat 2026-08-20.** Gästytorna talar fem språk; personalens gör det inte. Att köket inte byter språk för att en gäst gjorde det står kvar — men en serveringspersonal i Sarajevo ska inte behöva svenska. Strängarna ligger hårdkodade i komponenterna, inte i ordboken, och `ORDER_STATUS_LABELS`, `STAFF_ROLE_LABELS` och `PAYMENT_PROVIDER_LABELS` ligger på svenska i `@burp/core` |
+| `/anslut` talar bara svenska | `components/site/application-form.tsx` | Väger tyngre än `/konto`: det är den enda vägen in för en restaurang på marknaden, och den är indexerad. Behöver in under `[locale]`, inte bara `Accept-Language` |
 | `/konto`-ytorna talar bara svenska | `components/guest/` | Strukturfråga, inte glömda strängar: `/konto` ligger utanför `[locale]` och har inget språk i adressen alls. Ytorna är noindex — att läsa `Accept-Language` som kvittona gör räcker |
 | Köket ser inte att två biljetter hör till samma bord | `components/staff/kitchen-board.tsx` | Notan är gemensam men maten hålls inte ihop. Fynd ur jämförelsen mot Pinchos |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |

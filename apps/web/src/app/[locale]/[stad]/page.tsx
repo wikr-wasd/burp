@@ -138,7 +138,7 @@ export default async function CityPage({ params }: PageProps) {
         <CityRestaurantList locale={locale} restaurants={restaurants} />
       </main>
 
-      <SiteFooter locale={locale} />
+      <SiteFooter locale={locale} path={`/${city.slug}`} />
     </div>
   );
 }

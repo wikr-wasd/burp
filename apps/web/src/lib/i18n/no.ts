@@ -16,6 +16,7 @@ import type { Dictionary } from "./sv";
 export const no: Dictionary = {
   site: {
     forRestaurants: "For restauranter",
+    forGuests: "For gjester",
     home: "Burp — til forsiden",
     tagline:
       "Hver restaurant med sin egen side: meny, bilder, åpningstider og veibeskrivelse. Skann QR-koden ved bordet og bestill — uten app og uten konto.",

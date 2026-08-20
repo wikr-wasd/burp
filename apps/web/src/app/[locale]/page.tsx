@@ -297,7 +297,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
         )}
       </main>
 
-      <SiteFooter locale={locale} />
+      <SiteFooter locale={locale} path="/" />
     </div>
   );
 }

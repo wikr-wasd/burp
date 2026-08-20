@@ -372,7 +372,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       </section>
       </main>
 
-      <SiteFooter locale={locale} />
+      <SiteFooter locale={locale} path={`/r/${city}/${slug}`} />
     </>
   );
 }

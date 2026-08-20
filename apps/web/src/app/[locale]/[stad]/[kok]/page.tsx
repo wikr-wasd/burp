@@ -149,7 +149,7 @@ export default async function CuisinePage({ params }: PageProps) {
         ) : null}
       </main>
 
-      <SiteFooter locale={locale} />
+      <SiteFooter locale={locale} path={`/${city.slug}/${kok}`} />
     </div>
   );
 }

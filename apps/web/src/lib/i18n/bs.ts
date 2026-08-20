@@ -36,6 +36,7 @@ function isFew(count: number): boolean {
 export const bs: Dictionary = {
   site: {
     forRestaurants: "Za restorane",
+    forGuests: "Za goste",
     home: "Burp — na početnu",
     tagline:
       "Svaki restoran sa svojom stranicom: jelovnik, fotografije, radno vrijeme i put do vrata. Skenirajte QR kod za stolom i naručite — bez aplikacije i bez naloga.",

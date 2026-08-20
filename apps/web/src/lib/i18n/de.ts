@@ -14,6 +14,7 @@ import type { Dictionary } from "./sv";
 export const de: Dictionary = {
   site: {
     forRestaurants: "Für Restaurants",
+    forGuests: "Für Gäste",
     home: "Burp — zur Startseite",
     tagline:
       "Jedes Restaurant mit einer eigenen Seite: Speisekarte, Fotos, Öffnungszeiten und Anfahrt. Scannen Sie den QR-Code am Tisch und bestellen Sie — ohne App und ohne Konto.",

@@ -9,6 +9,7 @@
 export const sv = {
   site: {
     forRestaurants: "För restauranger",
+    forGuests: "För gäster",
     home: "Burp — till startsidan",
     tagline:
       "Varje restaurang med sin egen sida: meny, bilder, öppettider och vägbeskrivning. Skanna QR-koden vid bordet och beställ — utan app och utan konto.",

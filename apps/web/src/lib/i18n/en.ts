@@ -14,6 +14,7 @@ import type { Dictionary } from "./sv";
 export const en: Dictionary = {
   site: {
     forRestaurants: "For restaurants",
+    forGuests: "For guests",
     home: "Burp — home",
     tagline:
       "Every restaurant with a page of its own: menu, photos, opening hours and directions. Scan the QR code at your table and order — no app, no account.",

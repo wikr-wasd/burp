@@ -378,6 +378,16 @@ bash scripts/smoke.sh          # kräver körande app + supabase start
 `curl` ligger i `/mingw64/bin`, inte i `/usr/bin`. Docker behöver sin
 versionspinning här som överallt annars.
 
+**Sätt aldrig `MSYS_NO_PATHCONV=1` i skalet som kör `smoke.sh`.** Variabeln är
+frestande när man själv anropar `curl` för hand — Git Bash gör annars om
+`/sv/upptack` till `C:/Program Files/Git/sv/upptack` — men den ärvs in i
+skriptet och får **femton kontroller att falla**. Felen ser ut som riktiga
+produktfel: "ingen bordssession efter beställning", 404 på kvittosidan, tomma
+omdirigeringar från personalytorna. Appen är hel hela tiden.
+
+Behöver du undvika sökvägsöversättningen i ett eget anrop, sätt variabeln
+**bara för det anropet** (`MSYS_NO_PATHCONV=1 curl …`) och aldrig med `export`.
+
 **En körning tar ett par minuter och pausar ibland 61 sekunder.** `orderCreate`
 tillåter tio order per minut och testet lägger fler; i stället för att tappa
 täckning väntar det ut fönstret och skriver `vänta` när det gör det. Att höja

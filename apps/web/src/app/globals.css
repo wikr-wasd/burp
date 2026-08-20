@@ -390,6 +390,59 @@ body {
 }
 
 /*
+ * Tyst länk — för listor där länken är regel och inte undantag.
+ *
+ * `.link` är röd och understruken, vilket är rätt mitt i en mening: där ska
+ * länken sticka ut ur texten. I sidfoten är varenda rad en länk, och femton
+ * röda understrykningar i rad blir en vägg som konkurrerar med maten ovanför.
+ * Det är precis vad designspråket säger att ingenting får göra.
+ *
+ * Understrykningen finns kvar men är osynlig tills den behövs: färgen tänds
+ * och strecket dyker upp vid hover och vid tangentbordsfokus. Länken är alltså
+ * fortfarande en länk för den som letar efter en — den ropar bara inte.
+ */
+.link-quiet {
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  transition:
+    color var(--speed) var(--ease),
+    text-decoration-color var(--speed) var(--ease);
+}
+
+.link-quiet:hover,
+.link-quiet:focus-visible {
+  color: var(--color-burp-600);
+  text-decoration-color: currentColor;
+}
+
+/*
+ * Den man redan står på. Märks med `aria-current` och färgas UR den, i stället
+ * för med en extra klass — då kan det visuella inte glida isär från det en
+ * skärmläsare får höra.
+ */
+.link-quiet[aria-current] {
+  color: var(--color-burp-600);
+}
+
+/*
+ * `.label-caps` i full svärta, för en rubrik över en lista av tysta länkar.
+ *
+ * Etiketten är nedtonad med flit där den sitter ensam ovanför brödtext. Står
+ * den däremot över `.link-quiet`, som också är nedtonad, blir rubrik och
+ * innehåll samma gråa och hierarkin försvinner.
+ *
+ * Egen klass och inte en `text-*`-utility: byggstenarna här ligger OLAGRADE,
+ * och olagrad CSS vinner alltid över `@layer utilities`. En utility-klass
+ * bredvid `.label-caps` hade sett rätt ut i koden och inte gjort någonting.
+ */
+.label-caps-ink {
+  color: var(--foreground);
+}
+
+/*
  * Chip — ett filter eller en genväg man trycker på.
  *
  * Pillerform, som i mockuperna. Skiljer sig från `.badge` på att en chip är
