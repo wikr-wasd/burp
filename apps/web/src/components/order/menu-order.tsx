@@ -200,6 +200,32 @@ export function MenuOrder({
   const idempotencyKey = useRef<string | null>(null);
 
   /*
+   * Beställningen ligger kvar och skickas om när nätet är tillbaka.
+   *
+   * Noll betyder inget pågående återförsök. Ett tal är hur många försök som
+   * gjorts — vilket både driver väntetiden och avgör när appen slutar.
+   *
+   * ── Varför inte en service worker ──────────────────────────────────────
+   *
+   * Den självklara lösningen vore Background Sync: lägg begäran i kö och låt
+   * webbläsaren skicka den när täckningen kommer tillbaka, även om fliken
+   * stängts. Två skäl talar emot.
+   *
+   * Background Sync finns inte i Safari på iOS, och QR-beställning används av
+   * turister med iPhone. En lösning som tyst hjälper hälften av gästerna är
+   * sämre än en som hjälper alla lika mycket.
+   *
+   * Och `public/sw.js` är medvetet tom på cachning — "ingenting som ligger
+   * mellan gästen och sidan". Att lägga en kö där hade satt en worker framför
+   * produktens viktigaste sida för ett fall som går att lösa utan.
+   *
+   * Gästen sitter kvar vid bordet med sidan öppen. Ett återförsök i förgrunden
+   * täcker det som faktiskt händer: en blinkning, en tjock vägg, en källare.
+   */
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /*
    * Kontant är förvalt.
    *
    * Inte av bekvämlighet: kontanter är fortfarande utbredda i restaurangledet
@@ -251,6 +277,9 @@ export function MenuOrder({
    */
   useEffect(() => {
     idempotencyKey.current = null;
+    // Ett pågående återförsök gäller den GAMLA beställningen. Ändrar gästen
+    // något ska kön sluta — annars skickas något hon just ändrat bort.
+    setRetryAttempt(0);
   }, [cart, tipBps, coupon, giftCard, usePunchCard, scheduledFor, payWithCard]);
 
   const money = useMemo(
@@ -531,6 +560,13 @@ export function MenuOrder({
   async function placeOrder() {
     if (!totals || cart.length === 0) return;
 
+    // Ett väntande återförsök avbryts när något nytt startar, annars kan två
+    // begäranden vara i luften samtidigt.
+    if (retryTimer.current) {
+      clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -569,9 +605,19 @@ export function MenuOrder({
       const body = await response.json().catch(() => null);
 
       if (!response.ok) {
+        /*
+         * Servern svarade, och svaret var nej.
+         *
+         * Ett återförsök hjälper inte mot en stängd restaurang, ett ändrat pris
+         * eller ett tomt presentkort — och att försöka ändå hade dolt beskedet
+         * bakom en snurra. Kön är till för tystnad, inte för avslag.
+         */
+        setRetryAttempt(0);
         setError(body?.detail ?? labels.orderFailed);
         return;
       }
+
+      setRetryAttempt(0);
 
       /*
        * Kortbetalning: ordern ligger som utkast tills pengarna kommit in.
@@ -593,11 +639,51 @@ export function MenuOrder({
       setCart([]);
       router.push(receiptPath(body.order_id));
     } catch {
-      setError(labels.noConnection);
+      /*
+       * `fetch` kastade — servern svarade aldrig.
+       *
+       * Det är det enda fall som ska köas. Beställningen ligger kvar och
+       * skickas om av effekten nedan, med SAMMA idempotensnyckel, så ett
+       * försök som i själva verket gick fram ger tillbaka samma order i
+       * stället för en till.
+       */
+      setRetryAttempt((attempt) => attempt + 1);
     } finally {
       setSubmitting(false);
     }
   }
+
+  /*
+   * Skickar om av sig själv tills det går igenom.
+   *
+   * Två utlösare: `online`-händelsen, som kommer så fort telefonen fått
+   * täckning igen, och en klocka som backar av — 2, 4, 8 sekunder och sedan var
+   * femtonde. Bara `online` hade räckt i teorin men inte i praktiken: en
+   * telefon som har wifi till en router utan internet räknas som online hela
+   * tiden, och då kommer händelsen aldrig.
+   *
+   * Efter ungefär två minuter slutar appen försöka och lämnar över till gästen.
+   * En snurra som aldrig tar slut säger inte längre något.
+   */
+  const RETRY_LIMIT = 12;
+
+  useEffect(() => {
+    if (retryAttempt === 0 || retryAttempt > RETRY_LIMIT || submitting) return;
+
+    const delay = Math.min(2000 * 2 ** (retryAttempt - 1), 15_000);
+    retryTimer.current = setTimeout(() => void placeOrder(), delay);
+
+    const onOnline = () => void placeOrder();
+    window.addEventListener("online", onOnline);
+
+    return () => {
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+      window.removeEventListener("online", onOnline);
+    };
+    // `placeOrder` står medvetet inte bland beroendena. Den skapas om vid varje
+    // rendering, och hade klockan startat om varje gång gästen rörde
+    // varukorgen skulle återförsöket aldrig hinna gå av.
+  }, [retryAttempt, submitting]);
 
   /**
    * Gästen stängde betalrutan utan att betala.
@@ -797,6 +883,8 @@ export function MenuOrder({
           onSubmit={placeOrder}
           submitting={submitting}
           error={error}
+          retryAttempt={retryAttempt}
+          retryLimit={RETRY_LIMIT}
           cardAvailable={card !== null}
           payWithCard={payWithCard}
           onPayWithCardChange={setPayWithCard}
@@ -1103,6 +1191,8 @@ function CartBar({
   onSubmit,
   submitting,
   error,
+  retryAttempt,
+  retryLimit,
   pickupSlots,
   timeZone,
   scheduledFor,
@@ -1132,6 +1222,9 @@ function CartBar({
   onSubmit: () => void;
   submitting: boolean;
   error: string | null;
+  /** Noll = inget pågående återförsök. Annars vilket försök i ordningen. */
+  retryAttempt: number;
+  retryLimit: number;
   pickupSlots: readonly string[];
   timeZone: string;
   scheduledFor: string;
@@ -1407,6 +1500,33 @@ function CartBar({
           <p role="alert" className="mb-3 border-l-2 border-burp-600 bg-burp-50 px-3 py-2 text-sm text-burp-700 dark:bg-burp-900/40 dark:text-burp-100">
             {error}
           </p>
+        ) : null}
+
+        {/*
+          Nätet blinkade. Beställningen ligger kvar och skickas om av sig själv.
+
+          `aria-live="polite"` och inte `role="alert"`: det här är ett pågående
+          tillstånd, inte ett fel, och en skärmläsare ska inte avbryta gästen
+          mitt i en mening för att räkna upp försök. Knappen finns för den som
+          ser att täckningen är tillbaka och inte vill vänta ut klockan.
+        */}
+        {retryAttempt > 0 ? (
+          <div
+            aria-live="polite"
+            className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-l-2 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900/30 dark:text-amber-100"
+          >
+            <span className="flex-1">
+              {retryAttempt > retryLimit ? labels.retryGaveUp : labels.retrying}
+            </span>
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={submitting}
+              className="min-h-9 shrink-0 rounded-[0.5rem] border border-current px-3 font-medium disabled:opacity-50"
+            >
+              {labels.retryNow}
+            </button>
+          </div>
         ) : null}
 
         <div className="flex items-center gap-3">

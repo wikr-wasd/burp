@@ -189,9 +189,29 @@ EXTRA_KAJMAK=$(sql "select id from public.options where name = 'Extra kajmak';")
 BEZ_LUKA=$(sql "select id from public.options where name = 'Bez luka';")
 PLJESKAVICA="44444444-4444-4444-4444-444444444442"
 
+# Lägger en order, och väntar ut rate limiten om den slår till.
+#
+# `orderCreate` tillåter tio order per minut och röktestet lägger fler än så.
+# Följden var att de sista sektionerna alltid förlorade sin kvot: nio
+# kontroller i orderredigeringen hoppades tyst över i varje körning, och de
+# gånger det syntes rapporterades det som ett produktfel.
+#
+# Att höja gränsen för testet hade betytt att gränsen inte testas. Att vänta ut
+# fönstret kostar en minut och behåller både täckningen och spärren.
 order_request() {
-  curl -s -b "$COOKIES" -c "$COOKIES" -X POST "$BASE/api/orders" \
-    -H "Content-Type: application/json" -d "$1" -w '\n%{http_code}'
+  local out status
+  out=$(curl -s -b "$COOKIES" -c "$COOKIES" -X POST "$BASE/api/orders" \
+    -H "Content-Type: application/json" -d "$1" -w '\n%{http_code}')
+  status=$(tail -1 <<<"$out")
+
+  if [ "$status" = "429" ]; then
+    printf '  \033[33mvänta\033[0m  rate limiten full — pausar 61 s\n' >&2
+    sleep 61
+    out=$(curl -s -b "$COOKIES" -c "$COOKIES" -X POST "$BASE/api/orders" \
+      -H "Content-Type: application/json" -d "$1" -w '\n%{http_code}')
+  fi
+
+  printf '%s' "$out"
 }
 
 # Ćevapi 12,00 KM + extra kajmak 2,00 = 14,00 KM, plus 10,00 dricks = 24,00 KM.
@@ -807,6 +827,12 @@ if [ -n "$EDIT_ORDER" ]; then
   else
     fail "en avbruten order gick att ändra ($AGAIN)"
   fi
+else
+  # Utan order finns ingenting att ändra, och nio kontroller föll bort UTAN ETT
+  # ORD i tidigare versioner. En sektion som tyst gör ingenting läses som en
+  # sektion som passerade — och just den här körningen råkade vara den där
+  # rate limiten slog till.
+  printf '  \033[33mhopp\033[0m  orderredigering (9 kontroller) — ingen order att ändra, troligen rate limit\n'
 fi
 
 echo "→ Omdömen"

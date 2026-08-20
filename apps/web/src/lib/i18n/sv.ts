@@ -179,6 +179,18 @@ export const sv = {
     noConnection: "Ingen kontakt med servern. Kontrollera nätet och försök igen.",
 
     /*
+     * Nätet blinkade mitt i beställningen.
+     *
+     * Gästen sitter kvar vid bordet med sidan öppen, så appen försöker själv
+     * i stället för att lämna över ansvaret. Texten säger att beställningen
+     * ligger kvar — det är det gästen är orolig för, och utan den meningen
+     * trycker hon på knappen igen i onödan.
+     */
+    retrying: "Ingen anslutning. Din beställning ligger kvar och skickas när nätet är tillbaka.",
+    retryNow: "Försök nu",
+    retryGaveUp: "Vi når inte servern. Din beställning ligger kvar — tryck för att försöka igen.",
+
+    /*
      * Betalsätt.
      *
      * Kontant står först och är förvalt. Det är inte en eftergift — kontanter

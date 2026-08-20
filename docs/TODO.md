@@ -208,7 +208,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Burp läser inte kortterminalen — beloppet skrivs in av personalen | Migration 0044 | Kräver en terminal med moln-API. Öppen fråga 14 |
 | Restaurangen ser inte sina lojalitetsmedlemmar | `loyalty_accounts` saknar policy för personal | Medvetet: den ska inte kunna bläddra i vilka gäster som är med. Ingen kod skapar restaurangbundna konton än — poängen ligger i Burps globala program. Tas i Fas 3 |
 | Ingen tidsutlöst utloggning på delad kassaenhet | `lib/auth.ts` | Sessionen lever tills någon loggar ut. En surfplatta i baren står inloggad över natten |
-| Ingen kö med återförsök om nätet dör mitt i en beställning | `components/order/menu-order.tsx` | Gästen får ett tydligt fel och kan trycka igen — nyckeln är stabil, så ett andra försök ger samma order och inte två. En riktig offlinekö kräver service worker |
+| Återförsöket kräver att sidan är öppen | `components/order/menu-order.tsx` | Medvetet. Background Sync finns inte i Safari på iOS, och QR-flödet är fullt av iPhones — en kö i en service worker hade hjälpt hälften av gästerna och satt en worker framför produktens viktigaste sida. Stänger gästen fliken mitt i en blinkning är beställningen borta |
 | Fiskalisering är inte byggd — kvittot är märkt som orderbekräftelse | `register_receipts` är tom | Lansering. Öppen fråga 4 |
 | Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
 | Ingen automatisk gallring — en gäst som slutar använda tjänsten ligger kvar för alltid | — | Kräver ett svar på hur länge. Öppen fråga 13 |
@@ -313,6 +313,21 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **Beställningen ligger kvar och skickas om när nätet är tillbaka.**
+      Gästen fick tidigare ett felmeddelande och fick trycka själv. Nu försöker
+      appen om av sig själv — på `online`-händelsen och på en klocka som backar
+      av från två sekunder till femton, i ungefär två minuter innan den lämnar
+      över. Rutan säger att beställningen ligger kvar, vilket är det gästen är
+      orolig för.
+      **Bara nätverksfel köas.** Ett nej från servern — stängd restaurang,
+      ändrat pris, tomt presentkort — visas direkt; att försöka om hade dolt
+      beskedet bakom en snurra.
+      **Ingen service worker, med flit.** Background Sync hade varit den
+      snyggare lösningen men finns inte i Safari på iOS, och QR-flödet är fullt
+      av iPhones. `public/sw.js` är dessutom medvetet tom på cachning —
+      "ingenting som ligger mellan gästen och sidan". Gästen sitter kvar vid
+      bordet med sidan öppen, och ett återförsök i förgrunden täcker det som
+      faktiskt händer: en blinkning, en tjock vägg, en källare.
 - [x] **En order dubbleras inte när nätet blinkar.** Idempotensnyckeln skapades
       inne i `placeOrder`, alltså på nytt vid varje knapptryck — och
       kommentaren bredvid påstod motsatsen. Serverns skydd var därmed

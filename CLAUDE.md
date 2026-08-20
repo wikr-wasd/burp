@@ -347,10 +347,18 @@ bash scripts/smoke.sh          # kräver körande app + supabase start
 `curl` ligger i `/mingw64/bin`, inte i `/usr/bin`. Docker behöver sin
 versionspinning här som överallt annars.
 
-**Kör det två gånger i rad går kvoten i rate limitern åt** och några kontroller
-rapporteras som `hopp` i stället för `ok`. Det är inte ett fel — vänta en minut.
-En kontroll som svarar 429 säger ingenting om det som testas, och skriptet
-markerar det hellre än att ljuga.
+**En körning tar ett par minuter och pausar ibland 61 sekunder.** `orderCreate`
+tillåter tio order per minut och testet lägger fler; i stället för att tappa
+täckning väntar det ut fönstret och skriver `vänta` när det gör det. Att höja
+gränsen för testet hade betytt att gränsen inte testas.
+
+En kontroll som ändå inte går att avgöra rapporteras som `hopp`, aldrig som
+`ok`. En tyst överhoppad sektion läses som en som passerade — det gällde nio
+kontroller i orderredigeringen i varje körning innan det rättades.
+
+**Kör inte `npm run build` medan `next dev` är igång.** Båda skriver i `.next`,
+och dev-servern blir förvirrad: röktestet faller då på sidor som fungerar. Stoppa
+servern, bygg, starta om.
 
 ---
 

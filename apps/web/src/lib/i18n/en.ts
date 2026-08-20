@@ -167,6 +167,9 @@ export const en: Dictionary = {
     addOne: "Add one {name}",
     orderFailed: "The order could not be placed. Please try again.",
     noConnection: "No connection to the server. Check your network and try again.",
+    retrying: "No connection. Your order is saved and will be sent once you are back online.",
+    retryNow: "Try now",
+    retryGaveUp: "We cannot reach the server. Your order is saved — tap to try again.",
 
     payHow: "How would you like to pay?",
     payAtPlace: "In person",
