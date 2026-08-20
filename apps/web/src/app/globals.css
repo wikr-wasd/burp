@@ -201,17 +201,19 @@ body {
 /* ── Vinjetten ────────────────────────────────────────────────────────── */
 
 /*
- * Burps märke: en röd pratbubbla följd av ordbilden "burp".
+ * Burps märke: en röd serveringsklocka följd av ordbilden "burp".
  *
- * Förslag 1b ur logotypskisserna, valt 2026-08-17. Bubblan betyder beställning
- * och samtal vid bordet — det produkten faktiskt gör — och håller som siluett
- * hela vägen ned till en 32 px favicon.
+ * Förslag 4c ur logotypskisserna, valt 2026-08-20. Klockan betyder
+ * bordsservering — beställa och bli serverad vid bordet, vilket är produktens
+ * kärnfunktion — och håller som siluett hela vägen ned till en 32 px favicon.
  *
- * Ersatte ordet "Burp" satt i rubriktypsnittet. Ett ord är inget märke: det
- * går inte att känna igen på en flik, i en inkorg eller på en dekal vid ett
- * bord, vilket är tre av de fyra ställen produkten möter någon.
+ * Ersatte pratbubblan (förslag 1b, 2026-08-17). Bubblan betydde "samtal",
+ * vilket varenda chattapp också betyder. Dessförinnan stod ordet "Burp" satt
+ * i rubriktypsnittet: ett ord är inget märke, det går inte att känna igen på
+ * en flik, i en inkorg eller på en dekal vid ett bord — tre av de fyra
+ * ställen produkten möter någon.
  *
- * Själva bubblan är en SVG i komponenten, inte en CSS-form. Bara ordbilden
+ * Själva klockan är en SVG i komponenten, inte en CSS-form. Bara ordbilden
  * behöver en klass.
  *
  * Ordbilden är gemen med flit. "BURP" i versaler läser som ett läte;

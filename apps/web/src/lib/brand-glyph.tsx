@@ -1,4 +1,4 @@
-import { BUBBLE_PATH, BUBBLE_VIEWBOX } from "@/components/ui/burp-mark";
+import { CLOCHE_PATH, CLOCHE_VIEWBOX } from "@/components/ui/burp-mark";
 
 /**
  * Märket ritat för `next/og` — favicon, iOS-ikon och PWA-ikonerna.
@@ -13,12 +13,12 @@ import { BUBBLE_PATH, BUBBLE_VIEWBOX } from "@/components/ui/burp-mark";
  * nådde `globals.css` men inte de fyra genererade ikonerna, som låg kvar på
  * den redaktionella formens `#c2410c`.
  *
- * Kurvan importeras däremot — `BUBBLE_PATH` är samma bézier som gränssnittet
+ * Kurvan importeras däremot — `CLOCHE_PATH` är samma kontur som gränssnittet
  * ritar. En handskriven kopia hade glidit isär utan att någon såg det.
  *
  * Plattan ritas fylld ut i kanterna, utan rundade hörn. iOS och Android lägger
  * på sin egen mask; ritar vi hörnen själva syns de två gångerna som en ojämn
- * kant. Bubblan är vit på röd platta, precis som i logotypförslaget.
+ * kant. Klockan är vit på röd platta, precis som i logotypförslaget.
  */
 
 /** `--color-burp-600` i `globals.css`. */
@@ -30,10 +30,23 @@ export const BRAND_RED_DARK = "#b91c1c";
 /** `--background`. Papperstonen bakom allt. */
 export const BRAND_PAPER = "#f3f4f6";
 
-export function BurpGlyph({ size }: { size: number }) {
-  // 0,58 av kanten fyller plattan utan att bubblan tuggar i kanten när
-  // Androids mask kapar hörnen.
-  const bubble = Math.round(size * 0.58);
+/**
+ * Andel av plattans kant som klockan fyller.
+ *
+ * `MASKED` gäller ikoner som operativsystemet maskar själv — iOS rundade
+ * hörn, Androids maskable-beskärning. Marginalen är inte estetik: Android
+ * kapar upp till en femtedel av kanten, och utan den tuggar fatet i kanten.
+ *
+ * `TAB` gäller faviconen, som **inte** maskas — den ritas rakt av i flikens
+ * 32×32. Där är samma marginal bara bortkastade pixlar, och det märks:
+ * klockans handtag är 3,2 av 34 enheter, alltså under en pixel vid 58 % av
+ * 32 px. Pratbubblan som låg här före 2026-08-20 var en enda klump och tålde
+ * det; en form med inre detaljer gör det inte.
+ */
+export const GLYPH_FILL = { MASKED: 0.58, TAB: 0.78 } as const;
+
+export function BurpGlyph({ size, fill = GLYPH_FILL.MASKED }: { size: number; fill?: number }) {
+  const glyph = Math.round(size * fill);
 
   return (
     <div
@@ -47,11 +60,11 @@ export function BurpGlyph({ size }: { size: number }) {
       }}
     >
       <svg
-        width={bubble}
-        height={Math.round((bubble * 36) / 40)}
-        viewBox={BUBBLE_VIEWBOX}
+        width={glyph}
+        height={Math.round((glyph * 34) / 40)}
+        viewBox={CLOCHE_VIEWBOX}
       >
-        <path d={BUBBLE_PATH} fill="#ffffff" />
+        <path d={CLOCHE_PATH} fill="#ffffff" />
       </svg>
     </div>
   );

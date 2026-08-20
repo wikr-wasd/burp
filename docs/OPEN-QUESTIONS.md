@@ -402,23 +402,32 @@ Mitt förslag var **2**, och det blev svaret.
 
 ## 10. Vilken logotyp?
 
-**Status:** BESVARAD 2026-08-17 · **Blockerar:** ingenting
+**Status:** BESVARAD 2026-08-17, **ändrad 2026-08-20** · **Blockerar:** ingenting
 
-> **Williams svar:** "logo med pratbubblan."
+> **Williams svar 2026-08-17:** "logo med pratbubblan."
+>
+> **Williams svar 2026-08-20:** skickade konceptark 4 (4a–4e) och sa "fortsätt"
+> på rekommendationen **4c, serveringsklockan**.
 
-Förslag **1b** ur `Burp Logo Concepts.dc.html`: en röd pratbubbla följd av den
-gemena ordbilden **burp**. Bubblan betyder beställning och samtal vid bordet,
-vilket är vad produkten gör.
+Gäller nu: förslag **4c** ur `Burp Logo Concepts` — en röd serveringsklocka
+följd av den gemena ordbilden **burp**. Klockan betyder bordsservering, som är
+produktens kärnfunktion. Pratbubblan (1b) betydde "samtal", vilket varenda
+chattapp också betyder.
 
-Genomfört. Kurvan står som `BUBBLE_PATH` i `components/ui/burp-mark.tsx` och
+Rekommendationen var 4c framför 4d (gaffel med bordsnummer), som är närmare
+QR-flödet men fel för formatet: bordsnummer-badgen blir en röd gröt vid 32 px,
+och app-ikonen ritas redan på en platta som iOS och Android maskar själva.
+
+Genomfört. Konturen står som `CLOCHE_PATH` i `components/ui/burp-mark.tsx` och
 importeras av `lib/brand-glyph.tsx`, som ritar favicon, iOS-ikonen och
-PWA-ikonerna. **En enda kopia av bézierkurvan** — två handskrivna hade glidit
-isär utan att någon såg det. I ikonerna är bubblan vit på röd platta, som i
+PWA-ikonerna. **En enda kopia av konturen** — två handskrivna hade glidit isär
+utan att någon såg det. I ikonerna är klockan vit på röd platta, som i
 förslaget.
 
-De tretton övriga förslagen ligger kvar i designprojektet. Värt att veta om
-någon vill byta: de fyra graffitiförslagen har hård skugga och droppar, vilket
-är svårt att få skarpt i en 32 px favicon och under Androids maskning.
+Två saker på arket som **inte** genomfördes, därför att de är egna beslut och
+inte var det som frågades: den mörka varianten står på marinblått, och Burp har
+inga mörka ytor alls (vita kort på `#f3f4f6`); och ordbilden i skissen är ett
+rundat geometriskt snitt, medan produkten kör Geist 800.
 
 ---
 

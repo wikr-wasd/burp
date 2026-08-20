@@ -118,26 +118,42 @@ rör den.
 
 ## Vinjetten
 
-En röd **pratbubbla** följd av ordbilden **burp**, gemen. Förslag 1b ur
-`Burp Logo Concepts`, valt 2026-08-17.
+En röd **serveringsklocka** följd av ordbilden **burp**, gemen. Förslag 4c ur
+`Burp Logo Concepts`, valt 2026-08-20.
 
-Bubblan betyder beställning och samtal vid bordet — det produkten faktiskt gör
-— och håller som siluett hela vägen ned till en 32 px favicon. Det gör inte de
-fyra graffitiförslagen med hård skugga och droppar.
+Klockan betyder bordsservering — beställa och bli serverad vid bordet, vilket
+är produktens kärnfunktion — och håller som siluett hela vägen ned till en
+32 px favicon.
 
-Ersatte ordet "Burp" satt i rubriktypsnittet. Ett ord är inget märke: det går
-inte att känna igen på en flik, i en inkorg eller på en dekal vid ett bord,
-vilket är tre av de fyra ställen produkten möter någon. Gement med flit —
+**Ersatte pratbubblan** (förslag 1b, 2026-08-17). Bubblan betydde "samtal",
+vilket varenda chattapp också betyder. Klockan pekar på det Burp säljer i
+stället för på tekniken den råkar använda.
+
+Övriga förslag på samma ark, och varför de inte valdes: **4a** kniv och gaffel
+betyder mat i allmänhet och sitter på hälften av matapparna i regionen; **4b**
+tallriken ovanifrån skalar bäst men är en röd prick i en ring innan man lärt
+sig den; **4d** gaffel med bordsnummer är närmast QR-flödet men badgen blir en
+röd gröt vid 32 px och lägger mask på mask i app-ikonen; **4e** menykortet
+läser som ett textdokument.
+
+Dessförinnan stod ordet "Burp" satt i rubriktypsnittet. Ett ord är inget märke:
+det går inte att känna igen på en flik, i en inkorg eller på en dekal vid ett
+bord, vilket är tre av de fyra ställen produkten möter någon. Gement med flit —
 "BURP" i versaler läser som ett läte, gement läser det som ett namn.
 
-`<BurpMark>` i `components/ui/burp-mark.tsx` bär bubblan och måtten,
-`globals.css` bara ordbilden. Bubblan är dekor och döljs för uppläsaren;
+`<BurpMark>` i `components/ui/burp-mark.tsx` bär klockan och måtten,
+`globals.css` bara ordbilden. Klockan är dekor och döljs för uppläsaren;
 ordbilden bär namnet. Utan ordbild måste den som anropar sätta `aria-label` på
 länken runt om.
 
-**Kurvan finns i EN kopia.** `BUBBLE_PATH` exporteras ur `burp-mark.tsx` och
+**Konturen finns i EN kopia.** `CLOCHE_PATH` exporteras ur `burp-mark.tsx` och
 importeras av `lib/brand-glyph.tsx`, som ritar favicon, iOS-ikonen och
-PWA-ikonerna. Två handskrivna bézierkurvor glider isär utan att någon ser det.
+PWA-ikonerna. Två handskrivna kopior glider isär utan att någon ser det.
+
+**Alla tre delarna i konturen — handtaget, kupan och fatet — går medurs.** Med
+`fill-rule: nonzero`, som är förvalet i både webbläsaren och Satori, stansar
+handtaget ett hål i kupan om det ritas motsols. Felet syns som en vit skåra och
+bara i de storlekar där överlappet är stort nog.
 
 **Färgerna gör det däremot inte.** Satori, som ritar ikonerna, känner varken
 Tailwind eller CSS-variabler, så `brand-glyph.tsx` bär råa hexvärden. Ändras
