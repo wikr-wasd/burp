@@ -3894,4 +3894,262 @@ begin
 end
 $$;
 
+\echo '   chefen kan inte bjuda in någon till sin egen nivå'
+
+do $$
+declare
+  v_rest    uuid;
+  v_owner   uuid;
+  v_manager uuid;
+  v_waiter  uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Personal Test', 'personal-test', '4200000000099',
+          'Ferhadija 26', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-p@example.com')
+  returning id into v_owner;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'chef-p@example.com')
+  returning id into v_manager;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'servitor-p@example.com')
+  returning id into v_waiter;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_owner, 'owner', true),
+         (v_rest, v_manager, 'manager', true),
+         (v_rest, v_waiter, 'staff', true);
+
+  execute 'set local role authenticated';
+
+  -- ── Ägaren får bjuda in vem som helst ─────────────────────────────────────
+  perform set_config('request.jwt.claim.sub', v_owner::text, true);
+  perform public.invite_staff(v_rest, 'ny-agare@example.com', 'owner',
+                              repeat('a', 43));
+  perform public.invite_staff(v_rest, 'ny-kock@example.com', 'kitchen',
+                              repeat('b', 43));
+
+  -- ── Chefen får bjuda in servitör och kock, men inte högre ─────────────────
+  perform set_config('request.jwt.claim.sub', v_manager::text, true);
+  perform public.invite_staff(v_rest, 'ny-servitor@example.com', 'staff',
+                              repeat('c', 43));
+
+  begin
+    perform public.invite_staff(v_rest, 'smyg-agare@example.com', 'owner',
+                                repeat('d', 43));
+    raise exception 'FEL: chefen bjöd in en ägare';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    perform public.invite_staff(v_rest, 'smyg-chef@example.com', 'manager',
+                                repeat('e', 43));
+    raise exception 'FEL: chefen bjöd in en till chef';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- ── Servitören bjuder inte in någon ───────────────────────────────────────
+  perform set_config('request.jwt.claim.sub', v_waiter::text, true);
+  begin
+    perform public.invite_staff(v_rest, 'kompis@example.com', 'kitchen',
+                                repeat('f', 43));
+    raise exception 'FEL: servitören bjöd in någon';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- ── En utomstående når ingenting ──────────────────────────────────────────
+  perform set_config('request.jwt.claim.sub', gen_random_uuid()::text, true);
+  begin
+    perform public.invite_staff(v_rest, 'inkraktare@example.com', 'owner',
+                                repeat('g', 43));
+    raise exception 'FEL: en utomstående bjöd in en ägare';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
+\echo '   inbjudan gäller en adress, en gång, och inte för evigt'
+
+do $$
+declare
+  v_rest   uuid;
+  v_owner  uuid;
+  v_right  uuid;
+  v_wrong  uuid;
+  v_late   uuid;
+  v_token  text := repeat('h', 43);
+  v_id     uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Inbjudan Test', 'inbjudan-test', '4200000000111',
+          'Ferhadija 28', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-i@example.com')
+  returning id into v_owner;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'ratt@example.com')
+  returning id into v_right;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'fel@example.com')
+  returning id into v_wrong;
+
+  -- Kontot för den utgångna inbjudan skapas HÄR, innan rollbytet. Som
+  -- `authenticated` går det inte att skriva i schemat `auth` — och felet kommer
+  -- långt senare, på en rad som ser orelaterad ut.
+  insert into auth.users (id, email) values (gen_random_uuid(), 'sen@example.com')
+  returning id into v_late;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_owner, 'owner', true);
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_owner::text, true);
+  v_id := public.invite_staff(v_rest, 'RATT@example.com', 'staff', v_token);
+
+  -- Fel adress med rätt länk. Det här är fallet där länken läckt.
+  perform set_config('request.jwt.claim.sub', v_wrong::text, true);
+  begin
+    perform public.accept_staff_invitation(v_token);
+    raise exception 'FEL: en läckt länk gick att lösa in av fel person';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- Rätt adress. Versalerna i inbjudan ska inte spela roll.
+  perform set_config('request.jwt.claim.sub', v_right::text, true);
+  perform public.accept_staff_invitation(v_token);
+
+  if not exists (
+    select 1 from public.staff
+    where restaurant_id = v_rest and user_id = v_right and role = 'staff' and is_active
+  ) then
+    raise exception 'FEL: anställningen skapades inte';
+  end if;
+
+  -- Samma länk en gång till.
+  begin
+    perform public.accept_staff_invitation(v_token);
+    raise exception 'FEL: samma inbjudan gick att lösa in två gånger';
+  exception
+    when no_data_found then null;
+  end;
+
+  -- En utgången inbjudan.
+  perform set_config('request.jwt.claim.sub', v_owner::text, true);
+  v_token := repeat('j', 43);
+  v_id := public.invite_staff(v_rest, 'sen@example.com', 'kitchen', v_token);
+
+  /*
+   * Åldrandet görs som superuser.
+   *
+   * `staff_invitations` har ingen UPDATE-policy — raderna ändras bara av
+   * funktionerna. Ett `update` som `authenticated` träffar därför noll rader
+   * UTAN att klaga, och testet trodde att inbjudan gått ut när den fortfarande
+   * var giltig. Att den vägrade är rätt beteende; det var uppsättningen som var
+   * fel.
+   */
+  execute 'reset role';
+  update public.staff_invitations set expires_at = now() - interval '1 day' where id = v_id;
+  execute 'set local role authenticated';
+
+  perform set_config('request.jwt.claim.sub', v_late::text, true);
+
+  begin
+    perform public.accept_staff_invitation(v_token);
+    raise exception 'FEL: en utgången inbjudan gick att lösa in';
+  exception
+    when no_data_found then null;
+  end;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
+\echo '   den sista ägaren går varken att degradera eller stänga av'
+
+do $$
+declare
+  v_rest    uuid;
+  v_owner   uuid;
+  v_second  uuid;
+  v_manager uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Sista Ägaren', 'sista-agaren', '4200000000122',
+          'Ferhadija 30', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'ensam@example.com')
+  returning id into v_owner;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'andra@example.com')
+  returning id into v_second;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'chef-s@example.com')
+  returning id into v_manager;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_owner, 'owner', true),
+         (v_rest, v_manager, 'manager', true);
+
+  execute 'set local role authenticated';
+
+  -- Chefen får inte röra en ägare alls.
+  perform set_config('request.jwt.claim.sub', v_manager::text, true);
+  begin
+    perform public.set_staff_role(v_rest, v_owner, 'staff');
+    raise exception 'FEL: chefen degraderade ägaren';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- Ägaren får inte heller — hen är den enda.
+  perform set_config('request.jwt.claim.sub', v_owner::text, true);
+  begin
+    perform public.set_staff_role(v_rest, v_owner, 'manager');
+    raise exception 'FEL: den sista ägaren degraderade sig själv';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    perform public.set_staff_active(v_rest, v_owner, false);
+    raise exception 'FEL: den sista ägaren stängde av sig själv';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Med en andra ägare på plats går det.
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_second, 'owner', true);
+
+  perform public.set_staff_active(v_rest, v_owner, false);
+
+  if (select is_active from public.staff where restaurant_id = v_rest and user_id = v_owner) then
+    raise exception 'FEL: anställningen avslutades inte';
+  end if;
+
+  -- Raden står kvar. Den är det som kopplar en kvitterad nota till en människa.
+  if not exists (
+    select 1 from public.staff where restaurant_id = v_rest and user_id = v_owner
+  ) then
+    raise exception 'FEL: anställningen raderades i stället för att avslutas';
+  end if;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
 rollback;

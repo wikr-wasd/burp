@@ -13,6 +13,7 @@ import {
   Settings,
   Ticket,
   TrendingUp,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { STAFF_ROLE_LABELS, type StaffRole } from "@burp/core";
@@ -50,6 +51,7 @@ export type StaffSection =
   | "statistik"
   | "avrakning"
   | "handelser"
+  | "personal"
   | "installningar";
 
 interface NavItem {
@@ -76,6 +78,7 @@ export const STAFF_NAV: readonly NavItem[] = [
   { section: "statistik", href: "/dashboard/statistik", label: "Statistik", icon: TrendingUp, roles: MANAGEMENT },
   { section: "avrakning", href: "/dashboard/avrakning", label: "Avräkning", icon: ReceiptText, roles: MANAGEMENT },
   { section: "handelser", href: "/dashboard/handelser", label: "Händelser", icon: ScrollText, roles: MANAGEMENT },
+  { section: "personal", href: "/dashboard/personal", label: "Personal", icon: Users, roles: MANAGEMENT },
 ];
 
 const SETTINGS: NavItem = {

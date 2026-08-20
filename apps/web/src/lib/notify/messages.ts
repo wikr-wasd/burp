@@ -217,3 +217,52 @@ ${
 
   return { subject, text, html };
 }
+
+/* ── Inbjudan till personalen ────────────────────────────────────────────── */
+
+export interface InvitationNotice {
+  restaurantName: string;
+  /** Rollen, skriven som den visas för människor. */
+  roleLabel: string;
+  link: string;
+}
+
+/**
+ * Brevet den inbjudna får.
+ *
+ * Säger vem som bjudit in, till vad, och att länken har ett slutdatum. Det
+ * sista är inte formalia: en person som klickar dag åtta möts annars av ett
+ * avslag utan förklaring, och hör av sig till restaurangen i stället för att be
+ * om en ny länk.
+ *
+ * Adressen står inte i brevet. Det går till den, och att upprepa den ger inget
+ * — men gör brevet till en bekräftelse på att adressen finns hos Burp, om det
+ * hamnar hos fel person.
+ */
+export function invitationEmail(notice: InvitationNotice): EmailMessage {
+  const subject = `Du har blivit inbjuden till ${notice.restaurantName} på Burp`;
+
+  const text = [
+    `${notice.restaurantName} har bjudit in dig som ${notice.roleLabel.toLowerCase()}.`,
+    "",
+    "Öppna länken för att komma igång:",
+    notice.link,
+    "",
+    "Länken gäller i sju dagar och bara för den här adressen.",
+  ].join("\n");
+
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;max-width:520px">
+  <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 16px">Välkommen till ${escapeHtml(
+    notice.restaurantName,
+  )}</h1>
+  <p style="font-size:15px;line-height:1.6;margin:0 0 20px">Du har blivit inbjuden som <strong>${escapeHtml(
+    notice.roleLabel.toLowerCase(),
+  )}</strong>.</p>
+  <p style="margin:0 0 20px"><a href="${escapeHtml(
+    notice.link,
+  )}" style="display:inline-block;background:#dc2626;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 20px;border-radius:10px">Kom igång</a></p>
+  <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0">Länken gäller i sju dagar och bara för den här adressen.</p>
+</div>`;
+
+  return { subject, text, html };
+}

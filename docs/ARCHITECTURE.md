@@ -126,6 +126,13 @@ Kärntabeller i Postgres. Alla rader som tillhör en restaurang bär
 - `locations` — för kedjor med flera enheter
 - `tables` — bordsnummer, zon, kapacitet, QR-token, status *(migration `0004`)*
 - `staff` — koppling användare till restaurang med roll (ägare, chef, personal, kock)
+- `staff_invitations` — öppna inbjudningar med hashad länk *(migration `0046`)*
+
+**Vem får bjuda in vem.** Ägaren vem som helst, chefen bara `staff` och
+`kitchen` — och samma regel gäller för att ändra en roll, annars kunde chefen
+bjuda in en servitör och sedan höja hen. Den sista aktiva ägaren går varken att
+degradera eller stänga av. Reglerna står i `can_grant_role()` och
+`assert_not_last_owner()`, inte i applikationen.
 
 **Meny** — migration `0003`
 

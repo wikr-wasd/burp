@@ -1157,6 +1157,14 @@ echo "→ Avräkning, dricks och GDPR"
 check_status "/dashboard/avrakning kräver inloggning"  "/dashboard/avrakning"  307
 check_status "/backoffice/avrakning kräver inloggning" "/backoffice/avrakning" 307
 check_status "/konto/uppgifter kräver inloggning"      "/konto/uppgifter"      307
+check_status "/dashboard/handelser kräver inloggning"  "/dashboard/handelser"  307
+check_status "/dashboard/personal kräver inloggning"   "/dashboard/personal"   307
+
+# Inbjudningslänken ligger utanför /dashboard — den som klickar är ännu inte
+# personal. Utan inloggning ska den skicka till inloggningen, inte till en 404
+# som får den inbjudna att tro att länken är trasig.
+check_status "inbjudningslänken kräver inloggning" \
+  "/personal/inbjudan/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" 307
 check_status "raderat-kvittot är öppet"                "/konto/raderat"        200
 
 # Exporten svarar 401 och inte en omdirigering. Den som anropar rutten direkt

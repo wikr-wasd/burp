@@ -317,6 +317,28 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **Personal går att anställa och avsluta** (migration 0046). `staff` har
+      funnits sedan 0002 med `invited_by` och allt, och
+      `admin_create_restaurant` säger i sin egen kommentar att "ägaren knyts
+      senare via personalfliken" — en flik som inte fanns. En restaurang hade
+      alltså exakt de konton Burp skapade åt den, och **en uppsagd servitör
+      behöll åtkomst till kassan tills någon körde SQL.**
+      Hierarkin: ägaren bjuder in vem som helst, chefen bara servitör och kock.
+      Chefen kan därmed inte höja någon till sin egen nivå, och inte sig själv
+      via en omväg — samma regel gäller för att ÄNDRA en roll, annars kunde hon
+      bjuda in en servitör och sedan göra hen till ägare.
+      **Den sista ägaren går varken att degradera eller stänga av.** En
+      restaurang utan aktiv ägare kan ingen administrera, och felet upptäcks av
+      någon som just förlorat sin åtkomst och därför inte kan rätta det.
+      Inbjudan är en länk som gäller sju dagar, en gång, och **bara för adressen
+      den skickades till** — annars räcker det att länken vidarebefordras för
+      att någon ska ta sig in i kassan. Hemligheten lagras som hash;
+      `sha256()` och inte pgcrypto:s `digest()`, som ligger i olika scheman i
+      testmiljön och hos Supabase och hade fungerat i det ena men inte det
+      andra. Länken visas också i gränssnittet, så att en restaurang kan
+      anställa någon innan avsändardomänen är verifierad.
+      En avslutad anställning stängs av, den raderas aldrig: raden är det som
+      kopplar en kvitterad nota till en människa.
 - [x] **En glömd surfplatta loggas ut.** Kassan står på en disk och delas av
       flera. Utan spärren är den inloggad tills någon aktivt loggar ut — alltså
       över natten och över helgen, och den som går fram ser gårdagens
