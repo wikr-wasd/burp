@@ -140,14 +140,14 @@ export function OrderActions({
                 onClick={() => act({ action: "CANCEL" })}
                 className="min-h-11 bg-red-600 px-4 font-medium text-white disabled:opacity-50"
               >
-                Ja, avbryt
+                {labels.cancelConfirm}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmCancel(false)}
                 className="card min-h-11  px-4"
               >
-                Behåll
+                {labels.cancelKeep}
               </button>
             </div>
           ) : (

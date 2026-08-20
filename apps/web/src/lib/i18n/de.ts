@@ -262,6 +262,8 @@ export const de: Dictionary = {
     remove: "Entfernen",
     cancelOrder: "Bestellung stornieren",
     cancelWarning: "Die gesamte Bestellung wird storniert.",
+    cancelConfirm: "Ja, stornieren",
+    cancelKeep: "Behalten",
     changeFailed: "Die Änderung ist fehlgeschlagen.",
     status: {
       DRAFT: "Entwurf",

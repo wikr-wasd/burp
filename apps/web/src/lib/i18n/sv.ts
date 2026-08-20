@@ -344,6 +344,8 @@ export const sv = {
     remove: "Ta bort",
     cancelOrder: "Avbryt beställningen",
     cancelWarning: "Hela beställningen avbryts.",
+    cancelConfirm: "Ja, avbryt",
+    cancelKeep: "Behåll",
     changeFailed: "Ändringen gick inte igenom.",
     status: {
       DRAFT: "Utkast",

@@ -152,6 +152,7 @@ describe("ordböckerna", () => {
      */
     no: [
       "errors.notFoundLabel",
+      "receipt.cancelConfirm",
       "menu.allergens",
       "menu.giftCardPlaceholder",
       "site.language",

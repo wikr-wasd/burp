@@ -260,6 +260,8 @@ export const en: Dictionary = {
     remove: "Remove",
     cancelOrder: "Cancel the order",
     cancelWarning: "The whole order will be cancelled.",
+    cancelConfirm: "Yes, cancel",
+    cancelKeep: "Keep it",
     changeFailed: "The change did not go through.",
     status: {
       DRAFT: "Draft",

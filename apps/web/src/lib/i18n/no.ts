@@ -262,6 +262,8 @@ export const no: Dictionary = {
     remove: "Fjern",
     cancelOrder: "Avbestill",
     cancelWarning: "Hele bestillingen blir avbestilt.",
+    cancelConfirm: "Ja, avbryt",
+    cancelKeep: "Behold",
     changeFailed: "Endringen gikk ikke gjennom.",
     status: {
       DRAFT: "Utkast",

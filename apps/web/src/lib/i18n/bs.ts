@@ -285,6 +285,8 @@ export const bs: Dictionary = {
     remove: "Ukloni",
     cancelOrder: "Otkaži narudžbu",
     cancelWarning: "Cijela narudžba će biti otkazana.",
+    cancelConfirm: "Da, otkaži",
+    cancelKeep: "Zadrži",
     changeFailed: "Izmjena nije prošla.",
     status: {
       DRAFT: "Nacrt",
