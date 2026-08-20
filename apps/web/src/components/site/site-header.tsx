@@ -42,8 +42,12 @@ export function SiteHeader({
 }) {
   const t = dictionary(locale);
 
+  // `relative z-30` på sidhuvudet: det ska ligga över sidinnehållet, alltid.
+  // Kartan är instängd i sin egen stackningskontext sedan `isolation: isolate`
+  // i globals.css, men huvudet bär en utfällbar meny och ska inte behöva lita
+  // på att varje framtida komponent uppför sig.
   return (
-    <header className="border-b border-[var(--rule)]">
+    <header className="relative z-30 border-b border-[var(--rule)]">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm:px-6">
         <Link
           href={localePath(locale, "/")}

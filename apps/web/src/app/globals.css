@@ -623,6 +623,24 @@ body {
 .leaflet-container {
   background: var(--background);
   font: inherit;
+
+  /*
+   * Kartan stängs in i sin egen stackningskontext.
+   *
+   * Leaflet ger sina lager höga z-index i sin egen stilmall — panorna ligger på
+   * 400, kontrollerna på 800 och hörnen på 1000. `.leaflet-container` sätter
+   * ingen egen z-index, alltså bildar den INGEN stackningskontext, och alla de
+   * värdena konkurrerar rakt ut i sidans rotkontext.
+   *
+   * Följden var synlig: språkmenyn i sidhuvudet fälldes ut BAKOM kartan på
+   * startsidan. Att bara höja menyns z-index hade lagat just den menyn och
+   * lämnat nästa överliggande yta att falla på samma sätt — en dialog, en
+   * verktygstips, vad som helst som råkar hamna över kartan.
+   *
+   * `isolation: isolate` skapar kontexten utan att ändra en enda av Leaflets
+   * egna siffror. Kartans 1000 gäller därmed bara inuti kartan.
+   */
+  isolation: isolate;
 }
 
 /* ── Köksskärmen ──────────────────────────────────────────────────────── */
