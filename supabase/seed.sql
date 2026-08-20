@@ -377,8 +377,84 @@ values
 --
 --     node scripts/print-qr-links.mjs
 --
+-- Femton bord och inte tre.
+--
+-- Samma skäl som menyn har tjugosju rätter: tre bord går inte att bedöma.
+-- Planritningen ritar dem i rummets form, och tre prickar i ett tomt rutnät
+-- visar varken om rummet läses rätt, om numren är läsbara när borden står
+-- tätt, eller om färgerna går att skilja åt på en meters håll. Det är i den
+-- vyn servitören står när hon ska avgöra vilket bord som ropar.
+--
+-- Bord 1, 2 och 3 behåller sina koder. De står i planen för genomgången och
+-- i utskrivna dekaler; ett bord som byter kod är ett bord som slutar fungera.
 insert into public.tables (restaurant_id, table_number, zone, capacity, qr_public_id, status)
 values
-  ('11111111-1111-1111-1111-111111111111', '1', 'Bašta',   2, 'R7K2M9', 'ACTIVE'),
-  ('11111111-1111-1111-1111-111111111111', '2', 'Bašta',   4, 'B3H8N5', 'ACTIVE'),
-  ('11111111-1111-1111-1111-111111111111', '3', 'Unutra',  6, 'X9V4T2', 'ACTIVE');
+  ('11111111-1111-1111-1111-111111111111', '1',  'Bašta',   2, 'R7K2M9', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '2',  'Bašta',   4, 'B3H8N5', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '3',  'Unutra',  6, 'X9V4T2', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '4',  'Bašta',   4, 'K4M7P2', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '5',  'Bašta',   2, 'T8R3V6', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '6',  'Bašta',   8, 'H5N9Z4', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '7',  'Bašta',   4, 'P2W6K8', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '8',  'Bašta',   4, 'M3T7B5', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '9',  'Bašta',   2, 'V9H4R2', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '10', 'Bašta',   2, 'N6Z8T3', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '11', 'Unutra',  4, 'R5P9M4', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '12', 'Unutra',  4, 'B7V2K6', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '13', 'Unutra',  6, 'Z3H8N7', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '14', 'Unutra',  4, 'T4M5W9', 'ACTIVE'),
+  ('11111111-1111-1111-1111-111111111111', '15', 'Unutra',  4, 'K9R6B2', 'ACTIVE');
+
+-- ── Planritningarna ─────────────────────────────────────────────────────────
+--
+-- Två ritningar, för att en restaurang sällan har en. Željo i Baščaršija har
+-- en uteservering mot gränden och en smalare sal innanför — och det är just
+-- skillnaden mellan dem som gör att ritningen är värd något: "bord 7" säger
+-- inget om servitören inte vet om hon ska gå ut eller in.
+--
+-- Koordinaterna är rutnätsenheter, aldrig pixlar. Ritytan skalas till skärmen;
+-- med pixlar hade rummet ritats om varje gång någon bytte från telefon till
+-- surfplatta.
+
+insert into public.floor_plans (id, restaurant_id, name, width, height, sort_order)
+values
+  ('66666666-6666-6666-6666-666666666661',
+   '11111111-1111-1111-1111-111111111111', 'Bašta',  40, 24, 1),
+  ('66666666-6666-6666-6666-666666666662',
+   '11111111-1111-1111-1111-111111111111', 'Unutra', 30, 20, 2);
+
+-- Uteserveringen: tre rader mot gränden, med långbordet vid husväggen.
+-- Storlekarna följer antalet platser — ett tvåsitsigt bord och ett åttamanna
+-- långbord ska inte ritas lika stora, annars säger ritningen inget om rummet.
+update public.tables as t set
+  floor_plan_id = v.plan::uuid,
+  pos_x         = v.x,
+  pos_y         = v.y,
+  shape         = v.shape::public.table_shape,
+  width         = v.w,
+  height        = v.h,
+  rotation      = v.rot
+from (values
+  -- Främre raden, mot gränden
+  ('1',  '66666666-6666-6666-6666-666666666661',  4,  3, 'ROUND',  4, 4,  0),
+  ('2',  '66666666-6666-6666-6666-666666666661', 12,  3, 'ROUND',  5, 5,  0),
+  ('4',  '66666666-6666-6666-6666-666666666661', 21,  3, 'ROUND',  5, 5,  0),
+  ('5',  '66666666-6666-6666-6666-666666666661', 31,  3, 'ROUND',  4, 4,  0),
+  -- Mittenraden. Långbordet står längs husväggen och är därför avlångt.
+  ('6',  '66666666-6666-6666-6666-666666666661',  4, 11, 'RECT',  10, 5,  0),
+  ('7',  '66666666-6666-6666-6666-666666666661', 18, 11, 'ROUND',  5, 5,  0),
+  ('8',  '66666666-6666-6666-6666-666666666661', 27, 11, 'ROUND',  5, 5,  0),
+  -- Bortre raden, två små bord i hörnet
+  ('9',  '66666666-6666-6666-6666-666666666661',  8, 18, 'ROUND',  4, 4,  0),
+  ('10', '66666666-6666-6666-6666-666666666661', 17, 18, 'ROUND',  4, 4,  0),
+
+  -- Salen innanför: smalare rum, fyrkantiga bord längs väggarna.
+  ('3',  '66666666-6666-6666-6666-666666666662',  4,  4, 'RECT',   8, 4,  0),
+  ('11', '66666666-6666-6666-6666-666666666662', 16,  4, 'SQUARE', 5, 5,  0),
+  ('12', '66666666-6666-6666-6666-666666666662', 23,  4, 'SQUARE', 5, 5,  0),
+  ('13', '66666666-6666-6666-6666-666666666662',  4, 12, 'RECT',   8, 4,  0),
+  ('14', '66666666-6666-6666-6666-666666666662', 16, 12, 'SQUARE', 5, 5,  0),
+  ('15', '66666666-6666-6666-6666-666666666662', 23, 12, 'SQUARE', 5, 5,  0)
+) as v(nr, plan, x, y, shape, w, h, rot)
+where t.restaurant_id = '11111111-1111-1111-1111-111111111111'
+  and t.table_number = v.nr;

@@ -70,16 +70,54 @@ async function sign(publicId) {
   return signature;
 }
 
-// Samma publika id:n som i supabase/seed.sql.
-const tables = [
-  { number: "1", zone: "Fönstret", publicId: "R7K2M9" },
-  { number: "2", zone: "Fönstret", publicId: "B3H8N5" },
-  { number: "3", zone: "Uteservering", publicId: "X9V4T2" },
-];
+/*
+ * Borden läses UR seed.sql i stället för att stå avskrivna här.
+ *
+ * Listan var tidigare hårdkodad med kommentaren "samma publika id:n som i
+ * supabase/seed.sql". Den var inte det: zonerna stod kvar som "Fönstret" och
+ * "Uteservering" långt efter att seeden bytt till Bašta och Unutra, och när
+ * borden blev femton skrev skriptet fortfarande ut tre. En kommentar som
+ * lovar att två filer följs åt är inget som håller dem i takt.
+ *
+ * Filen läses med en regex och inte med en SQL-parser. Det räcker: raderna har
+ * en fast form, och alternativet — att fråga databasen — hade gjort skriptet
+ * beroende av en igång Supabase-stack för att skriva ut länkar som bara beror
+ * på hemligheten.
+ */
+function readSeedTables() {
+  const sql = readFileSync(join(root, "supabase/seed.sql"), "utf8");
+  const insert = sql.match(
+    /insert into public\.tables[^;]*?values\s*([\s\S]*?);/i,
+  );
 
-console.log("\nQR-länkar för seed-borden:\n");
-for (const table of tables) {
+  if (!insert) return [];
+
+  const rows = [...insert[1].matchAll(
+    /\(\s*'[^']*'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*\d+\s*,\s*'([^']*)'\s*,\s*'ACTIVE'\s*\)/g,
+  )];
+
+  return rows.map(([, number, zone, publicId]) => ({ number, zone, publicId }));
+}
+
+const tables = readSeedTables();
+
+if (tables.length === 0) {
+  console.error("Hittade inga bord i supabase/seed.sql — har formatet ändrats?");
+  process.exit(1);
+}
+
+console.log(`\nQR-länkar för seed-borden (${tables.length} st):\n`);
+
+let zone = null;
+for (const table of tables.sort(
+  (a, b) => a.zone.localeCompare(b.zone, "sv") || Number(a.number) - Number(b.number),
+)) {
+  if (table.zone !== zone) {
+    zone = table.zone;
+    console.log(`  ── ${zone} ──\n`);
+  }
+
   const token = table.publicId + (await sign(table.publicId));
-  console.log(`  Bord ${table.number} (${table.zone})`);
+  console.log(`  Bord ${table.number}`);
   console.log(`    ${siteUrl}/t/${token}\n`);
 }

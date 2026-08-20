@@ -64,8 +64,9 @@ begin
    * En färsk `supabase db reset` har noll order, så tabellen är signalen.
    */
   if exists (select 1 from public.orders limit 1) then
-    raise notice 'Databasen har redan order — demodatan läggs inte in igen.';
+    raise notice 'Databasen har redan order — historiken läggs inte in igen.';
     raise notice 'Kör `npm run db:reset` först om du vill ha en färsk omgång.';
+    raise notice 'Passet som pågår återställs ändå — se sista avsnittet.';
     return;
   end if;
 
@@ -286,6 +287,171 @@ begin
         update public.settlements set status = 'PAID' where id = v_id;
       end if;
     end loop;
+  end loop;
+end
+$$;
+
+-- ── Ett pass som pågår ──────────────────────────────────────────────────────
+--
+-- Historiken ovan gör pengaytorna verkliga men lämnar Översikten död: varje
+-- bord ledigt, planritningen enfärgad, köksskärmen tom. Det är samma tomhet
+-- som demodatan finns för att ta bort, en yta bort.
+--
+-- Alla tre bordstillstånd måste synas SAMTIDIGT för att ritningen ska gå att
+-- bedöma. Det är då man ser om färgerna går att skilja åt på en meters håll,
+-- vilket är det avstånd en servitör faktiskt står på.
+--
+--   Bord 2 och 13   öppen nota, köket har inget ogjort
+--   Bord 6 och 11   beställning inne — en under tillagning, en klar
+--   resten          ledigt
+--
+-- Ordern går genom statusmaskinen steg för steg, inte rakt till PREPARING.
+-- Triggern `orders_enforce_transition` skulle avvisa hoppet, och den har rätt:
+-- demodata som kringgår regeln beskriver en produkt som inte finns.
+--
+-- Sektionen är ÅTERKÖRBAR, till skillnad från historiken ovan. Skälet är
+-- konkret: `smoke.sh` driver varje aktiv order till COMPLETED och stänger
+-- notorna, alltså tömmer den Översikten. Historikspärren hade sedan hindrat
+-- `db:demo` från att lägga tillbaka passet, och enda vägen ut vore en full
+-- reset — som tar bort de 75 dagarna på köpet. Varje bord kontrolleras därför
+-- för sig, och det som redan lever lämnas i fred.
+
+do $$
+declare
+  v_rest        uuid := '11111111-1111-1111-1111-111111111111';
+  v_table       uuid;
+  v_order       uuid;
+  v_item        record;
+  v_gross       integer;
+  v_vat         integer;
+  v_by_rate     jsonb;
+  v_line        integer;
+  v_qty         smallint;
+  v_line_gross  integer;
+  v_line_vat    integer;
+  v_spec        record;
+begin
+  -- Notor utan något ogjort i köket.
+  for v_spec in select unnest(array['2', '13']) as nr loop
+    select id into v_table from public.tables
+    where restaurant_id = v_rest and table_number = v_spec.nr;
+    continue when v_table is null;
+
+    continue when exists (
+      select 1 from public.table_sessions
+      where table_id = v_table and status = 'OPEN'
+    );
+
+    insert into public.table_sessions (table_id, restaurant_id, status, guest_count)
+    values (v_table, v_rest, 'OPEN', 2);
+  end loop;
+
+  -- Bord med en beställning inne.
+  --
+  -- Rätterna skiljer sig åt mellan de två, och den ena bär både en notering
+  -- till köket och en radnotering. Två identiska biljetter visar inte om
+  -- biljetten går att läsa — det gör den först när den är olika lång, har en
+  -- rad med tillval och en rad utan, och en notering som ska sticka ut.
+  for v_spec in
+    select * from (values
+      ('6',  'PREPARING',  6, 0, 3, 'Allergi: en gäst tål inte mjölk.'),
+      ('11', 'READY',     14, 4, 2, null)
+    ) as s(nr, target, minutes, skip, lines, kitchen_note)
+  loop
+    select id into v_table from public.tables
+    where restaurant_id = v_rest and table_number = v_spec.nr;
+    continue when v_table is null;
+
+    -- Bordet lever redan. Att lägga en order till hade byggt på i stället för
+    -- att återställa, och efter tre röktestkörningar stod det sex biljetter i
+    -- köket för ett bord som har en.
+    continue when exists (
+      select 1 from public.orders
+      where table_id = v_table
+        and status in ('PLACED', 'ACCEPTED', 'PREPARING', 'READY')
+    );
+
+    if not exists (
+      select 1 from public.table_sessions where table_id = v_table and status = 'OPEN'
+    ) then
+      insert into public.table_sessions (table_id, restaurant_id, status, guest_count)
+      values (v_table, v_rest, 'OPEN', 4);
+    end if;
+
+    insert into public.orders (
+      restaurant_id, table_id, type, status, idempotency_key,
+      items_gross_ore, items_vat_ore, vat_by_rate, tip_ore, total_ore, placed_at
+    )
+    values (
+      v_rest, v_table, 'TABLE'::public.order_type, 'PLACED', gen_random_uuid(),
+      0, 0, '{}'::jsonb, 0, 0, now() - make_interval(mins => v_spec.minutes)
+    )
+    returning id into v_order;
+
+    if v_spec.kitchen_note is not null then
+      update public.orders set note = v_spec.kitchen_note where id = v_order;
+    end if;
+
+    v_gross := 0; v_vat := 0; v_by_rate := '{}'::jsonb;
+    v_line := 0;
+
+    -- Riktiga rader ur menyn. En order utan rader är precis den testdata som
+    -- redan lurat en läsare en gång.
+    for v_item in
+      select mi.id, mi.name, mi.price_ore, mi.vat_rate_bps
+      from public.menu_items mi
+      join public.menu_categories mc on mc.id = mi.category_id
+      join public.menus m on m.id = mc.menu_id
+      where m.restaurant_id = v_rest
+        and mi.status = 'PUBLISHED'
+        and mi.price_ore > 0
+      order by mi.sort_order
+      offset v_spec.skip
+      limit v_spec.lines
+    loop
+      v_line := v_line + 1;
+      -- Antalet varierar per rad. En biljett där varje rad står på "2×" visar
+      -- inte om siffran är läsbar när den är ensiffrig respektive tvåsiffrig.
+      v_qty := case v_line when 1 then 2 when 2 then 1 else 3 end;
+
+      v_line_gross := v_item.price_ore * v_qty;
+      v_line_vat := v_line_gross
+                  - round(v_line_gross::numeric * 10000 / (10000 + v_item.vat_rate_bps));
+
+      insert into public.order_items (
+        order_id, restaurant_id, menu_item_id, name_snapshot,
+        unit_price_ore, vat_rate_bps, quantity, line_gross_ore, note
+      )
+      values (
+        v_order, v_rest, v_item.id, v_item.name,
+        v_item.price_ore, v_item.vat_rate_bps, v_qty, v_line_gross,
+        -- Radnoteringen bara på första raden av den ena biljetten. Den ska
+        -- sticka ut mot resten, och det syns inte om varje rad har en.
+        case when v_line = 1 and v_spec.kitchen_note is not null
+             then 'Bez luka' end
+      );
+
+      v_gross := v_gross + v_line_gross;
+      v_vat := v_vat + v_line_vat;
+      v_by_rate := jsonb_set(
+        v_by_rate, array[v_item.vat_rate_bps::text],
+        to_jsonb(coalesce((v_by_rate ->> v_item.vat_rate_bps::text)::integer, 0) + v_line_vat));
+    end loop;
+
+    update public.orders
+    set items_gross_ore = v_gross, items_vat_ore = v_vat,
+        vat_by_rate = v_by_rate, total_ore = v_gross
+    where id = v_order;
+
+    -- Ett steg i taget, som köksskärmen gör det.
+    update public.orders set status = 'ACCEPTED',
+      accepted_at = now() - make_interval(mins => v_spec.minutes - 1) where id = v_order;
+    update public.orders set status = 'PREPARING' where id = v_order;
+
+    if v_spec.target = 'READY' then
+      update public.orders set status = 'READY', ready_at = now() - interval '2 minutes'
+      where id = v_order;
+    end if;
   end loop;
 end
 $$;
