@@ -16,22 +16,30 @@ import type { FloorPlanSnapshot, TableSnapshot, TableState } from "@/lib/overvie
  * bredvid. Att gissa en plats åt dem hade betytt att ritningen ljuger.
  */
 
+/*
+ * Grönt för SERVERAS, och samma gröna som köksskärmens ram runt en klar
+ * biljett. Personalen rör sig mellan de två ytorna under ett pass, och samma
+ * betydelse måste ha samma färg på båda — annars är färgen dekoration.
+ */
 const STATE_FILL: Record<TableState, string> = {
   LEDIGT: "fill-[var(--background)]",
   OPPEN_NOTA: "fill-gold-400/40",
   BESTALLNING: "fill-burp-600",
+  SERVERAS: "fill-green-600",
 };
 
 const STATE_TEXT: Record<TableState, string> = {
   LEDIGT: "fill-[var(--muted)]",
   OPPEN_NOTA: "fill-[var(--foreground)]",
   BESTALLNING: "fill-white",
+  SERVERAS: "fill-white",
 };
 
 const STATE_LABEL: Record<TableState, string> = {
   LEDIGT: "Ledigt",
   OPPEN_NOTA: "Öppen nota",
   BESTALLNING: "Beställning inne",
+  SERVERAS: "Klar att servera",
 };
 
 export function FloorPlanView({

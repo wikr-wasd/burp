@@ -5,18 +5,33 @@ import { createClient } from "./supabase/server";
 /**
  * Bordens läge just nu, för dashboardens översikt.
  *
- * Tre tillstånd, härledda och inte lagrade:
+ * Fyra tillstånd, härledda och inte lagrade:
  *
  *   `LEDIGT`     — ingen öppen nota
  *   `OPPEN_NOTA` — notan är öppen, köket har inget att göra
- *   `BESTALLNING`— minst en order som ännu inte serverats
+ *   `BESTALLNING`— minst en order i köket, ingen färdig ännu
+ *   `SERVERAS`   — minst en order är KLAR och väntar på att köras ut
+ *
+ * `SERVERAS` var länge samma röda som `BESTALLNING`, och det var fel.
+ *
+ * Lagd, mottagen och tillagas betyder alla att servitören inte behöver göra
+ * någonting — köket äger ordern. `READY` betyder att maten står under lampan
+ * och blir kall. Det är motsatta ärenden, och att måla dem lika gjorde kartan
+ * till en lägesbild i stället för ett arbetsredskap: det enda bord som faktiskt
+ * krävde ett steg gick inte att skilja från de tre som inte gjorde det.
+ *
+ * Grönt, i linje med köksskärmens gröna ram runt en klar biljett. Samma
+ * betydelse ska ha samma färg på båda ytorna — personalen rör sig mellan dem.
+ *
+ * Ett bord med både en klar och en pågående order räknas som `SERVERAS`. Det
+ * som väntar på handling vinner; den pågående ordern ropar ändå senare.
  *
  * Att lagra bordets tillstånd i en kolumn hade betytt en fjärde plats där
  * sanningen kan hamna i otakt med orderloggen. Samma skäl som lojalitetssaldot
  * inte lagras: en summa över loggen kan inte komma i otakt med loggen.
  */
 
-export type TableState = "LEDIGT" | "OPPEN_NOTA" | "BESTALLNING";
+export type TableState = "LEDIGT" | "OPPEN_NOTA" | "BESTALLNING" | "SERVERAS";
 
 export interface TableSnapshot {
   id: string;
@@ -49,8 +64,11 @@ export interface OverviewTables {
   floorPlans: FloorPlanSnapshot[];
 }
 
-/** Statusar som betyder att köket eller serveringen har något ogjort. */
-const BUSY_STATUSES = ["PLACED", "ACCEPTED", "PREPARING", "READY"];
+/** Statusar där köket äger ordern. Servitören behöver inte göra något. */
+const KITCHEN_STATUSES = ["PLACED", "ACCEPTED", "PREPARING"];
+
+/** Klar att köras ut. Det enda som kräver ett steg av serveringen. */
+const READY_STATUS = "READY";
 
 export async function getTableSnapshots(restaurantId: string): Promise<OverviewTables> {
   const supabase = await createClient();
@@ -75,9 +93,9 @@ export async function getTableSnapshots(restaurantId: string): Promise<OverviewT
 
       supabase
         .from("orders")
-        .select("table_id")
+        .select("table_id, status")
         .eq("restaurant_id", restaurantId)
-        .in("status", BUSY_STATUSES)
+        .in("status", [...KITCHEN_STATUSES, READY_STATUS])
         .not("table_id", "is", null),
 
       supabase
@@ -88,18 +106,33 @@ export async function getTableSnapshots(restaurantId: string): Promise<OverviewT
     ]);
 
   const openTables = new Set((sessions ?? []).map((row) => row.table_id as string));
-  const busyTables = new Set((orders ?? []).map((row) => row.table_id as string));
+
+  const readyTables = new Set(
+    (orders ?? [])
+      .filter((row) => row.status === READY_STATUS)
+      .map((row) => row.table_id as string),
+  );
+
+  const kitchenTables = new Set(
+    (orders ?? [])
+      .filter((row) => KITCHEN_STATUSES.includes(row.status as string))
+      .map((row) => row.table_id as string),
+  );
 
   return {
     tables: (tables ?? []).map((row) => ({
       id: row.id as string,
       tableNumber: row.table_number as string,
       zone: (row.zone as string | null) ?? null,
-      state: busyTables.has(row.id as string)
-        ? "BESTALLNING"
-        : openTables.has(row.id as string)
-          ? "OPPEN_NOTA"
-          : "LEDIGT",
+      // Ordningen är prioritetsordningen. Det som kräver ett steg vinner över
+      // det som inte gör det, och en order av något slag vinner över notan.
+      state: readyTables.has(row.id as string)
+        ? "SERVERAS"
+        : kitchenTables.has(row.id as string)
+          ? "BESTALLNING"
+          : openTables.has(row.id as string)
+            ? "OPPEN_NOTA"
+            : "LEDIGT",
       floorPlanId: row.floor_plan_id,
       x: row.pos_x,
       y: row.pos_y,

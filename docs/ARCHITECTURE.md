@@ -505,7 +505,13 @@ till en biljett.
   och vilka bord som är upptagna. Räknar ingenting själv: talen kommer ur
   `restaurant_revenue_summary` och bordens läge härleds ur notor och
   orderstatus. En översikt som summerar själv blir en andra sanning bredvid
-  statistiksidan
+  statistiksidan.
+
+  Bordskartan har **fyra** tillstånd, och gränsen mellan de två röda gick fel
+  från början: `BESTALLNING` (köket äger ordern) och `SERVERAS` (maten är klar
+  och blir kall) är motsatta ärenden för en servitör. `SERVERAS` är grönt, samma
+  gröna som köksskärmens ram runt en klar biljett — samma betydelse ska ha
+  samma färg på båda ytorna, för personalen rör sig mellan dem
 - **Order live** (`/dashboard/order`) — nya order, accept, avvisa, förseningstid
 - **Köksskärm** — stor vy för surfplatta med ljudsignal vid ny order och statusknappar
 - **Meny** — dra och släpp kategorier, tillvalsgrupper, slut för dagen

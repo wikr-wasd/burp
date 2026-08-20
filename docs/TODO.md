@@ -144,6 +144,25 @@ avvek från planen och det står varför i respektive commit.
       den fungerar med fingrar. Översikten byter till ritningen så fort en
       finns; outplacerade bord ligger kvar som rutor bredvid. Migration 0032.
 
+      Seeden ritar två salar åt Željo — Bašta ute och Unutra inne, femton bord.
+      Funktionen låg färdig men **osynlig** i sex veckor eftersom ingen
+      restaurang i seeden hade en ritning: `FloorPlanView` returnerar `null`
+      utan utplacerade bord, så dashboarden visade tre rutor i ett rutnät.
+      Färdig kod som ingen kan se är ett skal ändå.
+
+- [x] **Fyra bordstillstånd, inte tre.** `SERVERAS` skildes ut ur
+      `BESTALLNING` och är grönt — samma gröna som köksskärmens ram runt en
+      klar biljett. Lagd, mottagen och tillagas betyder alla att servitören
+      inte behöver göra något; `READY` betyder att maten står under lampan och
+      blir kall. Att måla dem lika gjorde kartan till en lägesbild i stället
+      för ett arbetsredskap. `lib/overview.ts`.
+
+- [x] **Zonen på köksbiljetten.** Biljetten skrev bara bordsnumret. Med en sal
+      räcker det; med uteservering **och** sal vet inte den som springer ut med
+      maten åt vilket håll — och numret ensamt är en halv adress. Zonen står
+      intill statusen, så att bordsnumret förblir det största på biljetten.
+      `lib/orders.ts`, `components/staff/kitchen-board.tsx`.
+
 ---
 
 ## Näst på tur
@@ -226,7 +245,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Push aldrig sedd på en riktig enhet | `components/staff/push-toggle.tsx` | Kräver nycklar, https och en telefon. iPhone kräver dessutom att PWA:n lagts till på hemskärmen |
 | En delåterbetalning krediterar inte Burps avgift | Migration 0039 | Beslut, inte lucka. Öppen fråga 12 |
 | Avräkningen faktureras för hand — ingen faktura genereras | `settlements.invoice_number` | Fakturan skrivs i Burps bokföring; produkten håller bara underlaget och numret |
-| Seeden har inga order alls | `supabase/seed-orders.sql`, `npm run db:demo` | Medvetet skild från seeden. Utan den står Kassa, Statistik, Översikt och Avräkning tomma lokalt. Kör den en gång per `db:reset` — en andra körning märker att det redan finns order och gör ingenting |
+| Seeden har inga order alls | `supabase/seed-orders.sql`, `npm run db:demo` | Medvetet skild från seeden. Utan den står Kassa, Statistik, Översikt och Avräkning tomma lokalt. Historiken läggs in en gång per `db:reset`; **passet som pågår** är däremot återkörbart, eftersom `smoke.sh` driver varje aktiv order till `COMPLETED` och därmed tömmer Översikten |
 
 ### Laddningsskelett: granskat och avfört 2026-08-20
 

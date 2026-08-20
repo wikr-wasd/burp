@@ -57,6 +57,14 @@ const TABLE_STATES: { state: TableState; label: string; cell: string; swatch: st
     cell: "bg-burp-600 text-white",
     swatch: "bg-burp-600",
   },
+  // Sist i listan för att det är den som kräver ett steg. Ordningen i
+  // teckenförklaringen läses som en ordning i angelägenhet.
+  {
+    state: "SERVERAS",
+    label: "Klar att servera",
+    cell: "bg-green-600 text-white",
+    swatch: "bg-green-600",
+  },
 ];
 
 export default async function OverviewPage() {

@@ -30,6 +30,18 @@ export interface KitchenOrder {
   status: OrderStatus;
   type: OrderType;
   tableNumber: string | null;
+  /**
+   * Rummet bordet står i — "Bašta", "Unutra", "Nedre våningen".
+   *
+   * Biljetten skrev länge bara bordsnumret. Med en sal räcker det. Med en
+   * uteservering OCH en sal innanför vet inte den som ska springa ut med maten
+   * om hon ska gå ut eller in, och bord 6 kan mycket väl ligga utomhus medan
+   * bord 11 ligger inne. Numret ensamt är en halv adress.
+   *
+   * Null när restaurangen inte delat in sina bord i zoner. Då ritas den inte
+   * heller ut — en tom rad under bordsnumret säger ingenting.
+   */
+  tableZone: string | null;
   placedAt: string | null;
   acceptedAt: string | null;
   note: string | null;
@@ -103,8 +115,10 @@ export async function getActiveOrders(restaurantId: string): Promise<ActiveOrder
           .in("order_item_id", itemIds)
       : Promise.resolve({ data: [] as { order_item_id: string; name_snapshot: string }[] }),
     tableIds.length
-      ? supabase.from("tables").select("id, table_number").in("id", tableIds)
-      : Promise.resolve({ data: [] as { id: string; table_number: string }[] }),
+      ? supabase.from("tables").select("id, table_number, zone").in("id", tableIds)
+      : Promise.resolve({
+          data: [] as { id: string; table_number: string; zone: string | null }[],
+        }),
   ]);
 
   const optionsByItem = new Map<string, string[]>();
@@ -128,15 +142,19 @@ export async function getActiveOrders(restaurantId: string): Promise<ActiveOrder
     else itemsByOrder.set(item.order_id, [mapped]);
   }
 
-  const tableNumberById = new Map(
-    (tablesResult.data ?? []).map((table) => [table.id, table.table_number]),
+  const tableById = new Map(
+    (tablesResult.data ?? []).map((table) => [
+      table.id,
+      { number: table.table_number, zone: table.zone ?? null },
+    ]),
   );
 
   const mapped: KitchenOrder[] = orders.map((order) => ({
     id: order.id,
     status: order.status as OrderStatus,
     type: order.type as OrderType,
-    tableNumber: order.table_id ? (tableNumberById.get(order.table_id) ?? null) : null,
+    tableNumber: order.table_id ? (tableById.get(order.table_id)?.number ?? null) : null,
+    tableZone: order.table_id ? (tableById.get(order.table_id)?.zone ?? null) : null,
     placedAt: order.placed_at,
     acceptedAt: order.accepted_at,
     note: order.note,

@@ -265,8 +265,25 @@ function OrderCard({
         <Elapsed since={order.placedAt} />
       </header>
 
+      {/*
+        Rummet står på samma rad som statusen, inte som en egen rubrik.
+
+        Bordsnumret är det köket letar efter på avstånd och ska förbli det
+        största på biljetten. Men "Bord 6" är en halv adress i en lokal med
+        både uteservering och sal — den som springer ut med maten behöver
+        veta åt vilket håll. Att lägga zonen intill statusen ger den plats
+        utan att ta bort tyngden från numret.
+
+        Visas bara när bordet har en zon. En tom rad säger ingenting.
+      */}
       <p className="mt-1 text-sm font-medium uppercase tracking-wide opacity-60">
         {ORDER_STATUS_LABELS[order.status]}
+        {order.tableZone ? (
+          <>
+            {" · "}
+            <span className="text-[var(--foreground)] opacity-100">{order.tableZone}</span>
+          </>
+        ) : null}
       </p>
 
       <ul className="mt-4 space-y-2">
