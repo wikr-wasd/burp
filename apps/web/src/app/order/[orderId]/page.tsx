@@ -223,6 +223,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
         labels={{
           payInPerson: t.receipt.payOnPickup,
           paidByCard: t.receipt.paidByCard,
+          paidInTerminal: t.receipt.paidInTerminal,
           refundedNotice: t.receipt.refundedNotice,
           notFiscalReceipt: t.receipt.notFiscalReceipt,
         }}

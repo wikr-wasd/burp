@@ -1,6 +1,11 @@
 import "server-only";
 
-import type { CurrencyCode, PaymentProviderId, PaymentStatus } from "@burp/core";
+import {
+  isStaffRegistered,
+  type CurrencyCode,
+  type PaymentProviderId,
+  type PaymentStatus,
+} from "@burp/core";
 import { publicEnv } from "../env";
 import { createAdminClient } from "../supabase/admin";
 import {
@@ -109,7 +114,15 @@ export interface PaymentSummary {
   provider: PaymentProviderId;
   status: PaymentStatus;
   amountOre: number;
-  /** Sant när gästen betalade i plattformen och inte i kassan. */
+  /**
+   * Sant när gästen betalade i plattformen och inte i lokalen.
+   *
+   * Falskt för både kontanter och restaurangens egen kortterminal. Kortet i
+   * terminalen är en riktig kortbetalning, men den passerade aldrig Burp —
+   * personalen registrerade den i efterhand. Att räkna den som "betald i
+   * appen" hade fått kvittot att lova en återbetalning genom en leverantör som
+   * inte var inblandad.
+   */
   paidInApp: boolean;
 }
 
@@ -144,7 +157,7 @@ export async function paymentSummaryFor(orderId: string): Promise<PaymentSummary
     provider,
     status: data.status as PaymentStatus,
     amountOre: data.amount_ore,
-    paidInApp: provider !== "CASH",
+    paidInApp: !isStaffRegistered(provider),
   };
 }
 

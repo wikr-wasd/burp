@@ -211,6 +211,7 @@ export default async function OrderPage({ params }: PageProps) {
         labels={{
           payInPerson: t.receipt.payAtTable,
           paidByCard: t.receipt.paidByCard,
+          paidInTerminal: t.receipt.paidInTerminal,
           refundedNotice: t.receipt.refundedNotice,
           notFiscalReceipt: t.receipt.notFiscalReceipt,
         }}

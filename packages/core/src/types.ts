@@ -54,8 +54,17 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
  * `CASH` och `GIFT_CARD` är inte leverantörer i egentlig mening. De är interna
  * betalmedel som ändå ska bokföras som betalrader, eftersom en order annars
  * kan se obetald ut trots att pengarna kommit in.
+ *
+ * `TERMINAL` är restaurangens EGEN kortterminal, och hör till samma grupp.
+ * Burp ser inte den betalningen — den sker mellan gästens kort och
+ * restaurangens inlösare, helt utanför produkten. Personalen registrerar den i
+ * kassan precis som kontanter, och beloppet skrivs in av en människa.
+ *
+ * Att den ändå har ett eget värde och inte bokförs som `CASH` är hela poängen:
+ * utan skillnaden tror kassaavstämningen att det ligger sedlar i lådan som inte
+ * finns, och avvikelsen upptäcks först när någon räknar.
  */
-export const PAYMENT_PROVIDERS = ["CASH", "GIFT_CARD", "STRIPE", "MONRI"] as const;
+export const PAYMENT_PROVIDERS = ["CASH", "TERMINAL", "GIFT_CARD", "STRIPE", "MONRI"] as const;
 export type PaymentProviderId = (typeof PAYMENT_PROVIDERS)[number];
 
 /**

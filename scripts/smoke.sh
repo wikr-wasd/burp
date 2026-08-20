@@ -1068,6 +1068,61 @@ for path in /konto /dashboard /backoffice; do
   fi
 done
 
+echo "→ Kort i restaurangens terminal"
+
+# Kassan kunde bara registrera kontant, så en betalning i restaurangens egen
+# terminal bokfördes som sedlar. Det som mäts här är att personalen får skriva
+# en TERMINAL-rad, att kortflödet genom Burp fortfarande är stängt för dem, och
+# att en nota kan delas mellan de två.
+TERM_ORDER=$(sql "
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, total_ore, completed_at)
+  values ('$SEED_RESTAURANT', 'PICKUP', 'COMPLETED', gen_random_uuid(), 10000, 10000, now())
+  returning id;" | head -1)
+
+term_insert() {
+  curl -s -o /dev/null -w '%{http_code}' -X POST "$SUPABASE_URL/rest/v1/payments" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"order_id\":\"$TERM_ORDER\",\"restaurant_id\":\"$SEED_RESTAURANT\",
+         \"amount_ore\":$1,\"provider\":\"$2\",\"method\":\"card_present\",
+         \"status\":\"CAPTURED\",\"captured_at\":\"$(node -e 'console.log(new Date().toISOString())')\",
+         \"idempotency_key\":\"$(uuid)\"}"
+}
+
+CODE=$(term_insert 6000 TERMINAL)
+if [ "$CODE" = "201" ]; then
+  pass "ägaren kan registrera kort i terminalen ($CODE)"
+else
+  fail "terminalbetalning avvisades med $CODE"
+fi
+
+# Resten kontant på samma order. Ett sällskap kan dela notan mellan kortläsaren
+# och sedlar, och det gamla indexet hade gjort det omöjligt.
+CODE=$(term_insert 4000 CASH)
+if [ "$CODE" = "201" ]; then
+  pass "samma nota kan delas mellan terminal och sedlar ($CODE)"
+else
+  fail "delad nota avvisades med $CODE"
+fi
+
+# Samma betalsätt två gånger är ett dubbeltryck.
+CODE=$(term_insert 100 TERMINAL)
+if [ "$CODE" = "409" ]; then
+  pass "dubbelregistrering i terminalen stoppas ($CODE)"
+else
+  fail "andra terminalraden gav $CODE, väntade 409"
+fi
+
+# Ett kortflöde genom Burp skrivs av webhooken med service role, aldrig av en
+# inloggad användare. RLS ska säga nej.
+CODE=$(term_insert 100 STRIPE)
+if [ "$CODE" = "403" ] || [ "$CODE" = "401" ]; then
+  pass "personalen kan inte skriva en leverantörsbetalning ($CODE)"
+else
+  fail "STRIPE-rad från personalen gav $CODE, väntade 403"
+fi
+
 echo "→ Avräkning, dricks och GDPR"
 
 # Ytorna som byggdes efter att röktestet slutade gå att köra. Beräkningarna

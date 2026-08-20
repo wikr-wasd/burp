@@ -3484,4 +3484,144 @@ begin
 end
 $$;
 
+\echo '   en nota kan delas mellan sedlar och terminal, men inte dubbleras'
+
+do $$
+declare
+  v_rest  uuid := '11111111-1111-1111-1111-111111111111';
+  v_order uuid;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 10000, 10000, now())
+  returning id into v_order;
+
+  -- Halva i kortläsaren, resten i sedlar. Ett vanligt sätt att betala, och det
+  -- gamla indexet (en rad per order) hade gjort det omöjligt.
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, method, status, idempotency_key, captured_at)
+  values (v_order, v_rest, 6000, 'TERMINAL', 'card_present', 'CAPTURED', gen_random_uuid(), now());
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, method, status, idempotency_key, captured_at)
+  values (v_order, v_rest, 4000, 'CASH', 'cash', 'CAPTURED', gen_random_uuid(), now());
+
+  -- Samma betalsätt två gånger är däremot ett dubbeltryck.
+  begin
+    insert into public.payments
+      (order_id, restaurant_id, amount_ore, provider, method, status, idempotency_key, captured_at)
+    values (v_order, v_rest, 100, 'TERMINAL', 'card_present', 'CAPTURED', gen_random_uuid(), now());
+    raise exception 'FEL: samma order kvitterades två gånger i terminalen';
+  exception
+    when unique_violation then null;
+  end;
+
+  -- En terminalrad utan tidpunkt är inte avstämbar mot ett kassapass.
+  begin
+    insert into public.orders (restaurant_id, type, status, idempotency_key,
+                               items_gross_ore, total_ore, completed_at)
+    values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 5000, 5000, now())
+    returning id into v_order;
+
+    insert into public.payments
+      (order_id, restaurant_id, amount_ore, provider, method, status, idempotency_key)
+    values (v_order, v_rest, 5000, 'TERMINAL', 'card_present', 'CAPTURED', gen_random_uuid());
+    raise exception 'FEL: en terminalbetalning utan tidpunkt gick igenom';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
+\echo '   en terminalbetalning återbetalas utan att någon leverantör tillfrågas'
+
+do $$
+declare
+  v_rest    uuid := '11111111-1111-1111-1111-111111111111';
+  v_order   uuid;
+  v_payment uuid;
+  v_refund  uuid;
+  v_status  public.refund_status;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key,
+                             items_gross_ore, total_ore, completed_at)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 8000, 8000, now())
+  returning id into v_order;
+
+  insert into public.payments
+    (order_id, restaurant_id, amount_ore, provider, method, status, idempotency_key, captured_at)
+  values (v_order, v_rest, 8000, 'TERMINAL', 'card_present', 'CAPTURED', gen_random_uuid(), now())
+  returning id into v_payment;
+
+  v_refund := public.request_refund(v_payment, 8000, 'Fel rätt');
+
+  -- Pengarna lämnas tillbaka i terminalen av personalen. En PENDING-rad hade
+  -- väntat på en webhook som aldrig kommer.
+  select status into v_status from public.refunds where id = v_refund;
+  if v_status <> 'SUCCEEDED' then
+    raise exception 'FEL: motbokningen blev % i stället för SUCCEEDED', v_status;
+  end if;
+
+  if (select status from public.payments where id = v_payment) <> 'REFUNDED' then
+    raise exception 'FEL: betalningen markerades inte som återbetald';
+  end if;
+end
+$$;
+
+\echo '   bordets nota kan kvitteras i terminalen, men inte som vad som helst'
+
+do $$
+declare
+  v_rest     uuid := '11111111-1111-1111-1111-111111111111';
+  v_table_id uuid;
+  v_session  uuid;
+  v_order    uuid;
+  v_together uuid;
+  v_rows     integer;
+begin
+  -- Eget bord i stället för att leta upp ett ledigt. Tidigare test i filen
+  -- öppnar notor på seedens bord, och ett `limit 1` som inte hittar något ger
+  -- ett null som faller långt senare med ett fel som pekar helt fel.
+  insert into public.tables (restaurant_id, table_number, zone, qr_public_id, status)
+  values (v_rest, 'T-TERM', 'Test', 'T4RM99', 'ACTIVE')
+  returning id into v_table_id;
+
+  v_session := public.open_table_session(v_table_id, v_rest);
+
+  insert into public.orders (restaurant_id, table_id, table_session_id, type, status,
+                             idempotency_key, total_ore)
+  values (v_rest, v_table_id, v_session, 'TABLE', 'DRAFT', gen_random_uuid(), 4000)
+  returning id into v_order;
+
+  update public.orders set status = 'PLACED'    where id = v_order;
+  update public.orders set status = 'ACCEPTED'  where id = v_order;
+  update public.orders set status = 'PREPARING' where id = v_order;
+  update public.orders set status = 'READY'     where id = v_order;
+  update public.orders set status = 'COMPLETED' where id = v_order;
+
+  -- Ett kortflöde genom Burp skrivs av webhooken och hör inte hemma här.
+  begin
+    perform public.settle_table_session(v_session, 4000, null, 'STRIPE');
+    raise exception 'FEL: bordets nota gick att kvittera som STRIPE';
+  exception
+    when check_violation then null;
+  end;
+
+  v_together := public.settle_table_session(v_session, 4000, null, 'TERMINAL');
+
+  select count(*) into v_rows
+  from public.payments
+  where settled_together_id = v_together and provider = 'TERMINAL';
+
+  if v_rows <> 1 then
+    raise exception 'FEL: % terminalrader skrevs, väntade 1', v_rows;
+  end if;
+
+  if (select method from public.payments where settled_together_id = v_together)
+     <> 'card_present' then
+    raise exception 'FEL: betalsättet på raden blev inte card_present';
+  end if;
+end
+$$;
+
 rollback;

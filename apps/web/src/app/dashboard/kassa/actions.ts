@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  isStaffRegistered,
   parseAmount,
   settleCash,
+  settlesOutsideBurp,
   type CurrencyCode,
   type PaymentProviderId,
 } from "@burp/core";
@@ -37,11 +39,25 @@ export interface ActionResult {
 
 const REGISTER_ROLES = ["owner", "manager", "staff"] as const;
 
-export async function registerCashPayment(
+/**
+ * Registrerar det gästen betalade med, kontant eller i restaurangens terminal.
+ *
+ * Leverantören kommer från klienten och kontrolleras därför här: bara de två
+ * betalsätt personalen får registrera för hand släpps igenom. Ett `STRIPE` i
+ * fältet hade annars gett en betalrad som ser ut att komma från en leverantör
+ * men aldrig passerat någon. RLS i migration 0044 säger samma sak en gång till.
+ */
+export async function registerPayment(
   orderId: string,
   amountInput: string,
+  provider: PaymentProviderId = "CASH",
 ): Promise<ActionResult> {
   const staff = await requireStaff(REGISTER_ROLES);
+
+  if (!isStaffRegistered(provider)) {
+    return { ok: false, message: "Bara kontant och kort i terminal kan registreras här." };
+  }
+
   const supabase = await createClient();
 
   const { data: order } = await supabase
@@ -110,8 +126,12 @@ export async function registerCashPayment(
     // stället för att läsa restaurangens nuvarande — byter restaurangen valuta
     // ska en gammal nota fortfarande stämma.
     currency,
-    provider: "CASH",
-    method: "cash",
+    provider,
+    // `method` är hur betalningen gick till, `provider` vem som tog emot den.
+    // För en terminal är kortet närvarande i lokalen — samma ord som
+    // betalbranschen använder, och det som skiljer den från ett kort gästen
+    // skrev in i sin telefon.
+    method: provider === "CASH" ? "cash" : "card_present",
     status: "CAPTURED",
     captured_at: new Date().toISOString(),
     idempotency_key: crypto.randomUUID(),
@@ -130,11 +150,21 @@ export async function registerCashPayment(
 
   if (error) {
     // 23505 = unique_violation. Det enda unika indexet som kan slå här är
-    // `payments_cash_order_key`: någon hann kvittera samma nota först, eller
-    // knappen trycktes två gånger. Databasen är det som avgör, inte
-    // gränssnittet — därför ett begripligt svar i stället för felkoden.
+    // `payments_staff_registered_key`: samma betalsätt är redan registrerat på
+    // ordern, antingen för att någon hann först eller för att knappen trycktes
+    // två gånger. Databasen är det som avgör, inte gränssnittet — därför ett
+    // begripligt svar i stället för felkoden.
+    //
+    // Det andra betalsättet går fortfarande att lägga till: en nota kan delas
+    // mellan sedlar och terminal, och indexet är per order OCH leverantör.
     if (error.code === "23505") {
-      return { ok: false, message: "Ordern är redan kvitterad." };
+      return {
+        ok: false,
+        message:
+          provider === "CASH"
+            ? "Ordern är redan kvitterad kontant."
+            : "Ordern är redan kvitterad i terminalen.",
+      };
     }
     return { ok: false, message: error.message };
   }
@@ -160,8 +190,14 @@ export async function registerCashPayment(
 export async function settleTableSession(
   sessionId: string,
   amountInput: string,
+  provider: PaymentProviderId = "CASH",
 ): Promise<ActionResult> {
   const staff = await requireStaff(REGISTER_ROLES);
+
+  if (!isStaffRegistered(provider)) {
+    return { ok: false, message: "Bara kontant och kort i terminal kan registreras här." };
+  }
+
   const supabase = await createClient();
 
   // Sessionen måste vara restaurangens egen. RLS gömmer andras, så ett okänt id
@@ -187,10 +223,11 @@ export async function settleTableSession(
     p_session_id: sessionId,
     p_received_ore: receivedOre,
     p_actor_id: staff.userId,
+    p_provider: provider,
   });
 
   if (error) {
-    // 23505 = det unika indexet på en kontantrad per order. Någon hann kvittera
+    // 23505 = det unika indexet på ett betalsätt per order. Någon hann kvittera
     // en av bordets order först.
     if (error.code === "23505") {
       return { ok: false, message: "En av bordets order är redan kvitterad." };
@@ -298,9 +335,10 @@ export async function refundPayment(
     return { ok: false, message: requestError?.message ?? "Motbokningen kunde inte skapas." };
   }
 
-  // Kontant och presentkort är redan avslutade av `request_refund` — det finns
-  // ingen leverantör som ska bekräfta att sedlarna lämnades över disk.
-  if (payment.provider === "CASH" || payment.provider === "GIFT_CARD") {
+  // Kontant, terminal och presentkort är redan avslutade av `request_refund` —
+  // det finns ingen leverantör som ska bekräfta att sedlarna lämnades över disk
+  // eller att kortet drogs tillbaka i kortläsaren.
+  if (settlesOutsideBurp(payment.provider as PaymentProviderId)) {
     revalidatePath("/dashboard/kassa");
     return { ok: true };
   }

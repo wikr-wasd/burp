@@ -272,6 +272,14 @@ export const sv = {
     payOnPickup: "Betalning sker på plats vid upphämtning.",
     payAtTable: "Betalning sker på plats.",
     paidByCard: "Betald med kort.",
+    /*
+     * Kort i restaurangens EGEN terminal, registrerat av personalen.
+     *
+     * Skild från `paidByCard`, som gäller kortet gästen betalade med i sin
+     * telefon genom Burp. Skillnaden spelar roll när något ska betalas
+     * tillbaka: det kortet når vi, det här gör vi inte.
+     */
+    paidInTerminal: "Betald med kort i restaurangen.",
     refundedNotice: "Beställningen är återbetald.",
     /*
      * Fiskalisering.

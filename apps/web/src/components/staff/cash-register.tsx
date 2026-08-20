@@ -1,18 +1,20 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Banknote, Check, RotateCcw, TriangleAlert, Users } from "lucide-react";
+import { Banknote, Check, CreditCard, RotateCcw, TriangleAlert, Users } from "lucide-react";
 import {
   formatAmountInput,
   formatMoney,
   parseAmount,
   settleCash,
+  PAYMENT_PROVIDER_LABELS,
   type CurrencyCode,
+  type PaymentProviderId,
 } from "@burp/core";
 import {
   closeTableSession,
   refundPayment,
-  registerCashPayment,
+  registerPayment,
   settleTableSession,
 } from "@/app/dashboard/kassa/actions";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -116,6 +118,7 @@ export function CashRegister({
  */
 function TableBillRow({ table }: { table: RegisterTable }) {
   const [amount, setAmount] = useState(() => formatAmountInput(table.dueOre, table.currency));
+  const [provider, setProvider] = useState<PaymentProviderId>("CASH");
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -127,7 +130,7 @@ function TableBillRow({ table }: { table: RegisterTable }) {
   function settle() {
     setError(null);
     startTransition(async () => {
-      const result = await settleTableSession(table.sessionId, amount);
+      const result = await settleTableSession(table.sessionId, amount, provider);
       if (!result.ok) setError(result.message ?? "Kvitteringen gick inte igenom.");
     });
   }
@@ -198,13 +201,19 @@ function TableBillRow({ table }: { table: RegisterTable }) {
           />
         </label>
 
+        <ProviderChoice value={provider} onChange={setProvider} disabled={pending} />
+
         <button
           type="button"
           disabled={pending || settlement === null}
           onClick={settle}
           className="btn btn-primary"
         >
-          <Banknote size={16} aria-hidden="true" />
+          {provider === "CASH" ? (
+            <Banknote size={16} aria-hidden="true" />
+          ) : (
+            <CreditCard size={16} aria-hidden="true" />
+          )}
           {pending ? "Kvitterar…" : "Kvittera hela bordet"}
         </button>
       </div>
@@ -258,6 +267,7 @@ function UnsettledRow({
   // halva med presentkort är det bara resten som ska tas emot kontant, och ett
   // fält som föreslår hela notan hade fått kassan att gå plus varje gång.
   const [amount, setAmount] = useState(() => formatAmountInput(order.dueOre, order.currency));
+  const [provider, setProvider] = useState<PaymentProviderId>("CASH");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -268,7 +278,7 @@ function UnsettledRow({
   function submit() {
     setError(null);
     startTransition(async () => {
-      const result = await registerCashPayment(order.id, amount);
+      const result = await registerPayment(order.id, amount, provider);
       if (!result.ok) setError(result.message ?? "Kvitteringen gick inte igenom.");
     });
   }
@@ -311,13 +321,19 @@ function UnsettledRow({
           />
         </label>
 
+        <ProviderChoice value={provider} onChange={setProvider} disabled={pending} />
+
         <button
           type="button"
           disabled={pending || settlement === null}
           onClick={submit}
           className="btn btn-primary"
         >
-          <Banknote size={16} aria-hidden="true" />
+          {provider === "CASH" ? (
+            <Banknote size={16} aria-hidden="true" />
+          ) : (
+            <CreditCard size={16} aria-hidden="true" />
+          )}
           {pending ? "Kvitterar…" : "Kvittera"}
         </button>
       </div>
@@ -351,15 +367,72 @@ function UnsettledRow({
   );
 }
 
+/* ── Betalsätt ───────────────────────────────────────────────────────────── */
+
+/**
+ * Vad gästen betalade med, kontant eller i restaurangens egen kortterminal.
+ *
+ * Två knappar och inte en rullgardin: personalen står vid disken med en gäst
+ * framför sig, och valet ska gå att träffa utan att sikta. Kontant är förvalt
+ * — det är fortfarande det vanligaste i Bosnien och Serbien, och ett förval som
+ * stämmer i nio fall av tio sparar mer tid än det kostar de gånger det inte gör.
+ *
+ * Burp läser inte terminalen. Valet säger bara vad personalen tog emot, precis
+ * som beloppet gör — men utan det bokförs varje kortbetalning som sedlar, och
+ * kassaavstämningen tror att det ligger pengar i lådan som inte finns.
+ */
+const REGISTERABLE: readonly PaymentProviderId[] = ["CASH", "TERMINAL"];
+
+function ProviderChoice({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: PaymentProviderId;
+  onChange: (provider: PaymentProviderId) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <fieldset className="min-w-0">
+      <legend className="label-caps">Betalsätt</legend>
+      <div className="mt-1.5 flex gap-2">
+        {REGISTERABLE.map((provider) => {
+          const active = provider === value;
+          const Icon = provider === "CASH" ? Banknote : CreditCard;
+
+          return (
+            <button
+              key={provider}
+              type="button"
+              disabled={disabled}
+              aria-pressed={active}
+              onClick={() => onChange(provider)}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-[0.5rem] border px-3 text-sm whitespace-nowrap transition-colors duration-[var(--speed)] disabled:opacity-50 ${
+                active
+                  ? "border-burp-600 bg-burp-50 font-medium text-burp-700 dark:bg-burp-900/40 dark:text-burp-100"
+                  : "border-[var(--rule-control)] text-[var(--muted)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              <Icon size={16} aria-hidden="true" />
+              {PAYMENT_PROVIDER_LABELS[provider]}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
 /* ── Kvitterat ───────────────────────────────────────────────────────────── */
 
-/** Vad raden ska säga att gästen betalade med. */
-const PROVIDER_LABELS: Record<string, string> = {
-  CASH: "Kontant",
-  GIFT_CARD: "Presentkort",
-  STRIPE: "Kort",
-  MONRI: "Kort",
-};
+/**
+ * Vad raden ska säga att gästen betalade med.
+ *
+ * Låg tidigare som en egen lista här. Den bor nu i `@burp/core` tillsammans med
+ * leverantörerna själva, så att kassan och gästens kvitto inte kan säga olika
+ * saker om samma betalning.
+ */
+const PROVIDER_LABELS: Record<string, string> = PAYMENT_PROVIDER_LABELS;
 
 function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boolean }) {
   const difference = order.paidOre - order.totalOre;
@@ -528,7 +601,9 @@ function RefundForm({
           ? "Värdet läggs tillbaka på presentkortet, inte i kassan."
           : payment.provider === "CASH"
             ? "Registreras som en motbokning. Sedlarna lämnar ni tillbaka över disk."
-            : "Går tillbaka till gästens kort via leverantören. Kan ta några dagar."}
+            : payment.provider === "TERMINAL"
+              ? "Registreras som en motbokning. Återbetalningen gör ni i terminalen — Burp når den inte."
+              : "Går tillbaka till gästens kort via leverantören. Kan ta några dagar."}
       </p>
 
       {tooMuch ? (

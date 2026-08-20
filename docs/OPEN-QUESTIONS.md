@@ -2,8 +2,8 @@
 
 De sju frågorna ur arkitekturunderlaget, med status och var i koden svaret ska
 landa. Fråga 8 tillkom när kartsidan byggdes, fråga 9 och 10 när koden mättes
-mot UI-mockuperna, fråga 12 när avräkningen byggdes och fråga 13 när GDPR-flödet
-byggdes.
+mot UI-mockuperna, fråga 12 när avräkningen byggdes, fråga 13 när GDPR-flödet
+byggdes och fråga 14 när kortterminalen kom.
 
 Frågorna är inte formaliteter. Fråga 5 blockerar Fas 1 — utan svar går det inte
 att ta betalt med kort. Fråga 4 kan blockera lanseringen av QR-flödet helt.
@@ -509,6 +509,40 @@ jobb som städar. Det kräver ett svar på "hur länge är nödvändigt".
 
 ---
 
+## 14. Ska Burp läsa restaurangens kortterminal?
+
+**Status:** obesvarad · **Blockerar:** ingenting — registreringen är löst
+
+Sedan 2026-08-20 kan personalen registrera **kort i terminal** i kassan
+(migration 0044). Det löser bokföringen: en terminalbetalning bokförs inte
+längre som kontanter, och kassaavstämningen slutar tro att det ligger sedlar i
+lådan som inte finns.
+
+**Men Burp läser inte terminalen.** Beloppet skrivs in av en människa, precis
+som med kontanter, och kan avvika från notan. Frågan är om det ska förbli så.
+
+**Vad en riktig integration kräver:** en terminal som rapporterar till ett
+moln-API vi får fråga. Fristående terminaler — den sort banken lämnar över
+disk — har oftast inget API alls; de talar bara med sin inlösare.
+
+| Väg | Läge i BA / HR / RS |
+|---|---|
+| **Stripe Terminal** | Bara där Stripe finns. Alltså HR och SE, inte BA eller RS — och BA och RS är huvudmarknaden |
+| **Monri / Payten** | Har terminaler i hela regionen. **Fråga om moln-API i samma samtal som avtalet** (fråga 5) |
+| **SumUp, myPOS** | Har publika API:er och finns i regionen. Egna avtal, egen hårdvara |
+| **Bankernas egna** (Raiffeisen, UniCredit, NLB, Intesa) | Vanligast hos små restauranger. Sällan något API |
+
+**Det som avgör:** om restaurangen ska kunna behålla den terminal den redan har
+går det inte att kräva ett moln-API. Då är den inskrivna siffran vad som finns,
+och det är inte sämre än kontanthanteringen — som redan bygger på samma
+förtroende.
+
+**Fråga i samma andetag som Monri-avtalet.** Har de en terminal med API är
+frågan besvarad utan ett extra avtal; har de det inte är svaret sannolikt att
+det får förbli en inskriven siffra.
+
+---
+
 ## Beslutade frågor
 
 | Fråga | Beslut | Var |
@@ -528,3 +562,4 @@ jobb som städar. Det kräver ett svar på "hur länge är nödvändigt".
 | Pengar som decimaltal? | Nej. Heltal öre överallt | `@burp/core/money` |
 | Betalar Burp ut något till restaurangen? | Nej. Pengarna går direkt dit; Burp fakturerar sin avgift i efterhand | `settlements`, migration 0039 |
 | Krediteras avgiften vid återbetalning? | Ja vid hel återbetalning, nej vid del | Fråga 12 |
+| Läser Burp restaurangens kortterminal? | Nej. Personalen registrerar den som ett eget betalsätt | `TERMINAL`, migration 0044. Fråga 14 |

@@ -9,13 +9,16 @@ import {
   InvalidPaymentTransitionError,
   isPaymentSettled,
   isPaymentTerminal,
+  isStaffRegistered,
+  PAYMENT_PROVIDER_LABELS,
   providerForMethod,
   requiresUpfrontPayment,
+  settlesOutsideBurp,
   statusAfterRefund,
 } from "./payment";
 import { calculateOrderTotals } from "./pricing";
 import { kronorToOre } from "./money";
-import { PAYMENT_STATUSES, type PricedLine } from "./types";
+import { PAYMENT_PROVIDERS, PAYMENT_STATUSES, type PricedLine } from "./types";
 
 function line(overrides: Partial<PricedLine> = {}): PricedLine {
   return {
@@ -175,5 +178,59 @@ describe("requiresUpfrontPayment", () => {
 
   it("kontant kvitteras efteråt i kassan", () => {
     expect(requiresUpfrontPayment("CASH")).toBe(false);
+  });
+
+  it("terminalen kräver ingen förskottsbetalning — den registreras i efterhand", () => {
+    expect(requiresUpfrontPayment("TERMINAL")).toBe(false);
+  });
+});
+
+describe("kort i restaurangens egen terminal", () => {
+  /*
+   * `TERMINAL` är restaurangens egen kortläsare. Burp ser aldrig den
+   * betalningen; personalen registrerar den i kassan precis som kontanter.
+   *
+   * Att den ändå är en egen leverantör och inte bokförs som `CASH` är hela
+   * poängen: utan skillnaden tror kassaavstämningen att det ligger sedlar i
+   * lådan som inte finns.
+   */
+  it("är ett eget betalsätt och inte kontanter", () => {
+    expect(PAYMENT_PROVIDERS).toContain("TERMINAL");
+    expect(PAYMENT_PROVIDER_LABELS.TERMINAL).toBe("Kort i terminal");
+    expect(PAYMENT_PROVIDER_LABELS.TERMINAL).not.toBe(PAYMENT_PROVIDER_LABELS.CASH);
+  });
+
+  it("är inget gästen kan välja i kassan", () => {
+    // Gästen väljer CASH, CARD eller GIFT_CARD. Terminalen är personalens val
+    // efteråt, och `providerForMethod` ska aldrig kunna landa i den.
+    const reachable = (["CASH", "CARD", "GIFT_CARD"] as const).flatMap((method) =>
+      [providerForMethod(method, "STRIPE"), providerForMethod(method, "MONRI")].filter(Boolean),
+    );
+    expect(reachable).not.toContain("TERMINAL");
+  });
+
+  it("registreras för hand, som kontanter", () => {
+    expect(isStaffRegistered("TERMINAL")).toBe(true);
+    expect(isStaffRegistered("CASH")).toBe(true);
+    expect(isStaffRegistered("STRIPE")).toBe(false);
+    expect(isStaffRegistered("GIFT_CARD")).toBe(false);
+  });
+
+  it("återbetalas utan att någon leverantör tillfrågas", () => {
+    // Pengarna lämnas tillbaka i terminalen av personalen. En PENDING-rad som
+    // väntar på en webhook hade legat kvar för evigt.
+    expect(settlesOutsideBurp("TERMINAL")).toBe(true);
+    expect(settlesOutsideBurp("CASH")).toBe(true);
+    expect(settlesOutsideBurp("GIFT_CARD")).toBe(true);
+    expect(settlesOutsideBurp("STRIPE")).toBe(false);
+    expect(settlesOutsideBurp("MONRI")).toBe(false);
+  });
+
+  it("varje leverantör har en etikett", () => {
+    // En saknad etikett visar rå enum-text för personalen. Testet finns för att
+    // nästa leverantör inte ska kunna läggas till utan en.
+    for (const provider of PAYMENT_PROVIDERS) {
+      expect(PAYMENT_PROVIDER_LABELS[provider]).toBeTruthy();
+    }
   });
 });

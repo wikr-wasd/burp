@@ -197,6 +197,49 @@ export function requiresUpfrontPayment(provider: PaymentProviderId): boolean {
   return provider === "STRIPE" || provider === "MONRI";
 }
 
+/**
+ * Betalsätt som avslutas utan att någon leverantör behöver tillfrågas.
+ *
+ * Sedlar lämnas tillbaka över disk, presentkortsvärde skrivs upp igen, och en
+ * terminalbetalning återbetalas i terminalen — i inget av fallen finns det en
+ * webhook som ska bekräfta något. En återbetalning blir därför SUCCEEDED direkt
+ * i stället för att ligga kvar som PENDING i evighet.
+ *
+ * Regeln stod tidigare som `provider === "CASH" || provider === "GIFT_CARD"` på
+ * tre ställen i app-koden och en gång till i `request_refund()`. Tre kopior av
+ * samma villkor glider isär första gången ett betalsätt läggs till — vilket är
+ * precis vad som hände när terminalen kom.
+ */
+export function settlesOutsideBurp(provider: PaymentProviderId): boolean {
+  return provider === "CASH" || provider === "TERMINAL" || provider === "GIFT_CARD";
+}
+
+/**
+ * Betalsätt personalen registrerar för hand i kassan.
+ *
+ * Beloppet skrivs in av en människa och kan avvika från notan — avrundning i
+ * lokalen, en rabatt över disk. Kortflödet genom Burp kan aldrig avvika, för
+ * där är det leverantören som säger vad som drogs.
+ */
+export function isStaffRegistered(provider: PaymentProviderId): boolean {
+  return provider === "CASH" || provider === "TERMINAL";
+}
+
+/**
+ * Vad ett betalsätt heter för en människa.
+ *
+ * Låg tidigare som en egen lista i `cash-register.tsx`. Två listor betyder att
+ * kassan och kvittot kan säga olika saker om samma betalning, och gästen som
+ * jämför dem har rätt att bli förvirrad.
+ */
+export const PAYMENT_PROVIDER_LABELS: Record<PaymentProviderId, string> = {
+  CASH: "Kontant",
+  TERMINAL: "Kort i terminal",
+  GIFT_CARD: "Presentkort",
+  STRIPE: "Kort",
+  MONRI: "Kort",
+};
+
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   PENDING: "Väntar",
   AUTHORIZED: "Reserverad",

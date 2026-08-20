@@ -204,7 +204,8 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Vad | Var | Före |
 |---|---|---|
 | Rate limiterns reserv räknar per instans när databasen inte svarar | `lib/rate-limit.ts` | Medvetet. Sämre än den delade räknaren men bättre än ingen gräns alls |
-| Ingen Monri-adapter — kort fungerar bara där Stripe finns (HR, SE) | `lib/payments/` | Lansering i BA och RS. Kontant fungerar under tiden |
+| Ingen Monri-adapter — kort i Burps eget flöde fungerar bara där Stripe finns (HR, SE) | `lib/payments/` | Lansering i BA och RS. Kontant och kort i restaurangens egen terminal fungerar under tiden |
+| Burp läser inte kortterminalen — beloppet skrivs in av personalen | Migration 0044 | Kräver en terminal med moln-API. Öppen fråga 14 |
 | Fiskalisering är inte byggd — kvittot är märkt som orderbekräftelse | `register_receipts` är tom | Lansering. Öppen fråga 4 |
 | Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
 | Ingen automatisk gallring — en gäst som slutar använda tjänsten ligger kvar för alltid | — | Kräver ett svar på hur länge. Öppen fråga 13 |
@@ -309,6 +310,26 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
       kontantrader, så en kortbetald order såg obetald ut och hamnade bland
       notorna att kvittera — personalen hade registrerat kontanter ovanpå en
       betalning som redan gått igenom.
+- [x] **Kort i restaurangens egen terminal** (migration 0044). Kassan kunde bara
+      registrera KONTANT. En gäst som drog sitt kort i restaurangens egen
+      terminal — det enda kortalternativet i Bosnien och Serbien, där Stripe
+      inte finns — fick betalningen bokförd som sedlar. Kassaavstämningen,
+      avräkningens `cash_ore` och dricksens uppdelning bygger alla på att
+      `provider = 'CASH'` betyder pengar i lådan, så alla tre trodde att det
+      låg sedlar där som inte fanns.
+      Personalen väljer nu betalsätt i Kassan, för en enskild order och för
+      bordets gemensamma nota. **Burp läser inte terminalen** — beloppet skrivs
+      in av en människa, precis som med kontanter. Vad en riktig integration
+      skulle kräva står i öppen fråga 14, och bör frågas i samma samtal som
+      Monri-avtalet.
+      Fyra spärrar följde med: RLS för både insert och select, kravet på
+      tidpunkt, det unika indexet (nu per order OCH betalsätt, så att en nota
+      kan delas mellan sedlar och kort) och återbetalningen, som avslutas direkt
+      eftersom pengarna lämnas tillbaka i kortläsaren.
+      **En regression fångades av ett gammalt test:** att skriva om
+      `request_refund` utifrån 0027:s kropp backade tyst 0037:s rättning, så att
+      presentkortets värde slutade skrivas tillbaka. Rättat genom att utgå från
+      den nuvarande kroppen och ändra en rad.
 - [x] **Röktestet går att köra — och hittade två fel direkt.** Diagnosen att
       `bash` var WSL2 var fel; skalet är Git Bash och saknade bara `/usr/bin` på
       `PATH`. Röktestet har alltså aldrig körts här, trots att `CLAUDE.md` säger

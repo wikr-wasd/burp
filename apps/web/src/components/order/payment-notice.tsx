@@ -29,6 +29,8 @@ export function PaymentNotice({
     /** "Betalning sker på plats." eller motsvarande för avhämtning. */
     payInPerson: string;
     paidByCard: string;
+    /** Kort i restaurangens egen terminal, registrerat av personalen. */
+    paidInTerminal: string;
     refundedNotice: string;
     notFiscalReceipt: string;
   };
@@ -36,11 +38,23 @@ export function PaymentNotice({
   const isRefunded =
     payment?.status === "REFUNDED" || payment?.status === "PARTIALLY_REFUNDED";
 
+  /*
+   * Tre lägen, inte två.
+   *
+   * Ett kort i restaurangens egen terminal är betalt — men inte genom Burp.
+   * Utan den tredje raden hade kvittot antingen sagt "Betalning sker på plats"
+   * om något gästen redan betalat, eller "Betald med kort" om en betalning vi
+   * inte kan återbetala.
+   */
   const message = isRefunded
     ? labels.refundedNotice
-    : payment?.status === "CAPTURED" && payment.paidInApp
-      ? labels.paidByCard
-      : labels.payInPerson;
+    : payment?.status !== "CAPTURED"
+      ? labels.payInPerson
+      : payment.provider === "TERMINAL"
+        ? labels.paidInTerminal
+        : payment.paidInApp
+          ? labels.paidByCard
+          : labels.payInPerson;
 
   return (
     <>
