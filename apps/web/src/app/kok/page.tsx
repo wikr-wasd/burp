@@ -5,7 +5,7 @@ import { KitchenBoard } from "@/components/staff/kitchen-board";
 import { BurpMark } from "@/components/ui/burp-mark";
 import { requireStaff } from "@/lib/auth";
 import { getActiveOrders } from "@/lib/orders";
-import { untranslatedSurface } from "@/lib/i18n";
+import { dictionary } from "@/lib/i18n";
 
 /**
  * Köksskärmen. Alla roller når den — även kocken, som bara har den här ytan.
@@ -25,6 +25,7 @@ export const dynamic = "force-dynamic";
 
 export default async function KitchenPage() {
   const staff = await requireStaff();
+  const t = dictionary(staff.locale).staff;
   const { due, upcoming } = await getActiveOrders(staff.restaurantId);
 
   return (
@@ -38,14 +39,14 @@ export default async function KitchenPage() {
         {staff.role !== "kitchen" ? (
           <Link href="/dashboard" className="btn btn-secondary">
             <LayoutGrid size={16} aria-hidden="true" />
-            Översikt
+            {t.section.oversikt}
           </Link>
         ) : null}
 
         <form action="/logga-ut" method="post">
           <button type="submit" className="btn btn-secondary">
             <LogOut size={16} aria-hidden="true" />
-            Logga ut
+            {t.logOut}
           </button>
         </form>
       </header>
@@ -57,15 +58,13 @@ export default async function KitchenPage() {
           initialOrders={due}
           restaurantId={staff.restaurantId}
           currency={staff.currency}
-          statusLabels={untranslatedSurface().staff.status}
+          title={t.section.kok}
+          statusLabels={t.status}
+          labels={t.kitchen}
         />
 
         {upcoming.length > 0 ? (
-          <p className="mt-8 text-center opacity-50">
-            {upcoming.length === 1
-              ? "1 förbeställning senare i dag."
-              : `${upcoming.length} förbeställningar senare i dag.`}
-          </p>
+          <p className="mt-8 text-center opacity-50">{t.upcomingLater(upcoming.length)}</p>
         ) : null}
       </main>
     </>

@@ -352,6 +352,36 @@ export const no: Dictionary = {
       STRIPE: "Kort",
       MONRI: "Kort",
     },
+
+    kitchen: {
+      live: "Bestillinger live",
+      sound: "Lyd",
+      soundOn: "på",
+      soundOff: "av",
+      empty: "Ingen aktive bestillinger.",
+      updateFailed: "Kunne ikke oppdatere bestilling: {message}",
+      sibling: "Bestilling {index} av {count} på bordet",
+      table: "Bord {number}",
+      typePickup: "Henting",
+      typeDelivery: "Levering",
+      typeTable: "Bord",
+      minutes: "{n} min",
+
+      stepACCEPTED: "Ta imot",
+      stepPREPARING: "Begynn å lage",
+      stepREADY: "Klar",
+      stepCOMPLETED: "Servert",
+
+      reject: "Avvis",
+      rejectConfirm: "Avvis bestillingen",
+      cancel: "Avbryt",
+
+      upcomingTitle: "Kommende",
+      upcomingHint: "Sendes til kjøkkenet når bare tilberedningstiden gjenstår.",
+    },
+
+    upcomingLater: (count: number) =>
+      count === 1 ? "1 forhåndsbestilling senere i dag." : `${count} forhåndsbestillinger senere i dag.`,
   },
 
   weekday: {

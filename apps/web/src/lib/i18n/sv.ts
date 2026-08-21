@@ -465,6 +465,62 @@ export const sv = {
       STRIPE: "Kort",
       MONRI: "Kort",
     },
+
+    /**
+     * Köksskärmen och Order live.
+     *
+     * ENBART strängar. Objektet skickas i sin helhet till `KitchenBoard`, som
+     * är klientkod — en funktion här ger 500 vid rendering, och felpayloaden
+     * innehåller ändå texterna, så ett grep av HTML:en ser ut att bekräfta att
+     * sidan fungerar. Ett test kräver det.
+     */
+    kitchen: {
+      live: "Order live",
+      sound: "Ljud",
+      soundOn: "på",
+      soundOff: "av",
+      empty: "Inga aktiva beställningar.",
+      updateFailed: "Kunde inte uppdatera order: {message}",
+      sibling: "Beställning {index} av {count} på bordet",
+      table: "Bord {number}",
+      typePickup: "Avhämtning",
+      typeDelivery: "Leverans",
+      typeTable: "Bord",
+      minutes: "{n} min",
+
+      /*
+       * Knappen bär NÄSTA steg, inte nuvarande status.
+       *
+       * Nycklarna är den status knappen leder TILL, så att `NEXT_STEP` i
+       * köksskärmen slår upp direkt utan en tabell emellan.
+       */
+      stepACCEPTED: "Ta emot",
+      stepPREPARING: "Börja laga",
+      stepREADY: "Klar",
+      stepCOMPLETED: "Serverad",
+
+      reject: "Avvisa",
+      rejectConfirm: "Avvisa ordern",
+      cancel: "Avbryt",
+
+      upcomingTitle: "Kommande",
+      upcomingHint: "Släpps till köket när tillagningstiden återstår.",
+    },
+
+    /**
+     * Hur många förbeställningar som ligger senare i dag.
+     *
+     * En funktion och inte en sträng med `{n}`, därför att räkneordet böjer
+     * substantivet olika i olika språk. Bosniskan har TRE former — en för 1,
+     * 21, 31…, en för 2–4 och en för 5 och uppåt — och en mall med två skulle
+     * vara fel på de flesta tal. Varje språk skriver sin egen regel här.
+     *
+     * Funktioner går inte att serialisera över server/klient-gränsen, så den
+     * här får aldrig hamna i `kitchen` ovan. Den läses av sidorna, som
+     * renderas på servern.
+     */
+    upcomingLater: (count: number) =>
+      count === 1 ? "1 förbeställning senare i dag." : `${count} förbeställningar senare i dag.`,
   },
 
   weekday: {

@@ -130,6 +130,8 @@ describe("ordböckerna", () => {
       "menu.giftCardPlaceholder",
       // Lånord ur samma rot. "Telefon" är rätt på bosniska.
       "restaurant.phone",
+      // "min" är samma förkortning på alla fem språken.
+      "staff.kitchen.minutes",
     ],
 
     de: [
@@ -142,9 +144,11 @@ describe("ordböckerna", () => {
       "receipt.reviewComment",
       // "Statistik" stavas likadant på tyska och svenska.
       "staff.section.statistik",
+      // "min" är samma förkortning på alla fem språken.
+      "staff.kitchen.minutes",
     ],
 
-    en: ["errors.notFoundLabel", "menu.giftCardPlaceholder"],
+    en: ["errors.notFoundLabel", "menu.giftCardPlaceholder", "staff.kitchen.minutes"],
 
     /*
      * Norskan har flest, och det är inte slarv.
@@ -204,6 +208,16 @@ describe("ordböckerna", () => {
       "staff.provider.TERMINAL",
       "staff.provider.STRIPE",
       "staff.provider.MONRI",
+      // Köksskärmen. "Bord", "Klar", "Avbryt", "på" och "av" är rätt på båda
+      // språken; "Henting" mot "Avhämtning" och "Servert" mot "Serverad" är
+      // kvittot på att avsnittet faktiskt är norskt.
+      "staff.kitchen.soundOn",
+      "staff.kitchen.soundOff",
+      "staff.kitchen.table",
+      "staff.kitchen.typeTable",
+      "staff.kitchen.minutes",
+      "staff.kitchen.stepREADY",
+      "staff.kitchen.cancel",
     ],
   };
 
@@ -284,6 +298,32 @@ describe("texter som korsar server/klient-gränsen", () => {
             continue;
           }
           expect(typeof value, `${section}.${key} måste vara en sträng`).toBe("string");
+        }
+      }
+    });
+  }
+
+  /**
+   * `staff` är ett SPECIALFALL: avsnittet skickas aldrig i sin helhet.
+   *
+   * Sidorna plockar ut `staff.kitchen`, `staff.status`, `staff.role` och
+   * `staff.provider` och skickar dem var för sig till klientkomponenter. Just
+   * de fyra måste därför vara rena strängar rakt igenom.
+   *
+   * Resten av `staff` får bära funktioner, och gör det: `upcomingLater` böjer
+   * ett substantiv efter räkneord och kan inte vara en mall, eftersom
+   * bosniskan har tre former och undantag på 11–14. Den läses bara av
+   * serverrenderade sidor.
+   *
+   * Testet finns för att skillnaden inte syns i koden. Den dag någon lägger
+   * en funktion i `staff.kitchen` för att "det behövs en variabel där" faller
+   * köksskärmen med 500 — och felpayloaden innehåller ändå texterna.
+   */
+  for (const section of ["kitchen", "status", "role", "provider"] as const) {
+    it(`staff.${section} innehåller bara strängar`, () => {
+      for (const [locale, dict] of Object.entries(ALL)) {
+        for (const [key, value] of Object.entries(dict.staff[section])) {
+          expect(typeof value, `${locale}.staff.${section}.${key}`).toBe("string");
         }
       }
     });

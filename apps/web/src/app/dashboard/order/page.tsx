@@ -4,7 +4,7 @@ import { KitchenBoard } from "@/components/staff/kitchen-board";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
 import { getActiveOrders } from "@/lib/orders";
-import { untranslatedSurface } from "@/lib/i18n";
+import { dictionary, LOCALE_DATE_TAGS } from "@/lib/i18n";
 
 /**
  * Order live (avsnitt 11).
@@ -29,33 +29,33 @@ export const dynamic = "force-dynamic";
 export default async function OrdersPage() {
   const staff = await requireStaff(["owner", "manager", "staff"]);
   const { due, upcoming } = await getActiveOrders(staff.restaurantId);
+  const t = dictionary(staff.locale).staff;
 
   return (
-    <StaffShell staff={staff} current="order" title="Beställningar">
+    <StaffShell staff={staff} current="order" title={t.section.order}>
       <KitchenBoard
         initialOrders={due}
         restaurantId={staff.restaurantId}
-        title="Order live"
+        title={t.kitchen.live}
         canCancel
         showTotals
         currency={staff.currency}
-        statusLabels={untranslatedSurface().staff.status}
+        statusLabels={t.status}
+        labels={t.kitchen}
       />
 
       {/* Förbeställningar visas här men inte på köksskärmen. Personalen ska
           kunna se vad som är på gång utan att köket börjar laga för tidigt. */}
       {upcoming.length > 0 ? (
         <section className="mt-10">
-          <h2 className="font-display text-2xl">Kommande</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Släpps till köket när tillagningstiden återstår.
-          </p>
+          <h2 className="font-display text-2xl">{t.kitchen.upcomingTitle}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t.kitchen.upcomingHint}</p>
           <ul className="card mt-3 divide-y divide-[var(--rule)]">
             {upcoming.map((order) => (
               <li key={order.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
                 <span className="font-semibold tabular-nums">
                   {order.scheduledFor
-                    ? new Date(order.scheduledFor).toLocaleTimeString("sv-SE", {
+                    ? new Date(order.scheduledFor).toLocaleTimeString(LOCALE_DATE_TAGS[staff.locale], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })

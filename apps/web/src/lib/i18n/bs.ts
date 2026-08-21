@@ -375,6 +375,57 @@ export const bs: Dictionary = {
       STRIPE: "Kartica",
       MONRI: "Kartica",
     },
+
+    kitchen: {
+      live: "Narudžbe uživo",
+      sound: "Zvuk",
+      soundOn: "uključen",
+      soundOff: "isključen",
+      empty: "Nema aktivnih narudžbi.",
+      updateFailed: "Narudžba nije ažurirana: {message}",
+      sibling: "Narudžba {index} od {count} za stol",
+      table: "Stol {number}",
+      typePickup: "Preuzimanje",
+      typeDelivery: "Dostava",
+      typeTable: "Stol",
+      minutes: "{n} min",
+
+      stepACCEPTED: "Primi",
+      stepPREPARING: "Počni pripremu",
+      stepREADY: "Gotovo",
+      stepCOMPLETED: "Servirano",
+
+      reject: "Odbij",
+      rejectConfirm: "Odbij narudžbu",
+      cancel: "Otkaži",
+
+      upcomingTitle: "Predstojeće",
+      upcomingHint: "Šalje se u kuhinju kada preostane samo vrijeme pripreme.",
+    },
+
+    /*
+     * Bosniskan böjer efter tre grupper, inte två:
+     *
+     *   1, 21, 31 …        narudžba   (men inte 11)
+     *   2–4, 22–24 …       narudžbe   (men inte 12–14)
+     *   0, 5–20, 25–30 …   narudžbi
+     *
+     * Undantagen på 11–14 är hela skälet till att det här är en funktion och
+     * inte en mall med `{n}`.
+     */
+    upcomingLater: (count: number) => {
+      const ones = count % 10;
+      const tens = count % 100;
+
+      const word =
+        ones === 1 && tens !== 11
+          ? "narudžba"
+          : ones >= 2 && ones <= 4 && (tens < 12 || tens > 14)
+            ? "narudžbe"
+            : "narudžbi";
+
+      return `${count} ${word} kasnije danas.`;
+    },
   },
 
   weekday: {

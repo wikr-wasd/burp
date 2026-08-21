@@ -348,6 +348,36 @@ export const en: Dictionary = {
       STRIPE: "Card",
       MONRI: "Card",
     },
+
+    kitchen: {
+      live: "Orders live",
+      sound: "Sound",
+      soundOn: "on",
+      soundOff: "off",
+      empty: "No active orders.",
+      updateFailed: "Could not update order: {message}",
+      sibling: "Order {index} of {count} for the table",
+      table: "Table {number}",
+      typePickup: "Pickup",
+      typeDelivery: "Delivery",
+      typeTable: "Table",
+      minutes: "{n} min",
+
+      stepACCEPTED: "Accept",
+      stepPREPARING: "Start cooking",
+      stepREADY: "Ready",
+      stepCOMPLETED: "Served",
+
+      reject: "Reject",
+      rejectConfirm: "Reject order",
+      cancel: "Cancel",
+
+      upcomingTitle: "Upcoming",
+      upcomingHint: "Sent to the kitchen once only the prep time remains.",
+    },
+
+    upcomingLater: (count: number) =>
+      count === 1 ? "1 pre-order later today." : `${count} pre-orders later today.`,
   },
 
   weekday: {

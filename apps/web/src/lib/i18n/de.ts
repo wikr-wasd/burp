@@ -352,6 +352,38 @@ export const de: Dictionary = {
       STRIPE: "Karte",
       MONRI: "Karte",
     },
+
+    kitchen: {
+      live: "Bestellungen live",
+      sound: "Ton",
+      soundOn: "ein",
+      soundOff: "aus",
+      empty: "Keine aktiven Bestellungen.",
+      updateFailed: "Bestellung konnte nicht aktualisiert werden: {message}",
+      sibling: "Bestellung {index} von {count} für den Tisch",
+      table: "Tisch {number}",
+      typePickup: "Abholung",
+      typeDelivery: "Lieferung",
+      typeTable: "Tisch",
+      minutes: "{n} min",
+
+      stepACCEPTED: "Annehmen",
+      stepPREPARING: "Zubereitung starten",
+      stepREADY: "Fertig",
+      stepCOMPLETED: "Serviert",
+
+      reject: "Ablehnen",
+      rejectConfirm: "Bestellung ablehnen",
+      cancel: "Abbrechen",
+
+      upcomingTitle: "Demnächst",
+      upcomingHint: "Geht an die Küche, sobald nur noch die Zubereitungszeit bleibt.",
+    },
+
+    upcomingLater: (count: number) =>
+      count === 1
+        ? "1 Vorbestellung später heute."
+        : `${count} Vorbestellungen später heute.`,
   },
 
   weekday: {

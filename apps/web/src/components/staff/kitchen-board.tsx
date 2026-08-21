@@ -10,6 +10,7 @@ import {
   type OrderStatus,
 } from "@burp/core";
 import { CheckCheck, Layers } from "lucide-react";
+import { fill, type Dictionary } from "@/lib/i18n";
 import { groupByTable } from "@/lib/kitchen-queue";
 import { createClient } from "@/lib/supabase/client";
 import type { KitchenOrder } from "@/lib/orders";
@@ -29,17 +30,41 @@ import type { KitchenOrder } from "@/lib/orders";
  * upprepa kontroller som redan finns — och kunna glömma en av dem.
  */
 
-const NEXT_STEP: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
-  PLACED: { to: "ACCEPTED", label: "Ta emot" },
-  ACCEPTED: { to: "PREPARING", label: "Börja laga" },
-  PREPARING: { to: "READY", label: "Klar" },
-  READY: { to: "COMPLETED", label: "Serverad" },
+/**
+ * Vad knappen gör härnäst, per nuvarande status.
+ *
+ * Bär bara MÅLSTATUSEN. Texten slås upp som `labels["step" + to]` — nycklarna
+ * i ordboken heter `stepACCEPTED`, `stepPREPARING` och så vidare, så att en
+ * ny status inte kräver en andra tabell som översätter mellan namn och text.
+ */
+const NEXT_STEP: Partial<Record<OrderStatus, StepTarget>> = {
+  PLACED: "ACCEPTED",
+  ACCEPTED: "PREPARING",
+  PREPARING: "READY",
+  READY: "COMPLETED",
 };
+
+/** Texterna köksskärmen behöver. Rena strängar — komponenten är klientkod. */
+export type KitchenLabels = Dictionary["staff"]["kitchen"];
+
+/**
+ * Statusarna knappen kan kliva TILL — härledda ur ordboken, inte skrivna här.
+ *
+ * Bara fyra av åtta statusar har en `step*`-text: `DRAFT`, `CANCELLED` och
+ * `REFUNDED` är inget man klickar sig till. Att räkna upp de fyra på nytt här
+ * hade blivit en andra sanning som glider isär — lägger någon till
+ * `stepCANCELLED` i ordboken vill hen att knappen ska kunna nå den, och en
+ * hårdkodad union hade tyst låtit bli.
+ */
+type StepTarget =
+  Extract<keyof KitchenLabels, `step${string}`> extends `step${infer S}`
+    ? Extract<OrderStatus, S>
+    : never;
 
 export function KitchenBoard({
   initialOrders,
   restaurantId,
-  title = "Köksskärm",
+  title,
   /**
    * Dashboarden får avvisa en order, köksskärmen inte. En kock som råkar
    * trycka fel ska inte kunna annullera en gästs beställning.
@@ -49,16 +74,18 @@ export function KitchenBoard({
   showTotals = false,
   currency,
   statusLabels,
+  labels,
 }: {
   initialOrders: KitchenOrder[];
   restaurantId: string;
-  title?: string;
+  title: string;
   canCancel?: boolean;
   showTotals?: boolean;
   /** Restaurangens valuta. Krävs så fort belopp visas. */
   currency: CurrencyCode;
   /** Orderstatusarna ur ordboken. Rena strängar — komponenten är klientkod. */
   statusLabels: Record<OrderStatus, string>;
+  labels: KitchenLabels;
 }) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
@@ -165,7 +192,7 @@ export function KitchenBoard({
       .eq("id", order.id);
 
     if (updateError) {
-      setError(`Kunde inte uppdatera order: ${updateError.message}`);
+      setError(fill(labels.updateFailed, { message: updateError.message }));
     } else {
       // Optimistiskt lokalt, sedan bekräftat av refresh().
       setOrders((current) =>
@@ -199,7 +226,7 @@ export function KitchenBoard({
           }}
           className="rounded-md border border-black/15 px-4 py-2.5 text-sm dark:border-white/20"
         >
-          Ljud: {soundOn ? "på" : "av"}
+          {labels.sound}: {soundOn ? labels.soundOn : labels.soundOff}
         </button>
       </div>
 
@@ -216,7 +243,7 @@ export function KitchenBoard({
         // är dessutom goda nyheter i ett kök — bocken säger det, inte en ruta.
         <div className="py-20 text-center opacity-50">
           <CheckCheck size={56} aria-hidden="true" className="mx-auto" />
-          <p className="mt-4 text-xl">Inga aktiva beställningar.</p>
+          <p className="mt-4 text-xl">{labels.empty}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -231,6 +258,7 @@ export function KitchenBoard({
               showTotals={showTotals}
               currency={currency}
               statusLabels={statusLabels}
+              labels={labels}
             />
           ))}
         </div>
@@ -248,6 +276,7 @@ function OrderCard({
   currency,
   sibling,
   statusLabels,
+  labels,
 }: {
   order: KitchenOrder;
   /** Null när bordet bara har en aktiv beställning. */
@@ -258,6 +287,7 @@ function OrderCard({
   showTotals: boolean;
   currency: CurrencyCode;
   statusLabels: Record<OrderStatus, string>;
+  labels: KitchenLabels;
 }) {
   const step = NEXT_STEP[order.status];
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -275,9 +305,11 @@ function OrderCard({
     >
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="font-display text-4xl">
-          {order.tableNumber ? `Bord ${order.tableNumber}` : orderTypeLabel(order.type)}
+          {order.tableNumber
+            ? fill(labels.table, { number: order.tableNumber })
+            : orderTypeLabel(order.type, labels)}
         </h2>
-        <Elapsed since={order.placedAt} />
+        <Elapsed since={order.placedAt} labels={labels} />
       </header>
 
       {/*
@@ -295,7 +327,7 @@ function OrderCard({
       {sibling ? (
         <p className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-burp-600/10 px-2 py-1 text-sm font-semibold text-burp-700 dark:text-burp-400">
           <Layers size={15} aria-hidden="true" />
-          Beställning {sibling.index} av {sibling.count} på bordet
+          {fill(labels.sibling, { index: sibling.index, count: sibling.count })}
         </p>
       ) : null}
 
@@ -352,10 +384,10 @@ function OrderCard({
         <button
           type="button"
           disabled={pending}
-          onClick={() => onAdvance(order, step.to)}
+          onClick={() => onAdvance(order, step)}
           className="mt-4 min-h-14 w-full rounded-lg bg-burp-600 text-lg font-semibold text-white disabled:opacity-50"
         >
-          {pending ? "…" : step.label}
+          {pending ? "…" : labels[`step${step}`]}
         </button>
       ) : null}
 
@@ -371,14 +403,14 @@ function OrderCard({
               }}
               className="min-h-12 flex-1 rounded-lg bg-red-600 font-semibold text-white disabled:opacity-50"
             >
-              Avvisa ordern
+              {labels.rejectConfirm}
             </button>
             <button
               type="button"
               onClick={() => setConfirmCancel(false)}
               className="min-h-12 rounded-lg border border-black/15 px-4 dark:border-white/20"
             >
-              Avbryt
+              {labels.cancel}
             </button>
           </div>
         ) : (
@@ -387,7 +419,7 @@ function OrderCard({
             onClick={() => setConfirmCancel(true)}
             className="mt-2 min-h-12 w-full rounded-lg border border-black/15 text-sm dark:border-white/20"
           >
-            Avvisa
+            {labels.reject}
           </button>
         )
       ) : null}
@@ -395,12 +427,16 @@ function OrderCard({
   );
 }
 
-function orderTypeLabel(type: KitchenOrder["type"]): string {
-  return type === "PICKUP" ? "Avhämtning" : type === "DELIVERY" ? "Leverans" : "Bord";
+function orderTypeLabel(type: KitchenOrder["type"], labels: KitchenLabels): string {
+  return type === "PICKUP"
+    ? labels.typePickup
+    : type === "DELIVERY"
+      ? labels.typeDelivery
+      : labels.typeTable;
 }
 
 /** Minuter sedan ordern lades. Det köket faktiskt bryr sig om. */
-function Elapsed({ since }: { since: string | null }) {
+function Elapsed({ since, labels }: { since: string | null; labels: KitchenLabels }) {
   const [minutes, setMinutes] = useState<number | null>(null);
 
   useEffect(() => {
@@ -422,7 +458,7 @@ function Elapsed({ since }: { since: string | null }) {
         minutes >= 20 ? "text-red-600 dark:text-red-400" : "opacity-60"
       }`}
     >
-      {minutes} min
+      {fill(labels.minutes, { n: minutes })}
     </span>
   );
 }
