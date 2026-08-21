@@ -3,6 +3,7 @@ import { formatGiftCardCode, type CurrencyCode } from "@burp/core";
 import { GiftCardManager, type GiftCardRow } from "@/components/staff/gift-card-manager";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
+import { dictionary } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -70,15 +71,21 @@ export default async function GiftCardsPage() {
     note: card.note,
   }));
 
+  const t = dictionary(staff.locale).staff;
+
   return (
     <StaffShell
       staff={staff}
       current="erbjudanden"
-      title="Presentkort"
-      intro="Förbetalt värde som bara går att lösa in hos er. Saldot räknas ur transaktionerna och lagras aldrig — ett kort kan användas flera gånger tills det är slut."
+      title={t.reports.giftCardsTitle}
+      intro={t.reports.giftCardsIntro}
       width="narrow"
     >
-      <GiftCardManager cards={rows} currency={staff.currency as CurrencyCode} />
+      <GiftCardManager
+        cards={rows}
+        currency={staff.currency as CurrencyCode}
+        labels={t.reports}
+      />
     </StaffShell>
   );
 }

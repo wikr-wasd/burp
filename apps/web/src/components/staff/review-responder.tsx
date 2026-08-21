@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { removeResponse, respondToReview } from "@/app/dashboard/omdomen/actions";
 import { LOW_RATING_THRESHOLD } from "@burp/core";
+import type { Dictionary } from "@/lib/i18n";
 import type { StaffReview } from "@/lib/reviews";
 
 /**
@@ -12,7 +13,14 @@ import type { StaffReview } from "@/lib/reviews";
  * skillnaden mellan en intern anteckning och något varje framtida gäst läser
  * är värd att vara tydlig med innan man trycker.
  */
-export function ReviewResponder({ review }: { review: StaffReview }) {
+export function ReviewResponder({
+  review,
+  labels,
+}: {
+  review: StaffReview;
+  /** Rapportytornas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["reports"];
+}) {
   const [draft, setDraft] = useState(review.response ?? "");
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -46,7 +54,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
         </span>
 
         <span className="text-sm opacity-60">
-          {review.authorName ?? "Gäst"} ·{" "}
+          {review.authorName ?? labels.guest} ·{" "}
           {new Date(review.createdAt).toLocaleDateString("sv-SE")}
         </span>
 
@@ -56,13 +64,13 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
 
         {!review.isPublished ? (
           <span className="bg-black/10 px-2.5 py-1 text-xs">
-            Dold av Burp
+            {labels.hiddenByBurp}
           </span>
         ) : null}
       </div>
 
       {review.comment ? <p className="mt-2">{review.comment}</p> : (
-        <p className="mt-2 text-sm opacity-50">Gästen lämnade bara betyg, ingen text.</p>
+        <p className="mt-2 text-sm opacity-50">{labels.ratingOnly}</p>
       )}
 
       {error ? (
@@ -81,7 +89,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
               onClick={() => setEditing(true)}
               className="min-h-11 border border-[var(--rule)] px-4 text-sm"
             >
-              Ändra svaret
+              {labels.editReply}
             </button>
             <button
               type="button"
@@ -89,7 +97,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
               onClick={() => run(() => removeResponse(review.id))}
               className="min-h-11 border border-[var(--rule)] px-4 text-sm disabled:opacity-50"
             >
-              Ta bort svaret
+              {labels.removeReply}
             </button>
           </div>
         </div>
@@ -97,7 +105,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
         <div className="mt-3">
           <label className="block">
             <span className="label-caps">
-              {review.response ? "Ändra svaret" : "Svara publikt"}
+              {review.response ? labels.editReply : labels.replyPublicly}
             </span>
             <textarea
               value={draft}
@@ -106,8 +114,8 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
               maxLength={2000}
               placeholder={
                 isLow
-                  ? "Ett sakligt svar på ett lågt betyg gör mer nytta än inget svar alls."
-                  : "Tack för att du beställde…"
+                  ? labels.replyHintLow
+              : labels.replyPlaceholder
               }
               className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2 text-sm"
             />
@@ -132,7 +140,7 @@ export function ReviewResponder({ review }: { review: StaffReview }) {
                 }}
                 className="min-h-11 border border-[var(--rule)] px-4 text-sm"
               >
-                Avbryt
+                {labels.cancel}
               </button>
             ) : null}
           </div>

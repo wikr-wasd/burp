@@ -9,6 +9,7 @@ import {
   type CouponInput,
 } from "@/app/dashboard/erbjudanden/actions";
 import { EmptyState } from "@/components/ui/empty-state";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
  * Rabattkoder.
@@ -49,9 +50,12 @@ const EMPTY: CouponInput = {
 export function CouponManager({
   coupons,
   currency,
+  labels,
 }: {
   coupons: CouponRow[];
   currency: CurrencyCode;
+  /** Rapportytornas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["reports"];
 }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CouponInput>(EMPTY);
@@ -79,16 +83,16 @@ export function CouponManager({
     <div className="mt-8">
       {open ? (
         <div className="card p-4">
-          <h2 className="font-display text-xl">Ny kod</h2>
+          <h2 className="font-display text-xl">{labels.newCoupon}</h2>
 
           <label className="mt-4 block">
-            <span className="label-caps">Kod</span>
+            <span className="label-caps">{labels.code}</span>
             <input
               type="text"
               value={form.code}
               onChange={(event) => set("code", event.target.value)}
               onBlur={(event) => set("code", normalizeCouponCode(event.target.value))}
-              placeholder="SOMMAR25"
+              placeholder={labels.codePlaceholder}
               className="field mt-1.5 uppercase"
             />
             {/* Gästen skriver av koden från en skylt eller ett sms. Skiftläge,
@@ -96,12 +100,12 @@ export function CouponManager({
                 som inte fungerar för att någon skrev "sommar 25" är ingen
                 säkerhetsåtgärd, bara en förlorad beställning. */}
             <span className="mt-1 block text-xs text-[var(--muted)]">
-              Bokstäver och siffror. Gästen kan skriva den med gemener.
+              {labels.codeHint}
             </span>
           </label>
 
           <div className="mt-4">
-            <span className="label-caps">Rabatt</span>
+            <span className="label-caps">{labels.discount}</span>
             <div className="mt-1.5 flex gap-2">
               {(["PERCENT", "AMOUNT"] as const).map((kind) => (
                 <button
@@ -115,7 +119,7 @@ export function CouponManager({
                       : "border-[var(--rule)] hover:border-burp-600"
                   }`}
                 >
-                  {kind === "PERCENT" ? "Procent" : "Fast belopp"}
+                  {kind === "PERCENT" ? labels.percent : labels.fixedAmount}
                 </button>
               ))}
             </div>
@@ -124,7 +128,7 @@ export function CouponManager({
           {form.kind === "PERCENT" ? (
             <div className="mt-4 flex flex-wrap gap-3">
               <label className="w-28">
-                <span className="label-caps">Procent</span>
+                <span className="label-caps">{labels.percent}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -134,7 +138,7 @@ export function CouponManager({
                 />
               </label>
               <label className="min-w-40 flex-1">
-                <span className="label-caps">Tak (valfritt)</span>
+                <span className="label-caps">{labels.cap}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -147,7 +151,7 @@ export function CouponManager({
             </div>
           ) : (
             <label className="mt-4 block w-40">
-              <span className="label-caps">Belopp</span>
+              <span className="label-caps">{labels.amount}</span>
               <input
                 type="text"
                 inputMode="decimal"
@@ -161,19 +165,19 @@ export function CouponManager({
 
           <div className="mt-4 flex flex-wrap gap-3">
             <label className="w-40">
-              <span className="label-caps">Minsta nota</span>
+              <span className="label-caps">{labels.minimumBill}</span>
               <input
                 type="text"
                 inputMode="decimal"
                 value={form.minOrder}
                 onChange={(event) => set("minOrder", event.target.value)}
-                placeholder="ingen"
+                placeholder={labels.none}
                 className="field mt-1.5 tabular-nums"
               />
             </label>
 
             <label className="w-40">
-              <span className="label-caps">Gäller till</span>
+              <span className="label-caps">{labels.validUntil}</span>
               <input
                 type="date"
                 value={form.validUntil}
@@ -185,19 +189,19 @@ export function CouponManager({
 
           <div className="mt-4 flex flex-wrap gap-3">
             <label className="w-40">
-              <span className="label-caps">Antal totalt</span>
+              <span className="label-caps">{labels.totalCount}</span>
               <input
                 type="text"
                 inputMode="numeric"
                 value={form.maxRedemptions}
                 onChange={(event) => set("maxRedemptions", event.target.value)}
-                placeholder="obegränsat"
+                placeholder={labels.unlimited}
                 className="field mt-1.5 tabular-nums"
               />
             </label>
 
             <label className="w-40">
-              <span className="label-caps">Per gäst</span>
+              <span className="label-caps">{labels.perGuest}</span>
               <input
                 type="text"
                 inputMode="numeric"
@@ -222,7 +226,7 @@ export function CouponManager({
 
           <div className="mt-5 flex gap-2">
             <button type="button" onClick={submit} disabled={pending} className="btn btn-primary">
-              {pending ? "Skapar…" : "Skapa"}
+              {pending ? labels.creating : labels.create}
             </button>
             <button
               type="button"
@@ -232,14 +236,14 @@ export function CouponManager({
               }}
               className="btn btn-secondary"
             >
-              Avbryt
+              {labels.cancel}
             </button>
           </div>
         </div>
       ) : (
         <button type="button" onClick={() => setOpen(true)} className="btn btn-primary">
           <Plus size={16} aria-hidden="true" />
-          Ny kod
+          {labels.newCoupon}
         </button>
       )}
 
@@ -247,14 +251,14 @@ export function CouponManager({
         <div className="mt-8">
           <EmptyState
             icon={Ticket}
-            title="Inga erbjudanden än"
-            body="En rabattkod är ett sätt att få tillbaka gäster som varit här en gång. Rabatten dras från notan innan Burps avgift räknas."
+            title={labels.couponsEmptyTitle}
+            body={labels.couponsEmptyBody}
           />
         </div>
       ) : (
         <ul className="card mt-8 divide-y divide-[var(--rule)]">
           {coupons.map((coupon) => (
-            <CouponRowView key={coupon.id} coupon={coupon} currency={currency} />
+            <CouponRowView key={coupon.id} coupon={coupon} currency={currency} labels={labels} />
           ))}
         </ul>
       )}
@@ -262,7 +266,16 @@ export function CouponManager({
   );
 }
 
-function CouponRowView({ coupon, currency }: { coupon: CouponRow; currency: CurrencyCode }) {
+function CouponRowView({
+  coupon,
+  currency,
+  labels,
+}: {
+  coupon: CouponRow;
+  currency: CurrencyCode;
+  /** Rapportytornas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["reports"];
+}) {
   const [pending, startTransition] = useTransition();
 
   const value =
@@ -272,8 +285,8 @@ function CouponRowView({ coupon, currency }: { coupon: CouponRow; currency: Curr
 
   const used =
     coupon.maxRedemptions !== null
-      ? `${coupon.redemptions} av ${coupon.maxRedemptions}`
-      : `${coupon.redemptions} gånger`;
+      ? fill(labels.usedOf, { used: coupon.redemptions, total: coupon.maxRedemptions })
+      : fill(labels.usedTimes, { used: coupon.redemptions });
 
   return (
     <li className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
@@ -284,7 +297,9 @@ function CouponRowView({ coupon, currency }: { coupon: CouponRow; currency: Curr
 
       <span className="mr-auto text-sm text-[var(--muted)]">
         {used}
-        {coupon.redeemedOre > 0 ? ` · ${formatMoney(coupon.redeemedOre, currency)} i rabatt` : ""}
+        {coupon.redeemedOre > 0
+          ? ` · ${fill(labels.inDiscount, { amount: formatMoney(coupon.redeemedOre, currency) })}`
+          : ""}
         {coupon.validUntil
           ? ` · till ${new Date(coupon.validUntil).toLocaleDateString("sv-SE")}`
           : ""}
@@ -302,7 +317,7 @@ function CouponRowView({ coupon, currency }: { coupon: CouponRow; currency: Curr
         }
         className="min-h-11 text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
       >
-        {coupon.isActive ? "Stäng av" : "Slå på"}
+        {coupon.isActive ? labels.turnOff : labels.turnOn}
       </button>
     </li>
   );

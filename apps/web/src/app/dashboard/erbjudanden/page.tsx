@@ -4,6 +4,7 @@ import type { CurrencyCode } from "@burp/core";
 import { CouponManager, type CouponRow } from "@/components/staff/coupon-manager";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
+import { dictionary } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -74,15 +75,21 @@ export default async function OffersPage() {
     redeemedOre: usedByCoupon.get(coupon.id)?.totalOre ?? 0,
   }));
 
+  const t = dictionary(staff.locale).staff;
+
   return (
     <StaffShell
       staff={staff}
       current="erbjudanden"
-      title="Erbjudanden"
-      intro="Rabattkoder gästen slår in i kassan. Rabatten dras från notan — och därmed även från underlaget för Burps avgift, så ni betalar aldrig avgift på pengar ni inte fick in."
+      title={t.section.erbjudanden}
+      intro={t.reports.couponsIntro}
       width="narrow"
     >
-      <CouponManager coupons={rows} currency={staff.currency as CurrencyCode} />
+      <CouponManager
+        coupons={rows}
+        currency={staff.currency as CurrencyCode}
+        labels={t.reports}
+      />
 
       {/*
         Presentkorten ligger på en egen sida och inte här.

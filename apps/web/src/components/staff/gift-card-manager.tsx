@@ -8,6 +8,7 @@ import {
   setGiftCardActive,
 } from "@/app/dashboard/presentkort/actions";
 import { EmptyState } from "@/components/ui/empty-state";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
  * Presentkort i personalytan.
@@ -32,9 +33,12 @@ export interface GiftCardRow {
 export function GiftCardManager({
   cards,
   currency,
+  labels,
 }: {
   cards: GiftCardRow[];
   currency: CurrencyCode;
+  /** Rapportytornas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["reports"];
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -66,10 +70,10 @@ export function GiftCardManager({
     <div className="mt-8">
       {issued ? (
         <div className="card border-green-600/40 bg-green-50 p-4 dark:bg-green-900/30">
-          <p className="label-caps">Presentkortet är utgivet</p>
+          <p className="label-caps">{labels.giftCardIssued}</p>
           <p className="mt-2 font-display text-3xl tracking-widest tabular-nums">{issued}</p>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Skriv koden på kortet eller skicka den till gästen. Den står kvar i listan nedan.
+            {labels.giftCardIssuedHint}
           </p>
           <div className="mt-3 flex gap-2">
             <button
@@ -78,32 +82,32 @@ export function GiftCardManager({
               className="btn btn-secondary"
             >
               <Copy size={16} aria-hidden="true" />
-              Kopiera
+              {labels.copy}
             </button>
             <button type="button" onClick={() => setIssued(null)} className="btn btn-secondary">
-              Klart
+              {labels.copied}
             </button>
           </div>
         </div>
       ) : open ? (
         <div className="card p-4">
-          <h2 className="font-display text-xl">Nytt presentkort</h2>
+          <h2 className="font-display text-xl">{labels.newGiftCard}</h2>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <label className="w-40">
-              <span className="label-caps">Belopp</span>
+              <span className="label-caps">{labels.amount}</span>
               <input
                 type="text"
                 inputMode="decimal"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
-                placeholder={`i ${currency}`}
+                placeholder={fill(labels.amountIn, { currency })}
                 className="field mt-1.5 tabular-nums"
               />
             </label>
 
             <label className="w-40">
-              <span className="label-caps">Gäller till</span>
+              <span className="label-caps">{labels.validUntil}</span>
               <input
                 type="date"
                 value={expiresAt}
@@ -118,26 +122,28 @@ export function GiftCardManager({
 
           <label className="mt-4 block">
             <span className="label-caps">
-              Till <span className="normal-case">(valfritt)</span>
+              {labels.recipient}{" "}
+              <span className="normal-case">{labels.optional}</span>
             </span>
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="mottagarens e-post"
+              placeholder={labels.recipientPlaceholder}
               className="field mt-1.5"
             />
           </label>
 
           <label className="mt-4 block">
             <span className="label-caps">
-              Anteckning <span className="normal-case">(valfritt)</span>
+              {labels.note}{" "}
+              <span className="normal-case">{labels.optional}</span>
             </span>
             <input
               type="text"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="T.ex. kompensation bord 4"
+              placeholder={labels.notePlaceholder}
               className="field mt-1.5"
             />
           </label>
@@ -150,17 +156,17 @@ export function GiftCardManager({
 
           <div className="mt-5 flex gap-2">
             <button type="button" onClick={submit} disabled={pending} className="btn btn-primary">
-              {pending ? "Skapar…" : "Ge ut"}
+              {pending ? labels.creating : labels.issue}
             </button>
             <button type="button" onClick={() => setOpen(false)} className="btn btn-secondary">
-              Avbryt
+              {labels.cancel}
             </button>
           </div>
         </div>
       ) : (
         <button type="button" onClick={() => setOpen(true)} className="btn btn-primary">
           <Plus size={16} aria-hidden="true" />
-          Nytt presentkort
+          {labels.newGiftCard}
         </button>
       )}
 
@@ -168,14 +174,14 @@ export function GiftCardManager({
         <div className="mt-8">
           <EmptyState
             icon={Gift}
-            title="Inga presentkort än"
-            body="Ett presentkort är förbetalt värde hos er. Det går att använda flera gånger tills det är slut, och resten ligger kvar till nästa besök."
+            title={labels.giftCardsEmptyTitle}
+            body={labels.giftCardsEmptyBody}
           />
         </div>
       ) : (
         <ul className="card mt-8 divide-y divide-[var(--rule)]">
           {cards.map((card) => (
-            <GiftCardRowView key={card.id} card={card} currency={currency} />
+            <GiftCardRowView key={card.id} card={card} currency={currency} labels={labels} />
           ))}
         </ul>
       )}
@@ -183,7 +189,16 @@ export function GiftCardManager({
   );
 }
 
-function GiftCardRowView({ card, currency }: { card: GiftCardRow; currency: CurrencyCode }) {
+function GiftCardRowView({
+  card,
+  currency,
+  labels,
+}: {
+  card: GiftCardRow;
+  currency: CurrencyCode;
+  /** Rapportytornas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["reports"];
+}) {
   const [pending, startTransition] = useTransition();
   const isSpent = card.balanceOre <= 0;
 
@@ -223,7 +238,7 @@ function GiftCardRowView({ card, currency }: { card: GiftCardRow; currency: Curr
         }
         className="min-h-11 text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
       >
-        {card.isActive ? "Spärra" : "Öppna igen"}
+        {card.isActive ? labels.block : labels.unblock}
       </button>
     </li>
   );

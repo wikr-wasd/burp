@@ -10,6 +10,7 @@ import {
 } from "@/app/backoffice/avrakning/actions";
 import { SettlementFigures, SettlementStatusBadge } from "@/components/staff/settlement-figures";
 import type { MonthBounds, Settlement, SettlementNumbers } from "@/lib/settlement-period";
+import type { Dictionary } from "@/lib/i18n";
 
 /**
  * Månadens avräkning, restaurang för restaurang.
@@ -39,12 +40,15 @@ export function SettlementBoard({
   rows,
   toClose,
   canWrite,
+  figureLabels,
 }: {
   bounds: MonthBounds;
   rows: SettlementBoardRow[];
   /** Restauranger som massknappen tar. Perioder utan order räknas inte in. */
   toClose: readonly string[];
   canWrite: boolean;
+  /** Avräkningens sifferetiketter. Backoffice är svensk — se ordboken. */
+  figureLabels: Dictionary["staff"]["reports"];
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +160,7 @@ export function SettlementBoard({
 
               {isOpen && currency ? (
                 <div className="border-t border-[var(--rule)]">
-                  <SettlementFigures numbers={shown} currency={currency} />
+                  <SettlementFigures numbers={shown} currency={currency} labels={figureLabels} />
                 </div>
               ) : null}
 

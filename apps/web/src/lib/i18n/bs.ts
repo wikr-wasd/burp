@@ -782,6 +782,125 @@ export const bs: Dictionary = {
       saving: "Spremanje…",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    reports: {
+      statsEmptyTitle: "Nema završenih narudžbi u periodu",
+      statsEmptyBody:
+        "Statistika broji samo završene narudžbe — narudžba u redu nije promet.",
+      revenue: "Promet",
+      revenueInclVat: "Promet s PDV-om",
+      inclVat: "s PDV-om",
+      orders: "Narudžbe",
+      tips: "Napojnica",
+      tipsToStaff: "pripada osoblju",
+      feeHint:
+        "Novac gostiju ide pravo vama — Burp ga nikada ne drži. Naknada se skuplja mjesečno i fakturira naknadno; stoji na",
+      feeHintAfter:
+        ". Naknada procesora za karticu nije uključena, ona je između vas i vaše banke.",
+      settlementLink: "Obračun",
+      avgHint: "broj koji gost pamti",
+      mostPopular: "Najpopularnije",
+      revenuePerTable: "Promet po stolu",
+      revenuePerTableHint:
+        "Broj zbog kojeg QR narudžba postoji. Stolovi bez narudžbi prikazuju se kao nula.",
+
+      reviewsTitle: "Ocjene",
+      reviewsIntro:
+        "Ocjenu mogu ostaviti samo gosti koji su završili narudžbu. Možete odgovoriti javno, ali ne možete promijeniti ocjenu ni tekst.",
+      reviewsEmptyTitle: "Još nema ocjena",
+      reviewsEmptyBody: "Doći će kad gosti počnu naručivati i kad im se narudžbe završe.",
+      reviewsWorthLooking: "vrijedi pogledati",
+      guest: "Gost",
+      hiddenByBurp: "Sakrio Burp",
+      ratingOnly: "Gost je ostavio samo ocjenu, bez teksta.",
+      editReply: "Izmijeni odgovor",
+      removeReply: "Ukloni odgovor",
+      replyPublicly: "Odgovori javno",
+      replyHintLow: "Smiren odgovor na nisku ocjenu koristi više nego nikakav odgovor.",
+      replyPlaceholder: "Hvala što ste naručili…",
+
+      settlementTitle: "Obračun",
+      settlementIntro:
+        "Naknada Burpa, skupljena po mjesecu i fakturirana naknadno. Novac gostiju ide pravo vama — nikada ne prolazi kroz Burp — pa je ovo jedino što se odavde plaća.",
+      settlementOngoing: "U toku — još nije fakturirano",
+      settlementClosed: "Zatvoreni periodi",
+      settlementEmptyTitle: "Nijedan period još nije zatvoren",
+      settlementEmptyBody:
+        "Obračun nastaje kad mjesec završi. Do tada se samo zbraja gore.",
+      settlementFrozenHint:
+        "Naknada se čita iz redova zapisanih kad je svaka narudžba nastala, a ne iz današnjeg postotka — stari period pokazuje šta je tada zaista naplaćeno. Naknada procesora za karticu nije uključena; ona je između vas i vaše banke.",
+      completedInPeriod: "završeno u periodu",
+      tipsNotInFeeBase: "novac osoblja — ne ulazi u osnovicu naknade",
+      refundedToGuests: "Vraćeno gostima",
+      creditForRefunded: "Odobrenje za potpuno refundirane narudžbe",
+
+      eventsTitle: "Događaji",
+      eventsIntro:
+        "Povrati i otkazane narudžbe, s tim ko stoji iza njih. Redovi dolaze iz zapisa koji se ne mogu naknadno mijenjati.",
+      eventsEmptyBody: "Nijedan novac nije vraćen i nijedna narudžba nije otkazana.",
+      eventRefund: "Povrat",
+      eventCancelled: "Otkazana narudžba",
+      eventsCancelHint:
+        "Otkazana narudžba stoji s punim iznosom — to je ono što se nije dogodilo, a ne ono što je neko dobio nazad. Plaćanja karticom koja nikada nisu prošla vide se ovdje kao otkazana, a gost tada nikada nije ni terećen.",
+      actorGuest: "sam gost",
+      actorWebhook: "procesor plaćanja",
+      actorSystem: "sistem",
+
+      couponsIntro:
+        "Kodovi za popust koje gost unosi na kasi. Popust se skida s računa — a time i s osnovice za naknadu Burpa, pa nikada ne plaćate naknadu na novac koji niste primili.",
+      couponsVsGiftCards:
+        "Izgledaju isto ali nisu: kupon je popust koji smanjuje račun, poklon kartica je unaprijed plaćen novac koji ga plaća.",
+      giftCardsHere: "Nalaze se ovdje",
+      newCoupon: "Novi kod",
+      code: "Kod",
+      codePlaceholder: "LJETO25",
+      codeHint: "Slova i brojevi. Gost ga može upisati i malim slovima.",
+      discount: "Popust",
+      percent: "Postotak",
+      fixedAmount: "Fiksni iznos",
+      cap: "Gornja granica (nije obavezno)",
+      amount: "Iznos",
+      minimumBill: "Najmanji račun",
+      none: "nema",
+      validUntil: "Vrijedi do",
+      totalCount: "Ukupan broj",
+      unlimited: "neograničeno",
+      perGuest: "Po gostu",
+      create: "Kreiraj",
+      creating: "Kreiranje…",
+      cancel: "Otkaži",
+      couponsEmptyTitle: "Još nema ponuda",
+      couponsEmptyBody:
+        "Kod za popust je način da vratite goste koji su već bili ovdje. Popust se skida s računa prije nego se obračuna naknada Burpa.",
+      turnOff: "Isključi",
+      turnOn: "Uključi",
+      usedOf: "{used} od {total}",
+      usedTimes: "{used} puta",
+      inDiscount: "{amount} popusta",
+
+      giftCardsTitle: "Poklon kartice",
+      giftCardsIntro:
+        "Unaprijed plaćena vrijednost koja se može iskoristiti samo kod vas. Stanje se računa iz transakcija i nikada se ne pohranjuje — kartica se može koristiti više puta dok se ne potroši.",
+      giftCardIssued: "Poklon kartica je izdana",
+      giftCardIssuedHint:
+        "Napišite kod na karticu ili ga pošaljite gostu. Ostaje i na listi ispod.",
+      copy: "Kopiraj",
+      copied: "Gotovo",
+      newGiftCard: "Nova poklon kartica",
+      amountIn: "u {currency}",
+      recipient: "Za",
+      optional: "(nije obavezno)",
+      recipientPlaceholder: "e-mail primaoca",
+      note: "Napomena",
+      notePlaceholder: "Npr. kompenzacija stol 4",
+      issue: "Izdaj",
+      giftCardsEmptyTitle: "Još nema poklon kartica",
+      giftCardsEmptyBody:
+        "Poklon kartica je unaprijed plaćena vrijednost kod vas. Može se koristiti više puta dok se ne potroši, a ostatak čeka sljedeći dolazak.",
+      block: "Blokiraj",
+      unblock: "Otključaj",
+    },
+
     upcomingLater: (count: number) => {
       const ones = count % 10;
       const tens = count % 100;

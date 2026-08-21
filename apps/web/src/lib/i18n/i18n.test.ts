@@ -134,6 +134,7 @@ describe("ordböckerna", () => {
       "staff.kitchen.minutes",
       // Lånordet igen — samma rot, samma stavning.
       "staff.settings.phone",
+      "staff.reports.code",
     ],
 
     de: [
@@ -149,8 +150,9 @@ describe("ordböckerna", () => {
       // "min" är samma förkortning på alla fem språken.
       "staff.kitchen.minutes",
       "staff.settings.phone",
-      // "Bild" stavas likadant på tyska och svenska.
+      // "Bild" och "Rabatt" stavas likadant på tyska och svenska.
       "staff.menu.image",
+      "staff.reports.discount",
     ],
 
     en: ["errors.notFoundLabel", "menu.giftCardPlaceholder", "staff.kitchen.minutes"],
@@ -258,6 +260,15 @@ describe("ordböckerna", () => {
       "staff.tables.locked",
       "staff.tables.lock",
       "staff.tables.cancel",
+      // Rapportytorna. Sju ord till som norskan och svenskan delar.
+      "staff.reports.discount",
+      "staff.reports.none",
+      "staff.reports.cancel",
+      "staff.reports.turnOn",
+      "staff.reports.usedOf",
+      "staff.reports.inDiscount",
+      "staff.reports.amountIn",
+      "staff.reports.actorSystem",
     ],
   };
 
@@ -371,6 +382,7 @@ describe("texter som korsar server/klient-gränsen", () => {
     "settings",
     "menu",
     "tables",
+    "reports",
   ] as const;
 
   for (const section of CLIENT_SECTIONS) {

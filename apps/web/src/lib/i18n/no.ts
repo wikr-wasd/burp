@@ -745,6 +745,125 @@ export const no: Dictionary = {
       saving: "Lagrer…",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    reports: {
+      statsEmptyTitle: "Ingen fullførte bestillinger i perioden",
+      statsEmptyBody:
+        "Statistikken teller bare fullførte bestillinger — en bestilling i køen er ikke omsetning.",
+      revenue: "Omsetning",
+      revenueInclVat: "Omsetning inkl. mva.",
+      inclVat: "inkl. mva.",
+      orders: "Bestillinger",
+      tips: "Driks",
+      tipsToStaff: "går til de ansatte",
+      feeHint:
+        "Gjestenes penger går rett til dere — Burp holder dem aldri. Gebyret samles per måned og faktureres i etterkant; det står på",
+      feeHintAfter:
+        ". Betalingsleverandørens kortgebyr inngår ikke, det ligger mellom dere og innløseren deres.",
+      settlementLink: "Oppgjør",
+      avgHint: "tallet gjesten husker",
+      mostPopular: "Mest populært",
+      revenuePerTable: "Omsetning per bord",
+      revenuePerTableHint:
+        "Tallet QR-bestillingen finnes for å kunne gi. Bord uten bestillinger vises som null.",
+
+      reviewsTitle: "Anmeldelser",
+      reviewsIntro:
+        "Bare gjester som har fullført en bestilling kan gi terningkast. Dere kan svare offentlig, men ikke endre verken karakter eller tekst.",
+      reviewsEmptyTitle: "Ingen anmeldelser ennå",
+      reviewsEmptyBody: "De kommer når gjester begynner å bestille og bestillingene fullføres.",
+      reviewsWorthLooking: "verdt et blikk",
+      guest: "Gjest",
+      hiddenByBurp: "Skjult av Burp",
+      ratingOnly: "Gjesten ga bare karakter, ingen tekst.",
+      editReply: "Endre svaret",
+      removeReply: "Fjern svaret",
+      replyPublicly: "Svar offentlig",
+      replyHintLow: "Et saklig svar på en lav karakter gjør mer nytte enn ikke noe svar.",
+      replyPlaceholder: "Takk for at du bestilte…",
+
+      settlementTitle: "Oppgjør",
+      settlementIntro:
+        "Burps gebyr, samlet per måned og fakturert i etterkant. Gjestenes penger går rett til dere — de går aldri gjennom Burp — så dette er det eneste som skal betales herfra.",
+      settlementOngoing: "Pågående — ikke fakturert ennå",
+      settlementClosed: "Avsluttede perioder",
+      settlementEmptyTitle: "Ingen periode er avsluttet ennå",
+      settlementEmptyBody:
+        "Et oppgjør lages når måneden er slutt. Fram til da telles det bare opp her over.",
+      settlementFrozenHint:
+        "Gebyret leses fra radene som ble skrevet da hver bestilling ble lagt inn, ikke fra dagens prosentsats — en gammel periode viser hva som faktisk ble tatt ut da. Betalingsleverandørens kortgebyr inngår ikke; det ligger mellom dere og innløseren deres.",
+      completedInPeriod: "fullført i perioden",
+      tipsNotInFeeBase: "de ansattes penger — inngår ikke i gebyrgrunnlaget",
+      refundedToGuests: "Tilbakebetalt til gjester",
+      creditForRefunded: "Kreditt for helt refunderte bestillinger",
+
+      eventsTitle: "Hendelser",
+      eventsIntro:
+        "Refusjoner og avbrutte bestillinger, med hvem som sto bak. Radene kommer fra logger som ikke kan skrives om i etterkant.",
+      eventsEmptyBody: "Ingen penger er gitt tilbake og ingen bestilling er avbrutt.",
+      eventRefund: "Refusjon",
+      eventCancelled: "Avbrutt bestilling",
+      eventsCancelHint:
+        "En avbrutt bestilling står med hele beløpet sitt — det er hva som ikke ble av, ikke hva noen fikk tilbake. Kortbetalinger som aldri gikk gjennom vises her som avbrutt, og gjesten er da aldri belastet.",
+      actorGuest: "gjesten selv",
+      actorWebhook: "betalingsleverandøren",
+      actorSystem: "systemet",
+
+      couponsIntro:
+        "Rabattkoder gjesten taster inn i kassen. Rabatten trekkes fra regningen — og dermed også fra grunnlaget for Burps gebyr, så dere betaler aldri gebyr på penger dere ikke fikk inn.",
+      couponsVsGiftCards:
+        "De ser like ut, men er det ikke: en kupong er en rabatt som senker regningen, et gavekort er forhåndsbetalte penger som betaler den.",
+      giftCardsHere: "De ligger her",
+      newCoupon: "Ny kode",
+      code: "Kode",
+      codePlaceholder: "SOMMER25",
+      codeHint: "Bokstaver og tall. Gjesten kan skrive den med små bokstaver.",
+      discount: "Rabatt",
+      percent: "Prosent",
+      fixedAmount: "Fast beløp",
+      cap: "Tak (valgfritt)",
+      amount: "Beløp",
+      minimumBill: "Minste regning",
+      none: "ingen",
+      validUntil: "Gjelder til",
+      totalCount: "Antall totalt",
+      unlimited: "ubegrenset",
+      perGuest: "Per gjest",
+      create: "Opprett",
+      creating: "Oppretter…",
+      cancel: "Avbryt",
+      couponsEmptyTitle: "Ingen tilbud ennå",
+      couponsEmptyBody:
+        "En rabattkode er en måte å få tilbake gjester som har vært her én gang. Rabatten trekkes fra regningen før Burps gebyr regnes.",
+      turnOff: "Slå av",
+      turnOn: "Slå på",
+      usedOf: "{used} av {total}",
+      usedTimes: "{used} ganger",
+      inDiscount: "{amount} i rabatt",
+
+      giftCardsTitle: "Gavekort",
+      giftCardsIntro:
+        "Forhåndsbetalt verdi som bare kan brukes hos dere. Saldoen regnes ut fra transaksjonene og lagres aldri — et kort kan brukes flere ganger til det er tomt.",
+      giftCardIssued: "Gavekortet er utstedt",
+      giftCardIssuedHint:
+        "Skriv koden på kortet eller send den til gjesten. Den blir stående i listen under.",
+      copy: "Kopier",
+      copied: "Ferdig",
+      newGiftCard: "Nytt gavekort",
+      amountIn: "i {currency}",
+      recipient: "Til",
+      optional: "(valgfritt)",
+      recipientPlaceholder: "mottakerens e-post",
+      note: "Notat",
+      notePlaceholder: "F.eks. kompensasjon bord 4",
+      issue: "Utsted",
+      giftCardsEmptyTitle: "Ingen gavekort ennå",
+      giftCardsEmptyBody:
+        "Et gavekort er forhåndsbetalt verdi hos dere. Det kan brukes flere ganger til det er tomt, og resten blir liggende til neste besøk.",
+      block: "Sperr",
+      unblock: "Åpne igjen",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 forhåndsbestilling senere i dag." : `${count} forhåndsbestillinger senere i dag.`,
   },

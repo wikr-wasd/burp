@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { SettlementFigures, SettlementStatusBadge } from "@/components/staff/settlement-figures";
 import { requireStaff } from "@/lib/auth";
+import { dictionary } from "@/lib/i18n";
 import {
   currentMonthKey,
   formatMonth,
@@ -43,34 +44,36 @@ export default async function SettlementPage() {
 
   const currency = (running.currency ?? staff.currency) as CurrencyCode;
 
+  const t = dictionary(staff.locale).staff;
+
   return (
     <StaffShell
       staff={staff}
       current="avrakning"
-      title="Avräkning"
-      intro="Burps avgift, samlad per månad och fakturerad i efterhand. Gästernas pengar går direkt till er — de passerar aldrig Burp — så det här är det enda som ska betalas härifrån."
+      title={t.reports.settlementTitle}
+      intro={t.reports.settlementIntro}
       width="narrow"
     >
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 className="font-display text-2xl">Hittills i {formatMonth(thisMonth)}</h2>
-          <p className="text-sm text-[var(--muted)]">Pågående — inte fakturerad än</p>
+          <p className="text-sm text-[var(--muted)]">{t.reports.settlementOngoing}</p>
         </div>
 
         <div className="card mt-3">
-          <SettlementFigures numbers={running} currency={currency} />
+          <SettlementFigures numbers={running} currency={currency} labels={t.reports} />
         </div>
       </section>
 
       <section className="mt-8">
-        <h2 className="font-display text-2xl">Stängda perioder</h2>
+        <h2 className="font-display text-2xl">{t.reports.settlementClosed}</h2>
 
         {settlements.length === 0 ? (
           <div className="mt-3">
             <EmptyState
               icon={ReceiptText}
-              title="Ingen period är stängd än"
-              body="En avräkning skapas när månaden är slut. Fram till dess räknas den bara upp här ovanför."
+              title={t.reports.settlementEmptyTitle}
+              body={t.reports.settlementEmptyBody}
             />
           </div>
         ) : (
@@ -97,7 +100,7 @@ export default async function SettlementPage() {
                   </div>
                 </div>
 
-                <SettlementFigures numbers={settlement} currency={settlement.currency} />
+                <SettlementFigures numbers={settlement} currency={settlement.currency} labels={t.reports} />
 
                 {settlement.note ? (
                   <p className="border-t border-[var(--rule)] px-4 py-3 text-sm text-[var(--muted)]">
@@ -111,9 +114,7 @@ export default async function SettlementPage() {
       </section>
 
       <p className="mt-8 text-sm text-[var(--muted)]">
-        Avgiften läses ur de rader som skrevs när varje order lades, inte ur dagens procentsats —
-        en gammal period visar vad som faktiskt togs ut då. Betalleverantörens kortavgift ingår
-        inte; den ligger mellan er och er inlösare.
+        {t.reports.settlementFrozenHint}
       </p>
     </StaffShell>
   );

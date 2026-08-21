@@ -5,6 +5,7 @@ import { formatMoney } from "@burp/core";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
+import { dictionary } from "@/lib/i18n";
 import { getStatistics, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
 
 /**
@@ -53,11 +54,13 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
    */
   const afterFeeOre = summary.itemsGrossOre - summary.feesOre + summary.tipsOre;
 
+  const t = dictionary(staff.locale).staff;
+
   return (
     <StaffShell
       staff={staff}
       current="statistik"
-      title="Statistik"
+      title={t.section.statistik}
       width="narrow"
       actions={
         <nav className="flex gap-2" aria-label="Period">
@@ -77,22 +80,33 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
         {summary.ordersCount === 0 ? (
           <EmptyState
             icon={ChartNoAxesColumn}
-            title="Inga genomförda beställningar i perioden"
-            body="Statistiken räknar bara order som slutförts — en order i kön är inte omsättning."
+            title={t.reports.statsEmptyTitle}
+            body={t.reports.statsEmptyBody}
           />
         ) : (
           <>
             <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Stat label="Omsättning" value={formatMoney(summary.itemsGrossOre, staff.currency)} hint="inkl. moms" />
-              <Stat label="Beställningar" value={String(summary.ordersCount)} />
+              <Stat
+          label={t.reports.revenue}
+          value={formatMoney(summary.itemsGrossOre, staff.currency)}
+          hint={t.reports.inclVat}
+        />
+              <Stat label={t.reports.orders} value={String(summary.ordersCount)} />
               <Stat label="Snittnota" value={formatMoney(summary.avgOrderOre, staff.currency)} />
-              <Stat label="Dricks" value={formatMoney(summary.tipsOre, staff.currency)} hint="går till personalen" />
+              <Stat
+          label={t.reports.tips}
+          value={formatMoney(summary.tipsOre, staff.currency)}
+          hint={t.reports.tipsToStaff}
+        />
             </section>
 
             <section className="mt-8">
               <h2 className="font-display text-2xl">Ekonomi</h2>
               <dl className="card mt-3 divide-y divide-[var(--rule)]">
-                <Row label="Omsättning inkl. moms" value={formatMoney(summary.itemsGrossOre, staff.currency)} />
+                <Row
+            label={t.reports.revenueInclVat}
+            value={formatMoney(summary.itemsGrossOre, staff.currency)}
+          />
                 <Row label="varav moms" value={formatMoney(summary.itemsVatOre, staff.currency)} muted />
                 {stats.vat.map((line) => (
                   <Row
@@ -126,12 +140,11 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
               </dl>
 
               <p className="mt-3 text-sm opacity-60">
-                Gästernas pengar går direkt till er — Burp håller dem aldrig. Avgiften samlas per
-                månad och faktureras i efterhand; den står på{" "}
+                {t.reports.feeHint}{" "}
                 <Link href="/dashboard/avrakning" className="underline">
-                  Avräkning
+                  {t.reports.settlementLink}
                 </Link>
-                . Betalleverantörens kortavgift ingår inte, den ligger mellan er och er inlösare.
+                {t.reports.feeHintAfter}
               </p>
             </section>
 
@@ -147,7 +160,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
                   <Stat
                     label="9 av 10 inom"
                     value={formatDuration(stats.prepTimes.p90Seconds)}
-                    hint="den siffran gästen minns"
+                    hint={t.reports.avgHint}
                   />
                 </div>
               </section>
@@ -155,7 +168,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
             {stats.topItems.length > 0 ? (
               <section className="mt-8">
-                <h2 className="font-display text-2xl">Populärast</h2>
+                <h2 className="font-display text-2xl">{t.reports.mostPopular}</h2>
                 <ul className="card mt-3 divide-y divide-[var(--rule)]">
                   {stats.topItems.map((item) => (
                     <li key={item.name} className="flex items-center gap-4 px-4 py-3">
@@ -170,9 +183,9 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
             {stats.tableRevenue.length > 0 ? (
               <section className="mt-8">
-                <h2 className="font-display text-2xl">Omsättning per bord</h2>
+                <h2 className="font-display text-2xl">{t.reports.revenuePerTable}</h2>
                 <p className="mt-1 text-sm opacity-60">
-                  Siffran QR-beställningen finns för att kunna ge. Bord utan order visas som noll.
+                  {t.reports.revenuePerTableHint}
                 </p>
                 <ul className="card mt-3 divide-y divide-[var(--rule)]">
                   {stats.tableRevenue.map((table) => (

@@ -938,6 +938,133 @@ export const sv = {
       saving: "Sparar…",
     },
 
+    /**
+     * Statistik, omdömen, erbjudanden, presentkort, avräkning och händelser.
+     *
+     * Sex ytor i ett avsnitt därför att var och en är liten. En egen nyckelnivå
+     * per sida hade gett sex objekt med två rader i.
+     *
+     * ENBART strängar — flera av ytorna är klientkod.
+     */
+    reports: {
+      statsEmptyTitle: "Inga genomförda beställningar i perioden",
+      statsEmptyBody:
+        "Statistiken räknar bara order som slutförts — en order i kön är inte omsättning.",
+      revenue: "Omsättning",
+      revenueInclVat: "Omsättning inkl. moms",
+      inclVat: "inkl. moms",
+      orders: "Beställningar",
+      tips: "Dricks",
+      tipsToStaff: "går till personalen",
+      feeHint:
+        "Gästernas pengar går direkt till er — Burp håller dem aldrig. Avgiften samlas per månad och faktureras i efterhand; den står på",
+      feeHintAfter:
+        ". Betalleverantörens kortavgift ingår inte, den ligger mellan er och er inlösare.",
+      settlementLink: "Avräkning",
+      avgHint: "den siffran gästen minns",
+      mostPopular: "Populärast",
+      revenuePerTable: "Omsättning per bord",
+      revenuePerTableHint:
+        "Siffran QR-beställningen finns för att kunna ge. Bord utan order visas som noll.",
+
+      reviewsTitle: "Omdömen",
+      reviewsIntro:
+        "Betyg kan bara lämnas av gäster som genomfört en beställning. Du kan svara offentligt, men inte ändra betyget eller texten.",
+      reviewsEmptyTitle: "Inga omdömen än",
+      reviewsEmptyBody: "De kommer när gäster börjat beställa och deras order slutförts.",
+      reviewsWorthLooking: "värt att titta på",
+      guest: "Gäst",
+      hiddenByBurp: "Dold av Burp",
+      ratingOnly: "Gästen lämnade bara betyg, ingen text.",
+      editReply: "Ändra svaret",
+      removeReply: "Ta bort svaret",
+      replyPublicly: "Svara publikt",
+      replyHintLow: "Ett sakligt svar på ett lågt betyg gör mer nytta än inget svar alls.",
+      replyPlaceholder: "Tack för att du beställde…",
+
+      settlementTitle: "Avräkning",
+      settlementIntro:
+        "Burps avgift, samlad per månad och fakturerad i efterhand. Gästernas pengar går direkt till er — de passerar aldrig Burp — så det här är det enda som ska betalas härifrån.",
+      settlementOngoing: "Pågående — inte fakturerad än",
+      settlementClosed: "Stängda perioder",
+      settlementEmptyTitle: "Ingen period är stängd än",
+      settlementEmptyBody:
+        "En avräkning skapas när månaden är slut. Fram till dess räknas den bara upp här ovanför.",
+      settlementFrozenHint:
+        "Avgiften läses ur de rader som skrevs när varje order lades, inte ur dagens procentsats — en gammal period visar vad som faktiskt togs ut då. Betalleverantörens kortavgift ingår inte; den ligger mellan er och er inlösare.",
+      completedInPeriod: "slutförda i perioden",
+      tipsNotInFeeBase: "personalens pengar — ingår inte i avgiftsunderlaget",
+      refundedToGuests: "Återbetalt till gäster",
+      creditForRefunded: "Kredit för helt återbetalda order",
+
+      eventsTitle: "Händelser",
+      eventsIntro:
+        "Återbetalningar och avbrutna beställningar, med vem som låg bakom. Raderna kommer ur loggar som inte går att skriva om i efterhand.",
+      eventsEmptyBody:
+        "Inga pengar har lämnats tillbaka och ingen beställning har avbrutits.",
+      eventRefund: "Återbetalning",
+      eventCancelled: "Avbruten beställning",
+      eventsCancelHint:
+        "En avbruten beställning står med sitt hela belopp — det är vad som inte blev av, inte vad någon fick tillbaka. Kortbetalningar som aldrig gick igenom syns här som avbrutna, och gästen har då aldrig debiterats.",
+      actorGuest: "gästen själv",
+      actorWebhook: "betalleverantören",
+      actorSystem: "systemet",
+
+      couponsIntro:
+        "Rabattkoder gästen slår in i kassan. Rabatten dras från notan — och därmed även från underlaget för Burps avgift, så ni betalar aldrig avgift på pengar ni inte fick in.",
+      couponsVsGiftCards:
+        "De ser ut som samma sak men är det inte: en kupong är en rabatt som sänker notan, ett presentkort är förbetalda pengar som betalar den.",
+      giftCardsHere: "De ligger här",
+      newCoupon: "Ny kod",
+      code: "Kod",
+      codePlaceholder: "SOMMAR25",
+      codeHint: "Bokstäver och siffror. Gästen kan skriva den med gemener.",
+      discount: "Rabatt",
+      percent: "Procent",
+      fixedAmount: "Fast belopp",
+      cap: "Tak (valfritt)",
+      amount: "Belopp",
+      minimumBill: "Minsta nota",
+      none: "ingen",
+      validUntil: "Gäller till",
+      totalCount: "Antal totalt",
+      unlimited: "obegränsat",
+      perGuest: "Per gäst",
+      create: "Skapa",
+      creating: "Skapar…",
+      cancel: "Avbryt",
+      couponsEmptyTitle: "Inga erbjudanden än",
+      couponsEmptyBody:
+        "En rabattkod är ett sätt att få tillbaka gäster som varit här en gång. Rabatten dras från notan innan Burps avgift räknas.",
+      turnOff: "Stäng av",
+      turnOn: "Slå på",
+      usedOf: "{used} av {total}",
+      usedTimes: "{used} gånger",
+      inDiscount: "{amount} i rabatt",
+
+      giftCardsTitle: "Presentkort",
+      giftCardsIntro:
+        "Förbetalt värde som bara går att lösa in hos er. Saldot räknas ur transaktionerna och lagras aldrig — ett kort kan användas flera gånger tills det är slut.",
+      giftCardIssued: "Presentkortet är utgivet",
+      giftCardIssuedHint:
+        "Skriv koden på kortet eller skicka den till gästen. Den står kvar i listan nedan.",
+      copy: "Kopiera",
+      copied: "Klart",
+      newGiftCard: "Nytt presentkort",
+      amountIn: "i {currency}",
+      recipient: "Till",
+      optional: "(valfritt)",
+      recipientPlaceholder: "mottagarens e-post",
+      note: "Anteckning",
+      notePlaceholder: "T.ex. kompensation bord 4",
+      issue: "Ge ut",
+      giftCardsEmptyTitle: "Inga presentkort än",
+      giftCardsEmptyBody:
+        "Ett presentkort är förbetalt värde hos er. Det går att använda flera gånger tills det är slut, och resten ligger kvar till nästa besök.",
+      block: "Spärra",
+      unblock: "Öppna igen",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 förbeställning senare i dag." : `${count} förbeställningar senare i dag.`,
   },

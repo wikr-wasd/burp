@@ -4,6 +4,7 @@ import {
   type SettlementNumbers,
   type SettlementStatus,
 } from "@/lib/settlement-period";
+import type { Dictionary } from "@/lib/i18n";
 
 /**
  * Sifferuppställningen i en avräkning.
@@ -21,19 +22,22 @@ import {
 export function SettlementFigures({
   numbers,
   currency,
+  labels,
 }: {
   numbers: SettlementNumbers;
   currency: CurrencyCode;
+  /** Rapportytornas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["reports"];
 }) {
   return (
     <dl className="divide-y divide-[var(--rule)]">
       <Row
-        label="Beställningar"
+        label={labels.orders}
         value={String(numbers.ordersCount)}
-        hint="slutförda i perioden"
+        hint={labels.completedInPeriod}
       />
       <Row
-        label="Omsättning inkl. moms"
+        label={labels.revenueInclVat}
         value={formatMoney(numbers.grossOre, currency)}
         hint="betalades direkt till er"
       />
@@ -41,7 +45,7 @@ export function SettlementFigures({
         <Row
           label="Dricks"
           value={formatMoney(numbers.tipsOre, currency)}
-          hint="personalens pengar — ingår inte i avgiftsunderlaget"
+          hint={labels.tipsNotInFeeBase}
           muted
         />
       ) : null}
@@ -55,7 +59,7 @@ export function SettlementFigures({
       ) : null}
       {numbers.refundsOre > 0 ? (
         <Row
-          label="Återbetalt till gäster"
+          label={labels.refundedToGuests}
           value={`−${formatMoney(numbers.refundsOre, currency)}`}
           muted
         />
@@ -64,7 +68,7 @@ export function SettlementFigures({
       <Row label="Burps avgift" value={formatMoney(numbers.feesOre, currency)} />
       {numbers.feeCreditOre > 0 ? (
         <Row
-          label="Kredit för helt återbetalda order"
+          label={labels.creditForRefunded}
           value={`−${formatMoney(numbers.feeCreditOre, currency)}`}
           muted
           indented

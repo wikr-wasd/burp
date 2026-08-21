@@ -742,6 +742,125 @@ export const en: Dictionary = {
       saving: "Saving…",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    reports: {
+      statsEmptyTitle: "No completed orders in the period",
+      statsEmptyBody:
+        "Statistics only count completed orders — an order in the queue is not turnover.",
+      revenue: "Turnover",
+      revenueInclVat: "Turnover incl. VAT",
+      inclVat: "incl. VAT",
+      orders: "Orders",
+      tips: "Tips",
+      tipsToStaff: "goes to the staff",
+      feeHint:
+        "The guests' money goes straight to you — Burp never holds it. The fee is collected monthly and invoiced afterwards; it is shown under",
+      feeHintAfter:
+        ". The provider's card fee is not included, it sits between you and your acquirer.",
+      settlementLink: "Settlement",
+      avgHint: "the figure the guest remembers",
+      mostPopular: "Most popular",
+      revenuePerTable: "Turnover per table",
+      revenuePerTableHint:
+        "The figure QR ordering exists to be able to give. Tables without orders show as zero.",
+
+      reviewsTitle: "Reviews",
+      reviewsIntro:
+        "Ratings can only be left by guests who completed an order. You can reply publicly, but you cannot change the rating or the text.",
+      reviewsEmptyTitle: "No reviews yet",
+      reviewsEmptyBody: "They arrive once guests start ordering and their orders are completed.",
+      reviewsWorthLooking: "worth a look",
+      guest: "Guest",
+      hiddenByBurp: "Hidden by Burp",
+      ratingOnly: "The guest left a rating only, no text.",
+      editReply: "Edit the reply",
+      removeReply: "Remove the reply",
+      replyPublicly: "Reply publicly",
+      replyHintLow: "A measured reply to a low rating does more good than no reply at all.",
+      replyPlaceholder: "Thank you for ordering…",
+
+      settlementTitle: "Settlement",
+      settlementIntro:
+        "Burp's fee, collected monthly and invoiced afterwards. The guests' money goes straight to you — it never passes through Burp — so this is the only thing to be paid from here.",
+      settlementOngoing: "Ongoing — not invoiced yet",
+      settlementClosed: "Closed periods",
+      settlementEmptyTitle: "No period is closed yet",
+      settlementEmptyBody:
+        "A settlement is created when the month ends. Until then it only adds up above.",
+      settlementFrozenHint:
+        "The fee is read from the rows written when each order was placed, not from today's percentage — an old period shows what was actually charged then. The provider's card fee is not included; it sits between you and your acquirer.",
+      completedInPeriod: "completed in the period",
+      tipsNotInFeeBase: "the staff's money — not part of the fee base",
+      refundedToGuests: "Refunded to guests",
+      creditForRefunded: "Credit for fully refunded orders",
+
+      eventsTitle: "Events",
+      eventsIntro:
+        "Refunds and cancelled orders, with who was behind them. The rows come from logs that cannot be rewritten afterwards.",
+      eventsEmptyBody: "No money has been given back and no order has been cancelled.",
+      eventRefund: "Refund",
+      eventCancelled: "Cancelled order",
+      eventsCancelHint:
+        "A cancelled order stands at its full amount — that is what did not happen, not what anyone got back. Card payments that never went through appear here as cancelled, and the guest was never charged.",
+      actorGuest: "the guest",
+      actorWebhook: "the payment provider",
+      actorSystem: "the system",
+
+      couponsIntro:
+        "Discount codes the guest enters at checkout. The discount comes off the bill — and therefore off the base for Burp's fee, so you never pay a fee on money you did not take in.",
+      couponsVsGiftCards:
+        "They look like the same thing but are not: a coupon is a discount that lowers the bill, a gift card is prepaid money that pays it.",
+      giftCardsHere: "They live here",
+      newCoupon: "New code",
+      code: "Code",
+      codePlaceholder: "SUMMER25",
+      codeHint: "Letters and digits. The guest can type it in lower case.",
+      discount: "Discount",
+      percent: "Percentage",
+      fixedAmount: "Fixed amount",
+      cap: "Cap (optional)",
+      amount: "Amount",
+      minimumBill: "Minimum bill",
+      none: "none",
+      validUntil: "Valid until",
+      totalCount: "Total count",
+      unlimited: "unlimited",
+      perGuest: "Per guest",
+      create: "Create",
+      creating: "Creating…",
+      cancel: "Cancel",
+      couponsEmptyTitle: "No offers yet",
+      couponsEmptyBody:
+        "A discount code is a way to bring back guests who came once. The discount comes off the bill before Burp's fee is counted.",
+      turnOff: "Turn off",
+      turnOn: "Turn on",
+      usedOf: "{used} of {total}",
+      usedTimes: "{used} times",
+      inDiscount: "{amount} in discount",
+
+      giftCardsTitle: "Gift cards",
+      giftCardsIntro:
+        "Prepaid value that can only be redeemed with you. The balance is computed from the transactions and never stored — a card can be used several times until it runs out.",
+      giftCardIssued: "The gift card is issued",
+      giftCardIssuedHint:
+        "Write the code on the card or send it to the guest. It stays in the list below.",
+      copy: "Copy",
+      copied: "Done",
+      newGiftCard: "New gift card",
+      amountIn: "in {currency}",
+      recipient: "To",
+      optional: "(optional)",
+      recipientPlaceholder: "the recipient's email",
+      note: "Note",
+      notePlaceholder: "E.g. compensation table 4",
+      issue: "Issue",
+      giftCardsEmptyTitle: "No gift cards yet",
+      giftCardsEmptyBody:
+        "A gift card is prepaid value with you. It can be used several times until it runs out, and the rest waits for the next visit.",
+      block: "Block",
+      unblock: "Unblock",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 pre-order later today." : `${count} pre-orders later today.`,
   },

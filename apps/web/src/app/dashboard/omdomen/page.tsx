@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { ReviewResponder } from "@/components/staff/review-responder";
 import { requireStaff } from "@/lib/auth";
+import { dictionary } from "@/lib/i18n";
 import { LOW_RATING_THRESHOLD } from "@burp/core";
 import { getReviewsForStaff } from "@/lib/reviews";
 
@@ -28,24 +29,26 @@ export default async function ReviewsPage() {
   const unanswered = reviews.filter((review) => !review.response);
   const low = reviews.filter((review) => review.ratingFood <= LOW_RATING_THRESHOLD);
 
+  const t = dictionary(staff.locale).staff;
+
   return (
     <StaffShell
       staff={staff}
       current="omdomen"
-      title="Omdömen"
-      intro="Betyg kan bara lämnas av gäster som genomfört en beställning. Du kan svara offentligt, men inte ändra betyget eller texten."
+      title={t.reports.reviewsTitle}
+      intro={t.reports.reviewsIntro}
       width="narrow"
     >
       {reviews.length === 0 ? (
         <EmptyState
           icon={Star}
-          title="Inga omdömen än"
-          body="De kommer när gäster börjat beställa och deras order slutförts."
+          title={t.reports.reviewsEmptyTitle}
+          body={t.reports.reviewsEmptyBody}
         />
         ) : (
           <>
             <div className="grid gap-3 sm:grid-cols-3">
-              <Stat label="Omdömen" value={String(reviews.length)} />
+              <Stat label={t.reports.reviewsTitle} value={String(reviews.length)} />
               <Stat
                 label="Obesvarade"
                 value={String(unanswered.length)}
@@ -54,13 +57,13 @@ export default async function ReviewsPage() {
               <Stat
                 label={`${LOW_RATING_THRESHOLD} eller lägre`}
                 value={String(low.length)}
-                hint={low.length > 0 ? "värt att titta på" : undefined}
+                hint={low.length > 0 ? t.reports.reviewsWorthLooking : undefined}
               />
             </div>
 
             <ul className="mt-8 space-y-4">
               {reviews.map((review) => (
-                <ReviewResponder key={review.id} review={review} />
+                <ReviewResponder key={review.id} review={review} labels={t.reports} />
               ))}
             </ul>
           </>

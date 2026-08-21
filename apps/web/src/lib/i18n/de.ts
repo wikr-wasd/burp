@@ -753,6 +753,126 @@ export const de: Dictionary = {
       saving: "Wird gespeichert…",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    reports: {
+      statsEmptyTitle: "Keine abgeschlossenen Bestellungen im Zeitraum",
+      statsEmptyBody:
+        "Die Statistik zählt nur abgeschlossene Bestellungen — eine Bestellung in der Warteschlange ist kein Umsatz.",
+      revenue: "Umsatz",
+      revenueInclVat: "Umsatz inkl. MwSt.",
+      inclVat: "inkl. MwSt.",
+      orders: "Bestellungen",
+      tips: "Trinkgeld",
+      tipsToStaff: "geht an die Mitarbeitenden",
+      feeHint:
+        "Das Geld der Gäste geht direkt an Sie — Burp hält es nie. Die Gebühr wird monatlich gesammelt und nachträglich in Rechnung gestellt; sie steht unter",
+      feeHintAfter:
+        ". Die Kartengebühr des Anbieters ist nicht enthalten, sie liegt zwischen Ihnen und Ihrem Acquirer.",
+      settlementLink: "Abrechnung",
+      avgHint: "die Zahl, die der Gast sich merkt",
+      mostPopular: "Am beliebtesten",
+      revenuePerTable: "Umsatz je Tisch",
+      revenuePerTableHint:
+        "Die Zahl, für die es die QR-Bestellung gibt. Tische ohne Bestellung stehen auf null.",
+
+      reviewsTitle: "Bewertungen",
+      reviewsIntro:
+        "Bewerten können nur Gäste, die eine Bestellung abgeschlossen haben. Sie können öffentlich antworten, aber weder Note noch Text ändern.",
+      reviewsEmptyTitle: "Noch keine Bewertungen",
+      reviewsEmptyBody:
+        "Sie kommen, sobald Gäste bestellen und ihre Bestellungen abgeschlossen sind.",
+      reviewsWorthLooking: "einen Blick wert",
+      guest: "Gast",
+      hiddenByBurp: "Von Burp ausgeblendet",
+      ratingOnly: "Der Gast hat nur eine Note hinterlassen, keinen Text.",
+      editReply: "Antwort ändern",
+      removeReply: "Antwort entfernen",
+      replyPublicly: "Öffentlich antworten",
+      replyHintLow: "Eine sachliche Antwort auf eine schlechte Note nützt mehr als gar keine.",
+      replyPlaceholder: "Danke für Ihre Bestellung…",
+
+      settlementTitle: "Abrechnung",
+      settlementIntro:
+        "Die Gebühr von Burp, monatlich gesammelt und nachträglich in Rechnung gestellt. Das Geld der Gäste geht direkt an Sie — es läuft nie über Burp — dies ist also das Einzige, was von hier zu zahlen ist.",
+      settlementOngoing: "Laufend — noch nicht in Rechnung gestellt",
+      settlementClosed: "Abgeschlossene Zeiträume",
+      settlementEmptyTitle: "Noch ist kein Zeitraum abgeschlossen",
+      settlementEmptyBody:
+        "Eine Abrechnung entsteht, wenn der Monat endet. Bis dahin wird oben nur zusammengezählt.",
+      settlementFrozenHint:
+        "Die Gebühr wird aus den Zeilen gelesen, die beim Aufgeben jeder Bestellung geschrieben wurden, nicht aus dem heutigen Prozentsatz — ein alter Zeitraum zeigt, was damals tatsächlich erhoben wurde. Die Kartengebühr des Anbieters ist nicht enthalten; sie liegt zwischen Ihnen und Ihrem Acquirer.",
+      completedInPeriod: "im Zeitraum abgeschlossen",
+      tipsNotInFeeBase: "Geld der Mitarbeitenden — nicht Teil der Gebührenbasis",
+      refundedToGuests: "An Gäste erstattet",
+      creditForRefunded: "Gutschrift für vollständig erstattete Bestellungen",
+
+      eventsTitle: "Ereignisse",
+      eventsIntro:
+        "Erstattungen und stornierte Bestellungen, samt der Person dahinter. Die Zeilen stammen aus Protokollen, die sich nachträglich nicht umschreiben lassen.",
+      eventsEmptyBody: "Es wurde kein Geld zurückgegeben und keine Bestellung storniert.",
+      eventRefund: "Erstattung",
+      eventCancelled: "Stornierte Bestellung",
+      eventsCancelHint:
+        "Eine stornierte Bestellung steht mit ihrem vollen Betrag — das ist, was nicht zustande kam, nicht, was jemand zurückbekommen hat. Kartenzahlungen, die nie durchgingen, erscheinen hier als storniert, und dem Gast wurde nie etwas belastet.",
+      actorGuest: "der Gast selbst",
+      actorWebhook: "der Zahlungsanbieter",
+      actorSystem: "das System",
+
+      couponsIntro:
+        "Rabattcodes, die der Gast an der Kasse eingibt. Der Rabatt geht von der Rechnung ab — und damit auch von der Basis für die Gebühr von Burp, Sie zahlen also nie eine Gebühr auf Geld, das Sie nicht eingenommen haben.",
+      couponsVsGiftCards:
+        "Sie sehen gleich aus, sind es aber nicht: ein Gutschein-Code ist ein Rabatt, der die Rechnung senkt, ein Gutschein ist vorausbezahltes Geld, das sie bezahlt.",
+      giftCardsHere: "Die finden Sie hier",
+      newCoupon: "Neuer Code",
+      code: "Code",
+      codePlaceholder: "SOMMER25",
+      codeHint: "Buchstaben und Ziffern. Der Gast darf ihn kleinschreiben.",
+      discount: "Rabatt",
+      percent: "Prozent",
+      fixedAmount: "Fester Betrag",
+      cap: "Obergrenze (optional)",
+      amount: "Betrag",
+      minimumBill: "Mindestrechnung",
+      none: "keine",
+      validUntil: "Gültig bis",
+      totalCount: "Anzahl insgesamt",
+      unlimited: "unbegrenzt",
+      perGuest: "Pro Gast",
+      create: "Anlegen",
+      creating: "Wird angelegt…",
+      cancel: "Abbrechen",
+      couponsEmptyTitle: "Noch keine Angebote",
+      couponsEmptyBody:
+        "Ein Rabattcode ist ein Weg, Gäste zurückzuholen, die einmal da waren. Der Rabatt geht von der Rechnung ab, bevor die Gebühr von Burp gerechnet wird.",
+      turnOff: "Ausschalten",
+      turnOn: "Einschalten",
+      usedOf: "{used} von {total}",
+      usedTimes: "{used} mal",
+      inDiscount: "{amount} Rabatt",
+
+      giftCardsTitle: "Gutscheine",
+      giftCardsIntro:
+        "Vorausbezahlter Wert, der sich nur bei Ihnen einlösen lässt. Das Guthaben wird aus den Buchungen berechnet und nie gespeichert — eine Karte lässt sich mehrfach nutzen, bis sie aufgebraucht ist.",
+      giftCardIssued: "Der Gutschein ist ausgestellt",
+      giftCardIssuedHint:
+        "Schreiben Sie den Code auf die Karte oder schicken Sie ihn dem Gast. Er bleibt in der Liste unten stehen.",
+      copy: "Kopieren",
+      copied: "Fertig",
+      newGiftCard: "Neuer Gutschein",
+      amountIn: "in {currency}",
+      recipient: "An",
+      optional: "(optional)",
+      recipientPlaceholder: "E-Mail der Empfängerin",
+      note: "Notiz",
+      notePlaceholder: "Z. B. Ausgleich Tisch 4",
+      issue: "Ausstellen",
+      giftCardsEmptyTitle: "Noch keine Gutscheine",
+      giftCardsEmptyBody:
+        "Ein Gutschein ist vorausbezahlter Wert bei Ihnen. Er lässt sich mehrfach nutzen, bis er aufgebraucht ist, und der Rest wartet auf den nächsten Besuch.",
+      block: "Sperren",
+      unblock: "Wieder öffnen",
+    },
+
     upcomingLater: (count: number) =>
       count === 1
         ? "1 Vorbestellung später heute."

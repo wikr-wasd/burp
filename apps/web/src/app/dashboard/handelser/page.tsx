@@ -5,6 +5,7 @@ import { formatMoney } from "@burp/core";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
+import { dictionary, type Dictionary } from "@/lib/i18n";
 import { getMoneyEvents } from "@/lib/money-events";
 import { periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
 
@@ -50,12 +51,14 @@ export default async function MoneyEventsPage({ searchParams }: PageProps) {
     timeStyle: "short",
   });
 
+  const t = dictionary(staff.locale).staff;
+
   return (
     <StaffShell
       staff={staff}
       current="handelser"
-      title="Händelser"
-      intro="Återbetalningar och avbrutna beställningar, med vem som låg bakom. Raderna kommer ur loggar som inte går att skriva om i efterhand."
+      title={t.reports.eventsTitle}
+      intro={t.reports.eventsIntro}
       width="narrow"
       actions={
         <nav className="flex gap-2" aria-label="Period">
@@ -76,7 +79,7 @@ export default async function MoneyEventsPage({ searchParams }: PageProps) {
         <EmptyState
           icon={ScrollText}
           title="Ingenting att redovisa i perioden"
-          body="Inga pengar har lämnats tillbaka och ingen beställning har avbrutits."
+          body={t.reports.eventsEmptyBody}
         />
       ) : (
         <ul className="space-y-3">
@@ -88,7 +91,7 @@ export default async function MoneyEventsPage({ searchParams }: PageProps) {
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <p className="flex items-center gap-2 font-medium">
                     <Icon size={16} aria-hidden="true" className="text-[var(--muted)]" />
-                    {event.kind === "REFUND" ? "Återbetalning" : "Avbruten beställning"}
+                    {event.kind === "REFUND" ? t.reports.eventRefund : t.reports.eventCancelled}
                   </p>
                   <p className="tabular-nums font-semibold">
                     {event.kind === "REFUND" ? "−" : ""}
@@ -97,7 +100,7 @@ export default async function MoneyEventsPage({ searchParams }: PageProps) {
                 </div>
 
                 <p className="label-caps mt-1 normal-case">
-                  {clock.format(new Date(event.at))} · {describeActor(event.actorKind, event.actorName)}
+                  {clock.format(new Date(event.at))} · {describeActor(event.actorKind, event.actorName, t.reports)}
                 </p>
 
                 {/* Skälet är obligatoriskt på en återbetalning (migration 0027)
@@ -117,18 +120,20 @@ export default async function MoneyEventsPage({ searchParams }: PageProps) {
       )}
 
       <p className="mt-8 text-sm text-[var(--muted)]">
-        En avbruten beställning står med sitt hela belopp — det är vad som inte blev av, inte vad
-        någon fick tillbaka. Kortbetalningar som aldrig gick igenom syns här som avbrutna, och
-        gästen har då aldrig debiterats.
+        {t.reports.eventsCancelHint}
       </p>
     </StaffShell>
   );
 }
 
 /** "Test Ägare" eller, när ingen människa låg bakom, vad som faktiskt hände. */
-function describeActor(kind: string, name: string | null): string {
+function describeActor(
+  kind: string,
+  name: string | null,
+  labels: Dictionary["staff"]["reports"],
+): string {
   if (name) return name;
-  if (kind === "GUEST") return "gästen själv";
-  if (kind === "WEBHOOK") return "betalleverantören";
-  return "systemet";
+  if (kind === "GUEST") return labels.actorGuest;
+  if (kind === "WEBHOOK") return labels.actorWebhook;
+  return labels.actorSystem;
 }

@@ -453,11 +453,10 @@ eller ett beslut.
       - **Menyredigeraren** (`/dashboard/meny`) — 999 rader, den största ytan i
         hela personaldelen.
       - **Bord och QR-koder** (`/dashboard/bord`) med planritningens redigerare.
+      - **Statistiken, omdömena, erbjudandena, presentkorten, avräkningen och
+        händelseloggen.** Sex små ytor i ett gemensamt `reports`-avsnitt.
 
-      **Kvar:** statistiken, omdömena, erbjudandena, presentkorten,
-      avräkningen, händelseloggen och hela backoffice. Sex
-      `untranslatedSurface()`-anrop återstår, i `installningar/actions.ts`,
-      `personal/actions.ts` och `konto/page.tsx`.
+      **Kvar: serveråtgärdernas felmeddelanden och backoffice.** Se nedan.
 
       **Serveråtgärdernas felmeddelanden är kvar på svenska.** De ligger i
       `actions.ts`-filerna och skickas till klienten som `result.message`.
@@ -465,6 +464,21 @@ eller ett beslut.
       när något går fel. Det är den sista systematiska luckan, och den är
       medveten så länge: en åtgärd är serverkod och kan läsa `staff.locale`
       själv, men det är ett eget svep genom ett tiotal filer.
+
+      **Backoffice förblir svensk, och det är ett beslut.** `/backoffice` är
+      Burps egen plattformsyta och läses av Burps eget team, inte av
+      restaurangerna. Den har ingen `staff.locale` att läsa — en
+      plattformsadmin är inte personal någonstans — och att ge den ett eget
+      språkval hade betytt en andra mekanism för en handfull människor som
+      alla talar svenska. Där backoffice lånar en personalkomponent
+      (`SettlementFigures`) skickas svenskan uttryckligen in med
+      `untranslatedSurface()`, så att det syns i koden att valet är gjort.
+
+      **Presentkortssidan har ingen egen navigeringspunkt.** `/dashboard/
+      presentkort` sätter `current="erbjudanden"` och nås bara därifrån.
+      Rubriken kommer därför ur `reports.giftCardsTitle` och inte ur
+      `section`. Fynd 2026-08-21 — värt att avgöra om den ska ha en egen rad i
+      sidomenyn.
 
       **Metadata-titlarna står kvar på svenska överallt.** En `metadata`-export
       är statisk och kan inte läsa `staff.locale`; `generateMetadata` skulle
