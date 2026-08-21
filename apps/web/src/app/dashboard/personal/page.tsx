@@ -3,7 +3,7 @@ import { StaffShell } from "@/components/staff/staff-shell";
 import { StaffAdmin } from "@/components/staff/staff-admin";
 import { requireStaff } from "@/lib/auth";
 import { getOpenInvitations, getStaff } from "@/lib/staff-admin";
-import { untranslatedSurface } from "@/lib/i18n";
+import { dictionary, LOCALE_DATE_TAGS } from "@/lib/i18n";
 
 /**
  * Personalen — vem som arbetar här och vem som är på väg in.
@@ -33,19 +33,23 @@ export default async function StaffPage() {
     getOpenInvitations(staff.restaurantId),
   ]);
 
+  const t = dictionary(staff.locale).staff;
+
   return (
     <StaffShell
       staff={staff}
       current="personal"
-      title="Personal"
-      intro="Vem som arbetar här, med vilken roll, och vem som är inbjuden men inte kommit in än."
+      title={t.section.personal}
+      intro={t.staffAdmin.intro}
       width="narrow"
     >
       <StaffAdmin
         members={members}
         invitations={invitations}
         myRole={staff.role}
-        roleLabels={untranslatedSurface().staff.role}
+        roleLabels={t.role}
+        labels={t.staffAdmin}
+        dateTag={LOCALE_DATE_TAGS[staff.locale]}
       />
     </StaffShell>
   );

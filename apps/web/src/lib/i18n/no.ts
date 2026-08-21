@@ -448,6 +448,60 @@ export const no: Dictionary = {
         "Driksen er de ansattes penger og inngår verken i omsetningen eller i Burps gebyr. En regning som er betalt tilbake, teller ikke.",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    overview: {
+      statOrders: "Bestillinger i dag",
+      statRevenue: "Omsetning i dag",
+      statAverage: "Snitt per bestilling",
+      statTips: "Driks i dag",
+      statTipsHint: "de ansattes, ikke restaurantens",
+
+      inKitchen: "Akkurat nå på kjøkkenet",
+      allOrders: "Alle bestillinger",
+      noOrdersTitle: "Ingen bestillinger akkurat nå",
+      noOrdersBody: "Nye bestillinger dukker opp her så snart en gjest sender dem.",
+
+      tables: "Bord",
+      tablesBusy: "{busy} av {total} opptatt",
+      noTablesTitle: "Ingen bord lagt inn",
+      noTablesBody: "Legg inn bordene for å kunne skrive ut QR-klistremerker.",
+      noTablesAction: "Legg inn bord",
+
+      stateLEDIGT: "Ledig",
+      stateOPPEN_NOTA: "Åpen regning",
+      stateBESTALLNING: "Bestilling inne",
+      stateSERVERAS: "Klar til servering",
+    },
+
+    /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
+    staffAdmin: {
+      intro: "Hvem som jobber her, med hvilken rolle, og hvem som er invitert men ikke kommet inn.",
+      actionFailed: "Handlingen gikk ikke gjennom.",
+
+      inviteTitle: "Inviter noen",
+      inviteHint:
+        "Personen får en lenke som gjelder i sju dager og bare for adressen du skriver her.",
+      email: "E-postadresse",
+      emailPlaceholder: "navn@eksempel.no",
+      role: "Rolle",
+      invite: "Inviter",
+
+      inviteCreated: "Invitasjon opprettet",
+      inviteSendYourself: "En e-post er på vei. Du kan også sende lenken selv:",
+      copy: "Kopier",
+      copied: "Kopiert",
+
+      pendingTitle: "Venter på svar",
+      validUntil: "gjelder til {date}",
+      revoke: "Trekk tilbake",
+
+      membersTitle: "Ansatte",
+      you: "(du)",
+      ended: "avsluttet",
+      end: "Avslutt",
+      resume: "Gjenoppta",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 forhåndsbestilling senere i dag." : `${count} forhåndsbestillinger senere i dag.`,
   },

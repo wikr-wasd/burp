@@ -229,6 +229,9 @@ describe("ordböckerna", () => {
       "staff.register.paidOfTotal",
       "staff.register.cancel",
       "staff.register.tipsCash",
+      // Översikten och personalsidan. "Bord" och "(du)" stavas likadant.
+      "staff.overview.tables",
+      "staff.staffAdmin.you",
     ],
   };
 
@@ -330,7 +333,18 @@ describe("texter som korsar server/klient-gränsen", () => {
    * en funktion i `staff.kitchen` för att "det behövs en variabel där" faller
    * köksskärmen med 500 — och felpayloaden innehåller ändå texterna.
    */
-  for (const section of ["kitchen", "status", "role", "provider", "orderType", "register"] as const) {
+  const CLIENT_SECTIONS = [
+    "kitchen",
+    "status",
+    "role",
+    "provider",
+    "orderType",
+    "register",
+    "overview",
+    "staffAdmin",
+  ] as const;
+
+  for (const section of CLIENT_SECTIONS) {
     it(`staff.${section} innehåller bara strängar`, () => {
       for (const [locale, dict] of Object.entries(ALL)) {
         for (const [key, value] of Object.entries(dict.staff[section])) {

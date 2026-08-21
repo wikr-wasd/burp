@@ -1,3 +1,5 @@
+import type { Dictionary } from "@/lib/i18n";
+import { fill } from "@/lib/i18n";
 import type { FloorPlanSnapshot, TableSnapshot, TableState } from "@/lib/overview";
 
 /**
@@ -35,19 +37,27 @@ const STATE_TEXT: Record<TableState, string> = {
   SERVERAS: "fill-white",
 };
 
-const STATE_LABEL: Record<TableState, string> = {
-  LEDIGT: "Ledigt",
-  OPPEN_NOTA: "Öppen nota",
-  BESTALLNING: "Beställning inne",
-  SERVERAS: "Klar att servera",
-};
+/**
+ * Bordets tillstånd, ur ordboken.
+ *
+ * Låg tidigare som en egen tabell här OCH en till i `dashboard/page.tsx`.
+ * Två tabeller över samma fyra färgade rutor kunde säga olika saker om samma
+ * bord, beroende på om man tittade på ritningen eller på rutnätet bredvid.
+ */
+export type TableStateLabels = Dictionary["staff"]["overview"];
 
 export function FloorPlanView({
   plan,
   tables,
+  labels,
+  tableLabel,
 }: {
   plan: FloorPlanSnapshot;
   tables: TableSnapshot[];
+  /** Bordstillstånden ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: TableStateLabels;
+  /** Mallen "Bord {number}" ur det delade ordertypsavsnittet. */
+  tableLabel: string;
 }) {
   const placed = tables.filter(
     (table) => table.floorPlanId === plan.id && table.x !== null && table.y !== null,
@@ -75,7 +85,9 @@ export function FloorPlanView({
               {/* Titeln är det som gör ritningen läsbar för den som inte
                   skiljer färgerna åt. Färg ensam räcker aldrig. */}
               <title>
-                {`Bord ${table.tableNumber}${table.zone ? ` · ${table.zone}` : ""} — ${STATE_LABEL[table.state]}`}
+                {`${fill(tableLabel, { number: table.tableNumber })}${
+                  table.zone ? ` · ${table.zone}` : ""
+                } — ${labels[`state${table.state}`]}`}
               </title>
 
               {table.shape === "ROUND" ? (

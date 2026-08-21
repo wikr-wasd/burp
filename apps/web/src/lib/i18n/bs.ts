@@ -483,6 +483,60 @@ export const bs: Dictionary = {
         "Napojnica je novac osoblja i ne ulazi ni u promet ni u naknadu Burpa. Vraćen račun se ne računa.",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    overview: {
+      statOrders: "Narudžbe danas",
+      statRevenue: "Promet danas",
+      statAverage: "Prosjek po narudžbi",
+      statTips: "Napojnica danas",
+      statTipsHint: "pripada osoblju, ne restoranu",
+
+      inKitchen: "Trenutno u kuhinji",
+      allOrders: "Sve narudžbe",
+      noOrdersTitle: "Trenutno nema narudžbi",
+      noOrdersBody: "Nove narudžbe pojavljuju se ovdje čim ih gost pošalje.",
+
+      tables: "Stolovi",
+      tablesBusy: "{busy} od {total} zauzeto",
+      noTablesTitle: "Nema unesenih stolova",
+      noTablesBody: "Unesite stolove da biste mogli štampati QR naljepnice.",
+      noTablesAction: "Unesi stolove",
+
+      stateLEDIGT: "Slobodan",
+      stateOPPEN_NOTA: "Otvoren račun",
+      stateBESTALLNING: "Narudžba primljena",
+      stateSERVERAS: "Spremno za servirati",
+    },
+
+    /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
+    staffAdmin: {
+      intro: "Ko ovdje radi, s kojom ulogom, i ko je pozvan ali još nije ušao.",
+      actionFailed: "Radnja nije prošla.",
+
+      inviteTitle: "Pozovite nekoga",
+      inviteHint:
+        "Osoba dobiva link koji vrijedi sedam dana i samo za adresu koju ovdje upišete.",
+      email: "E-mail adresa",
+      emailPlaceholder: "ime@primjer.ba",
+      role: "Uloga",
+      invite: "Pozovi",
+
+      inviteCreated: "Poziv je kreiran",
+      inviteSendYourself: "E-mail je na putu. Link možete poslati i sami:",
+      copy: "Kopiraj",
+      copied: "Kopirano",
+
+      pendingTitle: "Čeka odgovor",
+      validUntil: "vrijedi do {date}",
+      revoke: "Opozovi",
+
+      membersTitle: "Osoblje",
+      you: "(vi)",
+      ended: "završeno",
+      end: "Završi",
+      resume: "Nastavi",
+    },
+
     upcomingLater: (count: number) => {
       const ones = count % 10;
       const tens = count % 100;

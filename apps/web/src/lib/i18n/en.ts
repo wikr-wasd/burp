@@ -445,6 +445,60 @@ export const en: Dictionary = {
         "Tips are the staff's money and count towards neither turnover nor Burp's fee. A refunded bill does not count.",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    overview: {
+      statOrders: "Orders today",
+      statRevenue: "Turnover today",
+      statAverage: "Average per order",
+      statTips: "Tips today",
+      statTipsHint: "the staff's, not the restaurant's",
+
+      inKitchen: "In the kitchen right now",
+      allOrders: "All orders",
+      noOrdersTitle: "No orders right now",
+      noOrdersBody: "New orders appear here as soon as a guest sends them.",
+
+      tables: "Tables",
+      tablesBusy: "{busy} of {total} occupied",
+      noTablesTitle: "No tables set up",
+      noTablesBody: "Set up the tables so you can print QR stickers.",
+      noTablesAction: "Set up tables",
+
+      stateLEDIGT: "Free",
+      stateOPPEN_NOTA: "Open bill",
+      stateBESTALLNING: "Order in",
+      stateSERVERAS: "Ready to serve",
+    },
+
+    /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
+    staffAdmin: {
+      intro: "Who works here, in what role, and who has been invited but has not joined yet.",
+      actionFailed: "The action did not go through.",
+
+      inviteTitle: "Invite someone",
+      inviteHint:
+        "They get a link that is valid for seven days and only for the address you enter here.",
+      email: "Email address",
+      emailPlaceholder: "name@example.com",
+      role: "Role",
+      invite: "Invite",
+
+      inviteCreated: "Invitation created",
+      inviteSendYourself: "An email is on its way. You can also send the link yourself:",
+      copy: "Copy",
+      copied: "Copied",
+
+      pendingTitle: "Awaiting a reply",
+      validUntil: "valid until {date}",
+      revoke: "Revoke",
+
+      membersTitle: "Staff",
+      you: "(you)",
+      ended: "ended",
+      end: "End",
+      resume: "Resume",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 pre-order later today." : `${count} pre-orders later today.`,
   },

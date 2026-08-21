@@ -6,6 +6,7 @@ import { FloorPlanView } from "@/components/staff/floor-plan-view";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireStaff } from "@/lib/auth";
+import { dictionary, fill, LOCALE_DATE_TAGS, type Dictionary } from "@/lib/i18n";
 import { getActiveOrders, type KitchenOrder } from "@/lib/orders";
 import { getTableSnapshots, type TableSnapshot, type TableState } from "@/lib/overview";
 import { getStatistics, periodFor } from "@/lib/statistics";
@@ -31,29 +32,42 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /** Statusarna som får en egen kolumn, i den ordning en order rör sig. */
-const COLUMNS: { status: KitchenOrder["status"]; label: string; dot: string }[] = [
-  { status: "PLACED", label: "Ny", dot: "bg-burp-600" },
-  { status: "ACCEPTED", label: "Accepterad", dot: "bg-gold-600" },
-  { status: "PREPARING", label: "Tillagas", dot: "bg-gold-400" },
-  { status: "READY", label: "Klar", dot: "bg-green-600" },
+/**
+ * Köets fyra kolumner.
+ *
+ * Bär bara status och färg. Rubriken slås upp i `staff.status`, samma tabell
+ * som köksskärmen läser. Kolumnerna hade tidigare egna ord — "Ny" och
+ * "Accepterad" — medan köksskärmen samtidigt kallade samma tillstånd "Lagd"
+ * och "Mottagen". Två namn på ett tillstånd är inte en nyans utan en fråga
+ * personalen får ställa varandra, och de läser båda skärmarna samma pass.
+ */
+const COLUMNS: { status: KitchenOrder["status"]; dot: string }[] = [
+  { status: "PLACED", dot: "bg-burp-600" },
+  { status: "ACCEPTED", dot: "bg-gold-600" },
+  { status: "PREPARING", dot: "bg-gold-400" },
+  { status: "READY", dot: "bg-green-600" },
 ];
 
-const TABLE_STATES: { state: TableState; label: string; cell: string; swatch: string }[] = [
+/**
+ * Bordens fyra tillstånd, med färg men utan ord.
+ *
+ * Orden låg här OCH i `floor-plan-view.tsx` — två tabeller över samma fyra
+ * färgade rutor, som kunde säga olika saker beroende på om man tittade på
+ * ritningen eller på rutnätet bredvid den. Båda läser nu ordboken.
+ */
+const TABLE_STATES: { state: TableState; cell: string; swatch: string }[] = [
   {
     state: "LEDIGT",
-    label: "Ledigt",
     cell: "bg-[var(--background)] text-[var(--muted)]",
     swatch: "bg-[var(--rule)]",
   },
   {
     state: "OPPEN_NOTA",
-    label: "Öppen nota",
     cell: "bg-gold-400/20 text-[var(--foreground)]",
     swatch: "bg-gold-400",
   },
   {
     state: "BESTALLNING",
-    label: "Beställning inne",
     cell: "bg-burp-600 text-white",
     swatch: "bg-burp-600",
   },
@@ -61,7 +75,6 @@ const TABLE_STATES: { state: TableState; label: string; cell: string; swatch: st
   // teckenförklaringen läses som en ordning i angelägenhet.
   {
     state: "SERVERAS",
-    label: "Klar att servera",
     cell: "bg-green-600 text-white",
     swatch: "bg-green-600",
   },
@@ -83,7 +96,7 @@ export default async function OverviewPage() {
   );
   const unplacedTables = tables.filter((table) => !placedIds.has(table.id));
 
-  const today = new Intl.DateTimeFormat("sv-SE", {
+  const today = new Intl.DateTimeFormat(LOCALE_DATE_TAGS[staff.locale], {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -92,22 +105,23 @@ export default async function OverviewPage() {
   }).format(new Date());
 
   const busyTables = tables.filter((table) => table.state !== "LEDIGT").length;
+  const t = dictionary(staff.locale).staff;
 
   return (
     <StaffShell
       staff={staff}
       current="oversikt"
-      title="Översikt"
+      title={t.section.oversikt}
       intro={capitalize(today)}
       actions={
         <>
           <Link href="/dashboard/order" className="btn btn-secondary">
             <Receipt size={16} aria-hidden="true" />
-            Beställningar
+            {t.section.order}
           </Link>
           <Link href="/kok" className="btn btn-primary">
             <ChefHat size={16} aria-hidden="true" />
-            Köksskärm
+            {t.section.kok}
           </Link>
         </>
       }
@@ -121,28 +135,28 @@ export default async function OverviewPage() {
         pengar — den ska synas skild från omsättningen, inte gömd i den.
       */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Order i dag" value={String(statistics.summary.ordersCount)} />
+        <Stat label={t.overview.statOrders} value={String(statistics.summary.ordersCount)} />
         <Stat
-          label="Omsättning i dag"
+          label={t.overview.statRevenue}
           value={formatMoney(statistics.summary.itemsGrossOre, staff.currency)}
         />
         <Stat
-          label="Snitt per order"
+          label={t.overview.statAverage}
           value={formatMoney(statistics.summary.avgOrderOre, staff.currency)}
         />
         <Stat
-          label="Dricks i dag"
+          label={t.overview.statTips}
           value={formatMoney(statistics.summary.tipsOre, staff.currency)}
-          hint="personalens, inte restaurangens"
+          hint={t.overview.statTipsHint}
         />
       </div>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div>
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="font-display text-2xl">Just nu i köket</h2>
+            <h2 className="font-display text-2xl">{t.overview.inKitchen}</h2>
             <Link href="/dashboard/order" className="link text-sm whitespace-nowrap">
-              Alla beställningar
+              {t.overview.allOrders}
             </Link>
           </div>
 
@@ -150,8 +164,8 @@ export default async function OverviewPage() {
             <div className="mt-3">
               <EmptyState
                 icon={Utensils}
-                title="Inga beställningar just nu"
-                body="Nya order dyker upp här så fort en gäst skickar dem."
+                title={t.overview.noOrdersTitle}
+                body={t.overview.noOrdersBody}
               />
             </div>
           ) : (
@@ -166,7 +180,7 @@ export default async function OverviewPage() {
                         aria-hidden="true"
                         className={`h-2 w-2 rounded-full ${column.dot}`}
                       />
-                      {column.label}
+                      {t.status[column.status]}
                       <span className="text-[var(--muted)] tabular-nums">{orders.length}</span>
                     </p>
 
@@ -174,7 +188,9 @@ export default async function OverviewPage() {
                       {orders.map((order) => (
                         <li key={order.id} className="card p-3">
                           <p className="text-sm font-medium">
-                            {order.tableNumber ? `Bord ${order.tableNumber}` : "Avhämtning"}
+                            {order.tableNumber
+                              ? fill(t.orderType.table, { number: order.tableNumber })
+                              : t.orderType.PICKUP}
                           </p>
                           <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
                             {order.items
@@ -196,9 +212,9 @@ export default async function OverviewPage() {
 
         <div>
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="font-display text-2xl">Bord</h2>
+            <h2 className="font-display text-2xl">{t.overview.tables}</h2>
             <p className="text-sm text-[var(--muted)] tabular-nums">
-              {busyTables} av {tables.length} upptagna
+              {fill(t.overview.tablesBusy, { busy: busyTables, total: tables.length })}
             </p>
           </div>
 
@@ -206,11 +222,11 @@ export default async function OverviewPage() {
             <div className="mt-3">
               <EmptyState
                 icon={LayoutGrid}
-                title="Inga bord upplagda"
-                body="Lägg upp borden för att kunna skriva ut QR-dekaler."
+                title={t.overview.noTablesTitle}
+                body={t.overview.noTablesBody}
                 action={
                   <Link href="/dashboard/bord" className="btn btn-primary">
-                    Lägg upp bord
+                    {t.overview.noTablesAction}
                   </Link>
                 }
               />
@@ -225,7 +241,13 @@ export default async function OverviewPage() {
                 det är hela skälet att den byggdes.
               */}
               {floorPlans.map((plan) => (
-                <FloorPlanView key={plan.id} plan={plan} tables={tables} />
+                <FloorPlanView
+                  key={plan.id}
+                  plan={plan}
+                  tables={tables}
+                  labels={t.overview}
+                  tableLabel={t.orderType.table}
+                />
               ))}
 
               {/*
@@ -236,7 +258,12 @@ export default async function OverviewPage() {
               {unplacedTables.length > 0 ? (
                 <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-4">
                   {unplacedTables.map((table) => (
-                    <TableCell key={table.id} table={table} />
+                    <TableCell
+                      key={table.id}
+                      table={table}
+                      labels={t.overview}
+                      tableLabel={t.orderType.table}
+                    />
                   ))}
                 </ul>
               ) : null}
@@ -253,7 +280,7 @@ export default async function OverviewPage() {
                       aria-hidden="true"
                       className={`h-2 w-2 rounded-[2px] ${entry.swatch}`}
                     />
-                    {entry.label}
+                    {t.overview[`state${entry.state}`]}
                   </li>
                 ))}
               </ul>
@@ -265,18 +292,29 @@ export default async function OverviewPage() {
   );
 }
 
-function TableCell({ table }: { table: TableSnapshot }) {
+function TableCell({
+  table,
+  labels,
+  tableLabel,
+}: {
+  table: TableSnapshot;
+  labels: Dictionary["staff"]["overview"];
+  tableLabel: string;
+}) {
   const state = TABLE_STATES.find((entry) => entry.state === table.state)!;
+  const stateLabel = labels[`state${table.state}`];
 
   return (
     <li
       className={`grid aspect-square place-items-center rounded-[0.5rem] text-sm font-semibold ${state.cell}`}
       // Färgen ensam räcker inte — den som inte skiljer färgerna åt behöver
       // texten, och den som hovrar slipper gissa.
-      title={`Bord ${table.tableNumber}${table.zone ? ` · ${table.zone}` : ""} — ${state.label}`}
+      title={`${fill(tableLabel, { number: table.tableNumber })}${
+        table.zone ? ` · ${table.zone}` : ""
+      } — ${stateLabel}`}
     >
       {table.tableNumber}
-      <span className="sr-only">{state.label}</span>
+      <span className="sr-only">{stateLabel}</span>
     </li>
   );
 }

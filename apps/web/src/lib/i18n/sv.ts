@@ -601,6 +601,77 @@ export const sv = {
         "Dricksen är personalens pengar och ingår varken i omsättningen eller i Burps avgift. En nota som lämnats tillbaka räknas inte.",
     },
 
+    /**
+     * Översikten på `/dashboard` — den första ytan alla utom kocken möter.
+     *
+     * Kolumnrubrikerna över köets biljetter stod tidigare som egna ord: "Ny",
+     * "Accepterad". Det gav TVÅ namn på samma status, eftersom köksskärmen
+     * samtidigt kallade dem "Lagd" och "Mottagen". Två namn på ett tillstånd
+     * är inte en nyansskillnad utan en fråga personalen får ställa varandra,
+     * och de läser båda skärmarna samma pass. Kolumnerna läser nu `status`
+     * ovan, precis som köksskärmen.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    overview: {
+      statOrders: "Order i dag",
+      statRevenue: "Omsättning i dag",
+      statAverage: "Snitt per order",
+      statTips: "Dricks i dag",
+      statTipsHint: "personalens, inte restaurangens",
+
+      inKitchen: "Just nu i köket",
+      allOrders: "Alla beställningar",
+      noOrdersTitle: "Inga beställningar just nu",
+      noOrdersBody: "Nya order dyker upp här så fort en gäst skickar dem.",
+
+      tables: "Bord",
+      tablesBusy: "{busy} av {total} upptagna",
+      noTablesTitle: "Inga bord upplagda",
+      noTablesBody: "Lägg upp borden för att kunna skriva ut QR-dekaler.",
+      noTablesAction: "Lägg upp bord",
+
+      /*
+       * Bordets fyra tillstånd.
+       *
+       * Låg som två kopior — en i översikten, en i planritningen — och de
+       * kunde alltså säga olika saker om samma färgade ruta.
+       */
+      stateLEDIGT: "Ledigt",
+      stateOPPEN_NOTA: "Öppen nota",
+      stateBESTALLNING: "Beställning inne",
+      stateSERVERAS: "Klar att servera",
+    },
+
+    /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
+    staffAdmin: {
+      intro: "Vem som arbetar här, med vilken roll, och vem som är inbjuden men inte kommit in än.",
+      actionFailed: "Åtgärden gick inte igenom.",
+
+      inviteTitle: "Bjud in någon",
+      inviteHint:
+        "Personen får en länk som gäller i sju dagar och bara för den adress du skriver här.",
+      email: "E-postadress",
+      emailPlaceholder: "namn@exempel.se",
+      role: "Roll",
+      invite: "Bjud in",
+
+      inviteCreated: "Inbjudan skapad",
+      inviteSendYourself: "Ett brev är på väg. Du kan också skicka länken själv:",
+      copy: "Kopiera",
+      copied: "Kopierad",
+
+      pendingTitle: "Väntar på svar",
+      validUntil: "gäller till {date}",
+      revoke: "Återkalla",
+
+      membersTitle: "Personal",
+      you: "(du)",
+      ended: "avslutad",
+      end: "Avsluta",
+      resume: "Återuppta",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 förbeställning senare i dag." : `${count} förbeställningar senare i dag.`,
   },

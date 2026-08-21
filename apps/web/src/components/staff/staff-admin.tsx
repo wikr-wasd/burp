@@ -9,6 +9,7 @@ import {
   revokeInvitation,
   setStaffActive,
 } from "@/app/dashboard/personal/actions";
+import { fill, type Dictionary } from "@/lib/i18n";
 import type { StaffInvitation, StaffMember } from "@/lib/staff-admin";
 
 /**
@@ -34,12 +35,17 @@ export function StaffAdmin({
   invitations,
   myRole,
   roleLabels,
+  labels,
+  dateTag,
 }: {
   members: StaffMember[];
   invitations: StaffInvitation[];
   myRole: StaffRole;
   /** Rollernas namn ur ordboken. Rena strängar — komponenten är klientkod. */
   roleLabels: Record<StaffRole, string>;
+  labels: Dictionary["staff"]["staffAdmin"];
+  /** Läsarens datumformat, t.ex. "bs-BA". Inbjudans sista dag skrivs med det. */
+  dateTag: string;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +61,7 @@ export function StaffAdmin({
     startTransition(async () => {
       const result = await fn();
       if (!result.ok) {
-        setError(result.message ?? "Åtgärden gick inte igenom.");
+        setError(result.message ?? labels.actionFailed);
         return;
       }
       if (result.link) {
@@ -78,26 +84,26 @@ export function StaffAdmin({
       ) : null}
 
       <section className="card p-4">
-        <h2 className="font-display text-xl">Bjud in någon</h2>
+        <h2 className="font-display text-xl">{labels.inviteTitle}</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Personen får en länk som gäller i sju dagar och bara för den adress du skriver här.
+          {labels.inviteHint}
         </p>
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <label className="min-w-52 flex-1">
-            <span className="label-caps">E-postadress</span>
+            <span className="label-caps">{labels.email}</span>
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="off"
-              placeholder="namn@exempel.se"
+              placeholder={labels.emailPlaceholder}
               className="field mt-1.5"
             />
           </label>
 
           <label className="min-w-40">
-            <span className="label-caps">Roll</span>
+            <span className="label-caps">{labels.role}</span>
             <select
               value={role}
               onChange={(event) => setRole(event.target.value as StaffRole)}
@@ -118,7 +124,7 @@ export function StaffAdmin({
             className="btn btn-primary"
           >
             <UserPlus size={16} aria-hidden="true" />
-            Bjud in
+            {labels.invite}
           </button>
         </div>
 
@@ -132,9 +138,9 @@ export function StaffAdmin({
         */}
         {link ? (
           <div className="mt-4 rounded-[var(--radius)] border border-[var(--rule)] p-3">
-            <p className="text-sm font-medium">Inbjudan skapad</p>
+            <p className="text-sm font-medium">{labels.inviteCreated}</p>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Ett brev är på väg. Du kan också skicka länken själv:
+              {labels.inviteSendYourself}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <code className="min-w-0 flex-1 truncate rounded bg-[var(--background)] px-2 py-1 text-xs">
@@ -153,7 +159,7 @@ export function StaffAdmin({
                 ) : (
                   <Copy size={14} aria-hidden="true" />
                 )}
-                {copied ? "Kopierad" : "Kopiera"}
+                {copied ? labels.copied : labels.copy}
               </button>
             </div>
           </div>
@@ -162,7 +168,7 @@ export function StaffAdmin({
 
       {invitations.length > 0 ? (
         <section className="mt-8">
-          <h2 className="font-display text-2xl">Väntar på svar</h2>
+          <h2 className="font-display text-2xl">{labels.pendingTitle}</h2>
           <ul className="card mt-3 divide-y divide-[var(--rule)]">
             {invitations.map((invitation) => (
               <li
@@ -172,8 +178,10 @@ export function StaffAdmin({
                 <div className="min-w-0">
                   <p className="truncate font-medium">{invitation.email}</p>
                   <p className="label-caps mt-0.5 normal-case">
-                    {roleLabels[invitation.role]} · gäller till{" "}
-                    {new Date(invitation.expiresAt).toLocaleDateString("sv-SE")}
+                    {roleLabels[invitation.role]} ·{" "}
+                    {fill(labels.validUntil, {
+                      date: new Date(invitation.expiresAt).toLocaleDateString(dateTag),
+                    })}
                   </p>
                 </div>
                 <button
@@ -182,7 +190,7 @@ export function StaffAdmin({
                   onClick={() => run(() => revokeInvitation(invitation.id))}
                   className="btn btn-secondary min-h-9 text-sm"
                 >
-                  Återkalla
+                  {labels.revoke}
                 </button>
               </li>
             ))}
@@ -191,7 +199,7 @@ export function StaffAdmin({
       ) : null}
 
       <section className="mt-8">
-        <h2 className="font-display text-2xl">Personal</h2>
+        <h2 className="font-display text-2xl">{labels.membersTitle}</h2>
         <ul className="card mt-3 divide-y divide-[var(--rule)]">
           {members.map((member) => {
             // Bara roller inom räckhåll går att sätta, och den egna raden är
@@ -209,13 +217,13 @@ export function StaffAdmin({
                   <p className="truncate font-medium">
                     {member.fullName ?? member.email}
                     {member.isMe ? (
-                      <span className="ml-2 text-sm font-normal text-[var(--muted)]">(du)</span>
+                      <span className="ml-2 text-sm font-normal text-[var(--muted)]">{labels.you}</span>
                     ) : null}
                   </p>
                   <p className="label-caps mt-0.5 normal-case">
                     {member.fullName ? `${member.email} · ` : ""}
                     {roleLabels[member.role]}
-                    {member.isActive ? "" : " · avslutad"}
+                    {member.isActive ? "" : ` · ${labels.ended}`}
                   </p>
                 </div>
 
@@ -242,7 +250,7 @@ export function StaffAdmin({
                       onClick={() => run(() => setStaffActive(member.userId, !member.isActive))}
                       className="btn btn-secondary min-h-9 text-sm"
                     >
-                      {member.isActive ? "Avsluta" : "Återuppta"}
+                      {member.isActive ? labels.end : labels.resume}
                     </button>
                   </div>
                 ) : null}

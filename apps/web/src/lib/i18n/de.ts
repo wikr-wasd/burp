@@ -451,6 +451,61 @@ export const de: Dictionary = {
         "Trinkgeld ist das Geld der Mitarbeitenden und zählt weder zum Umsatz noch zur Gebühr von Burp. Eine erstattete Rechnung zählt nicht.",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    overview: {
+      statOrders: "Bestellungen heute",
+      statRevenue: "Umsatz heute",
+      statAverage: "Durchschnitt je Bestellung",
+      statTips: "Trinkgeld heute",
+      statTipsHint: "gehört den Mitarbeitenden, nicht dem Restaurant",
+
+      inKitchen: "Gerade in der Küche",
+      allOrders: "Alle Bestellungen",
+      noOrdersTitle: "Gerade keine Bestellungen",
+      noOrdersBody: "Neue Bestellungen erscheinen hier, sobald ein Gast sie abschickt.",
+
+      tables: "Tische",
+      tablesBusy: "{busy} von {total} belegt",
+      noTablesTitle: "Keine Tische angelegt",
+      noTablesBody: "Legen Sie die Tische an, um QR-Aufkleber drucken zu können.",
+      noTablesAction: "Tische anlegen",
+
+      stateLEDIGT: "Frei",
+      stateOPPEN_NOTA: "Offene Rechnung",
+      stateBESTALLNING: "Bestellung da",
+      stateSERVERAS: "Fertig zum Servieren",
+    },
+
+    /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
+    staffAdmin: {
+      intro:
+        "Wer hier arbeitet, in welcher Rolle, und wer eingeladen ist, aber noch nicht beigetreten.",
+      actionFailed: "Die Aktion ist nicht durchgegangen.",
+
+      inviteTitle: "Jemanden einladen",
+      inviteHint:
+        "Die Person erhält einen Link, der sieben Tage gilt und nur für die hier eingetragene Adresse.",
+      email: "E-Mail-Adresse",
+      emailPlaceholder: "name@beispiel.de",
+      role: "Rolle",
+      invite: "Einladen",
+
+      inviteCreated: "Einladung erstellt",
+      inviteSendYourself: "Eine E-Mail ist unterwegs. Sie können den Link auch selbst senden:",
+      copy: "Kopieren",
+      copied: "Kopiert",
+
+      pendingTitle: "Wartet auf Antwort",
+      validUntil: "gültig bis {date}",
+      revoke: "Zurückziehen",
+
+      membersTitle: "Mitarbeitende",
+      you: "(Sie)",
+      ended: "beendet",
+      end: "Beenden",
+      resume: "Fortsetzen",
+    },
+
     upcomingLater: (count: number) =>
       count === 1
         ? "1 Vorbestellung später heute."
