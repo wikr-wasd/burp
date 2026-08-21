@@ -3,7 +3,8 @@
 De sju frågorna ur arkitekturunderlaget, med status och var i koden svaret ska
 landa. Fråga 8 tillkom när kartsidan byggdes, fråga 9 och 10 när koden mättes
 mot UI-mockuperna, fråga 12 när avräkningen byggdes, fråga 13 när GDPR-flödet
-byggdes och fråga 14 när kortterminalen kom.
+byggdes, fråga 14 när kortterminalen kom och fråga 15 när William frågade vad
+en makulering ska kosta.
 
 Frågorna är inte formaliteter. Fråga 5 blockerar Fas 1 — utan svar går det inte
 att ta betalt med kort. Fråga 4 kan blockera lanseringen av QR-flödet helt.
@@ -549,6 +550,42 @@ förtroende.
 **Fråga i samma andetag som Monri-avtalet.** Har de en terminal med API är
 frågan besvarad utan ett extra avtal; har de det inte är svaret sannolikt att
 det får förbli en inskriven siffra.
+
+---
+
+## 15. Ska en makulerad order kosta restaurangen något?
+
+**Status:** obesvarad · **Blockerar:** ingenting — men avgör om avgiftsmodellen
+håller när volymen kommer · **Ställd av William 2026-08-21**
+
+**Vad som gäller i dag.** Avgiftsunderlaget i `settlement_preview()` räknar
+bara order i `COMPLETED` och `REFUNDED` (migration 0039). En order som avbryts
+når aldrig `COMPLETED` och faller därför ur underlaget helt. **En makulering
+kostar alltså ingenting.** Migration 0038 lämnar dessutom tillbaka kupong,
+klippkort och presentkort — med en trigger, eftersom ordern kan avbrytas på
+fyra olika vägar och den femte kommer att skrivas av någon som inte läst det.
+
+**Varför det ändå är en fråga.** Har gästen betalat med kort tar inlösaren sin
+avgift på transaktionen, och vid en återbetalning får man i regel inte tillbaka
+den. Burp får då noll i intäkt på en order som redan kostat pengar att flytta.
+Vid enstaka makuleringar är det en kostnad för att göra affärer. Vid en
+restaurang som makulerar var tredje order är det något annat.
+
+**Tre vägar:**
+
+| Väg | Innebörd | Invändning |
+|---|---|---|
+| **A. Fritt att makulera** — som i dag | Enklast att förklara, och rätt när felet är restaurangens eller gästens ångrar sig direkt | Ingen broms alls. En restaurang som tar order den inte kan leverera märker det aldrig i sin faktura |
+| **B. Avgift efter att köket accepterat** | Skiljer "gästen ångrade sig innan någon rörde maten" från "maten var lagad". Följer statusmaskinen som redan finns — `PLACED` är gratis, efter `ACCEPTED` inte | Kräver att makuleringsorsak registreras, annars straffas restaurangen för gästens ångrande |
+| **C. Ingen avgift, men synlig frekvens** | Makuleringsgraden per restaurang på avräkningen och i backoffice. Ingen debitering, bara ett tal som går att prata om | Löser inte kostnaden, men gör problemet upptäckbart innan det blir stort |
+
+**Rekommendation: C nu, B senare om siffran visar att det behövs.** Att införa
+en avgift innan man vet hur ofta det händer är att lösa ett problem man inte
+mätt. Makuleringsgraden går att räkna ur `orders` redan i dag utan en enda ny
+kolumn — `cancelled_at` finns sedan migration 0005.
+
+Hänger ihop med fråga 12: den handlar om samma pengar från andra hållet, när
+måltiden såldes men delvis gavs tillbaka.
 
 ---
 

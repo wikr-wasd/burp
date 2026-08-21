@@ -46,6 +46,18 @@ Kartan ligger på STARTSIDAN (`/sv`) sedan den flyttade dit; `/upptack` är en
 OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. Se
 öppen fråga 8.
 
+### Byggt 2026-08-21
+
+- **Sidfoten fick spaltbredder som följer innehållet.** Fyra lika breda
+  spalter gav en fot där Kök bar åtta rader medan Städer bar tre och de två
+  kontogrupperna två var — en full spalt och tre nästan tomma bredvid varandra.
+  Kök bryts nu i två kolumner med ett smalare mellanrum än spalterna omkring
+  (annars läses den andra kolumnen som en femte spalt vars rubrik någon glömt),
+  gäst och restaurang delar spalt med var sin rubrik, och båda
+  upptäcktslistorna har samma tak på åtta rader med "Alla städer" som
+  spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
+  för ett som slutar sex rader under de andra.
+
 Det som återstår är i tur och ordning:
 
 1. **Konton och avtal** som ligger hos William (nedan). Inget av det är kod.
@@ -118,6 +130,17 @@ Ingenting går vidare här utan svar.
       standardvärdet, tillåter inte publika tjänster. Bytet är två
       miljövariabler och ingen kod. MapTiler är förstahandsförslaget — deras
       gratisnivå räcker, och en egen stil kan rita bort blått.
+- [ ] **Sentry — eller ett medvetet nej.** Beställt 2026-08-21, och
+      kontrollerat: inget `@sentry/*`, ingen `instrumentation.ts`, ingen
+      `sentry.*.config.ts`. **Ingenting rapporterar fel från produktion i
+      dag.** Ett fel i en route handler syns i Vercels logg om någon råkar
+      titta, och aldrig annars. Gratisnivån räcker länge; kräver ett konto och
+      en DSN i miljön. Bör vara på plats före lansering, inte efter.
+- [ ] **123Connect-repot tillgängligt** om säkerhetsjämförelsen ska göras.
+      Det ligger inte på den här maskinen. Läs invändningen i *Beställt
+      2026-08-21* först: det som är värt att hämta därifrån är praxis, inte
+      filer. En kopierad middleware ser rätt ut i en diff och kan tyst stänga
+      av det den ser ut att slå på.
 - [ ] **Avsändaradress för notiserna.** Brev skickas när `RESEND_API_KEY` och
       `NOTIFY_FROM` är satta; utan dem skrivs de bara i loggen. Avsändaren
       måste ligga på en domän som är verifierad hos leverantören, och
@@ -215,9 +238,173 @@ avvek från planen och det står varför i respektive commit.
 
 ---
 
+## Beställt 2026-08-21 — Williams lista, genomgången
+
+Sex punkter ur Williams anteckningar, var och en kontrollerad mot koden innan
+den fick en plats. **Tre av dem visade sig redan vara byggda** och kräver
+ingenting; två är riktiga och nya; en är en fråga och inte en uppgift.
+
+Att skriva upp en punkt som redan är byggd kostar mer än den tid det tar att
+bygga om den — nästa läsare tror att funktionen saknas och planerar runt det.
+Därför står svaret här och inte bara i ett chattsvar.
+
+### 1. Sidfoten — byggd 2026-08-21
+
+Se *Byggt 2026-08-21* ovan.
+
+### 2. Testa Burp som gäst, i en webbläsare — **bra idé, och den går att göra**
+
+Det här är den enda av punkterna som Claude kan utföra i sin helhet på egen
+hand, och skälet är värt att förstå: **gästflödet kräver ingen inloggning.**
+Spärren om lösenord gäller dashboard, kassa och backoffice — inte QR-sidan,
+menyn, varukorgen, kassan i QR-flödet eller kvittot. Just de ytorna har högst
+kvalitetskrav i produkten och är samtidigt de som aldrig setts av ett öga.
+
+`smoke.sh` kör redan 109 kontroller genom samma flöde, men den mäter något
+annat. Den svarar på om servern svarar rätt; den svarar inte på om knappen går
+att träffa med en tumme, om felmeddelandet betyder något för den som läser det,
+eller om det går att förstå var i beställningen man befinner sig. Ett grep av
+HTML:en bevisar ingenting — och det gäller ett röktest också.
+
+`node scripts/print-qr-links.mjs` ger länkarna till seed-borden.
+
+### 3. Sentry — **inte installerat**
+
+Kontrollerat: inget `@sentry/*` i någon `package.json`, ingen
+`instrumentation.ts`, ingen `sentry.*.config.ts`. Ingenting rapporterar fel
+från produktion i dag. Ett fel i en route handler syns i Vercels logg om någon
+råkar titta, och aldrig annars.
+
+Det här är värt att göra före lansering och inte efter. Det är dock **ett konto
+och ett beslut**, inte ren kod — se *Väntar på beslut*.
+
+### 4. Säkerhetsjämförelse mot 123Connect — **kan inte göras här, och bör göras annorlunda**
+
+123Connect-repot ligger inte på den här maskinen. Sökning under
+`C:\Users\wikr\` och `C:\Users\wikr\.claude\` ger ingen träff. Punkten är
+alltså blockerad tills repot finns tillgängligt.
+
+**Men invändningen är viktigare än blockeringen.** Att kopiera säkerhetskod
+mellan projekt är hur man ärver någon annans felkonfiguration. En kopierad
+middleware, en kopierad CSP eller en kopierad rate limiter ser rätt ut i en
+diff och kan tyst stänga av det den ser ut att slå på — och Burp har redan haft
+exakt den klassen av fel: RLS utan GRANT var verkningslös policy som såg
+komplett ut. Det som är värt att hämta från 123Connect är **praxis och
+checklistor**, inte filer: vilka rubriker sätts, hur hanteras sessioner, vad
+loggas aldrig.
+
+Det som går att göra i dag, utan 123Connect:
+
+- `/security-review` granskar grenens ändringar.
+- Supabase `get_advisors` listar saknade RLS-policyer och osäkra funktioner
+  direkt mot projektet.
+- `scripts/verify-schema.sh` kontrollerar redan RLS **och** GRANT, vilket är
+  den kontroll som en gång saknades.
+
+### 5. Bordsbokning online — **bra idé, riktig funktion, och en fälla i mitten**
+
+Passar produkten: restaurangsidan har redan öppettider, borden har zon,
+platsantal och koordinater i planritningen, och `country_time_zone()` finns
+sedan migration 0033. Det som saknas är tiden.
+
+**Fällan är dubbelbokningen, och den får inte lösas i applikationskoden.**
+"Är tiden ledig?" följt av "boka den" är två frågor, och mellan dem hinner en
+andra gäst ställa samma första fråga och få samma svar. Klockan sju en fredag
+är det inte ett sällsynt sammanträffande utan det normala fallet. Postgres
+löser det med en `exclude`-villkorlig över `tstzrange` och `btree_gist`, så att
+två överlappande bokningar på samma bord är omöjliga att skriva — samma sorts
+regel som triggern på `order_events`, och av samma skäl: den hör till datan och
+inte till den som råkar skriva.
+
+Och samma regel som priset: **lediga tider räknas på ett enda ställe.** Två
+uträkningar av tillgänglighet glider isär, och då visar sidan en tid som
+bokningen sedan nekar. Öppettiderna har redan gjort den resan en gång —
+`open_restaurant_ids` (migration 0025) finns just därför att listan och
+beställningen inte fick svara olika på om restaurangen var öppen.
+
+Kvarstår att bestämma innan något byggs: hur bokade bord samspelar med
+gäster som kommer in från gatan och tar samma bord, och vad som händer när
+någon inte dyker upp.
+
+### 6. Personalen klickar "betalt" i appen i stället för terminalsynk — **redan byggt**
+
+Migration 0044. `TERMINAL` är en leverantör och inte ett gästval: gästen drar
+kortet i restaurangens egen terminal, personalen registrerar beloppet i kassan
+efteråt, precis som med kontanter. Kassaavstämningen skiljer på det och sedlar,
+vilket var hela poängen — `provider = 'CASH'` måste fortsätta betyda pengar i
+lådan.
+
+Det William beskriver är alltså inte ett alternativ till det byggda utan en
+beskrivning av det. Att läsa terminalen på riktigt är öppen fråga 14 och kräver
+en terminal med moln-API.
+
+### 7. Betala i kassan vid avhämtning — **redan byggt**
+
+Samma växel som vid bordet: "På plats" eller "Med kort", och `MenuOrder` är
+samma komponent för `TABLE` och `PICKUP`. Utan kortnycklar visas bara "På
+plats", vilket är korrekt beteende och inte ett fel.
+
+Värt att veta inför punkt 8: avhämtning **plus** betala på plats betyder att
+maten lagas innan någon betalat. Det är en risk restaurangen tar, inte Burp,
+men den bör vara ett val restaurangen kan stänga av.
+
+### 8. Avhämtning med tid och notis — **den mest värdefulla av de nya, och halva grunden finns**
+
+Kontrollerat, och det här var överraskningen: **avhämtning fungerar redan.**
+`PICKUP` finns i `order_type` sedan migration 0001, restaurangsidan renderar
+`MenuOrder` med `context={{ kind: "PICKUP" }}`, och `pickupSlots` erbjuder
+hämttider ur öppettiderna när restaurangen tillåter schemalagda order.
+
+Det som saknas är precis det William pekar på:
+
+- **Gästen får ingen notis alls.** `notifyNewOrder()` skriver till restaurangen
+  och `notifyRestaurantApplication()` till Burp. Det finns ingen tredje
+  funktion. Gästen får veta att ordern gick igenom på skärmen, och sedan
+  ingenting.
+- **Push är personalens.** `push_subscriptions` (migration 0036) kräver
+  `is_staff_of(restaurant_id)` i sin policy. En gäst kan inte prenumerera.
+  Gästnotiser kräver alltså en schemaändring, inte bara en avsändare.
+- **Ingen uppskattad tid från personalen.** `pickupSlots` är tider gästen väljer
+  i förväg ur öppettiderna. Den som går in och beställer på stående fot väljer
+  ingen tid alls, och personalen har inget fält att fylla i.
+
+Williams förslag — att personalen väljer 10/15/20/30 eller övrigt när ordern
+tas emot, och att gästen får den siffran och sedan ett andra meddelande när
+maten står klar — är det som saknas, och det är billigt i förhållande till vad
+det ger. `prep_time_minutes` finns redan som restauranginställning och är
+rimlig som förvalt värde i den knappraden.
+
+**En invändning om kanalen.** "Via appen" finns inte än; mobilappen är Fas 3.
+Fram till dess är kanalerna webbpush (kräver VAPID-nycklar, som redan står som
+en punkt nedan) och e-post (kräver `RESEND_API_KEY`, likaså). Båda kräver att
+gästen har ett konto eller lämnar en adress, vilket William också skriver. Det
+betyder att avhämtningsnotiser **inte** kan lova något till den anonyma gästen
+— och att det är rätt: QR-flödet vid bordet ska förbli kontolöst.
+
+### 9. Makulering och avgift — **en fråga, inte en uppgift**
+
+Vad som gäller i dag, läst ur migration 0039:
+
+- **En avbruten order kostar ingenting.** Avgiftsunderlaget räknar bara order i
+  `COMPLETED` och `REFUNDED`. En order som avbryts når aldrig dit och faller ur
+  helt.
+- **En helt återbetald order krediterar avgiften.**
+- **En delåterbetalning gör det inte** — måltiden såldes, gästen satt kvar och
+  åt resten. Det är ett fattat beslut och står som öppen fråga 12.
+- Migration 0038 lämnar dessutom tillbaka kupong, klippkort och presentkort när
+  ordern avbryts, med en trigger och inte i route handlern, eftersom ordern kan
+  avbrytas på fyra olika vägar.
+
+Frågan William ställer är alltså inte "vad händer" utan "är det rätt". En
+restaurang som makulerar var tredje order kostar Burp pengar i inlösarens
+avgifter utan att ge någon intäkt. Det är ett affärsbeslut och läggs som öppen
+fråga 15.
+
+---
+
 ## Näst på tur
 
-De tre översta är kod och går att börja på direkt. Resten kräver dig, hårdvara
+De fem översta är kod och går att börja på direkt. Resten kräver dig, hårdvara
 eller ett beslut.
 
 - [ ] **Personalytorna översätts.** Beslutat 2026-08-19: gästytorna först,
@@ -253,6 +440,35 @@ eller ett beslut.
       har alltså inget språk i adressen alls. Antingen flyttar de in under
       `[locale]`, eller så läser de `Accept-Language` som kvittona gör.
       Ytorna är noindex, så det senare räcker.
+
+- [ ] **Gå igenom gästflödet som gäst, i en webbläsare.** Beställt 2026-08-21.
+      Den enda genomgången Claude kan göra utan William: QR-sidan, menyn,
+      varukorgen, QR-kassan och kvittot kräver ingen inloggning. Det är också
+      de ytor som har högst kvalitetskrav i produkten och som aldrig setts av
+      ett öga. `smoke.sh` svarar på om servern svarar rätt, inte på om flödet
+      går att förstå. Länkarna till seed-borden ur
+      `node scripts/print-qr-links.mjs`; öppna på `localhost`, aldrig
+      `127.0.0.1`.
+
+- [ ] **Avhämtning: uppskattad tid från personalen, och notis till gästen.**
+      Beställt 2026-08-21. Avhämtning fungerar redan — `PICKUP`,
+      `MenuOrder` och `pickupSlots` finns. Tre delar saknas, och den första är
+      störst:
+
+      1. **Gästen får ingen notis alls i dag.** Det finns bara
+         `notifyNewOrder()` till restaurangen och
+         `notifyRestaurantApplication()` till Burp. En tredje väg behövs.
+      2. **Push är personalens.** `push_subscriptions` policy kräver
+         `is_staff_of(restaurant_id)` — gästprenumeration kräver en migration,
+         inte bara en avsändare.
+      3. **Personalen har inget tidsfält.** Knappraden 10/15/20/30/övrigt när
+         ordern tas emot, med `prep_time_minutes` som förval, och siffran
+         vidare till gästen. Sedan ett andra meddelande när maten är klar.
+
+      Kanalen är webbpush eller e-post fram till mobilappen, och båda kräver
+      att gästen har konto eller lämnat en adress. Anonym QR-beställning vid
+      bordet ska förbli kontolös — avhämtningsnotiser lovar därför ingenting
+      till den gästen, och det är rätt.
 
 - [ ] **VAPID-nycklar.** Push är byggt men skickar ingenting utan nycklar.
       `npx web-push generate-vapid-keys`, sedan `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
@@ -308,6 +524,24 @@ eller ett beslut.
 
 ### Fas 2 och framåt
 
+- [ ] **Bordsbokning online.** Beställd 2026-08-21. Kalender, tider, och en
+      tagen tid som försvinner för nästa gäst. Grunden finns: öppettider,
+      bord med zon och platsantal, planritning och `country_time_zone()`.
+
+      **Dubbelbokningen får inte lösas i applikationskoden.** "Är tiden ledig?"
+      och "boka den" är två frågor, och mellan dem hinner nästa gäst få samma
+      svar på den första. Ett `exclude`-villkor över `tstzrange` med
+      `btree_gist` gör två överlappande bokningar på samma bord omöjliga att
+      skriva — regeln hör till datan, som triggern på `order_events`.
+
+      **Lediga tider räknas på ett enda ställe**, av samma skäl som priset.
+      `open_restaurant_ids` (migration 0025) finns just därför att listan och
+      beställningen inte fick svara olika på om restaurangen var öppen.
+
+      Att bestämma före bygget: hur ett bokat bord samspelar med en gäst som
+      kommer in från gatan och sätter sig där, och vad som händer vid utebliven
+      gäst.
+
 - [ ] **Surfplatta vid bordet.** Beslutad. Delar mycket med QR-flödet.
 - [ ] **Mobilapp (React Native).** Beslutad. `@burp/core` är byggt för att
       delas och importerar aldrig något runtime-beroende.
@@ -338,6 +572,10 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Röktestet strypt av rate limitern vid två körningar i rad | `scripts/smoke.sh` | Inte ett fel. Kontrollerna rapporteras som `hopp`; vänta en minut |
 | Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av startsidans karta. Öppen fråga 8 |
 | Push är byggt men tyst utan VAPID-nycklar | `lib/notify/push.ts` | Nycklarna genereras på en minut, men de måste finnas i miljön |
+| Gästen får aldrig en notis — bara restaurangen och Burp | `lib/notify/index.ts` har `notifyNewOrder()` och `notifyRestaurantApplication()`, ingen tredje | Avhämtning. Gästen ser sin status på skärmen och får ingenting när maten är klar |
+| Push går inte att prenumerera på som gäst | `push_subscriptions` policy kräver `is_staff_of(restaurant_id)`, migration 0036 | Avhämtningsnotiser. Kräver en migration, inte bara en avsändare |
+| Ingenting rapporterar fel från produktion | ingen Sentry, ingen `instrumentation.ts` | Lansering. Ett fel i en route handler syns i Vercels logg om någon råkar titta |
+| Kökstyperna i foten står på restaurangens språk på alla fem språkversioner | `listCuisines()` läser `restaurants.cuisines`, fritext | Medvetet så länge fältet är fritext: restaurangens egen text översätts inte. En översatt fot kräver en styrd lista att välja ur, vilket är ett större beslut än foten |
 | Push aldrig sedd på en riktig enhet | `components/staff/push-toggle.tsx` | Kräver nycklar, https och en telefon. iPhone kräver dessutom att PWA:n lagts till på hemskärmen |
 | En delåterbetalning krediterar inte Burps avgift | Migration 0039 | Beslut, inte lucka. Öppen fråga 12 |
 | Avräkningen faktureras för hand — ingen faktura genereras | `settlements.invoice_number` | Fakturan skrivs i Burps bokföring; produkten håller bara underlaget och numret |
