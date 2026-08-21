@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -21,15 +21,15 @@ export async function respondToReview(
   reviewId: string,
   response: string,
 ): Promise<ActionResult> {
-  await requireStaff(["owner", "manager"]);
+  const staff = await requireStaff(["owner", "manager"]);
 
   const trimmed = response.trim();
 
   if (trimmed.length === 0) {
-    return { ok: false, message: "Skriv något innan du publicerar svaret." };
+    return { ok: false, message: staffErrors(staff).replyEmpty };
   }
   if (trimmed.length > 2000) {
-    return { ok: false, message: "Svaret är för långt. Håll det under 2000 tecken." };
+    return { ok: false, message: staffErrors(staff).replyTooLong };
   }
 
   const supabase = await createClient();

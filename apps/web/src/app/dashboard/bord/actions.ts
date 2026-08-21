@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { generatePublicId } from "@burp/core";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -25,8 +25,8 @@ export async function createTable(_previous: ActionResult | null, formData: Form
   const zone = String(formData.get("zone") ?? "").trim();
   const capacityRaw = String(formData.get("capacity") ?? "").trim();
 
-  if (!tableNumber) return { ok: false, message: "Bordsnummer krävs." };
-  if (tableNumber.length > 20) return { ok: false, message: "Bordsnumret är för långt." };
+  if (!tableNumber) return { ok: false, message: staffErrors(staff).tableNumberRequired };
+  if (tableNumber.length > 20) return { ok: false, message: staffErrors(staff).tableNumberTooLong };
 
   const capacity = capacityRaw ? Number(capacityRaw) : null;
   if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1 || capacity > 100)) {
@@ -59,7 +59,7 @@ export async function createTable(_previous: ActionResult | null, formData: Form
     }
   }
 
-  return { ok: false, message: "Kunde inte generera en unik QR-kod. Försök igen." };
+  return { ok: false, message: staffErrors(staff).qrCodeFailed };
 }
 
 export async function setTableLocked(tableId: string, locked: boolean): Promise<ActionResult> {

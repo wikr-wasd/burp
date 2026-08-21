@@ -456,14 +456,32 @@ eller ett beslut.
       - **Statistiken, omdömena, erbjudandena, presentkorten, avräkningen och
         händelseloggen.** Sex små ytor i ett gemensamt `reports`-avsnitt.
 
-      **Kvar: serveråtgärdernas felmeddelanden och backoffice.** Se nedan.
+      - **Serveråtgärdernas felmeddelanden.** Ett `errors`-avsnitt och en
+        `staffErrors(staff)` i `lib/auth.ts`. Utan dem svarade en bosnisk sida
+        på svenska så fort någon skrev ett felaktigt belopp — sidan var
+        översatt men inte samtalet.
+      - **Bilduppladdningen och inbjudningssidan.** Bilduppladdningen delas av
+        menyredigeraren och presentationen och fick ett eget litet avsnitt i
+        stället för två kopior. Inbjudningssidan läser `Accept-Language` som
+        kvittona gör, eftersom personen är inloggad men ännu **inte personal** —
+        hen har ingen `staff.locale` att läsa.
 
-      **Serveråtgärdernas felmeddelanden är kvar på svenska.** De ligger i
-      `actions.ts`-filerna och skickas till klienten som `result.message`.
-      Gränssnittet visar dem rakt av, så en bosnisk sida kan svara på svenska
-      när något går fel. Det är den sista systematiska luckan, och den är
-      medveten så länge: en åtgärd är serverkod och kan läsa `staff.locale`
-      själv, men det är ett eget svep genom ett tiotal filer.
+      **Personaldelen är därmed översatt.** Kvar är bara `metadata.title` på
+      varje sida, ett utvecklarfelmeddelande i menyredigeraren, och backoffice.
+
+      **Databasens egna felmeddelanden står kvar på svenska.** Där en åtgärd
+      returnerar `error.message` rakt av kommer texten ur Postgres eller ur ett
+      `raise exception` i en migration — "Du får inte bjuda in någon som %",
+      "Inbjudan har gått ut". Ordboken når dem inte. Att översätta dem kräver
+      att funktionerna returnerar en **kod** i stället för en mening, och att
+      appen slår upp den; det är en egen och större ändring, och den rör
+      migrationer som redan är körda i produktion.
+
+      **Landsspråket kan slås på nu.** `DEFAULT_LOCALE_BY_COUNTRY` i
+      `i18n/config.ts` var det som medvetet lämnades kvar tills ytorna följde
+      med — se `staffLocale()`. Nu gör de det. Kvar att avgöra: ska en
+      restaurang i Sarajevo möta bosniska direkt, eller ska svenska förbli
+      utgångsläget tills någon aktivt väljer?
 
       **Backoffice förblir svensk, och det är ett beslut.** `/backoffice` är
       Burps egen plattformsyta och läses av Burps eget team, inte av

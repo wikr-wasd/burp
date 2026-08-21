@@ -74,6 +74,7 @@ interface MenuLocale {
   country: CountryCode;
   currency: CurrencyCode;
   labels: MenuLabels;
+  imageLabels: Dictionary["staff"]["image"];
 }
 
 const MenuLocaleContext = createContext<MenuLocale | null>(null);
@@ -97,6 +98,7 @@ export function MenuEditor({
   country,
   currency,
   labels,
+  imageLabels,
 }: {
   menus: EditorMenu[];
   restaurantId: string;
@@ -105,11 +107,13 @@ export function MenuEditor({
   /** Restaurangens valuta. Avgör hur priser skrivs och tolkas. */
   currency: CurrencyCode;
   labels: MenuLabels;
+  /** Bilduppladdningens besked. Delas med presentationen — se ordboken. */
+  imageLabels: Dictionary["staff"]["image"];
 }) {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <MenuLocaleContext.Provider value={{ country, currency, labels }}>
+    <MenuLocaleContext.Provider value={{ country, currency, labels, imageLabels }}>
     <div className="mt-8">
       {error ? (
         <p role="alert" className="mb-4 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
@@ -597,6 +601,7 @@ function ItemRow({
                 menuItemId={item.id}
                 currentUrl={item.imageUrl}
                 label={fill(labels.imageUploadFor, { name: item.name })}
+                labels={useMenuLocale().imageLabels}
               />
             </div>
           </div>

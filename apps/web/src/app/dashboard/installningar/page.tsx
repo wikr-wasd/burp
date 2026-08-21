@@ -105,6 +105,7 @@ export default async function SettingsPage() {
                 heroImageUrl: restaurant.hero_image_url,
               }}
               labels={t.settings}
+              imageLabels={t.image}
             />
           </div>
         ) : null}

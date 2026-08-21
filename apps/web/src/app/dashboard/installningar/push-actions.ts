@@ -1,6 +1,6 @@
 "use server";
 
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -34,7 +34,7 @@ export async function savePushSubscription(
   const staff = await requireStaff();
 
   if (!input.endpoint || !input.p256dh || !input.auth) {
-    return { ok: false, message: "Prenumerationen var ofullständig." };
+    return { ok: false, message: staffErrors(staff).subscriptionIncomplete };
   }
 
   const supabase = await createClient();

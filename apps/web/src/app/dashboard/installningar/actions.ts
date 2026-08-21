@@ -15,7 +15,7 @@ import {
   type OpeningHours,
   type OrderStatus,
 } from "@burp/core";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
 import { connectableProviders, paymentProvider, PaymentProviderError } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -103,7 +103,7 @@ export async function saveOrderPolicy(input: OrderPolicyInput): Promise<ActionRe
     return fail("Tillagningstiden ska vara mellan 1 och 240 minuter.");
   }
   if (!Number.isInteger(input.editWindowSeconds) || input.editWindowSeconds < 0 || input.editWindowSeconds > 3600) {
-    return fail("Ändringsfönstret ska vara mellan 0 och 3600 sekunder.");
+    return fail(staffErrors(staff).editWindowRange);
   }
 
   // parseOrderPolicy filtrerar bort okända statusvärden och faller tillbaka på
@@ -167,8 +167,8 @@ export async function savePresentation(input: PresentationInput): Promise<Action
   const postal = normalizePostalCode(staff.country, input.postalCode);
   const city = input.city.trim();
 
-  if (!street) return fail("Gatuadressen får inte vara tom.");
-  if (!city) return fail("Staden får inte vara tom.");
+  if (!street) return fail(staffErrors(staff).streetRequired);
+  if (!city) return fail(staffErrors(staff).cityRequired);
   if (postal === null) {
     return fail(
       `Postnumret ser inte ut att gälla i ${COUNTRY_INFO[staff.country].name}.`,
@@ -176,7 +176,7 @@ export async function savePresentation(input: PresentationInput): Promise<Action
   }
 
   if (input.priceTier !== null && ![1, 2, 3, 4].includes(input.priceTier)) {
-    return fail("Prisklassen måste vara 1–4.");
+    return fail(staffErrors(staff).priceTierRange);
   }
 
   /*
@@ -217,8 +217,7 @@ export async function savePresentation(input: PresentationInput): Promise<Action
     const point = parseCoordinates(input.location);
     if (!point) {
       return fail(
-        "Kunde inte läsa någon plats ur det där. Klistra in en länk från Google Maps, " +
-          "eller skriv koordinaterna som \"43.8595, 18.4287\".",
+        staffErrors(staff).locationUnreadable,
       );
     }
     update["location"] = toWkt(point);
@@ -263,13 +262,13 @@ export async function savePunchCard(input: {
   } else {
     const size = Number(input.size.trim());
     if (!Number.isInteger(size) || size < 2 || size > 50) {
-      return fail("Antalet besök ska vara mellan 2 och 50. Ett kort på ett besök är inget kort.");
+      return fail(staffErrors(staff).punchCardRange);
     }
     update["punch_card_size"] = size;
 
     if (input.maxReward.trim()) {
       const cap = parseAmount(input.maxReward, currency);
-      if (cap === null || cap <= 0) return fail("Taket gick inte att tolka.");
+      if (cap === null || cap <= 0) return fail(staffErrors(staff).capUnreadable);
       update["punch_card_max_reward_ore"] = cap;
     } else {
       update["punch_card_max_reward_ore"] = null;
@@ -340,7 +339,7 @@ export async function startCardOnboarding(): Promise<ActionResult & { url?: stri
     return fail(
       error instanceof PaymentProviderError
         ? error.message
-        : "Kunde inte nå betalleverantören. Försök igen.",
+        : staffErrors(staff).providerUnreachable,
     );
   }
 

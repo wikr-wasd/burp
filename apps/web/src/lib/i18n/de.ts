@@ -873,6 +873,87 @@ export const de: Dictionary = {
       unblock: "Wieder öffnen",
     },
 
+    /* Se sv.ts. Skickas som result.message — aldrig som objekt. */
+    errors: {
+      menuNeedsName: "Die Speisekarte braucht einen Namen.",
+      nameTooLong: "Der Name ist zu lang.",
+      menuNeedsDay: "Die Speisekarte muss an mindestens einem Tag gelten.",
+      endAfterStart: "Die Endzeit muss nach der Startzeit liegen.",
+      menuNoPublishedItems:
+        "Die Speisekarte hat noch keine veröffentlichten Gerichte. Veröffentlichen Sie zuerst eines.",
+      categoryNeedsName: "Die Kategorie braucht einen Namen.",
+      itemNeedsName: "Das Gericht braucht einen Namen.",
+      itemNotFound: "Das Gericht wurde nicht gefunden.",
+      groupNeedsName: "Die Gruppe braucht einen Namen.",
+      minAtLeastZero: "Der Mindestwert muss 0 oder mehr sein.",
+      maxAtLeastOne: "Der Höchstwert muss mindestens 1 sein.",
+      minNotAboveMax: "Der Mindestwert kann nicht größer als der Höchstwert sein.",
+      optionNeedsName: "Die Beilage braucht einen Namen.",
+      timeMustBeFuture:
+        "Der Zeitpunkt muss in der Zukunft liegen — sonst ist das Gericht bereits verfügbar.",
+
+      onlyCashOrTerminal: "Hier lassen sich nur Bar und Karte am Terminal erfassen.",
+      onlyCompletedOrders:
+        "Nur eine abgeschlossene Bestellung lässt sich kassieren. Markieren Sie sie zuerst als serviert.",
+      orderAlreadyPaid: "Die Bestellung ist bereits bezahlt.",
+      amountAboveZero: "Der Betrag muss größer als null sein.",
+      alreadySettledCash: "Die Bestellung ist bereits bar kassiert.",
+      alreadySettledTerminal: "Die Bestellung ist bereits am Terminal kassiert.",
+      tableOrderAlreadySettled: "Eine der Bestellungen des Tisches ist bereits kassiert.",
+      refundNeedsReason: "Schreiben Sie, warum die Rechnung erstattet wird.",
+      providerAccountNotFound: "Das Zahlungskonto wurde beim Anbieter nicht gefunden.",
+      paymentMissingReference: "Die Zahlung hat beim Anbieter keine Referenz.",
+      providerUnknownError: "Unbekannter Fehler beim Anbieter.",
+      providerRefundFailed: "Der Anbieter konnte die Erstattung nicht ausführen.",
+      providerUnreachable: "Der Zahlungsanbieter war nicht erreichbar. Versuchen Sie es erneut.",
+
+      editWindowRange: "Das Änderungsfenster muss zwischen 0 und 3600 Sekunden liegen.",
+      streetRequired: "Die Straße darf nicht leer sein.",
+      cityRequired: "Die Stadt darf nicht leer sein.",
+      priceTierRange: "Die Preisklasse muss 1–4 sein.",
+      locationUnreadable:
+        "Daraus ließ sich kein Ort lesen. Fügen Sie einen Link aus Google Maps ein oder schreiben Sie die Koordinaten als 43.8595, 18.4287.",
+      punchCardRange:
+        "Die Zahl der Besuche muss zwischen 2 und 50 liegen. Eine Karte für einen Besuch ist keine Karte.",
+
+      tableNumberRequired: "Eine Tischnummer ist erforderlich.",
+      tableNumberTooLong: "Die Tischnummer ist zu lang.",
+      qrCodeFailed: "Es ließ sich kein eindeutiger QR-Code erzeugen. Versuchen Sie es erneut.",
+
+      replyEmpty: "Schreiben Sie etwas, bevor Sie die Antwort veröffentlichen.",
+      replyTooLong: "Die Antwort ist zu lang. Bleiben Sie unter 2000 Zeichen.",
+
+      couponCodeFormat: "Der Code muss 3–32 Zeichen haben, nur Buchstaben und Ziffern.",
+      percentRange: "Der Prozentsatz muss zwischen 1 und 100 liegen.",
+      capUnreadable: "Die Obergrenze ließ sich nicht lesen.",
+      amountUnreadable: "Der Betrag ließ sich nicht lesen.",
+      minOrderUnreadable: "Die Mindestsumme ließ sich nicht lesen.",
+      endDateUnreadable: "Das Enddatum ließ sich nicht lesen.",
+      couponCodeExists: "Diesen Code gibt es bei Ihnen schon.",
+      giftCardCodeFailed: "Es ließ sich kein eindeutiger Code anlegen. Versuchen Sie es erneut.",
+
+      imageNotYours: "Das Bild gehört nicht zu Ihrem Restaurant.",
+      approvedImageSupport: "Freigegebene Bilder entfernt der Burp-Support.",
+      subscriptionIncomplete: "Das Abonnement war unvollständig.",
+
+      emailRequired: "Schreiben Sie eine E-Mail-Adresse.",
+      invitationExists: "Für diese Adresse gibt es bereits eine offene Einladung.",
+    },
+
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    image: {
+      formatError: "Das Bild muss JPEG, PNG, WebP oder AVIF sein.",
+      uploadedNotice:
+        "Das Bild ist hochgeladen und wartet auf Prüfung. Gäste sehen es, sobald es freigegeben ist.",
+    },
+
+    /* Inbjudningssidan. Personen är inloggad men ännu inte personal. */
+    invitation: {
+      joinFailed: "Die Einladung konnte nicht eingelöst werden.",
+      joining: "Wird beigetreten…",
+      join: "Beitreten",
+    },
+
     upcomingLater: (count: number) =>
       count === 1
         ? "1 Vorbestellung später heute."

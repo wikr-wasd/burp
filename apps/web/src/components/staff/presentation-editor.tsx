@@ -46,6 +46,7 @@ export function PresentationEditor({
   publicPath,
   initial,
   labels,
+  imageLabels,
 }: {
   restaurantId: string;
   restaurantName: string;
@@ -55,6 +56,8 @@ export function PresentationEditor({
   initial: Presentation;
   /** Inställningarnas texter ur ordboken. Rena strängar — komponenten är klientkod. */
   labels: Dictionary["staff"]["settings"];
+  /** Bilduppladdningens besked. Delas med menyredigeraren — se ordboken. */
+  imageLabels: Dictionary["staff"]["image"];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -127,6 +130,7 @@ export function PresentationEditor({
           <ImageUpload
             restaurantId={restaurantId}
             label={labels.heroUpload}
+            labels={imageLabels}
             currentUrl={initial.heroImageUrl}
           />
         </div>

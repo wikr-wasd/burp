@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { normalizeCouponCode, parseAmount, type CurrencyCode } from "@burp/core";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -52,7 +52,7 @@ export async function createCoupon(input: CouponInput): Promise<ActionResult> {
 
   const code = normalizeCouponCode(input.code);
   if (code.length < 3 || code.length > 32) {
-    return fail("Koden ska vara 3–32 tecken, bara bokstäver och siffror.");
+    return fail(staffErrors(staff).couponCodeFormat);
   }
 
   const row: Record<string, unknown> = {
@@ -66,32 +66,32 @@ export async function createCoupon(input: CouponInput): Promise<ActionResult> {
   if (input.kind === "PERCENT") {
     const percent = Number(input.percent.replace(",", "."));
     if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
-      return fail("Procentsatsen ska vara mellan 1 och 100.");
+      return fail(staffErrors(staff).percentRange);
     }
     // Baspunkter, som allt annat i procent i produkten. 25 % = 2500.
     row["discount_bps"] = Math.round(percent * 100);
 
     if (input.maxDiscount.trim()) {
       const cap = parseAmount(input.maxDiscount, currency);
-      if (cap === null || cap <= 0) return fail("Taket gick inte att tolka.");
+      if (cap === null || cap <= 0) return fail(staffErrors(staff).capUnreadable);
       row["max_discount_ore"] = cap;
     }
   } else {
     const amount = parseAmount(input.amount, currency);
-    if (amount === null || amount <= 0) return fail("Beloppet gick inte att tolka.");
+    if (amount === null || amount <= 0) return fail(staffErrors(staff).amountUnreadable);
     row["discount_ore"] = amount;
     row["currency"] = currency;
   }
 
   if (input.minOrder.trim()) {
     const min = parseAmount(input.minOrder, currency);
-    if (min === null || min < 0) return fail("Minsta ordersumma gick inte att tolka.");
+    if (min === null || min < 0) return fail(staffErrors(staff).minOrderUnreadable);
     row["min_order_ore"] = min;
   }
 
   if (input.validUntil.trim()) {
     const until = new Date(input.validUntil);
-    if (Number.isNaN(until.getTime())) return fail("Slutdatumet gick inte att tolka.");
+    if (Number.isNaN(until.getTime())) return fail(staffErrors(staff).endDateUnreadable);
     row["valid_until"] = until.toISOString();
   }
 
@@ -103,7 +103,7 @@ export async function createCoupon(input: CouponInput): Promise<ActionResult> {
 
   if (error) {
     // 23505 = det unika indexet på (restaurant_id, code).
-    if (error.code === "23505") return fail("Koden finns redan hos er.");
+    if (error.code === "23505") return fail(staffErrors(staff).couponCodeExists);
     return fail(error.message);
   }
 

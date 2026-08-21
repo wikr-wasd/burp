@@ -1,5 +1,7 @@
 "use client";
 
+import type { Dictionary } from "@/lib/i18n";
+
 import { useState, useTransition } from "react";
 import { acceptInvitation } from "@/app/personal/inbjudan/[token]/actions";
 
@@ -11,7 +13,14 @@ import { acceptInvitation } from "@/app/personal/inbjudan/[token]/actions";
  * öppnades går inte att ångra — inte heller när den öppnades av en
  * mailklient som förhandshämtar länkar.
  */
-export function AcceptInvitation({ token }: { token: string }) {
+export function AcceptInvitation({
+  token,
+  labels,
+}: {
+  token: string;
+  /** Inbjudningssidans texter ur ordboken. Rena strängar — klientkod. */
+  labels: Dictionary["staff"]["invitation"];
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -34,12 +43,12 @@ export function AcceptInvitation({ token }: { token: string }) {
           startTransition(async () => {
             const result = await acceptInvitation(token);
             // Lyckas den omdirigerar servern och vi kommer aldrig hit.
-            if (!result?.ok) setError(result?.message ?? "Inbjudan kunde inte lösas in.");
+            if (!result?.ok) setError(result?.message ?? labels.joinFailed);
           });
         }}
         className="btn btn-primary w-full"
       >
-        {pending ? "Ansluter…" : "Gå med"}
+        {pending ? labels.joining : labels.join}
       </button>
     </div>
   );

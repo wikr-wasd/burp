@@ -1065,6 +1065,103 @@ export const sv = {
       unblock: "Öppna igen",
     },
 
+    /**
+     * Serveråtgärdernas svar när något inte går igenom.
+     *
+     * De här texterna skickas tillbaka som `result.message` och visas rakt av
+     * i gränssnittet. Utan dem svarade en bosnisk sida på svenska så fort
+     * någon skrev ett felaktigt belopp — sidan var översatt men inte samtalet.
+     *
+     * Avsnittet passerar ALDRIG server/klient-gränsen som objekt: en åtgärd är
+     * serverkod och plockar ut den sträng den behöver. Bara strängen reser.
+     *
+     * **Databasens egna fel står kvar på sitt språk.** Där en åtgärd returnerar
+     * `error.message` rakt av kommer texten ur Postgres eller ur ett
+     * `raise exception` i en migration, och den är inte ordbokens att styra.
+     * Se raden i docs/TODO.md.
+     */
+    errors: {
+      menuNeedsName: "Menyn behöver ett namn.",
+      nameTooLong: "Namnet är för långt.",
+      menuNeedsDay: "Menyn måste gälla minst en dag.",
+      endAfterStart: "Sluttiden måste ligga efter starttiden.",
+      menuNoPublishedItems: "Menyn har inga publicerade rätter än. Publicera minst en rätt först.",
+      categoryNeedsName: "Kategorin behöver ett namn.",
+      itemNeedsName: "Rätten behöver ett namn.",
+      itemNotFound: "Rätten hittades inte.",
+      groupNeedsName: "Gruppen behöver ett namn.",
+      minAtLeastZero: "Minsta antal måste vara 0 eller mer.",
+      maxAtLeastOne: "Högsta antal måste vara minst 1.",
+      minNotAboveMax: "Minsta antal kan inte vara större än högsta.",
+      optionNeedsName: "Tillvalet behöver ett namn.",
+      timeMustBeFuture: "Tidpunkten måste ligga i framtiden — annars är rätten redan tillgänglig.",
+
+      onlyCashOrTerminal: "Bara kontant och kort i terminal kan registreras här.",
+      onlyCompletedOrders: "Bara en slutförd order kan kvitteras. Markera den som serverad först.",
+      orderAlreadyPaid: "Ordern är redan betald.",
+      amountAboveZero: "Beloppet måste vara större än noll.",
+      alreadySettledCash: "Ordern är redan kvitterad kontant.",
+      alreadySettledTerminal: "Ordern är redan kvitterad i terminalen.",
+      tableOrderAlreadySettled: "En av bordets order är redan kvitterad.",
+      refundNeedsReason: "Skriv varför notan betalas tillbaka.",
+      providerAccountNotFound: "Betalkontot hittades inte hos leverantören.",
+      paymentMissingReference: "Betalningen saknar referens hos leverantören.",
+      providerUnknownError: "Okänt fel hos leverantören.",
+      providerRefundFailed: "Leverantören kunde inte genomföra återbetalningen.",
+      providerUnreachable: "Kunde inte nå betalleverantören. Försök igen.",
+
+      editWindowRange: "Ändringsfönstret ska vara mellan 0 och 3600 sekunder.",
+      streetRequired: "Gatuadressen får inte vara tom.",
+      cityRequired: "Staden får inte vara tom.",
+      priceTierRange: "Prisklassen måste vara 1–4.",
+      locationUnreadable:
+        "Kunde inte läsa någon plats ur det där. Klistra in en länk från Google Maps, eller skriv koordinaterna som 43.8595, 18.4287.",
+      punchCardRange:
+        "Antalet besök ska vara mellan 2 och 50. Ett kort på ett besök är inget kort.",
+
+      tableNumberRequired: "Bordsnummer krävs.",
+      tableNumberTooLong: "Bordsnumret är för långt.",
+      qrCodeFailed: "Kunde inte generera en unik QR-kod. Försök igen.",
+
+      replyEmpty: "Skriv något innan du publicerar svaret.",
+      replyTooLong: "Svaret är för långt. Håll det under 2000 tecken.",
+
+      couponCodeFormat: "Koden ska vara 3–32 tecken, bara bokstäver och siffror.",
+      percentRange: "Procentsatsen ska vara mellan 1 och 100.",
+      capUnreadable: "Taket gick inte att tolka.",
+      amountUnreadable: "Beloppet gick inte att tolka.",
+      minOrderUnreadable: "Minsta ordersumma gick inte att tolka.",
+      endDateUnreadable: "Slutdatumet gick inte att tolka.",
+      couponCodeExists: "Koden finns redan hos er.",
+      giftCardCodeFailed: "Kunde inte skapa en unik kod. Försök igen.",
+
+      imageNotYours: "Bilden hör inte till din restaurang.",
+      approvedImageSupport: "Godkända bilder tas bort via Burp support.",
+      subscriptionIncomplete: "Prenumerationen var ofullständig.",
+
+      emailRequired: "Skriv en e-postadress.",
+      invitationExists: "Det finns redan en öppen inbjudan till den adressen.",
+    },
+
+    /**
+     * Bilduppladdningen, som både menyredigeraren och presentationen använder.
+     *
+     * Eget litet avsnitt i stället för två kopior i `menu` och `settings` —
+     * det är samma ruta och samma besked oavsett vilken sida den står på.
+     */
+    image: {
+      formatError: "Bilden måste vara JPEG, PNG, WebP eller AVIF.",
+      uploadedNotice:
+        "Bilden är uppladdad och väntar på granskning. Den syns för gästen när den godkänts.",
+    },
+
+    /* Inbjudningssidan. Personen är inloggad men ännu inte personal. */
+    invitation: {
+      joinFailed: "Inbjudan kunde inte lösas in.",
+      joining: "Ansluter…",
+      join: "Gå med",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 förbeställning senare i dag." : `${count} förbeställningar senare i dag.`,
   },

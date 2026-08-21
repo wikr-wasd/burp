@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { BurpMark } from "@/components/ui/burp-mark";
 import { AcceptInvitation } from "@/components/staff/accept-invitation";
 import { getGuest } from "@/lib/guest";
+import { dictionary, requestLocale } from "@/lib/i18n";
 
 /**
  * Den inbjudna löser in sin länk.
@@ -56,7 +57,7 @@ export default async function InvitationPage({ params }: PageProps) {
         skickades till — stämmer den inte behöver du logga in med rätt konto.
       </p>
 
-      <AcceptInvitation token={token} />
+      <AcceptInvitation token={token} labels={dictionary(await requestLocale()).staff.invitation} />
 
       {/* Ett formulär får inte ligga i ett stycke — webbläsaren stänger
           stycket åt en och layouten spricker. Därför en rad med två delar. */}

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -31,7 +31,7 @@ export async function registerMedia(input: {
   // samma sak, men den kontrollerar filen — den här kontrollen hindrar att en
   // post pekar på någon annans fil.
   if (!input.storagePath.startsWith(`${staff.restaurantId}/`)) {
-    return { ok: false, message: "Bilden hör inte till din restaurang." };
+    return { ok: false, message: staffErrors(staff).imageNotYours };
   }
 
   if (input.restaurantId !== staff.restaurantId) {
@@ -66,7 +66,7 @@ export async function registerMedia(input: {
  * backoffice, så att beslutet loggas där det fattades.
  */
 export async function deletePendingMedia(mediaId: string): Promise<ActionResult> {
-  await requireStaff(["owner", "manager"]);
+  const staff = await requireStaff(["owner", "manager"]);
 
   const supabase = await createClient();
 
@@ -78,7 +78,7 @@ export async function deletePendingMedia(mediaId: string): Promise<ActionResult>
 
   if (!media) return { ok: false, message: "Bilden hittades inte." };
   if (media.status === "APPROVED") {
-    return { ok: false, message: "Godkända bilder tas bort via Burp support." };
+    return { ok: false, message: staffErrors(staff).approvedImageSupport };
   }
 
   if (media.storage_path) {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { allowedVatRates, COUNTRY_INFO, parseAmount } from "@burp/core";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -39,8 +39,8 @@ export async function createMenu(_prev: ActionResult | null, formData: FormData)
   const staff = await requireStaff(EDITOR_ROLES);
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return fail("Menyn behöver ett namn.");
-  if (name.length > 120) return fail("Namnet är för långt.");
+  if (!name) return fail(staffErrors(staff).menuNeedsName);
+  if (name.length > 120) return fail(staffErrors(staff).nameTooLong);
 
   const supabase = await createClient();
   const { error } = await supabase.from("menus").insert({
@@ -58,19 +58,19 @@ export async function updateMenu(menuId: string, patch: {
   activeFrom?: string | null;
   activeUntil?: string | null;
 }): Promise<ActionResult> {
-  await requireStaff(EDITOR_ROLES);
+  const staff = await requireStaff(EDITOR_ROLES);
 
   const update: Record<string, unknown> = {};
 
   if (patch.name !== undefined) {
     const name = patch.name.trim();
-    if (!name) return fail("Menyn behöver ett namn.");
+    if (!name) return fail(staffErrors(staff).menuNeedsName);
     update["name"] = name;
   }
 
   if (patch.activeDays !== undefined) {
     const days = patch.activeDays.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6);
-    if (days.length === 0) return fail("Menyn måste gälla minst en dag.");
+    if (days.length === 0) return fail(staffErrors(staff).menuNeedsDay);
     update["active_days"] = [...new Set(days)].sort();
   }
 
@@ -83,7 +83,7 @@ export async function updateMenu(menuId: string, patch: {
   const from = (update["active_from"] ?? null) as string | null;
   const until = (update["active_until"] ?? null) as string | null;
   if (from && until && from >= until) {
-    return fail("Sluttiden måste ligga efter starttiden.");
+    return fail(staffErrors(staff).endAfterStart);
   }
 
   const supabase = await createClient();
@@ -93,7 +93,7 @@ export async function updateMenu(menuId: string, patch: {
 }
 
 export async function setMenuStatus(menuId: string, publish: boolean): Promise<ActionResult> {
-  await requireStaff(EDITOR_ROLES);
+  const staff = await requireStaff(EDITOR_ROLES);
 
   const supabase = await createClient();
 
@@ -109,7 +109,7 @@ export async function setMenuStatus(menuId: string, publish: boolean): Promise<A
       .eq("status", "PUBLISHED");
 
     if (!count) {
-      return fail("Menyn har inga publicerade rätter än. Publicera minst en rätt först.");
+      return fail(staffErrors(staff).menuNoPublishedItems);
     }
   }
 
@@ -136,7 +136,7 @@ export async function createCategory(menuId: string, name: string): Promise<Acti
   const staff = await requireStaff(EDITOR_ROLES);
 
   const trimmed = name.trim();
-  if (!trimmed) return fail("Kategorin behöver ett namn.");
+  if (!trimmed) return fail(staffErrors(staff).categoryNeedsName);
 
   const supabase = await createClient();
 
@@ -159,10 +159,10 @@ export async function createCategory(menuId: string, name: string): Promise<Acti
 }
 
 export async function renameCategory(categoryId: string, name: string): Promise<ActionResult> {
-  await requireStaff(EDITOR_ROLES);
+  const staff = await requireStaff(EDITOR_ROLES);
 
   const trimmed = name.trim();
-  if (!trimmed) return fail("Kategorin behöver ett namn.");
+  if (!trimmed) return fail(staffErrors(staff).categoryNeedsName);
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -198,7 +198,7 @@ export async function createMenuItem(
   const priceInput = String(formData.get("price") ?? "");
 
   if (!categoryId) return fail("Ingen kategori vald.");
-  if (!name) return fail("Rätten behöver ett namn.");
+  if (!name) return fail(staffErrors(staff).itemNeedsName);
 
   const priceOre = parseAmount(priceInput, staff.currency);
   if (priceOre === null) {
@@ -248,7 +248,7 @@ export async function updateMenuItem(itemId: string, patch: MenuItemPatch): Prom
 
   if (patch.name !== undefined) {
     const name = patch.name.trim();
-    if (!name) return fail("Rätten behöver ett namn.");
+    if (!name) return fail(staffErrors(staff).itemNeedsName);
     update["name"] = name;
   }
 
@@ -317,7 +317,7 @@ export async function deleteMenuItem(itemId: string): Promise<ActionResult> {
  * varandras hela ordning.
  */
 export async function moveMenuItem(itemId: string, direction: "up" | "down"): Promise<ActionResult> {
-  await requireStaff(EDITOR_ROLES);
+  const staff = await requireStaff(EDITOR_ROLES);
 
   const supabase = await createClient();
 
@@ -327,7 +327,7 @@ export async function moveMenuItem(itemId: string, direction: "up" | "down"): Pr
     .eq("id", itemId)
     .maybeSingle();
 
-  if (!item) return fail("Rätten hittades inte.");
+  if (!item) return fail(staffErrors(staff).itemNotFound);
 
   // Nedåt söker vi nästa högre sort_order, uppåt nästa lägre. Jämförelsen
   // plockas ut i en variabel — kedjad computed access på egen rad är en
@@ -369,10 +369,10 @@ export async function createOptionGroup(
   const staff = await requireStaff(EDITOR_ROLES);
 
   const trimmed = name.trim();
-  if (!trimmed) return fail("Gruppen behöver ett namn.");
-  if (!Number.isInteger(minSelect) || minSelect < 0) return fail("Minsta antal måste vara 0 eller mer.");
-  if (!Number.isInteger(maxSelect) || maxSelect < 1) return fail("Högsta antal måste vara minst 1.");
-  if (minSelect > maxSelect) return fail("Minsta antal kan inte vara större än högsta.");
+  if (!trimmed) return fail(staffErrors(staff).groupNeedsName);
+  if (!Number.isInteger(minSelect) || minSelect < 0) return fail(staffErrors(staff).minAtLeastZero);
+  if (!Number.isInteger(maxSelect) || maxSelect < 1) return fail(staffErrors(staff).maxAtLeastOne);
+  if (minSelect > maxSelect) return fail(staffErrors(staff).minNotAboveMax);
 
   const supabase = await createClient();
   const { error } = await supabase.from("option_groups").insert({
@@ -403,7 +403,7 @@ export async function createOption(
   const staff = await requireStaff(EDITOR_ROLES);
 
   const trimmed = name.trim();
-  if (!trimmed) return fail("Tillvalet behöver ett namn.");
+  if (!trimmed) return fail(staffErrors(staff).optionNeedsName);
 
   // Negativa tillval är tillåtna ("bez luka, −1,00 KM"). Att raden i sin helhet
   // inte kan bli negativ kontrolleras av @burp/core vid beställning.
@@ -479,7 +479,7 @@ export async function setItemUnavailableUntil(
   const at = new Date(until);
   if (Number.isNaN(at.getTime())) return fail("Tiden gick inte att tolka.");
   if (at.getTime() <= Date.now()) {
-    return fail("Tidpunkten måste ligga i framtiden — annars är rätten redan tillgänglig.");
+    return fail(staffErrors(staff).timeMustBeFuture);
   }
 
   const supabase = await createClient();

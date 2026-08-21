@@ -2,6 +2,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import { COUNTRY_INFO, type CountryCode, type CurrencyCode, type StaffRole } from "@burp/core";
+import { dictionary, type Dictionary } from "./i18n";
 import { staffLocale, type Locale } from "./i18n/config";
 import { createClient } from "./supabase/server";
 
@@ -124,4 +125,18 @@ export async function requireStaff(allowed?: readonly StaffRole[]): Promise<Staf
   }
 
   return staff;
+}
+
+/**
+ * Serveråtgärdernas felmeddelanden på personens eget språk.
+ *
+ * Ligger här och inte i i18n-modulen därför att den behöver `StaffContext`,
+ * och i18n får inte veta något om inloggning — beroendet går åt ett håll.
+ *
+ * Tar emot kontexten i stället för att hämta den själv. En åtgärd har redan
+ * anropat `requireStaff()`, och ett andra databasanrop bara för att kunna
+ * formulera ett felmeddelande vore att betala för texten två gånger.
+ */
+export function staffErrors(staff: StaffContext): Dictionary["staff"]["errors"] {
+  return dictionary(staff.locale).staff.errors;
 }

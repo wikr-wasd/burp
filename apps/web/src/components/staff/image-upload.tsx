@@ -1,5 +1,7 @@
 "use client";
 
+import type { Dictionary } from "@/lib/i18n";
+
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { registerMedia } from "@/app/dashboard/meny/media-actions";
@@ -24,11 +26,14 @@ export function ImageUpload({
   restaurantId,
   menuItemId,
   label = "Ladda upp bild",
+  labels,
   currentUrl,
 }: {
   restaurantId: string;
   menuItemId?: string;
   label?: string;
+  /** Bilduppladdningens besked ur ordboken. Rena strängar — klientkod. */
+  labels: Dictionary["staff"]["image"];
   currentUrl?: string | null;
 }) {
   const router = useRouter();
@@ -42,7 +47,7 @@ export function ImageUpload({
     setMessage(null);
 
     if (!ACCEPTED.includes(file.type)) {
-      setMessage({ ok: false, text: "Bilden måste vara JPEG, PNG, WebP eller AVIF." });
+      setMessage({ ok: false, text: labels.formatError });
       return;
     }
     if (file.size > MAX_BYTES) {
@@ -83,7 +88,7 @@ export function ImageUpload({
       if (result.ok) {
         setMessage({
           ok: true,
-          text: "Bilden är uppladdad och väntar på granskning. Den syns för gästen när den godkänts.",
+          text: labels.uploadedNotice,
         });
         router.refresh();
       } else {

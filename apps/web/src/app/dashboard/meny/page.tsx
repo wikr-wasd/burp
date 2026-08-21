@@ -224,6 +224,7 @@ export default async function MenuPage() {
         country={staff.country}
         currency={staff.currency}
         labels={t.menu}
+        imageLabels={t.image}
       />
     </StaffShell>
   );

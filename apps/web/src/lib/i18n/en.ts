@@ -861,6 +861,84 @@ export const en: Dictionary = {
       unblock: "Unblock",
     },
 
+    /* Se sv.ts. Skickas som result.message — aldrig som objekt. */
+    errors: {
+      menuNeedsName: "The menu needs a name.",
+      nameTooLong: "The name is too long.",
+      menuNeedsDay: "The menu has to apply on at least one day.",
+      endAfterStart: "The end time has to be after the start time.",
+      menuNoPublishedItems: "The menu has no published dishes yet. Publish at least one first.",
+      categoryNeedsName: "The category needs a name.",
+      itemNeedsName: "The dish needs a name.",
+      itemNotFound: "The dish was not found.",
+      groupNeedsName: "The group needs a name.",
+      minAtLeastZero: "The minimum has to be 0 or more.",
+      maxAtLeastOne: "The maximum has to be at least 1.",
+      minNotAboveMax: "The minimum cannot be greater than the maximum.",
+      optionNeedsName: "The option needs a name.",
+      timeMustBeFuture: "The time has to be in the future — otherwise the dish is already available.",
+
+      onlyCashOrTerminal: "Only cash and card in the terminal can be registered here.",
+      onlyCompletedOrders: "Only a completed order can be settled. Mark it as served first.",
+      orderAlreadyPaid: "The order is already paid.",
+      amountAboveZero: "The amount has to be greater than zero.",
+      alreadySettledCash: "The order is already settled in cash.",
+      alreadySettledTerminal: "The order is already settled in the terminal.",
+      tableOrderAlreadySettled: "One of the table's orders is already settled.",
+      refundNeedsReason: "Write why the bill is being refunded.",
+      providerAccountNotFound: "The payment account was not found at the provider.",
+      paymentMissingReference: "The payment has no reference at the provider.",
+      providerUnknownError: "Unknown error at the provider.",
+      providerRefundFailed: "The provider could not carry out the refund.",
+      providerUnreachable: "Could not reach the payment provider. Try again.",
+
+      editWindowRange: "The edit window has to be between 0 and 3600 seconds.",
+      streetRequired: "The street address cannot be empty.",
+      cityRequired: "The city cannot be empty.",
+      priceTierRange: "The price range has to be 1–4.",
+      locationUnreadable:
+        "No place could be read from that. Paste a link from Google Maps, or write the coordinates as 43.8595, 18.4287.",
+      punchCardRange:
+        "The number of visits has to be between 2 and 50. A card for one visit is not a card.",
+
+      tableNumberRequired: "A table number is required.",
+      tableNumberTooLong: "The table number is too long.",
+      qrCodeFailed: "Could not generate a unique QR code. Try again.",
+
+      replyEmpty: "Write something before publishing the reply.",
+      replyTooLong: "The reply is too long. Keep it under 2000 characters.",
+
+      couponCodeFormat: "The code has to be 3–32 characters, letters and digits only.",
+      percentRange: "The percentage has to be between 1 and 100.",
+      capUnreadable: "The cap could not be read.",
+      amountUnreadable: "The amount could not be read.",
+      minOrderUnreadable: "The minimum order total could not be read.",
+      endDateUnreadable: "The end date could not be read.",
+      couponCodeExists: "That code already exists with you.",
+      giftCardCodeFailed: "Could not create a unique code. Try again.",
+
+      imageNotYours: "The image does not belong to your restaurant.",
+      approvedImageSupport: "Approved images are removed through Burp support.",
+      subscriptionIncomplete: "The subscription was incomplete.",
+
+      emailRequired: "Write an email address.",
+      invitationExists: "There is already an open invitation to that address.",
+    },
+
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    image: {
+      formatError: "The image has to be JPEG, PNG, WebP or AVIF.",
+      uploadedNotice:
+        "The image is uploaded and awaiting review. It shows to guests once approved.",
+    },
+
+    /* Inbjudningssidan. Personen är inloggad men ännu inte personal. */
+    invitation: {
+      joinFailed: "The invitation could not be redeemed.",
+      joining: "Joining…",
+      join: "Join",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 pre-order later today." : `${count} pre-orders later today.`,
   },

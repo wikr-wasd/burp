@@ -864,6 +864,85 @@ export const no: Dictionary = {
       unblock: "Åpne igjen",
     },
 
+    /* Se sv.ts. Skickas som result.message — aldrig som objekt. */
+    errors: {
+      menuNeedsName: "Menyen trenger et navn.",
+      nameTooLong: "Navnet er for langt.",
+      menuNeedsDay: "Menyen må gjelde minst én dag.",
+      endAfterStart: "Sluttidspunktet må ligge etter starttidspunktet.",
+      menuNoPublishedItems: "Menyen har ingen publiserte retter ennå. Publiser minst én rett først.",
+      categoryNeedsName: "Kategorien trenger et navn.",
+      itemNeedsName: "Retten trenger et navn.",
+      itemNotFound: "Retten ble ikke funnet.",
+      groupNeedsName: "Gruppen trenger et navn.",
+      minAtLeastZero: "Minste antall må være 0 eller mer.",
+      maxAtLeastOne: "Høyeste antall må være minst 1.",
+      minNotAboveMax: "Minste antall kan ikke være større enn høyeste.",
+      optionNeedsName: "Tilbehøret trenger et navn.",
+      timeMustBeFuture: "Tidspunktet må ligge fram i tid — ellers er retten allerede tilgjengelig.",
+
+      onlyCashOrTerminal: "Bare kontant og kort på terminal kan registreres her.",
+      onlyCompletedOrders:
+        "Bare en fullført bestilling kan gjøres opp. Merk den som servert først.",
+      orderAlreadyPaid: "Bestillingen er allerede betalt.",
+      amountAboveZero: "Beløpet må være større enn null.",
+      alreadySettledCash: "Bestillingen er allerede gjort opp kontant.",
+      alreadySettledTerminal: "Bestillingen er allerede gjort opp på terminalen.",
+      tableOrderAlreadySettled: "En av bordets bestillinger er allerede gjort opp.",
+      refundNeedsReason: "Skriv hvorfor regningen betales tilbake.",
+      providerAccountNotFound: "Betalingskontoen ble ikke funnet hos leverandøren.",
+      paymentMissingReference: "Betalingen mangler referanse hos leverandøren.",
+      providerUnknownError: "Ukjent feil hos leverandøren.",
+      providerRefundFailed: "Leverandøren kunne ikke gjennomføre refusjonen.",
+      providerUnreachable: "Kunne ikke nå betalingsleverandøren. Prøv igjen.",
+
+      editWindowRange: "Endringsvinduet skal være mellom 0 og 3600 sekunder.",
+      streetRequired: "Gateadressen kan ikke være tom.",
+      cityRequired: "Stedet kan ikke være tomt.",
+      priceTierRange: "Prisklassen må være 1–4.",
+      locationUnreadable:
+        "Det gikk ikke å lese et sted ut av det. Lim inn en lenke fra Google Maps, eller skriv koordinatene som 43.8595, 18.4287.",
+      punchCardRange:
+        "Antall besøk skal være mellom 2 og 50. Et kort på ett besøk er ikke et kort.",
+
+      tableNumberRequired: "Bordnummer kreves.",
+      tableNumberTooLong: "Bordnummeret er for langt.",
+      qrCodeFailed: "Kunne ikke lage en unik QR-kode. Prøv igjen.",
+
+      replyEmpty: "Skriv noe før du publiserer svaret.",
+      replyTooLong: "Svaret er for langt. Hold det under 2000 tegn.",
+
+      couponCodeFormat: "Koden skal være 3–32 tegn, bare bokstaver og tall.",
+      percentRange: "Prosentsatsen skal være mellom 1 og 100.",
+      capUnreadable: "Taket kunne ikke tolkes.",
+      amountUnreadable: "Beløpet kunne ikke tolkes.",
+      minOrderUnreadable: "Minste ordresum kunne ikke tolkes.",
+      endDateUnreadable: "Sluttdatoen kunne ikke tolkes.",
+      couponCodeExists: "Koden finnes allerede hos dere.",
+      giftCardCodeFailed: "Kunne ikke lage en unik kode. Prøv igjen.",
+
+      imageNotYours: "Bildet hører ikke til restauranten din.",
+      approvedImageSupport: "Godkjente bilder fjernes via Burp support.",
+      subscriptionIncomplete: "Abonnementet var ufullstendig.",
+
+      emailRequired: "Skriv en e-postadresse.",
+      invitationExists: "Det finnes allerede en åpen invitasjon til den adressen.",
+    },
+
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    image: {
+      formatError: "Bildet må være JPEG, PNG, WebP eller AVIF.",
+      uploadedNotice:
+        "Bildet er lastet opp og venter på gjennomgang. Det vises for gjesten når det er godkjent.",
+    },
+
+    /* Inbjudningssidan. Personen är inloggad men ännu inte personal. */
+    invitation: {
+      joinFailed: "Invitasjonen kunne ikke løses inn.",
+      joining: "Kobler til…",
+      join: "Bli med",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 forhåndsbestilling senere i dag." : `${count} forhåndsbestillinger senere i dag.`,
   },

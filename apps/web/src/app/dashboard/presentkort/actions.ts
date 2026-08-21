@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { formatGiftCardCode, parseAmount, type CurrencyCode } from "@burp/core";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { generateGiftCardCode } from "@/lib/gift-cards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -41,13 +41,13 @@ export async function issueGiftCard(input: {
 
   const amountOre = parseAmount(input.amount, currency);
   if (amountOre === null || amountOre <= 0) {
-    return fail("Beloppet gick inte att tolka.");
+    return fail(staffErrors(staff).amountUnreadable);
   }
 
   let expiresAt: string | null = null;
   if (input.expiresAt.trim()) {
     const parsed = new Date(input.expiresAt);
-    if (Number.isNaN(parsed.getTime())) return fail("Slutdatumet gick inte att tolka.");
+    if (Number.isNaN(parsed.getTime())) return fail(staffErrors(staff).endDateUnreadable);
     expiresAt = parsed.toISOString();
   }
 
@@ -81,7 +81,7 @@ export async function issueGiftCard(input: {
     if (error.code !== "23505") return fail(error.message);
   }
 
-  return fail("Kunde inte skapa en unik kod. Försök igen.");
+  return fail(staffErrors(staff).giftCardCodeFailed);
 }
 
 /**

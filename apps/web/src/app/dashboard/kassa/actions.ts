@@ -9,7 +9,7 @@ import {
   type CurrencyCode,
   type PaymentProviderId,
 } from "@burp/core";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { paymentProvider, PaymentProviderError } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -55,7 +55,7 @@ export async function registerPayment(
   const staff = await requireStaff(REGISTER_ROLES);
 
   if (!isStaffRegistered(provider)) {
-    return { ok: false, message: "Bara kontant och kort i terminal kan registreras här." };
+    return { ok: false, message: staffErrors(staff).onlyCashOrTerminal };
   }
 
   const supabase = await createClient();
@@ -76,7 +76,7 @@ export async function registerPayment(
   if (order.status !== "COMPLETED") {
     return {
       ok: false,
-      message: "Bara en slutförd order kan kvitteras. Markera den som serverad först.",
+      message: staffErrors(staff).onlyCompletedOrders,
     };
   }
 
@@ -84,7 +84,7 @@ export async function registerPayment(
   const receivedOre = parseAmount(amountInput, currency);
 
   if (receivedOre === null) {
-    return { ok: false, message: "Beloppet gick inte att tolka." };
+    return { ok: false, message: staffErrors(staff).amountUnreadable };
   }
 
   /*
@@ -105,7 +105,7 @@ export async function registerPayment(
   const dueOre = order.total_ore - paidOre;
 
   if (dueOre <= 0) {
-    return { ok: false, message: "Ordern är redan betald." };
+    return { ok: false, message: staffErrors(staff).orderAlreadyPaid };
   }
 
   // Kastar på noll, negativa belopp och på allt som inte är ett heltal i
@@ -115,7 +115,7 @@ export async function registerPayment(
   try {
     settlement = settleCash(receivedOre, dueOre);
   } catch {
-    return { ok: false, message: "Beloppet måste vara större än noll." };
+    return { ok: false, message: staffErrors(staff).amountAboveZero };
   }
 
   const { error } = await supabase.from("payments").insert({
@@ -162,8 +162,8 @@ export async function registerPayment(
         ok: false,
         message:
           provider === "CASH"
-            ? "Ordern är redan kvitterad kontant."
-            : "Ordern är redan kvitterad i terminalen.",
+            ? staffErrors(staff).alreadySettledCash
+            : staffErrors(staff).alreadySettledTerminal,
       };
     }
     return { ok: false, message: error.message };
@@ -195,7 +195,7 @@ export async function settleTableSession(
   const staff = await requireStaff(REGISTER_ROLES);
 
   if (!isStaffRegistered(provider)) {
-    return { ok: false, message: "Bara kontant och kort i terminal kan registreras här." };
+    return { ok: false, message: staffErrors(staff).onlyCashOrTerminal };
   }
 
   const supabase = await createClient();
@@ -216,7 +216,7 @@ export async function settleTableSession(
   const receivedOre = parseAmount(amountInput, currency);
 
   if (receivedOre === null || receivedOre <= 0) {
-    return { ok: false, message: "Beloppet gick inte att tolka." };
+    return { ok: false, message: staffErrors(staff).amountUnreadable };
   }
 
   const { error } = await createAdminClient().rpc("settle_table_session", {
@@ -230,7 +230,7 @@ export async function settleTableSession(
     // 23505 = det unika indexet på ett betalsätt per order. Någon hann kvittera
     // en av bordets order först.
     if (error.code === "23505") {
-      return { ok: false, message: "En av bordets order är redan kvitterad." };
+      return { ok: false, message: staffErrors(staff).tableOrderAlreadySettled };
     }
     return { ok: false, message: error.message };
   }
@@ -300,7 +300,7 @@ export async function refundPayment(
   const staff = await requireStaff(["owner", "manager"]);
 
   if (!reason.trim()) {
-    return { ok: false, message: "Skriv varför notan betalas tillbaka." };
+    return { ok: false, message: staffErrors(staff).refundNeedsReason };
   }
 
   const supabase = await createClient();
@@ -319,7 +319,7 @@ export async function refundPayment(
   const amountOre = parseAmount(amountInput, currency);
 
   if (amountOre === null || amountOre <= 0) {
-    return { ok: false, message: "Beloppet gick inte att tolka." };
+    return { ok: false, message: staffErrors(staff).amountUnreadable };
   }
 
   const admin = createAdminClient();
@@ -355,15 +355,15 @@ export async function refundPayment(
       p_refund_id: refundId,
       p_reason: "Restaurangens betalkonto hittades inte.",
     });
-    return { ok: false, message: "Betalkontot hittades inte hos leverantören." };
+    return { ok: false, message: staffErrors(staff).providerAccountNotFound };
   }
 
   if (!payment.provider_reference) {
     await admin.rpc("fail_refund", {
       p_refund_id: refundId,
-      p_reason: "Betalningen saknar referens hos leverantören.",
+      p_reason: staffErrors(staff).paymentMissingReference,
     });
-    return { ok: false, message: "Betalningen saknar referens hos leverantören." };
+    return { ok: false, message: staffErrors(staff).paymentMissingReference };
   }
 
   try {
@@ -395,14 +395,14 @@ export async function refundPayment(
   } catch (error) {
     await admin.rpc("fail_refund", {
       p_refund_id: refundId,
-      p_reason: error instanceof Error ? error.message : "Okänt fel hos leverantören.",
+      p_reason: error instanceof Error ? error.message : staffErrors(staff).providerUnknownError,
     });
     return {
       ok: false,
       message:
         error instanceof PaymentProviderError
           ? error.message
-          : "Leverantören kunde inte genomföra återbetalningen.",
+          : staffErrors(staff).providerRefundFailed,
     };
   }
 

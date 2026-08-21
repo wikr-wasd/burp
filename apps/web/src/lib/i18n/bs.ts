@@ -901,6 +901,85 @@ export const bs: Dictionary = {
       unblock: "Otključaj",
     },
 
+    /* Se sv.ts. Skickas som result.message — aldrig som objekt. */
+    errors: {
+      menuNeedsName: "Jelovnik treba naziv.",
+      nameTooLong: "Naziv je predug.",
+      menuNeedsDay: "Jelovnik mora vrijediti bar jedan dan.",
+      endAfterStart: "Vrijeme završetka mora biti poslije početka.",
+      menuNoPublishedItems: "Jelovnik još nema objavljenih jela. Objavite bar jedno jelo.",
+      categoryNeedsName: "Kategorija treba naziv.",
+      itemNeedsName: "Jelo treba naziv.",
+      itemNotFound: "Jelo nije pronađeno.",
+      groupNeedsName: "Grupa treba naziv.",
+      minAtLeastZero: "Najmanji broj mora biti 0 ili više.",
+      maxAtLeastOne: "Najveći broj mora biti bar 1.",
+      minNotAboveMax: "Najmanji broj ne može biti veći od najvećeg.",
+      optionNeedsName: "Prilog treba naziv.",
+      timeMustBeFuture: "Vrijeme mora biti u budućnosti — inače je jelo već dostupno.",
+
+      onlyCashOrTerminal: "Ovdje se mogu evidentirati samo gotovina i kartica na terminalu.",
+      onlyCompletedOrders:
+        "Naplatiti se može samo završena narudžba. Prvo je označite kao serviranu.",
+      orderAlreadyPaid: "Narudžba je već plaćena.",
+      amountAboveZero: "Iznos mora biti veći od nule.",
+      alreadySettledCash: "Narudžba je već naplaćena gotovinom.",
+      alreadySettledTerminal: "Narudžba je već naplaćena na terminalu.",
+      tableOrderAlreadySettled: "Jedna od narudžbi za stolom je već naplaćena.",
+      refundNeedsReason: "Napišite zašto se račun vraća.",
+      providerAccountNotFound: "Račun za plaćanje nije pronađen kod procesora.",
+      paymentMissingReference: "Uplata nema referencu kod procesora.",
+      providerUnknownError: "Nepoznata greška kod procesora.",
+      providerRefundFailed: "Procesor nije mogao izvršiti povrat.",
+      providerUnreachable: "Nije bilo moguće doći do procesora plaćanja. Pokušajte ponovo.",
+
+      editWindowRange: "Prozor za izmjene treba biti između 0 i 3600 sekundi.",
+      streetRequired: "Ulica ne smije biti prazna.",
+      cityRequired: "Grad ne smije biti prazan.",
+      priceTierRange: "Cjenovni razred mora biti 1–4.",
+      locationUnreadable:
+        "Iz toga se nije dalo pročitati mjesto. Zalijepite link iz Google Mapsa ili upišite koordinate kao 43.8595, 18.4287.",
+      punchCardRange:
+        "Broj dolazaka treba biti između 2 i 50. Kartica s jednim dolaskom nije kartica.",
+
+      tableNumberRequired: "Broj stola je obavezan.",
+      tableNumberTooLong: "Broj stola je predug.",
+      qrCodeFailed: "Nije bilo moguće generisati jedinstven QR kod. Pokušajte ponovo.",
+
+      replyEmpty: "Napišite nešto prije nego objavite odgovor.",
+      replyTooLong: "Odgovor je predug. Neka bude ispod 2000 znakova.",
+
+      couponCodeFormat: "Kod treba imati 3–32 znaka, samo slova i brojeve.",
+      percentRange: "Postotak treba biti između 1 i 100.",
+      capUnreadable: "Gornju granicu nije bilo moguće pročitati.",
+      amountUnreadable: "Iznos nije bilo moguće pročitati.",
+      minOrderUnreadable: "Najmanji iznos narudžbe nije bilo moguće pročitati.",
+      endDateUnreadable: "Krajnji datum nije bilo moguće pročitati.",
+      couponCodeExists: "Taj kod već postoji kod vas.",
+      giftCardCodeFailed: "Nije bilo moguće kreirati jedinstven kod. Pokušajte ponovo.",
+
+      imageNotYours: "Slika ne pripada vašem restoranu.",
+      approvedImageSupport: "Odobrene slike uklanja Burp podrška.",
+      subscriptionIncomplete: "Pretplata je bila nepotpuna.",
+
+      emailRequired: "Upišite e-mail adresu.",
+      invitationExists: "Za tu adresu već postoji otvoren poziv.",
+    },
+
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    image: {
+      formatError: "Slika mora biti JPEG, PNG, WebP ili AVIF.",
+      uploadedNotice:
+        "Slika je otpremljena i čeka pregled. Gostu se prikazuje kad bude odobrena.",
+    },
+
+    /* Inbjudningssidan. Personen är inloggad men ännu inte personal. */
+    invitation: {
+      joinFailed: "Poziv nije bilo moguće iskoristiti.",
+      joining: "Pridruživanje…",
+      join: "Pridruži se",
+    },
+
     upcomingLater: (count: number) => {
       const ones = count % 10;
       const tens = count % 100;

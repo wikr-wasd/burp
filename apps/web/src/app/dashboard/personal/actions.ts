@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { type StaffRole } from "@burp/core";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, staffErrors } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/notify/email";
 import { invitationEmail } from "@/lib/notify/messages";
@@ -36,7 +36,7 @@ export async function inviteStaff(email: string, role: StaffRole): Promise<Actio
 
   const address = email.trim().toLowerCase();
   if (!address.includes("@")) {
-    return fail("Skriv en e-postadress.");
+    return fail(staffErrors(staff).emailRequired);
   }
 
   const token = newInvitationToken();
@@ -52,7 +52,7 @@ export async function inviteStaff(email: string, role: StaffRole): Promise<Actio
   if (error) {
     // 23505 = det unika indexet på en öppen inbjudan per adress.
     if (error.code === "23505") {
-      return fail("Det finns redan en öppen inbjudan till den adressen.");
+      return fail(staffErrors(staff).invitationExists);
     }
     return fail(error.message);
   }

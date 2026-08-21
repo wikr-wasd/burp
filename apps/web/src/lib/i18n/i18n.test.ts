@@ -383,6 +383,8 @@ describe("texter som korsar server/klient-gränsen", () => {
     "menu",
     "tables",
     "reports",
+    "image",
+    "invitation",
   ] as const;
 
   for (const section of CLIENT_SECTIONS) {
