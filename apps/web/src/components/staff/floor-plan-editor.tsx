@@ -9,6 +9,7 @@ import {
   type TablePosition,
 } from "@/app/dashboard/bord/actions";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { Dictionary } from "@/lib/i18n";
 import { LayoutGrid } from "lucide-react";
 
 /**
@@ -55,9 +56,12 @@ const SNAP = 1;
 export function FloorPlanEditor({
   plans,
   tables,
+  labels,
 }: {
   plans: FloorPlanView[];
   tables: EditorTable[];
+  /** Bordsytans texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["tables"];
 }) {
   const [activePlanId, setActivePlanId] = useState(plans[0]?.id ?? null);
   const [layout, setLayout] = useState<EditorTable[]>(tables);
@@ -126,7 +130,7 @@ export function FloorPlanEditor({
       const result = await saveFloorPlanPositions(plan.id, positions);
       setFeedback({
         ok: result.ok,
-        message: result.ok ? "Ritningen är sparad." : (result.message ?? "Något gick fel."),
+        message: result.ok ? labels.planSaved : (result.message ?? labels.somethingWrong),
       });
       if (result.ok) setHistory([]);
     });
@@ -137,17 +141,18 @@ export function FloorPlanEditor({
       <div className="mt-8">
         <EmptyState
           icon={LayoutGrid}
-          title="Ingen planritning än"
-          body="Rita upp lokalen så att Översikten kan visa var borden faktiskt står. En servitör som ser rummet vet vilket bord som ropar — en lista säger bara vilken ruta i ordningen."
+          title={labels.planEmptyTitle}
+          body={labels.planEmptyBody}
         />
         <NewPlan
+          labels={labels}
           value={newPlanName}
           onChange={setNewPlanName}
           onCreate={() => {
             startTransition(async () => {
               const result = await createFloorPlan(newPlanName);
               if (result.ok) setNewPlanName("");
-              else setFeedback({ ok: false, message: result.message ?? "Något gick fel." });
+              else setFeedback({ ok: false, message: result.message ?? labels.somethingWrong });
             });
           }}
           pending={pending}
@@ -194,7 +199,7 @@ export function FloorPlanEditor({
               className="btn btn-secondary"
             >
               <Undo2 size={16} aria-hidden="true" />
-              Ångra
+              {labels.undo}
             </button>
 
             <button
@@ -209,7 +214,7 @@ export function FloorPlanEditor({
               className="btn btn-secondary"
             >
               <RotateCw size={16} aria-hidden="true" />
-              Vrid
+              {labels.rotate}
             </button>
 
             <button
@@ -223,7 +228,7 @@ export function FloorPlanEditor({
               disabled={!selectedId}
               className="btn btn-secondary"
             >
-              Ta bort från ritningen
+              {labels.removeFromPlan}
             </button>
 
             <span className="mr-auto" />
@@ -235,7 +240,7 @@ export function FloorPlanEditor({
               className="btn btn-primary"
             >
               <Save size={16} aria-hidden="true" />
-              {pending ? "Sparar…" : "Spara"}
+              {pending ? labels.saving : labels.save}
             </button>
           </div>
 
@@ -261,9 +266,9 @@ export function FloorPlanEditor({
               eller lades till mitt i ett pass — båda är normala, och listan
               är vägen in på ritningen. */}
           <section className="mt-6">
-            <h3 className="label-caps">Inte utplacerade</h3>
+            <h3 className="label-caps">{labels.notPlaced}</h3>
             {unplaced.length === 0 ? (
-              <p className="mt-2 text-sm text-[var(--muted)]">Alla bord står på en ritning.</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">{labels.allPlaced}</p>
             ) : (
               <ul className="mt-2 flex flex-wrap gap-2">
                 {unplaced.map((table) => (
@@ -294,7 +299,7 @@ export function FloorPlanEditor({
 
           <details className="mt-8">
             <summary className="cursor-pointer text-sm text-[var(--muted)]">
-              Hantera ritningar
+              {labels.managePlans}
             </summary>
             <div className="mt-3">
               <NewPlan
@@ -304,10 +309,11 @@ export function FloorPlanEditor({
                   startTransition(async () => {
                     const result = await createFloorPlan(newPlanName);
                     if (result.ok) setNewPlanName("");
-                    else setFeedback({ ok: false, message: result.message ?? "Något gick fel." });
+                    else setFeedback({ ok: false, message: result.message ?? labels.somethingWrong });
                   });
                 }}
                 pending={pending}
+                labels={labels}
               />
 
               <button
@@ -323,7 +329,7 @@ export function FloorPlanEditor({
                   startTransition(async () => {
                     const result = await deleteFloorPlan(plan.id);
                     if (!result.ok) {
-                      setFeedback({ ok: false, message: result.message ?? "Något gick fel." });
+                      setFeedback({ ok: false, message: result.message ?? labels.somethingWrong });
                     }
                   });
                 }}
@@ -527,21 +533,24 @@ function NewPlan({
   onChange,
   onCreate,
   pending,
+  labels,
 }: {
   value: string;
   onChange: (value: string) => void;
   onCreate: () => void;
   pending: boolean;
+  /** Bordsytans texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["tables"];
 }) {
   return (
     <div className="mt-4 flex flex-wrap items-end gap-2">
       <label className="min-w-48 flex-1">
-        <span className="label-caps">Ny ritning</span>
+        <span className="label-caps">{labels.newPlan}</span>
         <input
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="T.ex. Uteserveringen"
+          placeholder={labels.newPlanPlaceholder}
           className="field mt-1.5"
         />
       </label>
@@ -552,7 +561,7 @@ function NewPlan({
         className="btn btn-secondary"
       >
         <Plus size={16} aria-hidden="true" />
-        Lägg till
+        {labels.add}
       </button>
     </div>
   );

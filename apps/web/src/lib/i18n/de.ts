@@ -635,6 +635,124 @@ export const de: Dictionary = {
       presentationSaved: "Gespeichert. Die Änderungen erscheinen innerhalb einer Stunde auf Ihrer Seite.",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    menu: {
+      intro:
+        "Gästen werden nur veröffentlichte Speisekarten und Gerichte angezeigt. Preise verstehen sich inklusive MwSt.",
+      noMenuTitle: "Noch keine Speisekarte",
+      noMenuBody:
+        "Legen Sie oben die erste an. Ein Restaurant kann mehrere Karten haben — Mittag, Abend, Wochenende — und die richtige wird nach Wochentag und Uhrzeit angezeigt.",
+
+      newMenu: "Neue Speisekarte",
+      newMenuPlaceholder: "Mittag, Abend, Wochenende…",
+      createMenu: "Speisekarte anlegen",
+      creating: "Wird angelegt…",
+      publish: "Veröffentlichen",
+      unpublish: "Veröffentlichung zurücknehmen",
+      deleteAll: "Alles löschen",
+      confirm: "Bestätigen",
+      cancel: "Abbrechen",
+      remove: "Löschen",
+
+      appliesOn: "Gilt",
+      from: "Von",
+      to: "Bis",
+      daySun: "So",
+      dayMon: "Mo",
+      dayTue: "Di",
+      dayWed: "Mi",
+      dayThu: "Do",
+      dayFri: "Fr",
+      daySat: "Sa",
+
+      newCategory: "Neue Kategorie",
+      newCategoryPlaceholder: "Pizza, Getränke, Dessert…",
+      removeCategory: "Kategorie entfernen",
+      add: "Hinzufügen",
+      adding: "Wird hinzugefügt…",
+
+      newItem: "Neues Gericht",
+      price: "Preis ({currency})",
+      itemName: "Name des Gerichts",
+      inStock: "Vorrätig",
+      soldOutToday: "Heute ausverkauft",
+      hide: "Ausblenden",
+      details: "Details",
+      description: "Beschreibung",
+      vat: "MwSt.",
+      allergens: "Allergene",
+      allergensHint: "mit Komma getrennt",
+      image: "Bild",
+      imageHint:
+        "Das Bild sehen Gäste erst, wenn Burp es freigegeben hat. JPEG, PNG, WebP oder AVIF, höchstens 10 MB.",
+      imagePending: "Wartet auf Prüfung: {n}",
+      imageUploadFor: "Bild für {name} hochladen",
+      removeItem: "Gericht entfernen",
+
+      optionGroups: "Beilagengruppen",
+      newGroup: "Neue Gruppe",
+      newGroupPlaceholder: "Größe wählen",
+      min: "Mindestens",
+      max: "Höchstens",
+      addGroup: "Gruppe hinzufügen",
+      removeGroup: "Gruppe entfernen",
+
+      somethingWrong: "Etwas ist schiefgelaufen.",
+      makeAvailable: "Wieder verfügbar machen",
+      soldUntil: "Ausverkauft bis",
+      reasonForGuest: "Grund für den Gast",
+      reasonPlaceholder: "Z. B. Ausverkauft bis Freitag",
+      markSoldOut: "Als ausverkauft markieren",
+    },
+
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    tables: {
+      title: "Tische und QR-Codes",
+      intro:
+        "Drucken Sie den Code und kleben Sie ihn auf den Tisch. Der Code ist statisch und muss nie gewechselt werden.",
+      emptyTitle: "Noch keine Tische",
+      emptyBody:
+        "Legen Sie oben den ersten an. Jeder Tisch bekommt einen eigenen QR-Code zum Ausdrucken und Aufkleben.",
+
+      tableNumber: "Tischnummer",
+      zone: "Bereich",
+      optional: "optional",
+      zonePlaceholder: "Terrasse",
+      seats: "Plätze",
+      seatsCount: "{n} Plätze",
+      addTable: "Tisch hinzufügen",
+      adding: "Wird hinzugefügt…",
+
+      printAll: "Alle Codes drucken",
+      locked: "Gesperrt",
+      lock: "Tisch sperren",
+      unlock: "Entsperren",
+      confirm: "Bestätigen",
+      cancel: "Abbrechen",
+      remove: "Entfernen",
+      statusFailed: "Der Status des Tisches konnte nicht geändert werden.",
+
+      planTitle: "Raumplan",
+      planHint:
+        "Ziehen Sie die Tische so, wie sie im Raum stehen. Die Übersicht zeigt sie dann in der Form des Raums statt als Raster — eine Servicekraft sieht, welcher Tisch ruft, und nicht, welches Kästchen der Reihe nach.",
+      planEmptyTitle: "Noch kein Raumplan",
+      planEmptyBody:
+        "Zeichnen Sie den Raum, damit die Übersicht zeigen kann, wo die Tische tatsächlich stehen. Wer den Raum sieht, weiß, welcher Tisch ruft — eine Liste sagt nur, welches Kästchen der Reihe nach.",
+      planSaved: "Der Raumplan ist gespeichert.",
+      somethingWrong: "Etwas ist schiefgelaufen.",
+      undo: "Rückgängig",
+      rotate: "Drehen",
+      removeFromPlan: "Aus dem Plan entfernen",
+      notPlaced: "Nicht platziert",
+      allPlaced: "Alle Tische stehen auf einem Plan.",
+      managePlans: "Raumpläne verwalten",
+      newPlan: "Neuer Raumplan",
+      newPlanPlaceholder: "Z. B. Die Terrasse",
+      add: "Hinzufügen",
+      save: "Speichern",
+      saving: "Wird gespeichert…",
+    },
+
     upcomingLater: (count: number) =>
       count === 1
         ? "1 Vorbestellung später heute."

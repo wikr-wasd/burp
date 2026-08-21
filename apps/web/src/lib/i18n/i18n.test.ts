@@ -149,6 +149,8 @@ describe("ordböckerna", () => {
       // "min" är samma förkortning på alla fem språken.
       "staff.kitchen.minutes",
       "staff.settings.phone",
+      // "Bild" stavas likadant på tyska och svenska.
+      "staff.menu.image",
     ],
 
     en: ["errors.notFoundLabel", "menu.giftCardPlaceholder", "staff.kitchen.minutes"],
@@ -240,6 +242,22 @@ describe("ordböckerna", () => {
       "staff.settings.cap",
       "staff.settings.phone",
       "staff.settings.postalCode",
+      // Menyredigeraren. Nio ord till som norskan och svenskan delar rakt av;
+      // "Utsolgt", "Slett" och "Beskrivelse" står inte här.
+      "staff.menu.newMenu",
+      "staff.menu.cancel",
+      "staff.menu.dayWed",
+      "staff.menu.dayFri",
+      "staff.menu.newCategory",
+      "staff.menu.price",
+      "staff.menu.details",
+      "staff.menu.allergens",
+      "staff.menu.min",
+      // Bordsytan. "Uteservering", "Låst" och "Lås bordet" är rätt på båda.
+      "staff.tables.zonePlaceholder",
+      "staff.tables.locked",
+      "staff.tables.lock",
+      "staff.tables.cancel",
     ],
   };
 
@@ -351,6 +369,8 @@ describe("texter som korsar server/klient-gränsen", () => {
     "overview",
     "staffAdmin",
     "settings",
+    "menu",
+    "tables",
   ] as const;
 
   for (const section of CLIENT_SECTIONS) {

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { archiveTable, setTableLocked } from "@/app/dashboard/bord/actions";
+import { fill, type Dictionary } from "@/lib/i18n";
 import type { TableWithQr } from "@/app/dashboard/bord/page";
 
 /**
@@ -12,7 +13,20 @@ import type { TableWithQr } from "@/app/dashboard/bord/page";
  * underhålla en PDF-layout — och restaurangen vill ändå kunna välja skrivare,
  * pappersstorlek och antal kopior i dialogen.
  */
-export function TableList({ tables }: { tables: TableWithQr[] }) {
+export function TableList({
+  tables,
+  labels,
+  tableLabel,
+  openBillLabel,
+}: {
+  tables: TableWithQr[];
+  /** Bordsytans texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["tables"];
+  /** Mallen "Bord {number}" ur det delade ordertypsavsnittet. */
+  tableLabel: string;
+  /** Samma ord som översiktens tillstånd — se ordboken. */
+  openBillLabel: string;
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState<string | null>(null);
@@ -21,7 +35,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
     setError(null);
     startTransition(async () => {
       const result = await setTableLocked(table.id, table.status !== "LOCKED");
-      if (!result.ok) setError(result.message ?? "Kunde inte ändra bordets status.");
+      if (!result.ok) setError(result.message ?? labels.statusFailed);
     });
   }
 
@@ -42,7 +56,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
           onClick={() => window.print()}
           className="border border-[var(--rule)] px-4 py-2 text-sm"
         >
-          Skriv ut alla koder
+          {labels.printAll}
         </button>
         <span className="text-sm opacity-60">{tables.length} bord</span>
       </div>
@@ -61,9 +75,14 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-display text-2xl">Bord {table.tableNumber}</p>
+                <p className="font-display text-2xl">
+                  {fill(tableLabel, { number: table.tableNumber })}
+                </p>
                 <p className="text-sm opacity-60">
-                  {[table.zone, table.capacity ? `${table.capacity} platser` : null]
+                  {[
+                    table.zone,
+                    table.capacity ? fill(labels.seatsCount, { n: table.capacity }) : null,
+                  ]
                     .filter(Boolean)
                     .join(" · ") || "—"}
                 </p>
@@ -71,12 +90,12 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
 
               {table.hasOpenSession ? (
                 <span className="bg-green-600/15 px-2.5 py-1 text-xs font-medium text-green-700 dark:text-green-400">
-                  Öppen nota
+                  {openBillLabel}
                 </span>
               ) : null}
               {table.status === "LOCKED" ? (
                 <span className="bg-red-600/15 px-2.5 py-1 text-xs font-medium text-red-700 dark:text-red-400">
-                  Låst
+                  {labels.locked}
                 </span>
               ) : null}
             </div>
@@ -98,7 +117,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
                 onClick={() => toggleLock(table)}
                 className="flex-1 border border-[var(--rule)] px-3 py-2 text-sm disabled:opacity-50"
               >
-                {table.status === "LOCKED" ? "Lås upp" : "Lås bordet"}
+                {table.status === "LOCKED" ? labels.unlock : labels.lock}
               </button>
 
               {confirmArchive === table.id ? (
@@ -109,14 +128,14 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
                     onClick={() => archive(table.id)}
                     className="bg-red-600 px-3 py-2 text-sm text-white disabled:opacity-50"
                   >
-                    Bekräfta
+                    {labels.confirm}
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmArchive(null)}
                     className="border border-[var(--rule)] px-3 py-2 text-sm"
                   >
-                    Avbryt
+                    {labels.cancel}
                   </button>
                 </>
               ) : (
@@ -125,7 +144,7 @@ export function TableList({ tables }: { tables: TableWithQr[] }) {
                   onClick={() => setConfirmArchive(table.id)}
                   className="border border-[var(--rule)] px-3 py-2 text-sm"
                 >
-                  Ta bort
+                  {labels.remove}
                 </button>
               )}
             </div>

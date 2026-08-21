@@ -39,6 +39,7 @@ import type {
 import { BookOpen } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ImageUpload } from "@/components/staff/image-upload";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
  * Menyredigeraren.
@@ -49,7 +50,14 @@ import { ImageUpload } from "@/components/staff/image-upload";
  * ligger här — den som anropar åtgärden direkt möter exakt samma regler.
  */
 
-const WEEKDAYS = ["Sön", "Mån", "Tis", "Ons", "Tors", "Fre", "Lör"] as const;
+/**
+ * Veckodagarnas nycklar i JavaScripts ordning — söndag först.
+ *
+ * `menus.active_days` bär samma tal som `Date.getDay()`, så indexet HÄR är
+ * datans och inte veckans. Därför går de inte att slå upp i ordbokens
+ * `weekday`, som börjar på måndag.
+ */
+const DAY_KEYS = ["daySun", "dayMon", "dayTue", "dayWed", "dayThu", "dayFri", "daySat"] as const;
 
 /**
  * Restaurangens land och valuta, tillgängligt i hela redigeraren.
@@ -59,9 +67,13 @@ const WEEKDAYS = ["Sön", "Mån", "Tis", "Ons", "Tors", "Fre", "Lör"] as const;
  * bara vidarebefordrar ett värde är en nivå där någon glömmer att göra det, och
  * priserna hamnar i fel valuta i just den vy där det inte upptäcks.
  */
+/** Menyredigerarens texter. Rena strängar — komponenten är klientkod. */
+export type MenuLabels = Dictionary["staff"]["menu"];
+
 interface MenuLocale {
   country: CountryCode;
   currency: CurrencyCode;
+  labels: MenuLabels;
 }
 
 const MenuLocaleContext = createContext<MenuLocale | null>(null);
@@ -74,11 +86,17 @@ function useMenuLocale(): MenuLocale {
   return value;
 }
 
+/** Texterna ur samma kontext. Kortform, eftersom nästan varje block läser dem. */
+function useMenuLabels(): MenuLabels {
+  return useMenuLocale().labels;
+}
+
 export function MenuEditor({
   menus,
   restaurantId,
   country,
   currency,
+  labels,
 }: {
   menus: EditorMenu[];
   restaurantId: string;
@@ -86,11 +104,12 @@ export function MenuEditor({
   country: CountryCode;
   /** Restaurangens valuta. Avgör hur priser skrivs och tolkas. */
   currency: CurrencyCode;
+  labels: MenuLabels;
 }) {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <MenuLocaleContext.Provider value={{ country, currency }}>
+    <MenuLocaleContext.Provider value={{ country, currency, labels }}>
     <div className="mt-8">
       {error ? (
         <p role="alert" className="mb-4 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
@@ -104,8 +123,8 @@ export function MenuEditor({
         <div className="mt-8">
           <EmptyState
             icon={BookOpen}
-            title="Ingen meny ännu"
-            body="Skapa den första ovan. En restaurang kan ha flera menyer — lunch, kväll, helg — och rätt meny visas efter veckodag och klockslag."
+            title={labels.noMenuTitle}
+            body={labels.noMenuBody}
           />
         </div>
       ) : (
@@ -123,21 +142,22 @@ export function MenuEditor({
 /* ── Meny ────────────────────────────────────────────────────────────────── */
 
 function NewMenuForm() {
+  const labels = useMenuLabels();
   const [result, formAction] = useActionState<ActionResult | null, FormData>(createMenu, null);
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-3">
       <label className="flex-1 basis-48">
-        <span className="label-caps">Ny meny</span>
+        <span className="label-caps">{labels.newMenu}</span>
         <input
           name="name"
           required
           maxLength={120}
-          placeholder="Lunch, Kväll, Helg…"
+          placeholder={labels.newMenuPlaceholder}
           className="field mt-1.5"
         />
       </label>
-      <SubmitButton label="Skapa meny" pendingLabel="Skapar…" />
+      <SubmitButton label={labels.createMenu} pendingLabel={labels.creating} />
       {result?.message ? <Feedback result={result} /> : null}
     </form>
   );
@@ -152,6 +172,7 @@ function MenuCard({
   restaurantId: string;
   onError: (message: string) => void;
 }) {
+  const labels = useMenuLabels();
   const [pending, run] = useAction(onError);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const published = menu.status === "PUBLISHED";
@@ -189,7 +210,7 @@ function MenuCard({
           onClick={() => run(() => setMenuStatus(menu.id, !published))}
           className="border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
         >
-          {published ? "Avpublicera" : "Publicera"}
+          {published ? labels.unpublish : labels.publish}
         </button>
 
         {confirmDelete ? (
@@ -200,14 +221,14 @@ function MenuCard({
               onClick={() => run(() => deleteMenu(menu.id))}
               className="bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
             >
-              Radera allt
+              {labels.deleteAll}
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
               className="border border-[var(--rule)] px-3 py-1.5 text-sm"
             >
-              Avbryt
+              {labels.cancel}
             </button>
           </>
         ) : (
@@ -216,15 +237,15 @@ function MenuCard({
             onClick={() => setConfirmDelete(true)}
             className="border border-[var(--rule)] px-3 py-1.5 text-sm"
           >
-            Radera
+            {labels.remove}
           </button>
         )}
       </header>
 
       <div className="border-b border-[var(--rule)] p-4">
-        <p className="text-sm font-medium">Gäller</p>
+        <p className="text-sm font-medium">{labels.appliesOn}</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {WEEKDAYS.map((label, day) => (
+          {DAY_KEYS.map((key, day) => (
             <button
               key={day}
               type="button"
@@ -246,19 +267,19 @@ function MenuCard({
                   : "border-[var(--rule-control)] text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
-              {label}
+              {labels[key]}
             </button>
           ))}
         </div>
 
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <TimeField
-            label="Från"
+            label={labels.from}
             value={menu.activeFrom}
             onSave={(activeFrom) => run(() => updateMenu(menu.id, { activeFrom }))}
           />
           <TimeField
-            label="Till"
+            label={labels.to}
             value={menu.activeUntil}
             onSave={(activeUntil) => run(() => updateMenu(menu.id, { activeUntil }))}
           />
@@ -295,6 +316,7 @@ function CategoryBlock({
   restaurantId: string;
   onError: (message: string) => void;
 }) {
+  const labels = useMenuLabels();
   const [pending, run] = useAction(onError);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -319,14 +341,14 @@ function CategoryBlock({
               onClick={() => run(() => deleteCategory(category.id))}
               className="bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
             >
-              Bekräfta
+              {labels.confirm}
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
               className="border border-[var(--rule)] px-3 py-1.5 text-sm"
             >
-              Avbryt
+              {labels.cancel}
             </button>
           </>
         ) : (
@@ -335,7 +357,7 @@ function CategoryBlock({
             onClick={() => setConfirmDelete(true)}
             className="border border-[var(--rule)] px-3 py-1.5 text-sm"
           >
-            Ta bort kategori
+            {labels.removeCategory}
           </button>
         )}
       </div>
@@ -352,18 +374,19 @@ function CategoryBlock({
 }
 
 function AddCategory({ menuId, onError }: { menuId: string; onError: (message: string) => void }) {
+  const labels = useMenuLabels();
   const [pending, run] = useAction(onError);
   const [name, setName] = useState("");
 
   return (
     <div className="flex flex-wrap items-end gap-3">
       <label className="flex-1 basis-48">
-        <span className="label-caps">Ny kategori</span>
+        <span className="label-caps">{labels.newCategory}</span>
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
           maxLength={120}
-          placeholder="Pizza, Dryck, Efterrätt…"
+          placeholder={labels.newCategoryPlaceholder}
           className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-2"
         />
       </label>
@@ -376,7 +399,7 @@ function AddCategory({ menuId, onError }: { menuId: string; onError: (message: s
         }}
         className="btn btn-primary"
       >
-        Lägg till
+        {labels.add}
       </button>
     </div>
   );
@@ -385,6 +408,7 @@ function AddCategory({ menuId, onError }: { menuId: string; onError: (message: s
 /* ── Rätt ────────────────────────────────────────────────────────────────── */
 
 function AddItemForm({ categoryId }: { categoryId: string }) {
+  const labels = useMenuLabels();
   const { currency } = useMenuLocale();
   const [result, formAction] = useActionState<ActionResult | null, FormData>(createMenuItem, null);
 
@@ -392,7 +416,7 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
     <form action={formAction} className="mt-3 flex flex-wrap items-end gap-3">
       <input type="hidden" name="category_id" value={categoryId} />
       <label className="flex-1 basis-40">
-        <span className="label-caps">Ny rätt</span>
+        <span className="label-caps">{labels.newItem}</span>
         <input
           name="name"
           required
@@ -401,7 +425,7 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
         />
       </label>
       <label className="basis-28">
-        <span className="label-caps">Pris ({currency})</span>
+        <span className="label-caps">{fill(labels.price, { currency })}</span>
         <input
           name="price"
           required
@@ -412,7 +436,7 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
           className="field mt-1.5"
         />
       </label>
-      <SubmitButton label="Lägg till" pendingLabel="Lägger till…" />
+      <SubmitButton label={labels.add} pendingLabel={labels.adding} />
       {result?.message ? <Feedback result={result} /> : null}
     </form>
   );
@@ -427,6 +451,7 @@ function ItemRow({
   restaurantId: string;
   onError: (message: string) => void;
 }) {
+  const labels = useMenuLabels();
   const { country, currency } = useMenuLocale();
   const [pending, run] = useAction(onError);
   const [expanded, setExpanded] = useState(false);
@@ -437,14 +462,14 @@ function ItemRow({
       <div className="flex flex-wrap items-center gap-3">
         <InlineText
           value={item.name}
-          label="Rättens namn"
+          label={labels.itemName}
           className="mr-auto font-medium"
           onSave={(name) => run(() => updateMenuItem(item.id, { name }))}
         />
 
         <InlineText
           value={formatAmountInput(item.priceOre, currency)}
-          label={`Pris i ${currency}`}
+          label={fill(labels.price, { currency })}
           className="w-24 text-right tabular-nums"
           inputMode="decimal"
           onSave={(price) => run(() => updateMenuItem(item.id, { price }))}
@@ -460,7 +485,7 @@ function ItemRow({
               : "bg-red-600/15 text-red-700 dark:text-red-400"
           }`}
         >
-          {item.isAvailable ? "I lager" : "Slut för dagen"}
+          {item.isAvailable ? labels.inStock : labels.soldOutToday}
         </button>
 
         <button
@@ -504,7 +529,7 @@ function ItemRow({
           onClick={() => setExpanded(!expanded)}
           className="border border-[var(--rule)] px-3 py-1.5 text-sm"
         >
-          {expanded ? "Dölj" : "Detaljer"}
+          {expanded ? labels.hide : labels.details}
         </button>
       </div>
 
@@ -513,7 +538,7 @@ function ItemRow({
           <UnavailableUntil item={item} onError={onError} />
 
           <label className="block">
-            <span className="label-caps">Beskrivning</span>
+            <span className="label-caps">{labels.description}</span>
             <InlineTextarea
               value={item.description ?? ""}
               onSave={(description) => run(() => updateMenuItem(item.id, { description }))}
@@ -521,7 +546,7 @@ function ItemRow({
           </label>
 
           <div>
-            <span className="label-caps">Moms</span>
+            <span className="label-caps">{labels.vat}</span>
             <div className="mt-1 flex gap-2">
               {vatRateOptions(country).map((choice) => (
                 <button
@@ -543,11 +568,12 @@ function ItemRow({
 
           <label className="block">
             <span className="label-caps">
-              Allergener <span className="font-normal opacity-60">kommaseparerade</span>
+              {labels.allergens}{" "}
+              <span className="font-normal opacity-60">{labels.allergensHint}</span>
             </span>
             <InlineText
               value={item.allergens.join(", ")}
-              label="Allergener"
+              label={labels.allergens}
               className="mt-1 w-full"
               onSave={(value) =>
                 run(() => updateMenuItem(item.id, { allergens: value.split(",") }))
@@ -556,16 +582,13 @@ function ItemRow({
           </label>
 
           <div>
-            <p className="text-sm font-medium">Bild</p>
+            <p className="text-sm font-medium">{labels.image}</p>
             <p className="mt-0.5 text-sm opacity-60">
-              Bilden syns för gästen först när Burp godkänt den. JPEG, PNG, WebP eller AVIF,
-              högst 10 MB.
+              {labels.imageHint}
             </p>
             {item.pendingMedia > 0 ? (
               <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                {item.pendingMedia === 1
-                  ? "En bild väntar på granskning."
-                  : `${item.pendingMedia} bilder väntar på granskning.`}
+                {fill(labels.imagePending, { n: item.pendingMedia })}
               </p>
             ) : null}
             <div className="mt-2">
@@ -573,7 +596,7 @@ function ItemRow({
                 restaurantId={restaurantId}
                 menuItemId={item.id}
                 currentUrl={item.imageUrl}
-                label={`Ladda upp bild för ${item.name}`}
+                label={fill(labels.imageUploadFor, { name: item.name })}
               />
             </div>
           </div>
@@ -596,7 +619,7 @@ function ItemRow({
                   onClick={() => setConfirmDelete(false)}
                   className="border border-[var(--rule)] px-3 py-1.5 text-sm"
                 >
-                  Avbryt
+                  {labels.cancel}
                 </button>
               </div>
             ) : (
@@ -605,7 +628,7 @@ function ItemRow({
                 onClick={() => setConfirmDelete(true)}
                 className="border border-[var(--rule)] px-3 py-1.5 text-sm"
               >
-                Ta bort rätten
+                {labels.removeItem}
               </button>
             )}
           </div>
@@ -618,6 +641,7 @@ function ItemRow({
 /* ── Tillval ─────────────────────────────────────────────────────────────── */
 
 function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: string) => void }) {
+  const labels = useMenuLabels();
   const [pending, run] = useAction(onError);
   const [name, setName] = useState("");
   const [min, setMin] = useState("0");
@@ -625,7 +649,7 @@ function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: 
 
   return (
     <div>
-      <p className="text-sm font-medium">Tillvalsgrupper</p>
+      <p className="text-sm font-medium">{labels.optionGroups}</p>
 
       {item.optionGroups.map((group) => (
         <OptionGroupBlock key={group.id} group={group} onError={onError} />
@@ -633,16 +657,16 @@ function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: 
 
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <label className="flex-1 basis-40">
-          <span className="text-xs opacity-70">Ny grupp</span>
+          <span className="text-xs opacity-70">{labels.newGroup}</span>
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Välj storlek"
+            placeholder={labels.newGroupPlaceholder}
             className="mt-1 w-full border border-[var(--rule)] bg-transparent px-3 py-1.5 text-sm"
           />
         </label>
         <label className="basis-20">
-          <span className="text-xs opacity-70">Minst</span>
+          <span className="text-xs opacity-70">{labels.min}</span>
           <input
             type="number"
             min={0}
@@ -652,7 +676,7 @@ function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: 
           />
         </label>
         <label className="basis-20">
-          <span className="text-xs opacity-70">Högst</span>
+          <span className="text-xs opacity-70">{labels.max}</span>
           <input
             type="number"
             min={1}
@@ -670,7 +694,7 @@ function OptionGroups({ item, onError }: { item: EditorItem; onError: (message: 
           }}
           className="border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
         >
-          Lägg till grupp
+          {labels.addGroup}
         </button>
       </div>
     </div>
@@ -684,6 +708,7 @@ function OptionGroupBlock({
   group: EditorOptionGroup;
   onError: (message: string) => void;
 }) {
+  const labels = useMenuLabels();
   const { currency } = useMenuLocale();
   const [pending, run] = useAction(onError);
   const [name, setName] = useState("");
@@ -704,7 +729,7 @@ function OptionGroupBlock({
           onClick={() => run(() => deleteOptionGroup(group.id))}
           className="text-sm opacity-60 hover:opacity-100 disabled:opacity-30"
         >
-          Ta bort grupp
+          {labels.removeGroup}
         </button>
       </div>
 
@@ -764,7 +789,7 @@ function OptionGroupBlock({
           }}
           className="border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
         >
-          Lägg till
+          {labels.add}
         </button>
       </div>
     </div>
@@ -776,11 +801,12 @@ function OptionGroupBlock({
 /** Kör en serveråtgärd och lyfter felmeddelandet till sidans felruta. */
 function useAction(onError: (message: string) => void): [boolean, (fn: () => Promise<ActionResult>) => void] {
   const [pending, startTransition] = useTransition();
+  const labels = useMenuLabels();
 
   const run = (fn: () => Promise<ActionResult>) => {
     startTransition(async () => {
       const result = await fn();
-      if (!result.ok) onError(result.message ?? "Något gick fel.");
+      if (!result.ok) onError(result.message ?? labels.somethingWrong);
     });
   };
 
@@ -918,6 +944,7 @@ function UnavailableUntil({
   item: EditorItem;
   onError: (message: string) => void;
 }) {
+  const labels = useMenuLabels();
   const [pending, run] = useAction(onError);
   const [until, setUntil] = useState("");
   const [reason, setReason] = useState("");
@@ -940,7 +967,7 @@ function UnavailableUntil({
           onClick={() => run(() => clearItemAvailability(item.id))}
           className="mt-2 border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
         >
-          Gör tillgänglig igen
+          {labels.makeAvailable}
         </button>
       </div>
     );
@@ -949,7 +976,7 @@ function UnavailableUntil({
   return (
     <div className="flex flex-wrap items-end gap-3">
       <label className="basis-52">
-        <span className="label-caps">Slut till</span>
+        <span className="label-caps">{labels.soldUntil}</span>
         <input
           type="datetime-local"
           value={until}
@@ -959,13 +986,13 @@ function UnavailableUntil({
       </label>
 
       <label className="flex-1 basis-40">
-        <span className="label-caps">Skäl för gästen</span>
+        <span className="label-caps">{labels.reasonForGuest}</span>
         <input
           type="text"
           value={reason}
           maxLength={200}
           onChange={(event) => setReason(event.target.value)}
-          placeholder="T.ex. Slut till fredag"
+          placeholder={labels.reasonPlaceholder}
           className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-transparent px-3"
         />
       </label>
@@ -991,7 +1018,7 @@ function UnavailableUntil({
         }
         className="min-h-11 border border-[var(--rule)] px-4 text-sm disabled:opacity-50"
       >
-        Markera slut
+        {labels.markSoldOut}
       </button>
     </div>
   );

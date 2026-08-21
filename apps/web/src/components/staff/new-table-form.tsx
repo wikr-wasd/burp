@@ -1,11 +1,15 @@
 "use client";
 
 import { useActionState } from "react";
+import type { Dictionary } from "@/lib/i18n";
 import { useFormStatus } from "react-dom";
 import { createTable, type ActionResult } from "@/app/dashboard/bord/actions";
 
 /** Formulär för att lägga till ett bord. */
-export function NewTableForm() {
+export function NewTableForm({ labels }: {
+  /** Bordsytans texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["tables"];
+}) {
   const [result, formAction] = useActionState<ActionResult | null, FormData>(createTable, null);
 
   return (
@@ -15,7 +19,7 @@ export function NewTableForm() {
     >
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex-1 basis-32">
-          <span className="label-caps">Bordsnummer</span>
+          <span className="label-caps">{labels.tableNumber}</span>
           <input
             name="table_number"
             required
@@ -26,19 +30,21 @@ export function NewTableForm() {
 
         <label className="flex-1 basis-40">
           <span className="label-caps">
-            Zon <span className="normal-case whitespace-nowrap">valfritt</span>
+            {labels.zone}{" "}
+            <span className="normal-case whitespace-nowrap">{labels.optional}</span>
           </span>
           <input
             name="zone"
             maxLength={60}
-            placeholder="Uteservering"
+            placeholder={labels.zonePlaceholder}
             className="field mt-1.5"
           />
         </label>
 
         <label className="basis-28">
           <span className="label-caps">
-            Platser <span className="normal-case whitespace-nowrap">valfritt</span>
+            {labels.seats}{" "}
+            <span className="normal-case whitespace-nowrap">{labels.optional}</span>
           </span>
           <input
             name="capacity"
@@ -49,7 +55,7 @@ export function NewTableForm() {
           />
         </label>
 
-        <SubmitButton />
+        <SubmitButton labels={labels} />
       </div>
 
       {result?.message ? (
@@ -68,7 +74,10 @@ export function NewTableForm() {
   );
 }
 
-function SubmitButton() {
+function SubmitButton({ labels }: {
+  /** Bordsytans texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["tables"];
+}) {
   // useFormStatus måste ligga i en komponent INUTI formuläret — den läser
   // status från närmaste form ovanför sig i trädet.
   const { pending } = useFormStatus();
@@ -79,7 +88,7 @@ function SubmitButton() {
       disabled={pending}
       className="btn btn-primary"
     >
-      {pending ? "Lägger till…" : "Lägg till bord"}
+      {pending ? labels.adding : labels.addTable}
     </button>
   );
 }

@@ -450,12 +450,21 @@ eller ett beslut.
       - **Inställningarna** (`/dashboard/installningar`) med alla sex
         redigerare: presentation, öppettider, kortbetalning, notiser,
         klippkort och orderregler.
+      - **Menyredigeraren** (`/dashboard/meny`) — 999 rader, den största ytan i
+        hela personaldelen.
+      - **Bord och QR-koder** (`/dashboard/bord`) med planritningens redigerare.
 
-      **Kvar: resten av sidornas innehåll.** Menyredigeraren, bordshanteringen,
-      statistiken, omdömena, erbjudandena, presentkorten, avräkningen,
-      händelseloggen och hela backoffice. Störst är `menu-editor.tsx` och
-      `floor-plan-editor.tsx`. Sex `untranslatedSurface()`-anrop återstår, i
-      `installningar/actions.ts`, `personal/actions.ts` och `konto/page.tsx`.
+      **Kvar:** statistiken, omdömena, erbjudandena, presentkorten,
+      avräkningen, händelseloggen och hela backoffice. Sex
+      `untranslatedSurface()`-anrop återstår, i `installningar/actions.ts`,
+      `personal/actions.ts` och `konto/page.tsx`.
+
+      **Serveråtgärdernas felmeddelanden är kvar på svenska.** De ligger i
+      `actions.ts`-filerna och skickas till klienten som `result.message`.
+      Gränssnittet visar dem rakt av, så en bosnisk sida kan svara på svenska
+      när något går fel. Det är den sista systematiska luckan, och den är
+      medveten så länge: en åtgärd är serverkod och kan läsa `staff.locale`
+      själv, men det är ett eget svep genom ett tiotal filer.
 
       **Metadata-titlarna står kvar på svenska överallt.** En `metadata`-export
       är statisk och kan inte läsa `staff.locale`; `generateMetadata` skulle

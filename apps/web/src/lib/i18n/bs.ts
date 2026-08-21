@@ -665,6 +665,123 @@ export const bs: Dictionary = {
       presentationSaved: "Spremljeno. Izmjene se vide na vašoj stranici u roku od sat vremena.",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    menu: {
+      intro:
+        "Gostima se prikazuju samo objavljeni jelovnici i jela. Cijene se navode s uključenim PDV-om.",
+      noMenuTitle: "Još nema jelovnika",
+      noMenuBody:
+        "Kreirajte prvi iznad. Restoran može imati više jelovnika — ručak, večer, vikend — i pravi se prikazuje prema danu i satu.",
+
+      newMenu: "Novi jelovnik",
+      newMenuPlaceholder: "Ručak, Večer, Vikend…",
+      createMenu: "Kreiraj jelovnik",
+      creating: "Kreiranje…",
+      publish: "Objavi",
+      unpublish: "Skini s objave",
+      deleteAll: "Obriši sve",
+      confirm: "Potvrdi",
+      cancel: "Otkaži",
+      remove: "Obriši",
+
+      appliesOn: "Vrijedi",
+      from: "Od",
+      to: "Do",
+      daySun: "Ned",
+      dayMon: "Pon",
+      dayTue: "Uto",
+      dayWed: "Sri",
+      dayThu: "Čet",
+      dayFri: "Pet",
+      daySat: "Sub",
+
+      newCategory: "Nova kategorija",
+      newCategoryPlaceholder: "Pizza, Piće, Desert…",
+      removeCategory: "Ukloni kategoriju",
+      add: "Dodaj",
+      adding: "Dodavanje…",
+
+      newItem: "Novo jelo",
+      price: "Cijena ({currency})",
+      itemName: "Naziv jela",
+      inStock: "Na stanju",
+      soldOutToday: "Rasprodano danas",
+      hide: "Sakrij",
+      details: "Detalji",
+      description: "Opis",
+      vat: "PDV",
+      allergens: "Alergeni",
+      allergensHint: "odvojeni zarezom",
+      image: "Slika",
+      imageHint:
+        "Slika se gostu prikazuje tek kad je Burp odobri. JPEG, PNG, WebP ili AVIF, najviše 10 MB.",
+      imagePending: "Čeka pregled: {n}",
+      imageUploadFor: "Otpremi sliku za {name}",
+      removeItem: "Ukloni jelo",
+
+      optionGroups: "Grupe priloga",
+      newGroup: "Nova grupa",
+      newGroupPlaceholder: "Odaberi veličinu",
+      min: "Najmanje",
+      max: "Najviše",
+      addGroup: "Dodaj grupu",
+      removeGroup: "Ukloni grupu",
+
+      somethingWrong: "Nešto je pošlo po zlu.",
+      makeAvailable: "Ponovo učini dostupnim",
+      soldUntil: "Rasprodano do",
+      reasonForGuest: "Razlog za gosta",
+      reasonPlaceholder: "Npr. Nema do petka",
+      markSoldOut: "Označi kao rasprodano",
+    },
+
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    tables: {
+      title: "Stolovi i QR kodovi",
+      intro: "Isprintajte kod i zalijepite ga na stol. Kod je statičan i ne mijenja se nikada.",
+      emptyTitle: "Još nema stolova",
+      emptyBody:
+        "Dodajte prvi iznad. Svaki stol dobiva vlastiti QR kod za printanje i lijepljenje na stol.",
+
+      tableNumber: "Broj stola",
+      zone: "Zona",
+      optional: "nije obavezno",
+      zonePlaceholder: "Bašta",
+      seats: "Mjesta",
+      seatsCount: "{n} mjesta",
+      addTable: "Dodaj stol",
+      adding: "Dodavanje…",
+
+      printAll: "Isprintaj sve kodove",
+      locked: "Zaključan",
+      lock: "Zaključaj stol",
+      unlock: "Otključaj",
+      confirm: "Potvrdi",
+      cancel: "Otkaži",
+      remove: "Ukloni",
+      statusFailed: "Status stola nije promijenjen.",
+
+      planTitle: "Tlocrt",
+      planHint:
+        "Razmjestite stolove kako stoje u lokalu. Pregled ih onda prikazuje u obliku prostorije umjesto kao mrežu — konobar tada vidi koji stol zove, a ne koje polje po redu.",
+      planEmptyTitle: "Još nema tlocrta",
+      planEmptyBody:
+        "Nacrtajte lokal da Pregled može pokazati gdje stolovi zaista stoje. Konobar koji vidi prostoriju zna koji stol zove — lista govori samo koje polje po redu.",
+      planSaved: "Tlocrt je spremljen.",
+      somethingWrong: "Nešto je pošlo po zlu.",
+      undo: "Poništi",
+      rotate: "Zakreni",
+      removeFromPlan: "Ukloni s tlocrta",
+      notPlaced: "Nisu razmješteni",
+      allPlaced: "Svi stolovi su na tlocrtu.",
+      managePlans: "Upravljaj tlocrtima",
+      newPlan: "Novi tlocrt",
+      newPlanPlaceholder: "Npr. Bašta",
+      add: "Dodaj",
+      save: "Spremi",
+      saving: "Spremanje…",
+    },
+
     upcomingLater: (count: number) => {
       const ones = count % 10;
       const tens = count % 100;

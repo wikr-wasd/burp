@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { MenuEditor } from "@/components/staff/menu-editor";
 import { requireStaff } from "@/lib/auth";
+import { dictionary } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -207,12 +208,14 @@ export default async function MenuPage() {
     })),
   }));
 
+  const t = dictionary(staff.locale).staff;
+
   return (
     <StaffShell
       staff={staff}
       current="meny"
-      title="Meny"
-      intro="Bara publicerade menyer och rätter syns för gästen. Priser anges inklusive moms."
+      title={t.section.meny}
+      intro={t.menu.intro}
       width="narrow"
     >
       <MenuEditor
@@ -220,6 +223,7 @@ export default async function MenuPage() {
         restaurantId={staff.restaurantId}
         country={staff.country}
         currency={staff.currency}
+        labels={t.menu}
       />
     </StaffShell>
   );

@@ -8,6 +8,7 @@ import { StaffShell } from "@/components/staff/staff-shell";
 import { TableList } from "@/components/staff/table-list";
 import { NewTableForm } from "@/components/staff/new-table-form";
 import { requireStaff } from "@/lib/auth";
+import { dictionary } from "@/lib/i18n";
 import { publicEnv, serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -89,26 +90,33 @@ export default async function TablesPage() {
     }),
   );
 
+  const t = dictionary(staff.locale).staff;
+
   return (
     <StaffShell
       staff={staff}
       current="bord"
-      title="Bord och QR-koder"
-      intro="Skriv ut koden och sätt den på bordet. Koden är statisk och behöver aldrig bytas."
+      title={t.tables.title}
+      intro={t.tables.intro}
       width="narrow"
     >
-      <NewTableForm />
+      <NewTableForm labels={t.tables} />
 
       {tables.length === 0 ? (
         <div className="mt-10">
           <EmptyState
             icon={QrCode}
-            title="Inga bord ännu"
-            body="Lägg till det första ovan. Varje bord får en egen QR-kod att skriva ut och sätta på bordet."
+            title={t.tables.emptyTitle}
+            body={t.tables.emptyBody}
           />
         </div>
       ) : (
-        <TableList tables={tables} />
+        <TableList
+          tables={tables}
+          labels={t.tables}
+          tableLabel={t.orderType.table}
+          openBillLabel={t.overview.stateOPPEN_NOTA}
+        />
       )}
 
       {/*
@@ -120,14 +128,13 @@ export default async function TablesPage() {
       */}
       {tables.length > 0 ? (
         <section className="mt-14 border-t border-[var(--rule)] pt-10">
-          <h2 className="font-display text-2xl">Planritning</h2>
+          <h2 className="font-display text-2xl">{t.tables.planTitle}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Dra ut borden så att de står som i lokalen. Översikten visar dem sedan i rummets
-            form i stället för som ett rutnät — en servitör ser då vilket bord som ropar, inte
-            vilken ruta i ordningen.
+            {t.tables.planHint}
           </p>
 
           <FloorPlanEditor
+            labels={t.tables}
             plans={(floorPlans ?? []).map((plan) => ({
               id: plan.id,
               name: plan.name,

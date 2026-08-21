@@ -804,6 +804,140 @@ export const sv = {
       presentationSaved: "Sparat. Ändringarna syns på din sida inom en timme.",
     },
 
+    /**
+     * Menyredigeraren.
+     *
+     * `day*`-nycklarna står i JavaScripts veckoordning — söndag först —
+     * eftersom `menus.active_days` bär samma tal som `Date.getDay()`.
+     * Ordningen är alltså datans, inte veckans, och det är därför de inte
+     * går att slå upp i ordbokens `weekday` längre ned.
+     *
+     * ENBART strängar — redigeraren är klientkod.
+     */
+    menu: {
+      intro: "Bara publicerade menyer och rätter syns för gästen. Priser anges inklusive moms.",
+      noMenuTitle: "Ingen meny ännu",
+      noMenuBody:
+        "Skapa den första ovan. En restaurang kan ha flera menyer — lunch, kväll, helg — och rätt meny visas efter veckodag och klockslag.",
+
+      newMenu: "Ny meny",
+      newMenuPlaceholder: "Lunch, Kväll, Helg…",
+      createMenu: "Skapa meny",
+      creating: "Skapar…",
+      publish: "Publicera",
+      unpublish: "Avpublicera",
+      deleteAll: "Radera allt",
+      confirm: "Bekräfta",
+      cancel: "Avbryt",
+      remove: "Radera",
+
+      appliesOn: "Gäller",
+      from: "Från",
+      to: "Till",
+      daySun: "Sön",
+      dayMon: "Mån",
+      dayTue: "Tis",
+      dayWed: "Ons",
+      dayThu: "Tors",
+      dayFri: "Fre",
+      daySat: "Lör",
+
+      newCategory: "Ny kategori",
+      newCategoryPlaceholder: "Pizza, Dryck, Efterrätt…",
+      removeCategory: "Ta bort kategori",
+      add: "Lägg till",
+      adding: "Lägger till…",
+
+      newItem: "Ny rätt",
+      price: "Pris ({currency})",
+      itemName: "Rättens namn",
+      inStock: "I lager",
+      soldOutToday: "Slut för dagen",
+      hide: "Dölj",
+      details: "Detaljer",
+      description: "Beskrivning",
+      vat: "Moms",
+      allergens: "Allergener",
+      allergensHint: "kommaseparerade",
+      image: "Bild",
+      imageHint:
+        "Bilden syns för gästen först när Burp godkänt den. JPEG, PNG, WebP eller AVIF, högst 10 MB.",
+      imagePending: "Väntar på granskning: {n}",
+      imageUploadFor: "Ladda upp bild för {name}",
+      removeItem: "Ta bort rätten",
+
+      optionGroups: "Tillvalsgrupper",
+      newGroup: "Ny grupp",
+      newGroupPlaceholder: "Välj storlek",
+      min: "Minst",
+      max: "Högst",
+      addGroup: "Lägg till grupp",
+      removeGroup: "Ta bort grupp",
+
+      somethingWrong: "Något gick fel.",
+      makeAvailable: "Gör tillgänglig igen",
+      soldUntil: "Slut till",
+      reasonForGuest: "Skäl för gästen",
+      reasonPlaceholder: "T.ex. Slut till fredag",
+      markSoldOut: "Markera slut",
+    },
+
+    /**
+     * Bord, QR-koder och planritningen.
+     *
+     * "Öppen nota" står INTE här. Det är samma tillstånd som i översiktens
+     * teckenförklaring och läses ur `overview.stateOPPEN_NOTA` — två nycklar
+     * för samma sak är två som kan glida isär, och gästen vid bordet bryr sig
+     * inte om vilken sida personalen råkar titta på.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    tables: {
+      title: "Bord och QR-koder",
+      intro: "Skriv ut koden och sätt den på bordet. Koden är statisk och behöver aldrig bytas.",
+      emptyTitle: "Inga bord ännu",
+      emptyBody:
+        "Lägg till det första ovan. Varje bord får en egen QR-kod att skriva ut och sätta på bordet.",
+
+      tableNumber: "Bordsnummer",
+      zone: "Zon",
+      optional: "valfritt",
+      zonePlaceholder: "Uteservering",
+      seats: "Platser",
+      seatsCount: "{n} platser",
+      addTable: "Lägg till bord",
+      adding: "Lägger till…",
+
+      printAll: "Skriv ut alla koder",
+      locked: "Låst",
+      lock: "Lås bordet",
+      unlock: "Lås upp",
+      confirm: "Bekräfta",
+      cancel: "Avbryt",
+      remove: "Ta bort",
+      statusFailed: "Kunde inte ändra bordets status.",
+
+      planTitle: "Planritning",
+      planHint:
+        "Dra ut borden så att de står som i lokalen. Översikten visar dem sedan i rummets form i stället för som ett rutnät — en servitör ser då vilket bord som ropar, inte vilken ruta i ordningen.",
+      planEmptyTitle: "Ingen planritning än",
+      planEmptyBody:
+        "Rita upp lokalen så att Översikten kan visa var borden faktiskt står. En servitör som ser rummet vet vilket bord som ropar — en lista säger bara vilken ruta i ordningen.",
+      planSaved: "Ritningen är sparad.",
+      somethingWrong: "Något gick fel.",
+      undo: "Ångra",
+      rotate: "Vrid",
+      removeFromPlan: "Ta bort från ritningen",
+      notPlaced: "Inte utplacerade",
+      allPlaced: "Alla bord står på en ritning.",
+      managePlans: "Hantera ritningar",
+      newPlan: "Ny ritning",
+      newPlanPlaceholder: "T.ex. Uteserveringen",
+      add: "Lägg till",
+      save: "Spara",
+      saving: "Sparar…",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 förbeställning senare i dag." : `${count} förbeställningar senare i dag.`,
   },
