@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { CreditCard, ExternalLink, Loader2 } from "lucide-react";
 import type { CurrencyCode } from "@burp/core";
+import { fill, type Dictionary } from "@/lib/i18n";
 import {
   disableCardPayments,
   startCardOnboarding,
@@ -35,12 +36,15 @@ export function CardPaymentSettings({
   connectable,
   currency,
   isOwner,
+  labels,
 }: {
   account: PaymentAccountView | null;
   /** Leverantörer som går att koppla i restaurangens valuta. Tom = ingen. */
   connectable: readonly string[];
   currency: CurrencyCode;
   isOwner: boolean;
+  /** Inställningarnas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["settings"];
 }) {
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
@@ -50,7 +54,7 @@ export function CardPaymentSettings({
     startTransition(async () => {
       const result = await startCardOnboarding();
       if (!result.ok || !result.url) {
-        setFeedback({ ok: false, message: result.message ?? "Något gick fel." });
+        setFeedback({ ok: false, message: result.message ?? labels.somethingWrong });
         return;
       }
       // Leverantörens formulär ligger hos dem. Att öppna det i samma flik är
@@ -61,19 +65,21 @@ export function CardPaymentSettings({
   }
 
   function disable() {
-    if (!window.confirm("Stäng av kortbetalning? Gäster kan då bara betala på plats.")) return;
+    if (!window.confirm(labels.cardTurnOffConfirm)) return;
 
     setFeedback(null);
     startTransition(async () => {
       const result = await disableCardPayments();
       setFeedback({
         ok: result.ok,
-        message: result.ok ? "Kortbetalning avstängd." : (result.message ?? "Något gick fel."),
+        message: result.ok ? labels.cardTurnedOff : (result.message ?? labels.somethingWrong),
       });
     });
   }
 
-  const providerName = account ? (PROVIDER_NAMES[account.provider] ?? account.provider) : null;
+  // Alltid en sträng: varje ställe som skriver ut den ligger inuti en gren
+  // som redan kräver ett konto, och `fill()` tar inte emot null.
+  const providerName = account ? (PROVIDER_NAMES[account.provider] ?? account.provider) : "";
 
   return (
     <div className="card mt-4 p-4">
@@ -83,51 +89,43 @@ export function CardPaymentSettings({
           {account?.status === "ACTIVE" ? (
             <>
               <p className="font-medium text-green-700 dark:text-green-400">
-                Kortbetalning är på
+                {labels.cardOnTitle}
               </p>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Gäster kan betala med kort, Apple Pay och Google Pay direkt i menyn. Pengarna
-                går till ert eget konto hos {providerName} — Burp tar aldrig emot dem. Vår
-                avgift dras ur betalningen.
+                {fill(labels.cardOnBody, { provider: providerName })}
               </p>
             </>
           ) : account?.status === "PENDING" ? (
             <>
-              <p className="font-medium">Väntar på {providerName}</p>
+              <p className="font-medium">{fill(labels.cardPendingTitle, { provider: providerName })}</p>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Kontot är skapat men {providerName} har inte godkänt det ännu. Det är därför
-                kortknappen inte syns för gästerna. Saknas något underlag ligger det i deras
-                formulär.
+                {fill(labels.cardPendingBody, { provider: providerName })}
               </p>
             </>
           ) : account?.status === "DISABLED" ? (
             <>
-              <p className="font-medium">Kortbetalning är avstängd</p>
+              <p className="font-medium">{labels.cardDisabledTitle}</p>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Gäster betalar på plats. Kontot hos {providerName} finns kvar och går att slå
-                på igen.
+                {fill(labels.cardDisabledBody, { provider: providerName })}
               </p>
             </>
           ) : connectable.length > 0 ? (
             <>
-              <p className="font-medium">Ta emot kort i menyn</p>
+              <p className="font-medium">{labels.cardConnectTitle}</p>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Gästen betalar i sin egen telefon vid bordet, med kort, Apple Pay eller Google
-                Pay. Ni tecknar avtalet direkt med leverantören och pengarna går rakt in på
-                ert konto — Burp håller aldrig gästens pengar.
+                {labels.cardConnectBody}
               </p>
             </>
           ) : (
             <>
-              <p className="font-medium">Kortbetalning är inte tillgänglig än</p>
+              <p className="font-medium">{labels.cardUnavailableTitle}</p>
               {/*
                 Bosnien och Serbien ligger utanför EU/EES, och de internationella
                 leverantörerna finns inte där. Det är ett besked och inte ett fel —
                 kontantflödet fungerar hela vägen, och kassavyn kvitterar notan.
               */}
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Ingen leverantör är kopplad för {currency} ännu. Gästen beställer som vanligt
-                och betalar på plats; ni kvitterar summan i Kassan.
+                {fill(labels.cardUnavailableBody, { currency })}
               </p>
             </>
           )}
@@ -154,7 +152,7 @@ export function CardPaymentSettings({
                 ) : (
                   <ExternalLink size={16} aria-hidden="true" />
                 )}
-                {account ? "Fortsätt hos leverantören" : "Koppla konto"}
+                {account ? labels.cardContinue : labels.cardConnect}
               </button>
 
               {account?.status === "ACTIVE" ? (
@@ -164,7 +162,7 @@ export function CardPaymentSettings({
                   disabled={pending}
                   className="btn btn-secondary"
                 >
-                  Stäng av
+                  {labels.cardTurnOff}
                 </button>
               ) : null}
             </div>
@@ -172,7 +170,7 @@ export function CardPaymentSettings({
 
           {!isOwner && connectable.length > 0 ? (
             <p className="mt-3 text-sm text-[var(--muted)]">
-              Bara ägaren kan koppla ett betalkonto.
+              {labels.cardOwnerOnly}
             </p>
           ) : null}
         </div>

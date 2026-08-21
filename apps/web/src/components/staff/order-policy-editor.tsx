@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { type OrderPolicy, type OrderStatus } from "@burp/core";
 import { saveOrderPolicy } from "@/app/dashboard/installningar/actions";
+import type { Dictionary } from "@/lib/i18n";
 
 /**
  * Orderreglerna (avsnitt 5.2).
@@ -17,10 +18,13 @@ const LIMIT_STATUSES: OrderStatus[] = ["PLACED", "ACCEPTED", "PREPARING", "READY
 export function OrderPolicyEditor({
   initial,
   statusLabels,
+  labels,
 }: {
   initial: OrderPolicy;
   /** Orderstatusarna ur ordboken. Rena strängar — komponenten är klientkod. */
   statusLabels: Record<OrderStatus, string>;
+  /** Inställningarnas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["settings"];
 }) {
   const [policy, setPolicy] = useState<OrderPolicy>(initial);
   const [pending, startTransition] = useTransition();
@@ -36,16 +40,16 @@ export function OrderPolicyEditor({
   return (
     <div className="card mt-4 space-y-5 p-4">
       <Toggle
-        label="Ta emot beställningar automatiskt"
-        hint="Utan detta måste någon trycka Ta emot på varje order innan köket ser den."
+        label={labels.autoAccept}
+        hint={labels.autoAcceptHint}
         checked={policy.autoAccept}
         onChange={(value) => set("autoAccept", value)}
       />
 
       <Number
-        label="Tillagningstid"
-        suffix="minuter"
-        hint="Används för att uppskatta väntetid åt gästen."
+        label={labels.prepTime}
+        suffix={labels.prepTimeUnit}
+        hint={labels.prepTimeHint}
         value={policy.prepTimeMinutes}
         min={1}
         max={240}
@@ -53,9 +57,9 @@ export function OrderPolicyEditor({
       />
 
       <Number
-        label="Ändringsfönster"
-        suffix="sekunder"
-        hint="Hur länge efter beställning gästen får ändra innehållet. 0 stänger av ändringar helt."
+        label={labels.editWindow}
+        suffix={labels.editWindowUnit}
+        hint={labels.editWindowHint}
         value={policy.editWindowSeconds}
         min={0}
         max={3600}
@@ -63,8 +67,8 @@ export function OrderPolicyEditor({
       />
 
       <StatusSelect
-        label="Ändring tillåts till och med"
-        hint="Efter den här statusen kan gästen inte längre ändra."
+        label={labels.editUntil}
+        hint={labels.editUntilHint}
         value={policy.editableUntilStatus}
         onChange={(value) => set("editableUntilStatus", value)}
         statusLabels={statusLabels}
@@ -72,33 +76,33 @@ export function OrderPolicyEditor({
 
       <div className="space-y-3">
         <Toggle
-          label="Gästen får lägga till rätter"
+          label={labels.mayAdd}
           checked={policy.allowAddItems}
           onChange={(value) => set("allowAddItems", value)}
         />
         <Toggle
-          label="Gästen får ta bort rätter"
+          label={labels.mayRemove}
           checked={policy.allowRemoveItems}
           onChange={(value) => set("allowRemoveItems", value)}
         />
         <Toggle
-          label="Gästen får byta tillval"
+          label={labels.mayChangeOptions}
           checked={policy.allowChangeOptions}
           onChange={(value) => set("allowChangeOptions", value)}
         />
       </div>
 
       <StatusSelect
-        label="Avbokning tillåts till och med"
-        hint="Avbokning styrs av status, inte av ändringsfönstret — en gäst ska kunna avboka så länge maten inte påbörjats."
+        label={labels.cancelUntil}
+        hint={labels.cancelUntilHint}
         value={policy.allowCancelUntilStatus}
         onChange={(value) => set("allowCancelUntilStatus", value)}
         statusLabels={statusLabels}
       />
 
       <Toggle
-        label="Ta emot förbeställningar"
-        hint="Gästen väljer en tid i förväg. Ordern släpps till köket tillagningstiden innan."
+        label={labels.scheduled}
+        hint={labels.scheduledHint}
         checked={policy.allowScheduledOrders}
         onChange={(value) => set("allowScheduledOrders", value)}
       />
@@ -124,7 +128,7 @@ export function OrderPolicyEditor({
             const result = await saveOrderPolicy(policy);
             setFeedback({
               ok: result.ok,
-              message: result.ok ? "Orderreglerna är sparade." : (result.message ?? "Kunde inte spara."),
+              message: result.ok ? labels.policySaved : (result.message ?? labels.saveFailed),
             });
           })
         }

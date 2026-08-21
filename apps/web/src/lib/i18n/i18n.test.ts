@@ -132,6 +132,8 @@ describe("ordböckerna", () => {
       "restaurant.phone",
       // "min" är samma förkortning på alla fem språken.
       "staff.kitchen.minutes",
+      // Lånordet igen — samma rot, samma stavning.
+      "staff.settings.phone",
     ],
 
     de: [
@@ -146,6 +148,7 @@ describe("ordböckerna", () => {
       "staff.section.statistik",
       // "min" är samma förkortning på alla fem språken.
       "staff.kitchen.minutes",
+      "staff.settings.phone",
     ],
 
     en: ["errors.notFoundLabel", "menu.giftCardPlaceholder", "staff.kitchen.minutes"],
@@ -232,6 +235,11 @@ describe("ordböckerna", () => {
       // Översikten och personalsidan. "Bord" och "(du)" stavas likadant.
       "staff.overview.tables",
       "staff.staffAdmin.you",
+      // Inställningarna. Fyra ord till som norskan och svenskan delar.
+      "staff.settings.editWindowUnit",
+      "staff.settings.cap",
+      "staff.settings.phone",
+      "staff.settings.postalCode",
     ],
   };
 
@@ -342,6 +350,7 @@ describe("texter som korsar server/klient-gränsen", () => {
     "register",
     "overview",
     "staffAdmin",
+    "settings",
   ] as const;
 
   for (const section of CLIENT_SECTIONS) {

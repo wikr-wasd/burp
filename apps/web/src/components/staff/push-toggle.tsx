@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
+import type { Dictionary } from "@/lib/i18n";
 import {
   removePushSubscription,
   savePushSubscription,
@@ -22,7 +23,14 @@ import {
 
 type State = "OKAND" | "AV" | "PA" | "NEKAD" | "STODS_INTE";
 
-export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }) {
+export function PushToggle({
+  vapidPublicKey,
+  labels,
+}: {
+  vapidPublicKey: string | null;
+  /** Inställningarnas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["settings"];
+}) {
   const [state, setState] = useState<State>("OKAND");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -97,11 +105,11 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
           // Kunde inte sparas hos oss — då ska den inte ligga kvar hos
           // webbläsaren heller, annars tror enheten att den prenumererar.
           await subscription.unsubscribe();
-          setError(result.message ?? "Notiserna kunde inte slås på.");
+          setError(result.message ?? labels.pushFailed);
         }
       });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Notiserna kunde inte slås på.");
+      setError(caught instanceof Error ? caught.message : labels.pushFailed);
     }
   }
 
@@ -128,7 +136,7 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
   if (!vapidPublicKey) {
     return (
       <p className="mt-2 text-sm text-[var(--muted)]">
-        Notiser är inte påslagna för plattformen än. Köksskärmens ljud fungerar som vanligt.
+        {labels.pushNotConfigured}
       </p>
     );
   }
@@ -136,8 +144,7 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
   if (state === "STODS_INTE") {
     return (
       <p className="mt-2 text-sm text-[var(--muted)]">
-        Den här webbläsaren kan inte ta emot notiser. På iPhone fungerar det när Burp lagts
-        till på hemskärmen.
+        {labels.pushUnsupported}
       </p>
     );
   }
@@ -145,8 +152,7 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
   if (state === "NEKAD") {
     return (
       <p className="mt-2 text-sm text-[var(--muted)]">
-        Notiser är blockerade för Burp i den här webbläsaren. Det går bara att ändra i
-        webbläsarens egna inställningar — vi kan inte fråga igen.
+        {labels.pushBlocked}
       </p>
     );
   }
@@ -166,13 +172,13 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
         ) : (
           <Bell size={16} aria-hidden="true" />
         )}
-        {state === "PA" ? "Stäng av på den här enheten" : "Slå på för den här enheten"}
+        {state === "PA" ? labels.pushDisable : labels.pushEnable}
       </button>
 
       <p className="mt-2 text-sm text-[var(--muted)]">
         {state === "PA"
-          ? "Den här enheten larmar när en beställning kommer in."
-          : "Varje enhet måste slås på för sig. Har du både telefon och surfplatta gör du det på båda."}
+          ? labels.pushOnHint
+          : labels.pushOffHint}
       </p>
 
       {error ? (

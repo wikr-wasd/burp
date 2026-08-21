@@ -506,6 +506,135 @@ export const de: Dictionary = {
       resume: "Fortsetzen",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    settings: {
+      hoursTitle: "Öffnungszeiten",
+      hoursHint:
+        "Gäste können nur bestellen, solange Sie geöffnet haben. Mehrere Schichten pro Tag für Mittag und Abend. Schließen Sie nach Mitternacht, tragen Sie die Endzeit so ein, wie sie ist — 22:00 bis 02:00 heißt geöffnet bis zwei Uhr nachts.",
+      cardTitle: "Kartenzahlung",
+      cardHint:
+        "Der Gast zahlt auf dem eigenen Handy. Der Vertrag ist Ihrer, nicht der von Burp — das Geld geht direkt auf Ihr Konto.",
+      notifyTitle: "Benachrichtigungen",
+      notifyHint:
+        "Der Küchenbildschirm gibt bereits einen Ton, solange er offen ist. Das hier ist für die Zeit, in der er es nicht ist — die Benachrichtigung erreicht das Handy auch dann, wenn niemand vor dem Bildschirm sitzt.",
+      punchTitle: "Stempelkarte",
+      punchHint: "Der zehnte Besuch geht aufs Haus. Zählt Besuche, keine Beträge.",
+      policyTitle: "Bestellregeln",
+      policyHint: "Was der Gast nach der Bestellung noch ändern darf, und wie lange.",
+
+      saving: "Wird gespeichert…",
+      save: "Speichern",
+      saveFailed: "Konnte nicht gespeichert werden.",
+      somethingWrong: "Etwas ist schiefgelaufen.",
+      saved: "Gespeichert.",
+
+      hoursSaved: "Die Öffnungszeiten sind gespeichert.",
+      nextDay: "nächster Tag",
+      remove: "Entfernen",
+      openThisDay: "Diesen Tag öffnen",
+      addShift: "Schicht hinzufügen",
+      closedAllDay: "Ganztägig geschlossen",
+      saveHours: "Öffnungszeiten speichern",
+      nothingToSave: "Nichts zu speichern",
+
+      policySaved: "Die Bestellregeln sind gespeichert.",
+      autoAccept: "Bestellungen automatisch annehmen",
+      autoAcceptHint:
+        "Ohne das muss jemand bei jeder Bestellung Annehmen drücken, bevor die Küche sie sieht.",
+      prepTime: "Zubereitungszeit",
+      prepTimeUnit: "Minuten",
+      prepTimeHint: "Dient dazu, dem Gast die Wartezeit zu schätzen.",
+      editWindow: "Änderungsfenster",
+      editWindowUnit: "Sekunden",
+      editWindowHint:
+        "Wie lange nach der Bestellung der Gast den Inhalt ändern darf. 0 schaltet Änderungen ganz ab.",
+      editUntil: "Änderung erlaubt bis einschließlich",
+      editUntilHint: "Nach diesem Status kann der Gast nichts mehr ändern.",
+      mayAdd: "Der Gast darf Gerichte hinzufügen",
+      mayRemove: "Der Gast darf Gerichte entfernen",
+      mayChangeOptions: "Der Gast darf Beilagen ändern",
+      cancelUntil: "Stornierung erlaubt bis einschließlich",
+      cancelUntilHint:
+        "Die Stornierung richtet sich nach dem Status, nicht nach dem Änderungsfenster — ein Gast soll stornieren können, solange das Essen nicht begonnen wurde.",
+      scheduled: "Vorbestellungen annehmen",
+      scheduledHint:
+        "Der Gast wählt eine Zeit im Voraus. Die Bestellung geht eine Zubereitungszeit vorher an die Küche.",
+
+      punchCard: "Stempelkarte",
+      punchCardBody:
+        "Nach einer bestimmten Zahl von Besuchen geht das Essen aufs Haus. Zählt Besuche und keine Beträge — ein Kaffee zählt so viel wie ein Drei-Gänge-Menü, und genau das bringt die Leute wieder.",
+      visits: "Anzahl Besuche",
+      cap: "Obergrenze",
+      capPlaceholder: "die ganze Rechnung",
+      capHint: "Höchstens zu übernehmen, in {currency}. Leer = die ganze Rechnung.",
+      loggedInOnly:
+        "Gilt nur für angemeldete Gäste. Bei einem Gast am Tisch, der anonym bestellt, lassen sich keine Besuche zählen — und sollen sich auch nicht zählen lassen.",
+
+      pushNotConfigured:
+        "Benachrichtigungen sind für die Plattform noch nicht eingeschaltet. Der Ton des Küchenbildschirms funktioniert wie gewohnt.",
+      pushUnsupported:
+        "Dieser Browser kann keine Benachrichtigungen empfangen. Auf dem iPhone funktioniert es, sobald Burp zum Startbildschirm hinzugefügt wurde.",
+      pushBlocked:
+        "Benachrichtigungen sind für Burp in diesem Browser blockiert. Das lässt sich nur in den Einstellungen des Browsers ändern — wir können nicht erneut fragen.",
+      pushEnable: "Für dieses Gerät einschalten",
+      pushDisable: "Auf diesem Gerät ausschalten",
+      pushOnHint: "Dieses Gerät meldet sich, wenn eine Bestellung eingeht.",
+      pushOffHint:
+        "Jedes Gerät muss einzeln eingeschaltet werden. Haben Sie Handy und Tablet, tun Sie es auf beiden.",
+      pushFailed: "Die Benachrichtigungen konnten nicht eingeschaltet werden.",
+
+      cardOnTitle: "Kartenzahlung ist an",
+      cardOnBody:
+        "Gäste können direkt aus der Speisekarte mit Karte, Apple Pay und Google Pay zahlen. Das Geld geht auf Ihr eigenes Konto bei {provider} — Burp nimmt es nie entgegen. Unsere Gebühr wird von der Zahlung abgezogen.",
+      cardPendingTitle: "Wartet auf {provider}",
+      cardPendingBody:
+        "Das Konto besteht, aber {provider} hat es noch nicht freigegeben. Deshalb sehen die Gäste den Kartenknopf nicht. Fehlen Unterlagen, liegen sie in deren Formular.",
+      cardDisabledTitle: "Kartenzahlung ist aus",
+      cardDisabledBody:
+        "Gäste zahlen vor Ort. Das Konto bei {provider} besteht weiter und lässt sich wieder einschalten.",
+      cardConnectTitle: "Karten in der Speisekarte annehmen",
+      cardConnectBody:
+        "Der Gast zahlt am Tisch auf dem eigenen Handy, mit Karte, Apple Pay oder Google Pay. Sie schließen den Vertrag direkt mit dem Anbieter, und das Geld geht direkt auf Ihr Konto — Burp hält das Geld des Gastes nie.",
+      cardUnavailableTitle: "Kartenzahlung ist noch nicht verfügbar",
+      cardUnavailableBody:
+        "Für {currency} ist noch kein Anbieter angebunden. Der Gast bestellt wie gewohnt und zahlt vor Ort; Sie kassieren den Betrag in der Kasse.",
+      cardContinue: "Beim Anbieter fortfahren",
+      cardConnect: "Konto verbinden",
+      cardTurnOff: "Ausschalten",
+      cardTurnOffConfirm:
+        "Kartenzahlung ausschalten? Gäste können dann nur noch vor Ort zahlen.",
+      cardTurnedOff: "Kartenzahlung ausgeschaltet.",
+      cardOwnerOnly: "Nur der Inhaber kann ein Zahlungskonto verbinden.",
+
+      pageTitle: "Ihre Seite",
+      pageHint: "So sieht Ihr Restaurant für Gäste aus.",
+      showPage: "Seite ansehen",
+      presentation: "Beschreibung",
+      presentationPlaceholder: "Was macht den Ort besonders? Zwei Sätze genügen.",
+      presentationCount: "{n}/600 Zeichen. Steht oben auf Ihrer Seite und in den Suchergebnissen.",
+      hero: "Hauptbild",
+      heroHint:
+        "Steht oben auf Ihrer Seite und in den Listen. Burp prüft das Bild vor der Veröffentlichung.",
+      heroUpload: "Hauptbild hochladen",
+      phone: "Telefon",
+      cuisines: "Küchen",
+      cuisinesHint:
+        "Mit Komma getrennt, höchstens acht. Werden zu Filtern und eigenen Seiten auf Burp.",
+      priceTier: "Preisklasse",
+      priceTierHint: "Noch einmal klicken zum Entfernen. Ohne Preisklasse wird keine angezeigt.",
+      address: "Adresse",
+      street: "Straße und Hausnummer",
+      postalCode: "Postleitzahl",
+      city: "Stadt",
+      mapPlace: "Ort auf der Karte",
+      mapHint:
+        "Öffnen Sie Ihren Ort in Google Maps und fügen Sie den Link hier ein. Die Nadel bestimmt die Wegbeschreibung, die Gäste bekommen — die Adresse oben dient nur als Text.",
+      mapLinkLabel: "Kartenlink oder Koordinaten",
+      mapCurrentHint:
+        "Die Karte zeigt den jetzt gespeicherten Ort. Sie aktualisiert sich, sobald Sie einen neuen Link gespeichert haben.",
+      presentationSaved: "Gespeichert. Die Änderungen erscheinen innerhalb einer Stunde auf Ihrer Seite.",
+    },
+
     upcomingLater: (count: number) =>
       count === 1
         ? "1 Vorbestellung später heute."

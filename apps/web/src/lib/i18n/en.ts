@@ -499,6 +499,133 @@ export const en: Dictionary = {
       resume: "Resume",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    settings: {
+      hoursTitle: "Opening hours",
+      hoursHint:
+        "Guests can only order while you are open. Several shifts a day for lunch and evening. If you close after midnight, write the closing time as it is — 22:00 to 02:00 means you are open until two in the morning.",
+      cardTitle: "Card payments",
+      cardHint:
+        "The guest pays on their own phone. The agreement is yours, not Burp's — the money goes straight into your account.",
+      notifyTitle: "Notifications",
+      notifyHint:
+        "The kitchen screen already chimes while it is open. This is for when it is not — the notification reaches the phone even if nobody is at the screen.",
+      punchTitle: "Punch card",
+      punchHint: "The tenth visit is on you. Counts visits, not amounts.",
+      policyTitle: "Order rules",
+      policyHint: "What the guest may change after ordering, and for how long.",
+
+      saving: "Saving…",
+      save: "Save",
+      saveFailed: "Could not save.",
+      somethingWrong: "Something went wrong.",
+      saved: "Saved.",
+
+      hoursSaved: "The opening hours are saved.",
+      nextDay: "next day",
+      remove: "Remove",
+      openThisDay: "Open this day",
+      addShift: "Add a shift",
+      closedAllDay: "Closed all day",
+      saveHours: "Save opening hours",
+      nothingToSave: "Nothing to save",
+
+      policySaved: "The order rules are saved.",
+      autoAccept: "Accept orders automatically",
+      autoAcceptHint:
+        "Without this, someone has to press Accept on every order before the kitchen sees it.",
+      prepTime: "Prep time",
+      prepTimeUnit: "minutes",
+      prepTimeHint: "Used to estimate the wait shown to the guest.",
+      editWindow: "Edit window",
+      editWindowUnit: "seconds",
+      editWindowHint:
+        "How long after ordering the guest may change the contents. 0 turns edits off entirely.",
+      editUntil: "Edits allowed up to and including",
+      editUntilHint: "After this status the guest can no longer make changes.",
+      mayAdd: "The guest may add dishes",
+      mayRemove: "The guest may remove dishes",
+      mayChangeOptions: "The guest may change options",
+      cancelUntil: "Cancellation allowed up to and including",
+      cancelUntilHint:
+        "Cancellation follows the status, not the edit window — a guest should be able to cancel as long as the food has not been started.",
+      scheduled: "Accept pre-orders",
+      scheduledHint:
+        "The guest picks a time in advance. The order reaches the kitchen one prep time before it.",
+
+      punchCard: "Punch card",
+      punchCardBody:
+        "After a set number of visits the meal is on you. Counts visits, not amounts — a coffee counts as much as a three-course dinner, and that is what brings people back.",
+      visits: "Number of visits",
+      cap: "Cap",
+      capPlaceholder: "the whole bill",
+      capHint: "Most you will cover, in {currency}. Empty = the whole bill.",
+      loggedInOnly:
+        "Applies to signed-in guests only. A guest at a table ordering anonymously cannot have visits counted — and should not.",
+
+      pushNotConfigured:
+        "Notifications are not switched on for the platform yet. The kitchen screen's sound works as usual.",
+      pushUnsupported:
+        "This browser cannot receive notifications. On iPhone it works once Burp has been added to the home screen.",
+      pushBlocked:
+        "Notifications are blocked for Burp in this browser. That can only be changed in the browser's own settings — we cannot ask again.",
+      pushEnable: "Turn on for this device",
+      pushDisable: "Turn off on this device",
+      pushOnHint: "This device alerts when an order comes in.",
+      pushOffHint:
+        "Each device has to be turned on separately. If you have both a phone and a tablet, do it on both.",
+      pushFailed: "The notifications could not be turned on.",
+
+      cardOnTitle: "Card payments are on",
+      cardOnBody:
+        "Guests can pay by card, Apple Pay and Google Pay straight from the menu. The money goes to your own account at {provider} — Burp never receives it. Our fee is deducted from the payment.",
+      cardPendingTitle: "Waiting for {provider}",
+      cardPendingBody:
+        "The account exists but {provider} has not approved it yet. That is why the card button is not showing for guests. If paperwork is missing, it is in their form.",
+      cardDisabledTitle: "Card payments are off",
+      cardDisabledBody:
+        "Guests pay in person. The account at {provider} still exists and can be switched back on.",
+      cardConnectTitle: "Accept cards in the menu",
+      cardConnectBody:
+        "The guest pays on their own phone at the table, by card, Apple Pay or Google Pay. You sign the agreement directly with the provider and the money goes straight into your account — Burp never holds the guest's money.",
+      cardUnavailableTitle: "Card payments are not available yet",
+      cardUnavailableBody:
+        "No provider is connected for {currency} yet. The guest orders as usual and pays in person; you settle the amount in the Register.",
+      cardContinue: "Continue with the provider",
+      cardConnect: "Connect an account",
+      cardTurnOff: "Turn off",
+      cardTurnOffConfirm: "Turn off card payments? Guests will then only be able to pay in person.",
+      cardTurnedOff: "Card payments turned off.",
+      cardOwnerOnly: "Only the owner can connect a payment account.",
+
+      pageTitle: "Your page",
+      pageHint: "This is how your restaurant looks to guests.",
+      showPage: "View the page",
+      presentation: "Description",
+      presentationPlaceholder: "What makes the place special? Two sentences will do.",
+      presentationCount: "{n}/600 characters. Shown at the top of your page and in search results.",
+      hero: "Main image",
+      heroHint:
+        "Shown at the top of your page and in the listings. Burp reviews the image before it is published.",
+      heroUpload: "Upload a main image",
+      phone: "Phone",
+      cuisines: "Cuisines",
+      cuisinesHint: "Comma separated, eight at most. Become filters and pages of their own on Burp.",
+      priceTier: "Price range",
+      priceTierHint: "Click again to remove. With no price range, none is shown.",
+      address: "Address",
+      street: "Street address",
+      postalCode: "Postcode",
+      city: "City",
+      mapPlace: "Place on the map",
+      mapHint:
+        "Open your place in Google Maps and paste the link here. The pin drives the directions guests get — the address above is only used as text.",
+      mapLinkLabel: "Map link or coordinates",
+      mapCurrentHint:
+        "The map shows the place saved right now. It updates once you have saved a new link.",
+      presentationSaved: "Saved. The changes show on your page within an hour.",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 pre-order later today." : `${count} pre-orders later today.`,
   },

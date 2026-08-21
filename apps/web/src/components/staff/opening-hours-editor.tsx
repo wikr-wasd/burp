@@ -9,6 +9,7 @@ import {
   type WeekdayKey,
 } from "@burp/core";
 import { saveOpeningHours } from "@/app/dashboard/installningar/actions";
+import type { Dictionary } from "@/lib/i18n";
 
 /**
  * Öppettidsredigeraren.
@@ -21,10 +22,13 @@ import { saveOpeningHours } from "@/app/dashboard/installningar/actions";
 export function OpeningHoursEditor({
   initial,
   weekdayLabels,
+  labels,
 }: {
   initial: OpeningHours;
   /** Veckodagarna ur ordboken. Rena strängar — komponenten är klientkod. */
   weekdayLabels: Record<WeekdayKey, string>;
+  /** Inställningarnas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["settings"];
 }) {
   const [hours, setHours] = useState<OpeningHours>(initial);
   const [pending, startTransition] = useTransition();
@@ -42,7 +46,7 @@ export function OpeningHoursEditor({
       const result = await saveOpeningHours(hours);
       setFeedback({
         ok: result.ok,
-        message: result.ok ? "Öppettiderna är sparade." : (result.message ?? "Kunde inte spara."),
+        message: result.ok ? labels.hoursSaved : (result.message ?? labels.saveFailed),
       });
     });
   }
@@ -95,7 +99,7 @@ export function OpeningHoursEditor({
                       det inte är det. Märkningen står bredvid sluttiden, där
                       tvivlet uppstår. */}
                   {crossesMidnight(slot) ? (
-                    <span className="text-xs whitespace-nowrap opacity-60">nästa dag</span>
+                    <span className="text-xs whitespace-nowrap opacity-60">{labels.nextDay}</span>
                   ) : null}
                   <button
                     type="button"
@@ -108,7 +112,7 @@ export function OpeningHoursEditor({
                     }
                     className="min-h-11 border border-[var(--rule)] px-3 text-sm"
                   >
-                    Ta bort
+                    {labels.remove}
                   </button>
                 </div>
               ))}
@@ -128,7 +132,7 @@ export function OpeningHoursEditor({
                 }
                 className="min-h-11 border border-[var(--rule)] px-4 text-sm"
               >
-                {hours[day].length === 0 ? "Öppna den här dagen" : "Lägg till pass"}
+                {hours[day].length === 0 ? labels.openThisDay : labels.addShift}
               </button>
 
               {hours[day].length > 0 ? (
@@ -137,7 +141,7 @@ export function OpeningHoursEditor({
                   onClick={() => update(day, [])}
                   className="ml-2 min-h-11 border border-[var(--rule)] px-4 text-sm"
                 >
-                  Stängt hela dagen
+                  {labels.closedAllDay}
                 </button>
               ) : null}
             </div>
@@ -164,7 +168,7 @@ export function OpeningHoursEditor({
         onClick={save}
         className="btn btn-primary mt-4"
       >
-        {pending ? "Sparar…" : dirty ? "Spara öppettider" : "Inget att spara"}
+        {pending ? labels.saving : dirty ? labels.saveHours : labels.nothingToSave}
       </button>
     </div>
   );

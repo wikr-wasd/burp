@@ -537,6 +537,134 @@ export const bs: Dictionary = {
       resume: "Nastavi",
     },
 
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    settings: {
+      hoursTitle: "Radno vrijeme",
+      hoursHint:
+        "Gosti mogu naručiti samo dok ste otvoreni. Više smjena dnevno za ručak i večer. Ako zatvarate poslije ponoći, upišite vrijeme kakvo jeste — 22:00 do 02:00 znači da radite do dva ujutro.",
+      cardTitle: "Plaćanje karticom",
+      cardHint:
+        "Gost plaća na svom telefonu. Ugovor je vaš, ne Burpov — novac ide pravo na vaš račun.",
+      notifyTitle: "Obavijesti",
+      notifyHint:
+        "Kuhinjski ekran se već oglašava kad je otvoren. Ovo je za kad nije — obavijest stiže na telefon i kad niko ne stoji pred ekranom.",
+      punchTitle: "Kartica vjernosti",
+      punchHint: "Deseti dolazak častite. Broji dolaske, ne iznose.",
+      policyTitle: "Pravila narudžbi",
+      policyHint: "Šta gost smije mijenjati nakon što je naručio, i koliko dugo.",
+
+      saving: "Spremanje…",
+      save: "Spremi",
+      saveFailed: "Spremanje nije uspjelo.",
+      somethingWrong: "Nešto je pošlo po zlu.",
+      saved: "Spremljeno.",
+
+      hoursSaved: "Radno vrijeme je spremljeno.",
+      nextDay: "sljedeći dan",
+      remove: "Ukloni",
+      openThisDay: "Otvori ovaj dan",
+      addShift: "Dodaj smjenu",
+      closedAllDay: "Zatvoreno cijeli dan",
+      saveHours: "Spremi radno vrijeme",
+      nothingToSave: "Nema šta spremiti",
+
+      policySaved: "Pravila narudžbi su spremljena.",
+      autoAccept: "Automatski primaj narudžbe",
+      autoAcceptHint:
+        "Bez ovoga neko mora pritisnuti Primi na svakoj narudžbi prije nego je kuhinja vidi.",
+      prepTime: "Vrijeme pripreme",
+      prepTimeUnit: "minuta",
+      prepTimeHint: "Koristi se za procjenu čekanja koju gost vidi.",
+      editWindow: "Prozor za izmjene",
+      editWindowUnit: "sekundi",
+      editWindowHint:
+        "Koliko dugo nakon narudžbe gost smije mijenjati sadržaj. 0 potpuno isključuje izmjene.",
+      editUntil: "Izmjena dozvoljena zaključno sa",
+      editUntilHint: "Nakon ovog statusa gost više ne može mijenjati.",
+      mayAdd: "Gost smije dodavati jela",
+      mayRemove: "Gost smije uklanjati jela",
+      mayChangeOptions: "Gost smije mijenjati priloge",
+      cancelUntil: "Otkazivanje dozvoljeno zaključno sa",
+      cancelUntilHint:
+        "Otkazivanje ovisi o statusu, ne o prozoru za izmjene — gost treba moći otkazati dok se hrana nije počela pripremati.",
+      scheduled: "Primaj narudžbe unaprijed",
+      scheduledHint:
+        "Gost bira vrijeme unaprijed. Narudžba ide u kuhinju tačno vrijeme pripreme ranije.",
+
+      punchCard: "Kartica vjernosti",
+      punchCardBody:
+        "Nakon određenog broja dolazaka častite obrok. Broji dolaske a ne iznose — kafa vrijedi koliko i tri slijeda, a upravo to vraća ljude.",
+      visits: "Broj dolazaka",
+      cap: "Gornja granica",
+      capPlaceholder: "cijeli račun",
+      capHint: "Najviše za počastiti, u {currency}. Prazno = cijeli račun.",
+      loggedInOnly:
+        "Vrijedi samo za prijavljene goste. Gostu za stolom koji naručuje anonimno ne mogu se brojati dolasci — i ne trebaju se brojati.",
+
+      pushNotConfigured:
+        "Obavijesti još nisu uključene na platformi. Zvuk kuhinjskog ekrana radi kao i inače.",
+      pushUnsupported:
+        "Ovaj preglednik ne može primati obavijesti. Na iPhoneu radi kad se Burp doda na početni ekran.",
+      pushBlocked:
+        "Obavijesti su blokirane za Burp u ovom pregledniku. To se mijenja samo u postavkama preglednika — mi ne možemo pitati ponovo.",
+      pushEnable: "Uključi za ovaj uređaj",
+      pushDisable: "Isključi na ovom uređaju",
+      pushOnHint: "Ovaj uređaj se oglašava kad stigne narudžba.",
+      pushOffHint:
+        "Svaki uređaj se uključuje posebno. Imate li i telefon i tablet, uključite na oba.",
+      pushFailed: "Obavijesti nije bilo moguće uključiti.",
+
+      cardOnTitle: "Plaćanje karticom je uključeno",
+      cardOnBody:
+        "Gosti mogu platiti karticom, Apple Payem i Google Payem direktno u jelovniku. Novac ide na vaš račun kod {provider} — Burp ga nikada ne prima. Naša naknada se oduzima iz uplate.",
+      cardPendingTitle: "Čeka se {provider}",
+      cardPendingBody:
+        "Račun je otvoren ali ga {provider} još nije odobrio. Zato dugme za karticu gostima nije vidljivo. Ako nedostaje dokumentacija, ona je u njihovom obrascu.",
+      cardDisabledTitle: "Plaćanje karticom je isključeno",
+      cardDisabledBody:
+        "Gosti plaćaju na licu mjesta. Račun kod {provider} i dalje postoji i može se ponovo uključiti.",
+      cardConnectTitle: "Primajte kartice u jelovniku",
+      cardConnectBody:
+        "Gost plaća na svom telefonu za stolom, karticom, Apple Payem ili Google Payem. Ugovor sklapate direktno s procesorom i novac ide pravo na vaš račun — Burp nikada ne drži novac gosta.",
+      cardUnavailableTitle: "Plaćanje karticom još nije dostupno",
+      cardUnavailableBody:
+        "Za {currency} još nije povezan nijedan procesor. Gost naručuje kao i obično i plaća na licu mjesta; iznos naplaćujete u Kasi.",
+      cardContinue: "Nastavi kod procesora",
+      cardConnect: "Poveži račun",
+      cardTurnOff: "Isključi",
+      cardTurnOffConfirm:
+        "Isključiti plaćanje karticom? Gosti će tada moći platiti samo na licu mjesta.",
+      cardTurnedOff: "Plaćanje karticom je isključeno.",
+      cardOwnerOnly: "Samo vlasnik može povezati račun za plaćanje.",
+
+      pageTitle: "Vaša stranica",
+      pageHint: "Ovako vaš restoran izgleda gostima.",
+      showPage: "Prikaži stranicu",
+      presentation: "Opis",
+      presentationPlaceholder: "Šta čini mjesto posebnim? Dvije rečenice su dovoljne.",
+      presentationCount: "{n}/600 znakova. Stoji na vrhu vaše stranice i u rezultatima pretrage.",
+      hero: "Glavna slika",
+      heroHint:
+        "Prikazuje se na vrhu vaše stranice i u listama. Burp pregleda sliku prije objave.",
+      heroUpload: "Otpremi glavnu sliku",
+      phone: "Telefon",
+      cuisines: "Vrste kuhinje",
+      cuisinesHint: "Odvojeno zarezom, najviše osam. Postaju filteri i vlastite stranice na Burpu.",
+      priceTier: "Cjenovni razred",
+      priceTierHint: "Kliknite ponovo da uklonite. Bez razreda ne prikazuje se nijedan.",
+      address: "Adresa",
+      street: "Ulica i broj",
+      postalCode: "Poštanski broj",
+      city: "Grad",
+      mapPlace: "Mjesto na karti",
+      mapHint:
+        "Otvorite svoje mjesto u Google Mapsu i zalijepite link ovdje. Igla određuje upute koje gosti dobiju — adresa iznad koristi se samo kao tekst.",
+      mapLinkLabel: "Link karte ili koordinate",
+      mapCurrentHint:
+        "Karta prikazuje mjesto koje je sada spremljeno. Ažurira se kad spremite novi link.",
+      presentationSaved: "Spremljeno. Izmjene se vide na vašoj stranici u roku od sat vremena.",
+    },
+
     upcomingLater: (count: number) => {
       const ones = count % 10;
       const tens = count % 100;

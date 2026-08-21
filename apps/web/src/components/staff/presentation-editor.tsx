@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { COUNTRY_INFO, CURRENCY_INFO, type CountryCode } from "@burp/core";
 import { ImageUpload } from "@/components/staff/image-upload";
 import { MapEmbed } from "@/components/site/map-embed";
+import { fill, type Dictionary } from "@/lib/i18n";
 import {
   savePresentation,
   type ActionResult,
@@ -44,6 +45,7 @@ export function PresentationEditor({
   country,
   publicPath,
   initial,
+  labels,
 }: {
   restaurantId: string;
   restaurantName: string;
@@ -51,6 +53,8 @@ export function PresentationEditor({
   /** Adressen till den publika sidan, t.ex. /r/sarajevo/cevabdzinica-zeljo. */
   publicPath: string;
   initial: Presentation;
+  /** Inställningarnas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["settings"];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -76,11 +80,11 @@ export function PresentationEditor({
 
   return (
     <section>
-      <h2 className="font-display text-2xl">Din sida</h2>
+      <h2 className="font-display text-2xl">{labels.pageTitle}</h2>
       <p className="mt-1 text-sm text-[var(--muted)]">
-        Så här ser din restaurang ut för gästerna.{" "}
+        {labels.pageHint}{" "}
         <a href={publicPath} target="_blank" rel="noreferrer" className="link">
-          Visa sidan
+          {labels.showPage}
         </a>
       </p>
 
@@ -101,36 +105,35 @@ export function PresentationEditor({
         }}
       >
         <label className="block">
-          <span className="label-caps">Presentation</span>
+          <span className="label-caps">{labels.presentation}</span>
           <textarea
             value={form.description}
             onChange={(event) => set("description", event.target.value)}
             rows={4}
             maxLength={600}
-            placeholder="Vad gör stället speciellt? Två meningar räcker."
+            placeholder={labels.presentationPlaceholder}
             className="field mt-1.5 resize-y"
           />
           <span className="mt-1 block text-xs text-[var(--muted)]">
-            {form.description.length}/600 tecken. Syns överst på din sida och i sökresultat.
+            {fill(labels.presentationCount, { n: form.description.length })}
           </span>
         </label>
 
         <div>
-          <span className="label-caps">Huvudbild</span>
+          <span className="label-caps">{labels.hero}</span>
           <p className="mt-1 mb-3 text-xs text-[var(--muted)]">
-            Visas överst på din sida och i listorna. Burp granskar bilden innan den
-            publiceras.
+            {labels.heroHint}
           </p>
           <ImageUpload
             restaurantId={restaurantId}
-            label="Ladda upp huvudbild"
+            label={labels.heroUpload}
             currentUrl={initial.heroImageUrl}
           />
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">
           <label className="block">
-            <span className="label-caps">Telefon</span>
+            <span className="label-caps">{labels.phone}</span>
             <input
               type="tel"
               value={form.phone}
@@ -141,7 +144,7 @@ export function PresentationEditor({
           </label>
 
           <label className="block">
-            <span className="label-caps">Kökstyper</span>
+            <span className="label-caps">{labels.cuisines}</span>
             <input
               type="text"
               value={form.cuisines}
@@ -150,13 +153,13 @@ export function PresentationEditor({
               className="field mt-1.5"
             />
             <span className="mt-1 block text-xs text-[var(--muted)]">
-              Kommaseparerat, högst åtta. Blir filter och egna sidor på Burp.
+              {labels.cuisinesHint}
             </span>
           </label>
         </div>
 
         <div>
-          <span className="label-caps">Prisklass</span>
+          <span className="label-caps">{labels.priceTier}</span>
           <div className="mt-2 flex flex-wrap gap-2">
             {[1, 2, 3, 4].map((tier) => (
               <button
@@ -177,28 +180,28 @@ export function PresentationEditor({
             ))}
           </div>
           <p className="mt-1.5 text-xs text-[var(--muted)]">
-            Klicka igen för att ta bort. Utan prisklass visas ingen alls.
+            {labels.priceTierHint}
           </p>
         </div>
 
         <fieldset>
-          <legend className="label-caps">Adress</legend>
+          <legend className="label-caps">{labels.address}</legend>
 
           <div className="mt-2 grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
             <input
               type="text"
               value={form.streetAddress}
               onChange={(event) => set("streetAddress", event.target.value)}
-              aria-label="Gatuadress"
-              placeholder="Gatuadress"
+              aria-label={labels.street}
+              placeholder={labels.street}
               className="field"
             />
             <input
               type="text"
               value={form.postalCode}
               onChange={(event) => set("postalCode", event.target.value)}
-              aria-label="Postnummer"
-              placeholder="Postnummer"
+              aria-label={labels.postalCode}
+              placeholder={labels.postalCode}
               inputMode="numeric"
               className="field"
             />
@@ -206,25 +209,24 @@ export function PresentationEditor({
               type="text"
               value={form.city}
               onChange={(event) => set("city", event.target.value)}
-              aria-label="Stad"
-              placeholder="Stad"
+              aria-label={labels.city}
+              placeholder={labels.city}
               className="field"
             />
           </div>
         </fieldset>
 
         <div>
-          <span className="label-caps">Plats på kartan</span>
+          <span className="label-caps">{labels.mapPlace}</span>
           <p className="mt-1 mb-3 text-xs text-[var(--muted)]">
-            Öppna ditt ställe i Google Maps och klistra in länken här. Nålen styr
-            vägbeskrivningen gästerna får — adressen ovan används bara som text.
+            {labels.mapHint}
           </p>
 
           <input
             type="text"
             value={form.location}
             onChange={(event) => set("location", event.target.value)}
-            aria-label="Kartlänk eller koordinater"
+            aria-label={labels.mapLinkLabel}
             placeholder="https://maps.google.com/… eller 43.8595, 18.4287"
             className="field"
           />
@@ -236,8 +238,7 @@ export function PresentationEditor({
               name={restaurantName}
             />
             <p className="text-xs text-[var(--muted)] sm:max-w-40">
-              Kartan visar den plats som är sparad nu. Den uppdateras när du sparat en
-              ny länk.
+              {labels.mapCurrentHint}
             </p>
           </div>
         </div>
@@ -257,12 +258,12 @@ export function PresentationEditor({
 
         {result?.ok && !result.message ? (
           <p role="status" className="border-l-2 border-green-600 bg-green-600/10 px-3 py-2 text-sm text-green-800 dark:text-green-300">
-            Sparat. Ändringarna syns på din sida inom en timme.
+            {labels.presentationSaved}
           </p>
         ) : null}
 
         <button type="submit" disabled={pending} className="btn btn-primary">
-          {pending ? "Sparar…" : "Spara"}
+          {pending ? labels.saving : labels.save}
         </button>
       </form>
     </section>

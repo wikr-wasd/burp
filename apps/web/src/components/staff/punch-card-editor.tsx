@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Stamp } from "lucide-react";
 import { formatAmountInput, type CurrencyCode } from "@burp/core";
 import { savePunchCard } from "@/app/dashboard/installningar/actions";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
  * Klippkortet.
@@ -19,10 +20,13 @@ export function PunchCardEditor({
   initialSize,
   initialMaxRewardOre,
   currency,
+  labels,
 }: {
   initialSize: number | null;
   initialMaxRewardOre: number | null;
   currency: CurrencyCode;
+  /** Inställningarnas texter ur ordboken. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["settings"];
 }) {
   const [enabled, setEnabled] = useState(initialSize !== null);
   const [size, setSize] = useState(String(initialSize ?? 10));
@@ -42,7 +46,7 @@ export function PunchCardEditor({
 
       setFeedback({
         ok: result.ok,
-        message: result.ok ? "Sparat." : (result.message ?? "Något gick fel."),
+        message: result.ok ? labels.saved : (result.message ?? labels.somethingWrong),
       });
     });
   }
@@ -61,21 +65,19 @@ export function PunchCardEditor({
         />
         <span className="flex items-center gap-2 font-medium">
           <Stamp size={18} aria-hidden="true" className="text-[var(--muted)]" />
-          Klippkort
+          {labels.punchCard}
         </span>
       </label>
 
       <p className="mt-1 text-sm text-[var(--muted)]">
-        Efter ett visst antal besök bjuder ni på måltiden. Räknar besök och inte belopp — en
-        kaffe räknas lika mycket som en trerätters, vilket är vad som får folk att komma
-        tillbaka.
+        {labels.punchCardBody}
       </p>
 
       {enabled ? (
         <>
           <div className="mt-4 flex flex-wrap gap-3">
             <label className="w-40">
-              <span className="label-caps">Antal besök</span>
+              <span className="label-caps">{labels.visits}</span>
               <input
                 type="text"
                 inputMode="numeric"
@@ -86,26 +88,25 @@ export function PunchCardEditor({
             </label>
 
             <label className="w-40">
-              <span className="label-caps">Tak</span>
+              <span className="label-caps">{labels.cap}</span>
               <input
                 type="text"
                 inputMode="decimal"
                 value={maxReward}
                 onChange={(event) => setMaxReward(event.target.value)}
-                placeholder="hela notan"
+                placeholder={labels.capPlaceholder}
                 className="field mt-1.5 tabular-nums"
               />
               {/* Utan tak bjuder ni på hela ordern. Ett sällskap som beställer
                   för kvällen på det tionde besöket blir dyrt. */}
               <span className="mt-1 block text-xs text-[var(--muted)]">
-                Max att bjuda på, i {currency}. Tomt = hela notan.
+                {fill(labels.capHint, { currency })}
               </span>
             </label>
           </div>
 
           <p className="mt-3 text-sm text-[var(--muted)]">
-            Gäller bara inloggade gäster. En bordsgäst som beställer anonymt går inte att
-            räkna besök på — och ska inte gå att räkna besök på.
+            {labels.loggedInOnly}
           </p>
         </>
       ) : null}

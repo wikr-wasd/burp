@@ -672,6 +672,138 @@ export const sv = {
       resume: "Återuppta",
     },
 
+    /**
+     * Restaurangens inställningar: presentation, öppettider, kortbetalning,
+     * notiser, klippkort och orderregler.
+     *
+     * Personalhanteringen låg också här till 2026-08-21 och gjorde det två
+     * gånger — se `/dashboard/personal`.
+     *
+     * ENBART strängar — varje redigerare på sidan är klientkod.
+     */
+    settings: {
+      hoursTitle: "Öppettider",
+      hoursHint:
+        "Gäster kan bara beställa när ni är öppna. Flera pass per dag för lunch och kväll. Stänger ni efter midnatt skriver ni sluttiden som den är — 22:00 till 02:00 betyder att ni har öppet till två på natten.",
+      cardTitle: "Kortbetalning",
+      cardHint:
+        "Gästen betalar i sin egen telefon. Avtalet är ert, inte Burps — pengarna går rakt in på ert konto.",
+      notifyTitle: "Notiser",
+      notifyHint:
+        "Köksskärmen låter redan när den är öppen. Det här är för när den inte är det — notisen kommer fram i telefonen även om ingen sitter framför skärmen.",
+      punchTitle: "Klippkort",
+      punchHint: "Tionde besöket bjuder ni på. Räknar besök, inte belopp.",
+      policyTitle: "Orderregler",
+      policyHint: "Vad gästen får ändra efter att beställningen lagts, och hur länge.",
+
+      saving: "Sparar…",
+      save: "Spara",
+      saveFailed: "Kunde inte spara.",
+      somethingWrong: "Något gick fel.",
+      saved: "Sparat.",
+
+      hoursSaved: "Öppettiderna är sparade.",
+      nextDay: "nästa dag",
+      remove: "Ta bort",
+      openThisDay: "Öppna den här dagen",
+      addShift: "Lägg till pass",
+      closedAllDay: "Stängt hela dagen",
+      saveHours: "Spara öppettider",
+      nothingToSave: "Inget att spara",
+
+      policySaved: "Orderreglerna är sparade.",
+      autoAccept: "Ta emot beställningar automatiskt",
+      autoAcceptHint: "Utan detta måste någon trycka Ta emot på varje order innan köket ser den.",
+      prepTime: "Tillagningstid",
+      prepTimeUnit: "minuter",
+      prepTimeHint: "Används för att uppskatta väntetid åt gästen.",
+      editWindow: "Ändringsfönster",
+      editWindowUnit: "sekunder",
+      editWindowHint:
+        "Hur länge efter beställning gästen får ändra innehållet. 0 stänger av ändringar helt.",
+      editUntil: "Ändring tillåts till och med",
+      editUntilHint: "Efter den här statusen kan gästen inte längre ändra.",
+      mayAdd: "Gästen får lägga till rätter",
+      mayRemove: "Gästen får ta bort rätter",
+      mayChangeOptions: "Gästen får byta tillval",
+      cancelUntil: "Avbokning tillåts till och med",
+      cancelUntilHint:
+        "Avbokning styrs av status, inte av ändringsfönstret — en gäst ska kunna avboka så länge maten inte påbörjats.",
+      scheduled: "Ta emot förbeställningar",
+      scheduledHint:
+        "Gästen väljer en tid i förväg. Ordern släpps till köket tillagningstiden innan.",
+
+      punchCard: "Klippkort",
+      punchCardBody:
+        "Efter ett visst antal besök bjuder ni på måltiden. Räknar besök och inte belopp — en kaffe räknas lika mycket som en trerätters, vilket är vad som får folk att komma tillbaka.",
+      visits: "Antal besök",
+      cap: "Tak",
+      capPlaceholder: "hela notan",
+      capHint: "Max att bjuda på, i {currency}. Tomt = hela notan.",
+      loggedInOnly:
+        "Gäller bara inloggade gäster. En bordsgäst som beställer anonymt går inte att räkna besök på — och ska inte gå att räkna besök på.",
+
+      pushNotConfigured:
+        "Notiser är inte påslagna för plattformen än. Köksskärmens ljud fungerar som vanligt.",
+      pushUnsupported:
+        "Den här webbläsaren kan inte ta emot notiser. På iPhone fungerar det när Burp lagts till på hemskärmen.",
+      pushBlocked:
+        "Notiser är blockerade för Burp i den här webbläsaren. Det går bara att ändra i webbläsarens egna inställningar — vi kan inte fråga igen.",
+      pushEnable: "Slå på för den här enheten",
+      pushDisable: "Stäng av på den här enheten",
+      pushOnHint: "Den här enheten larmar när en beställning kommer in.",
+      pushOffHint:
+        "Varje enhet måste slås på för sig. Har du både telefon och surfplatta gör du det på båda.",
+      pushFailed: "Notiserna kunde inte slås på.",
+
+      cardOnTitle: "Kortbetalning är på",
+      cardOnBody:
+        "Gäster kan betala med kort, Apple Pay och Google Pay direkt i menyn. Pengarna går till ert eget konto hos {provider} — Burp tar aldrig emot dem. Vår avgift dras ur betalningen.",
+      cardPendingTitle: "Väntar på {provider}",
+      cardPendingBody:
+        "Kontot är skapat men {provider} har inte godkänt det ännu. Det är därför kortknappen inte syns för gästerna. Saknas något underlag ligger det i deras formulär.",
+      cardDisabledTitle: "Kortbetalning är avstängd",
+      cardDisabledBody:
+        "Gäster betalar på plats. Kontot hos {provider} finns kvar och går att slå på igen.",
+      cardConnectTitle: "Ta emot kort i menyn",
+      cardConnectBody:
+        "Gästen betalar i sin egen telefon vid bordet, med kort, Apple Pay eller Google Pay. Ni tecknar avtalet direkt med leverantören och pengarna går rakt in på ert konto — Burp håller aldrig gästens pengar.",
+      cardUnavailableTitle: "Kortbetalning är inte tillgänglig än",
+      cardUnavailableBody:
+        "Ingen leverantör är kopplad för {currency} ännu. Gästen beställer som vanligt och betalar på plats; ni kvitterar summan i Kassan.",
+      cardContinue: "Fortsätt hos leverantören",
+      cardConnect: "Koppla konto",
+      cardTurnOff: "Stäng av",
+      cardTurnOffConfirm: "Stäng av kortbetalning? Gäster kan då bara betala på plats.",
+      cardTurnedOff: "Kortbetalning avstängd.",
+      cardOwnerOnly: "Bara ägaren kan koppla ett betalkonto.",
+
+      pageTitle: "Din sida",
+      pageHint: "Så här ser din restaurang ut för gästerna.",
+      showPage: "Visa sidan",
+      presentation: "Presentation",
+      presentationPlaceholder: "Vad gör stället speciellt? Två meningar räcker.",
+      presentationCount: "{n}/600 tecken. Syns överst på din sida och i sökresultat.",
+      hero: "Huvudbild",
+      heroHint: "Visas överst på din sida och i listorna. Burp granskar bilden innan den publiceras.",
+      heroUpload: "Ladda upp huvudbild",
+      phone: "Telefon",
+      cuisines: "Kökstyper",
+      cuisinesHint: "Kommaseparerat, högst åtta. Blir filter och egna sidor på Burp.",
+      priceTier: "Prisklass",
+      priceTierHint: "Klicka igen för att ta bort. Utan prisklass visas ingen alls.",
+      address: "Adress",
+      street: "Gatuadress",
+      postalCode: "Postnummer",
+      city: "Stad",
+      mapPlace: "Plats på kartan",
+      mapHint:
+        "Öppna ditt ställe i Google Maps och klistra in länken här. Nålen styr vägbeskrivningen gästerna får — adressen ovan används bara som text.",
+      mapLinkLabel: "Kartlänk eller koordinater",
+      mapCurrentHint: "Kartan visar den plats som är sparad nu. Den uppdateras när du sparat en ny länk.",
+      presentationSaved: "Sparat. Ändringarna syns på din sida inom en timme.",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 förbeställning senare i dag." : `${count} förbeställningar senare i dag.`,
   },

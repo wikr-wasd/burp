@@ -48,6 +48,14 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
 
 ### Byggt 2026-08-21
 
+- **Personalhanteringen fanns på TVÅ ställen.** `/dashboard/installningar` bar
+  en andra uppsättning vid sidan av `/dashboard/personal`, och den skrev
+  `staff` direkt med service role — alltså förbi `invite_staff()` (migration
+  0046) och därmed förbi `can_grant_role()`, inbjudningarnas token, deras
+  utgångstid och möjligheten att återkalla dem. Hierarkiregeln fanns i stället
+  som en app-kontroll, vilket är precis den sortens andra kopia som glider
+  isär. Den gamla är borttagen; `/dashboard/personal` kunde allt den kunde.
+
 - **Sidfoten fick spaltbredder som följer innehållet.** Fyra lika breda
   spalter gav en fot där Kök bar åtta rader medan Städer bar tre och de två
   kontogrupperna två var — en full spalt och tre nästan tomma bredvid varandra.
@@ -437,11 +445,22 @@ eller ett beslut.
         produkten som har minst nytta av svenska.
       - **Kassan** (`/dashboard/kassa`) — kvittering, avvikelser, dricks och
         återbetalning. Den yta där personalen håller i riktiga pengar.
+      - **Översikten** (`/dashboard`) och **personalsidan**
+        (`/dashboard/personal`).
+      - **Inställningarna** (`/dashboard/installningar`) med alla sex
+        redigerare: presentation, öppettider, kortbetalning, notiser,
+        klippkort och orderregler.
 
-      **Kvar: resten av sidornas innehåll.** Ungefär 35 filer under
-      `components/staff/`, `app/dashboard/` och `app/backoffice/`. Störst är
-      `menu-editor.tsx`, `order-policy-editor.tsx` och `floor-plan-editor.tsx`.
-      Tolv `untranslatedSurface()`-anrop återstår, fördelade på fem filer.
+      **Kvar: resten av sidornas innehåll.** Menyredigeraren, bordshanteringen,
+      statistiken, omdömena, erbjudandena, presentkorten, avräkningen,
+      händelseloggen och hela backoffice. Störst är `menu-editor.tsx` och
+      `floor-plan-editor.tsx`. Sex `untranslatedSurface()`-anrop återstår, i
+      `installningar/actions.ts`, `personal/actions.ts` och `konto/page.tsx`.
+
+      **Metadata-titlarna står kvar på svenska överallt.** En `metadata`-export
+      är statisk och kan inte läsa `staff.locale`; `generateMetadata` skulle
+      kosta ett eget databasanrop per rendering. En webbläsarflik på en
+      noindex-sida är inte värd den frågan.
 
       En yta som inte är översatt håller sig **helt** på svenska genom att
       anropa `untranslatedSurface()` i stället för `dictionary(staff.locale)`.

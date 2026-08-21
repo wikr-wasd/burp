@@ -5,7 +5,6 @@ import {
   type CurrencyCode,
   type OpeningHours,
   type OrderPolicy,
-  type StaffRole,
 } from "@burp/core";
 import { StaffShell } from "@/components/staff/staff-shell";
 import {
@@ -17,13 +16,11 @@ import { PresentationEditor } from "@/components/staff/presentation-editor";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
 import { PunchCardEditor } from "@/components/staff/punch-card-editor";
 import { PushToggle } from "@/components/staff/push-toggle";
-import { StaffManager } from "@/components/staff/staff-manager";
 import { requireStaff } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
 import { connectableProviders, getPaymentAccounts } from "@/lib/payments";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { untranslatedSurface } from "@/lib/i18n";
+import { dictionary } from "@/lib/i18n";
 
 /**
  * Restaurangens inställningar (avsnitt 11).
@@ -39,16 +36,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-export interface StaffMember {
-  id: string;
-  userId: string;
-  email: string | null;
-  fullName: string | null;
-  role: StaffRole;
-  isActive: boolean;
-  isSelf: boolean;
-}
 
 export default async function SettingsPage() {
   const staff = await requireStaff(["owner", "manager"]);
@@ -68,33 +55,6 @@ export default async function SettingsPage() {
   const hours: OpeningHours = parseOpeningHours(restaurant?.opening_hours);
   const policy: OrderPolicy = parseOrderPolicy(restaurant?.order_policy);
 
-  const { data: staffRows } = await supabase
-    .from("staff")
-    .select("id, user_id, role, is_active")
-    .eq("restaurant_id", staff.restaurantId)
-    .order("created_at", { ascending: true });
-
-  /*
-   * E-postadresserna ligger i `auth.users`, som RLS inte når. Admin-klienten
-   * används enbart för att slå upp namn och adress för personer som redan
-   * finns i den här restaurangens personallista — listan i sig kommer från
-   * den RLS-skyddade frågan ovan, så ingen extra data exponeras.
-   */
-  const profileIds = (staffRows ?? []).map((row) => row.user_id);
-  const contacts = new Map<string, { email: string | null; fullName: string | null }>();
-
-  if (profileIds.length > 0) {
-    const adminClient = createAdminClient();
-    const { data: profiles } = await adminClient
-      .from("profiles")
-      .select("id, email, full_name")
-      .in("id", profileIds);
-
-    for (const profile of profiles ?? []) {
-      contacts.set(profile.id, { email: profile.email, fullName: profile.full_name });
-    }
-  }
-
   /*
    * Betalkontot.
    *
@@ -105,22 +65,14 @@ export default async function SettingsPage() {
   const accounts = await getPaymentAccounts(staff.restaurantId);
   const paymentAccount = accounts[0] ?? null;
   const connectable = connectableProviders(staff.currency);
-
-  const members: StaffMember[] = (staffRows ?? []).map((row) => ({
-    id: row.id,
-    userId: row.user_id,
-    email: contacts.get(row.user_id)?.email ?? null,
-    fullName: contacts.get(row.user_id)?.fullName ?? null,
-    role: row.role as StaffRole,
-    isActive: row.is_active,
-    isSelf: row.user_id === staff.userId,
-  }));
+  const d = dictionary(staff.locale);
+  const t = d.staff;
 
   return (
     <StaffShell
       staff={staff}
       current="installningar"
-      title="Inställningar"
+      title={t.section.installningar}
       intro={staff.restaurantName}
       width="narrow"
     >
@@ -152,6 +104,7 @@ export default async function SettingsPage() {
                 longitude: restaurant.longitude,
                 heroImageUrl: restaurant.hero_image_url,
               }}
+              labels={t.settings}
             />
           </div>
         ) : null}
@@ -159,22 +112,19 @@ export default async function SettingsPage() {
         <hr className="rule mt-14" />
 
         <section className="mt-10">
-          <h2 className="font-display text-2xl">Öppettider</h2>
+          <h2 className="font-display text-2xl">{t.settings.hoursTitle}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Gäster kan bara beställa när ni är öppna. Flera pass per dag för lunch och kväll.
-            Stänger ni efter midnatt skriver ni sluttiden som den är — 22:00 till 02:00 betyder
-            att ni har öppet till två på natten.
+            {t.settings.hoursHint}
           </p>
-          <OpeningHoursEditor initial={hours} weekdayLabels={untranslatedSurface().weekday} />
+          <OpeningHoursEditor initial={hours} weekdayLabels={d.weekday} labels={t.settings} />
         </section>
 
         <hr className="rule mt-14" />
 
         <section className="mt-10">
-          <h2 className="font-display text-2xl">Kortbetalning</h2>
+          <h2 className="font-display text-2xl">{t.settings.cardTitle}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Gästen betalar i sin egen telefon. Avtalet är ert, inte Burps — pengarna går rakt
-            in på ert konto.
+            {t.settings.cardHint}
           </p>
           <CardPaymentSettings
             account={
@@ -189,61 +139,48 @@ export default async function SettingsPage() {
             connectable={connectable}
             currency={staff.currency}
             isOwner={staff.role === "owner"}
+            labels={t.settings}
           />
         </section>
 
         <hr className="rule mt-14" />
 
         <section className="mt-10">
-          <h2 className="font-display text-2xl">Notiser</h2>
+          <h2 className="font-display text-2xl">{t.settings.notifyTitle}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Köksskärmen låter redan när den är öppen. Det här är för när den inte är det —
-            notisen kommer fram i telefonen även om ingen sitter framför skärmen.
+            {t.settings.notifyHint}
           </p>
-          <PushToggle vapidPublicKey={publicEnv.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+          <PushToggle
+            vapidPublicKey={publicEnv.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
+            labels={t.settings}
+          />
         </section>
 
         <hr className="rule mt-14" />
 
         <section className="mt-10">
-          <h2 className="font-display text-2xl">Klippkort</h2>
+          <h2 className="font-display text-2xl">{t.settings.punchTitle}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Tionde besöket bjuder ni på. Räknar besök, inte belopp.
+            {t.settings.punchHint}
           </p>
           <PunchCardEditor
             initialSize={restaurant?.punch_card_size ?? null}
             initialMaxRewardOre={restaurant?.punch_card_max_reward_ore ?? null}
             currency={staff.currency}
+            labels={t.settings}
           />
         </section>
 
         <hr className="rule mt-14" />
 
         <section className="mt-10">
-          <h2 className="font-display text-2xl">Orderregler</h2>
+          <h2 className="font-display text-2xl">{t.settings.policyTitle}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Vad gästen får ändra efter att beställningen lagts, och hur länge.
+            {t.settings.policyHint}
           </p>
-          <OrderPolicyEditor initial={policy} statusLabels={untranslatedSurface().staff.status} />
+          <OrderPolicyEditor initial={policy} statusLabels={t.status} labels={t.settings} />
         </section>
 
-        {staff.role === "owner" ? (
-          <section className="mt-14 border-t border-[var(--rule)] pt-10">
-            <h2 className="font-display text-2xl">Personal</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Ägare ser allt. Chef sköter drift och meny. Personal tar order och bord. Kock ser
-              bara köksskärmen.
-            </p>
-            <StaffManager members={members} roleLabels={untranslatedSurface().staff.role} />
-          </section>
-        ) : (
-          <section className="mt-14 border-t border-[var(--rule)] pt-10">
-            <h2 className="font-display text-2xl">Personal</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Bara ägaren kan bjuda in och ändra roller.
-            </p>
-          </section>
-        )}
     </StaffShell>
   );
 }
