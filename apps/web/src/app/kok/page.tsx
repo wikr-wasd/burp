@@ -5,6 +5,7 @@ import { KitchenBoard } from "@/components/staff/kitchen-board";
 import { BurpMark } from "@/components/ui/burp-mark";
 import { requireStaff } from "@/lib/auth";
 import { getActiveOrders } from "@/lib/orders";
+import { untranslatedSurface } from "@/lib/i18n";
 
 /**
  * Köksskärmen. Alla roller når den — även kocken, som bara har den här ytan.
@@ -56,6 +57,7 @@ export default async function KitchenPage() {
           initialOrders={due}
           restaurantId={staff.restaurantId}
           currency={staff.currency}
+          statusLabels={untranslatedSurface().staff.status}
         />
 
         {upcoming.length > 0 ? (

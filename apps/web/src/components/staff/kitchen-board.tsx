@@ -6,7 +6,6 @@ import {
   allowedTransitions,
   formatMoney,
   isActiveForKitchen,
-  ORDER_STATUS_LABELS,
   type CurrencyCode,
   type OrderStatus,
 } from "@burp/core";
@@ -49,6 +48,7 @@ export function KitchenBoard({
   /** Dashboarden visar belopp; köket har ingen nytta av dem. */
   showTotals = false,
   currency,
+  statusLabels,
 }: {
   initialOrders: KitchenOrder[];
   restaurantId: string;
@@ -57,6 +57,8 @@ export function KitchenBoard({
   showTotals?: boolean;
   /** Restaurangens valuta. Krävs så fort belopp visas. */
   currency: CurrencyCode;
+  /** Orderstatusarna ur ordboken. Rena strängar — komponenten är klientkod. */
+  statusLabels: Record<OrderStatus, string>;
 }) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
@@ -228,6 +230,7 @@ export function KitchenBoard({
               canCancel={canCancel}
               showTotals={showTotals}
               currency={currency}
+              statusLabels={statusLabels}
             />
           ))}
         </div>
@@ -244,6 +247,7 @@ function OrderCard({
   showTotals,
   currency,
   sibling,
+  statusLabels,
 }: {
   order: KitchenOrder;
   /** Null när bordet bara har en aktiv beställning. */
@@ -253,6 +257,7 @@ function OrderCard({
   canCancel: boolean;
   showTotals: boolean;
   currency: CurrencyCode;
+  statusLabels: Record<OrderStatus, string>;
 }) {
   const step = NEXT_STEP[order.status];
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -306,7 +311,7 @@ function OrderCard({
         Visas bara när bordet har en zon. En tom rad säger ingenting.
       */}
       <p className="mt-1 text-sm font-medium uppercase tracking-wide opacity-60">
-        {ORDER_STATUS_LABELS[order.status]}
+        {statusLabels[order.status]}
         {order.tableZone ? (
           <>
             {" · "}

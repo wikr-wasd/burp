@@ -303,6 +303,57 @@ export const no: Dictionary = {
     mapOf: (name: string) => `Kart over ${name}`,
   },
 
+  staff: {
+    home: "Burp — til forsiden",
+    navLabel: "Navigasjon for ansatte",
+    logOut: "Logg ut",
+    language: "Språk",
+    languageSaving: "Lagrer…",
+    languageError: "Kunne ikke lagre språket. Prøv igjen.",
+
+    role: {
+      owner: "Eier",
+      manager: "Leder",
+      staff: "Ansatte",
+      kitchen: "Kokk",
+    },
+
+    section: {
+      oversikt: "Oversikt",
+      order: "Bestillinger",
+      kok: "Kjøkkenskjerm",
+      kassa: "Kasse",
+      meny: "Meny",
+      bord: "Bord og QR",
+      erbjudanden: "Tilbud",
+      omdomen: "Anmeldelser",
+      statistik: "Statistikk",
+      avrakning: "Oppgjør",
+      handelser: "Hendelser",
+      personal: "Ansatte",
+      installningar: "Innstillinger",
+    },
+
+    status: {
+      DRAFT: "Utkast",
+      PLACED: "Lagt inn",
+      ACCEPTED: "Mottatt",
+      PREPARING: "Tilberedes",
+      READY: "Klar",
+      COMPLETED: "Fullført",
+      CANCELLED: "Avbrutt",
+      REFUNDED: "Refundert",
+    },
+
+    provider: {
+      CASH: "Kontant",
+      TERMINAL: "Kort i terminal",
+      GIFT_CARD: "Gavekort",
+      STRIPE: "Kort",
+      MONRI: "Kort",
+    },
+  },
+
   weekday: {
     mon: "Mandag",
     tue: "Tirsdag",

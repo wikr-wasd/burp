@@ -5,7 +5,6 @@ import {
   crossesMidnight,
   describeDay,
   WEEKDAY_KEYS,
-  WEEKDAY_LABELS,
   type OpeningHours,
   type WeekdayKey,
 } from "@burp/core";
@@ -19,7 +18,14 @@ import { saveOpeningHours } from "@/app/dashboard/installningar/actions";
  * öppettider valideras som en helhet — ett överlapp finns mellan två pass, inte
  * i ett av dem, och att spara halvvägs skulle avvisas utan att det syntes var.
  */
-export function OpeningHoursEditor({ initial }: { initial: OpeningHours }) {
+export function OpeningHoursEditor({
+  initial,
+  weekdayLabels,
+}: {
+  initial: OpeningHours;
+  /** Veckodagarna ur ordboken. Rena strängar — komponenten är klientkod. */
+  weekdayLabels: Record<WeekdayKey, string>;
+}) {
   const [hours, setHours] = useState<OpeningHours>(initial);
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
@@ -47,7 +53,7 @@ export function OpeningHoursEditor({ initial }: { initial: OpeningHours }) {
         {WEEKDAY_KEYS.map((day) => (
           <li key={day} className="p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="font-medium">{WEEKDAY_LABELS[day]}</p>
+              <p className="font-medium">{weekdayLabels[day]}</p>
               <p className="text-sm opacity-60">{describeDay(hours[day])}</p>
             </div>
 
@@ -56,7 +62,7 @@ export function OpeningHoursEditor({ initial }: { initial: OpeningHours }) {
                 <div key={index} className="flex flex-wrap items-center gap-2">
                   <input
                     type="time"
-                    aria-label={`${WEEKDAY_LABELS[day]} öppnar, pass ${index + 1}`}
+                    aria-label={`${weekdayLabels[day]} öppnar, pass ${index + 1}`}
                     value={slot.opens}
                     onChange={(event) =>
                       update(
@@ -73,7 +79,7 @@ export function OpeningHoursEditor({ initial }: { initial: OpeningHours }) {
                   </span>
                   <input
                     type="time"
-                    aria-label={`${WEEKDAY_LABELS[day]} stänger, pass ${index + 1}`}
+                    aria-label={`${weekdayLabels[day]} stänger, pass ${index + 1}`}
                     value={slot.closes}
                     onChange={(event) =>
                       update(
@@ -93,7 +99,7 @@ export function OpeningHoursEditor({ initial }: { initial: OpeningHours }) {
                   ) : null}
                   <button
                     type="button"
-                    aria-label={`Ta bort pass ${index + 1} på ${WEEKDAY_LABELS[day]}`}
+                    aria-label={`Ta bort pass ${index + 1} på ${weekdayLabels[day]}`}
                     onClick={() =>
                       update(
                         day,

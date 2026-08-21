@@ -268,10 +268,13 @@ export const sv = {
   /**
    * Kvittot och orderns förlopp.
    *
-   * Statusetiketterna finns även som `ORDER_STATUS_LABELS` i @burp/core. Där
-   * är de svenska och används av personalytorna, som inte är översatta. Att
-   * duplicera dem här är avsiktligt: gästens och köksskärmens ordval behöver
-   * inte vara samma, och köket ska inte byta språk för att en gäst gjorde det.
+   * Statusetiketterna finns även som `staff.status` längre ned. Att duplicera
+   * dem är avsiktligt: gästen läser "Serverad" där personalen läser "Slutförd",
+   * därför att gästen beskriver sin mat och personalen sitt arbete. Samma rad i
+   * databasen, två läsare, två ordval.
+   *
+   * De låg fram till 2026-08-21 som `ORDER_STATUS_LABELS` i @burp/core, på
+   * svenska. Kärnan känner numera bara nycklarna.
    *
    * ENBART strängar — objektet passerar till klientkomponenter.
    */
@@ -382,6 +385,86 @@ export const sv = {
     copiedNotice: "Adressen är kopierad till urklipp.",
     opensInNewTab: " — öppnar vägbeskrivning i ny flik",
     mapOf: (name: string) => `Karta över ${name}`,
+  },
+
+  /**
+   * Personalytorna.
+   *
+   * Ett val per anställd, aldrig `Accept-Language`: köket ska inte byta språk
+   * för att en gäst gjorde det. Språket ligger på `staff.locale` (migration
+   * 0047) och följer personen mellan surfplattan i köket och telefonen i
+   * fickan.
+   *
+   * Etiketterna här ersätter `STAFF_ROLE_LABELS`, `ORDER_STATUS_LABELS`,
+   * `PAYMENT_PROVIDER_LABELS` och `WEEKDAY_LABELS` som låg på svenska i
+   * `@burp/core`. Kärnan får inte importera i18n-modulen — den känner numera
+   * bara nycklarna, och orden står här.
+   *
+   * `status` finns ALLTID i två uppsättningar: den här och `receipt.status`.
+   * Det är avsiktligt och inte slarv. Gästen läser "Serverad" när personalen
+   * läser "Slutförd", därför att gästen beskriver sin mat och personalen sitt
+   * arbete. Samma rad i databasen, två läsare, två ordval.
+   *
+   * ENBART strängar — objektet passerar till klientkomponenter.
+   */
+  staff: {
+    home: "Burp — till startsidan",
+    navLabel: "Personalytans navigering",
+    logOut: "Logga ut",
+    language: "Språk",
+    languageSaving: "Sparar…",
+    languageError: "Kunde inte spara språket. Försök igen.",
+
+    role: {
+      owner: "Ägare",
+      manager: "Chef",
+      staff: "Personal",
+      kitchen: "Kock",
+    },
+
+    section: {
+      oversikt: "Översikt",
+      order: "Beställningar",
+      kok: "Köksskärm",
+      kassa: "Kassa",
+      meny: "Meny",
+      bord: "Bord & QR",
+      erbjudanden: "Erbjudanden",
+      omdomen: "Omdömen",
+      statistik: "Statistik",
+      avrakning: "Avräkning",
+      handelser: "Händelser",
+      personal: "Personal",
+      installningar: "Inställningar",
+    },
+
+    status: {
+      DRAFT: "Utkast",
+      PLACED: "Lagd",
+      ACCEPTED: "Mottagen",
+      PREPARING: "Tillagas",
+      READY: "Klar",
+      COMPLETED: "Slutförd",
+      CANCELLED: "Avbruten",
+      REFUNDED: "Återbetald",
+    },
+
+    /*
+     * STRIPE och MONRI säger båda bara "Kort".
+     *
+     * Vilken inlösare som råkade ta emot betalningen är Burps sak och inte
+     * personalens. Det som skiljer i kassan är om pengarna finns i lådan
+     * (CASH), gick genom restaurangens egen terminal (TERMINAL) eller drogs
+     * i gästens telefon — och den sista skillnaden syns när något ska
+     * betalas tillbaka, inte när notan läses.
+     */
+    provider: {
+      CASH: "Kontant",
+      TERMINAL: "Kort i terminal",
+      GIFT_CARD: "Presentkort",
+      STRIPE: "Kort",
+      MONRI: "Kort",
+    },
   },
 
   weekday: {

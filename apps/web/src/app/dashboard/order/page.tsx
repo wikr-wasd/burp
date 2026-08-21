@@ -4,6 +4,7 @@ import { KitchenBoard } from "@/components/staff/kitchen-board";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
 import { getActiveOrders } from "@/lib/orders";
+import { untranslatedSurface } from "@/lib/i18n";
 
 /**
  * Order live (avsnitt 11).
@@ -38,6 +39,7 @@ export default async function OrdersPage() {
         canCancel
         showTotals
         currency={staff.currency}
+        statusLabels={untranslatedSurface().staff.status}
       />
 
       {/* Förbeställningar visas här men inte på köksskärmen. Personalen ska

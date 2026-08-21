@@ -23,6 +23,7 @@ import { publicEnv } from "@/lib/env";
 import { connectableProviders, getPaymentAccounts } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { untranslatedSurface } from "@/lib/i18n";
 
 /**
  * Restaurangens inställningar (avsnitt 11).
@@ -164,7 +165,7 @@ export default async function SettingsPage() {
             Stänger ni efter midnatt skriver ni sluttiden som den är — 22:00 till 02:00 betyder
             att ni har öppet till två på natten.
           </p>
-          <OpeningHoursEditor initial={hours} />
+          <OpeningHoursEditor initial={hours} weekdayLabels={untranslatedSurface().weekday} />
         </section>
 
         <hr className="rule mt-14" />
@@ -223,7 +224,7 @@ export default async function SettingsPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">
             Vad gästen får ändra efter att beställningen lagts, och hur länge.
           </p>
-          <OrderPolicyEditor initial={policy} />
+          <OrderPolicyEditor initial={policy} statusLabels={untranslatedSurface().staff.status} />
         </section>
 
         {staff.role === "owner" ? (
@@ -233,7 +234,7 @@ export default async function SettingsPage() {
               Ägare ser allt. Chef sköter drift och meny. Personal tar order och bord. Kock ser
               bara köksskärmen.
             </p>
-            <StaffManager members={members} />
+            <StaffManager members={members} roleLabels={untranslatedSurface().staff.role} />
           </section>
         ) : (
           <section className="mt-14 border-t border-[var(--rule)] pt-10">

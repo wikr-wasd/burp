@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ORDER_STATUS_LABELS, type OrderPolicy, type OrderStatus } from "@burp/core";
+import { type OrderPolicy, type OrderStatus } from "@burp/core";
 import { saveOrderPolicy } from "@/app/dashboard/installningar/actions";
 
 /**
@@ -14,7 +14,14 @@ import { saveOrderPolicy } from "@/app/dashboard/installningar/actions";
 /** Statusarna det är meningsfullt att sätta som gräns. */
 const LIMIT_STATUSES: OrderStatus[] = ["PLACED", "ACCEPTED", "PREPARING", "READY"];
 
-export function OrderPolicyEditor({ initial }: { initial: OrderPolicy }) {
+export function OrderPolicyEditor({
+  initial,
+  statusLabels,
+}: {
+  initial: OrderPolicy;
+  /** Orderstatusarna ur ordboken. Rena strängar — komponenten är klientkod. */
+  statusLabels: Record<OrderStatus, string>;
+}) {
   const [policy, setPolicy] = useState<OrderPolicy>(initial);
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
@@ -60,6 +67,7 @@ export function OrderPolicyEditor({ initial }: { initial: OrderPolicy }) {
         hint="Efter den här statusen kan gästen inte längre ändra."
         value={policy.editableUntilStatus}
         onChange={(value) => set("editableUntilStatus", value)}
+        statusLabels={statusLabels}
       />
 
       <div className="space-y-3">
@@ -85,6 +93,7 @@ export function OrderPolicyEditor({ initial }: { initial: OrderPolicy }) {
         hint="Avbokning styrs av status, inte av ändringsfönstret — en gäst ska kunna avboka så länge maten inte påbörjats."
         value={policy.allowCancelUntilStatus}
         onChange={(value) => set("allowCancelUntilStatus", value)}
+        statusLabels={statusLabels}
       />
 
       <Toggle
@@ -195,11 +204,13 @@ function StatusSelect({
   hint,
   value,
   onChange,
+  statusLabels,
 }: {
   label: string;
   hint?: string;
   value: OrderStatus;
   onChange: (value: OrderStatus) => void;
+  statusLabels: Record<OrderStatus, string>;
 }) {
   return (
     <label className="block">
@@ -212,7 +223,7 @@ function StatusSelect({
       >
         {LIMIT_STATUSES.map((status) => (
           <option key={status} value={status}>
-            {ORDER_STATUS_LABELS[status]}
+            {statusLabels[status]}
           </option>
         ))}
       </select>

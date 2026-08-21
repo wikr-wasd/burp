@@ -4152,4 +4152,73 @@ begin
 end
 $$;
 
+\echo '   kocken sätter sitt eget språk, och ingenting annat'
+
+do $$
+declare
+  v_rest    uuid;
+  v_kitchen uuid;
+  v_owner   uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Kockens Språk', 'kockens-sprak', '4200000000123',
+          'Ferhadija 31', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'kock-sprak@example.com')
+  returning id into v_kitchen;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-sprak@example.com')
+  returning id into v_owner;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_owner, 'owner', true),
+         (v_rest, v_kitchen, 'kitchen', true);
+
+  -- Ingen har valt något ännu. NULL och inte 'sv' — appen ska kunna skilja
+  -- "har inte valt" från "valde svenska", annars kan språket aldrig följa
+  -- restaurangens land.
+  if (select locale from public.staff where user_id = v_kitchen) is not null then
+    raise exception 'FEL: språket fick ett default i schemat';
+  end if;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_kitchen::text, true);
+
+  -- Kocken får sätta sitt eget språk trots att bara ägaren får skriva i staff.
+  perform public.set_staff_locale('bs');
+
+  if (select locale from public.staff where user_id = v_kitchen) is distinct from 'bs' then
+    raise exception 'FEL: kocken kunde inte sätta sitt eget språk';
+  end if;
+
+  -- Ägarens rad rördes inte. Funktionen tar inget användar-id och kan därför
+  -- inte fås att peka någon annanstans än på auth.uid().
+  if (select locale from public.staff where user_id = v_owner) is not null then
+    raise exception 'FEL: kocken satte språk på ägarens rad';
+  end if;
+
+  -- Det som ovanstående INTE fick kosta: en väg in i tabellen. Kocken ska
+  -- fortfarande inte kunna röra sin egen roll. Utan den här kontrollen hade
+  -- en policy "får uppdatera sin egen rad" sett ut att fungera lika bra —
+  -- och den hade låtit kocken skriva role i samma andetag.
+  update public.staff set role = 'owner' where user_id = v_kitchen;
+  if (select role from public.staff where user_id = v_kitchen) = 'owner' then
+    raise exception 'FEL: kocken befordrade sig själv';
+  end if;
+
+  -- Ett okänt språk faller på villkoret i stället för att skrivas tyst.
+  begin
+    perform public.set_staff_locale('kl');
+    raise exception 'FEL: ett okänt språk accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
 rollback;

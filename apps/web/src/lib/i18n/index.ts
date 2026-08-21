@@ -29,6 +29,24 @@ export function dictionary(locale: unknown): Dictionary {
 }
 
 /**
+ * Ordboken för en personalyta som ännu inte är översatt.
+ *
+ * Personalytorna översätts en yta i taget. Under tiden finns en fälla som är
+ * värre än att inte ha börjat: en sida vars brödtext står på svenska men vars
+ * enstaka etiketter — en veckodag, en roll, en orderstatus — följer personens
+ * språkval. Resultatet är en svensk mening med ett bosniskt ord i, vilket är
+ * svårare att läsa än vilketdera språket som helst.
+ *
+ * Sidor som inte är färdiga håller sig därför HELT på svenska, och säger det
+ * genom att anropa den här i stället för `dictionary(staff.locale)`. Namnet är
+ * med flit obekvämt: `grep untranslatedSurface` räknar exakt hur mycket som
+ * återstår, och raden försvinner av sig själv när ytan blir klar.
+ */
+export function untranslatedSurface(): Dictionary {
+  return DICTIONARIES[DEFAULT_LOCALE];
+}
+
+/**
  * Bygger en språkprefixad sökväg.
  *
  * Alla interna länkar på de publika ytorna går genom den här. En länk som

@@ -19,15 +19,12 @@
 export const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 export type WeekdayKey = (typeof WEEKDAY_KEYS)[number];
 
-export const WEEKDAY_LABELS: Record<WeekdayKey, string> = {
-  mon: "Måndag",
-  tue: "Tisdag",
-  wed: "Onsdag",
-  thu: "Torsdag",
-  fri: "Fredag",
-  sat: "Lördag",
-  sun: "Söndag",
-};
+/*
+ * Veckodagarnas namn låg här på svenska som `WEEKDAY_LABELS` till 2026-08-21.
+ * De var dessutom en ren dubblett: ordbokens `weekday` hade redan exakt samma
+ * sju svenska ord, plus fyra språk till. Kärnan känner nycklarna, ordboken
+ * orden.
+ */
 
 export interface OpeningSlot {
   /** "11:00" — timmar och minuter, alltid två siffror. */

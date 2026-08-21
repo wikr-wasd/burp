@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { formatMoney, ORDER_STATUS_LABELS, type OrderStatus } from "@burp/core";
+import { formatMoney, type OrderStatus } from "@burp/core";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { ReviewForm } from "@/components/guest/review-form";
 import { getGuestOrders, getLoyalty, requireGuest } from "@/lib/guest";
+import { untranslatedSurface } from "@/lib/i18n";
 
 /**
  * Gästens konto — mina beställningar.
@@ -110,7 +111,7 @@ function OrderCard({ order }: { order: Awaited<ReturnType<typeof getGuestOrders>
       </div>
 
       <p className="mt-1 text-sm opacity-60">
-        {ORDER_STATUS_LABELS[order.status as OrderStatus]}
+        {untranslatedSurface().staff.status[order.status as OrderStatus]}
         {date ? ` · ${new Date(date).toLocaleDateString("sv-SE")}` : null}
         {order.type === "TABLE" ? " · vid bordet" : order.type === "PICKUP" ? " · avhämtning" : null}
       </p>

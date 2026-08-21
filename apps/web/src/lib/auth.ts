@@ -2,6 +2,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import { COUNTRY_INFO, type CountryCode, type CurrencyCode, type StaffRole } from "@burp/core";
+import { staffLocale, type Locale } from "./i18n/config";
 import { createClient } from "./supabase/server";
 
 /**
@@ -36,6 +37,16 @@ export interface StaffContext {
   country: CountryCode;
   currency: CurrencyCode;
   timeZone: string;
+  /**
+   * Personalytornas språk för den här personen.
+   *
+   * Ligger på sessionen av samma skäl som landet: varje personalyta behöver
+   * det, och en yta som hämtar det själv kommer förr eller senare att låta bli.
+   *
+   * Redan upplöst — `staff.locale` om hen valt, annars restaurangens land. Den
+   * som läser fältet ska aldrig behöva veta att NULL betyder något.
+   */
+  locale: Locale;
 }
 
 /** Vart varje roll skickas efter inloggning. */
@@ -66,7 +77,7 @@ export async function getStaff(): Promise<StaffContext | null> {
 
   const { data } = await supabase
     .from("staff")
-    .select("role, restaurant_id, restaurants!inner (id, name, slug, country, currency)")
+    .select("role, locale, restaurant_id, restaurants!inner (id, name, slug, country, currency)")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .maybeSingle();
@@ -91,6 +102,7 @@ export async function getStaff(): Promise<StaffContext | null> {
     country: restaurant.country,
     currency: restaurant.currency,
     timeZone: COUNTRY_INFO[restaurant.country].timeZone,
+    locale: staffLocale(data.locale),
   };
 }
 

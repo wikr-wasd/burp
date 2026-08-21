@@ -110,13 +110,13 @@ export function statusAfterPlacement(autoAccept: boolean): OrderStatus {
   return autoAccept ? "ACCEPTED" : "PLACED";
 }
 
-export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  DRAFT: "Utkast",
-  PLACED: "Lagd",
-  ACCEPTED: "Mottagen",
-  PREPARING: "Tillagas",
-  READY: "Klar",
-  COMPLETED: "Slutförd",
-  CANCELLED: "Avbruten",
-  REFUNDED: "Återbetald",
-};
+/*
+ * Statusernas namn låg här på svenska som `ORDER_STATUS_LABELS` till
+ * 2026-08-21. De ligger nu i ordboken, och i TVÅ uppsättningar: `staff.status`
+ * för personalen och `receipt.status` för gästen.
+ *
+ * Att det är två är inte en dubblett som glömts. Gästen läser "Serverad" där
+ * personalen läser "Slutförd", därför att gästen beskriver sin mat och
+ * personalen sitt arbete. Samma rad i databasen, två läsare, två ordval — och
+ * `OrderStatus` här är den enda nyckeln båda utgår från.
+ */

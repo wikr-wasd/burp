@@ -326,6 +326,57 @@ export const bs: Dictionary = {
     mapOf: (name: string) => `Mapa: ${name}`,
   },
 
+  staff: {
+    home: "Burp — na početnu",
+    navLabel: "Navigacija za osoblje",
+    logOut: "Odjava",
+    language: "Jezik",
+    languageSaving: "Spremanje…",
+    languageError: "Jezik nije spremljen. Pokušajte ponovo.",
+
+    role: {
+      owner: "Vlasnik",
+      manager: "Menadžer",
+      staff: "Osoblje",
+      kitchen: "Kuhar",
+    },
+
+    section: {
+      oversikt: "Pregled",
+      order: "Narudžbe",
+      kok: "Kuhinjski ekran",
+      kassa: "Kasa",
+      meny: "Jelovnik",
+      bord: "Stolovi i QR",
+      erbjudanden: "Ponude",
+      omdomen: "Ocjene",
+      statistik: "Statistika",
+      avrakning: "Obračun",
+      handelser: "Događaji",
+      personal: "Osoblje",
+      installningar: "Postavke",
+    },
+
+    status: {
+      DRAFT: "Nacrt",
+      PLACED: "Poslana",
+      ACCEPTED: "Primljena",
+      PREPARING: "Priprema se",
+      READY: "Spremna",
+      COMPLETED: "Završena",
+      CANCELLED: "Otkazana",
+      REFUNDED: "Refundirana",
+    },
+
+    provider: {
+      CASH: "Gotovina",
+      TERMINAL: "Kartica na terminalu",
+      GIFT_CARD: "Poklon kartica",
+      STRIPE: "Kartica",
+      MONRI: "Kartica",
+    },
+  },
+
   weekday: {
     mon: "Ponedjeljak",
     tue: "Utorak",

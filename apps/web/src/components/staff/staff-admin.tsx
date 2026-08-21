@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Copy, Check, UserPlus } from "lucide-react";
-import { STAFF_ROLE_LABELS, type StaffRole } from "@burp/core";
+import { type StaffRole } from "@burp/core";
 import {
   changeStaffRole,
   inviteStaff,
@@ -33,10 +33,13 @@ export function StaffAdmin({
   members,
   invitations,
   myRole,
+  roleLabels,
 }: {
   members: StaffMember[];
   invitations: StaffInvitation[];
   myRole: StaffRole;
+  /** Rollernas namn ur ordboken. Rena strängar — komponenten är klientkod. */
+  roleLabels: Record<StaffRole, string>;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +105,7 @@ export function StaffAdmin({
             >
               {grantable.map((option) => (
                 <option key={option} value={option}>
-                  {STAFF_ROLE_LABELS[option]}
+                  {roleLabels[option]}
                 </option>
               ))}
             </select>
@@ -169,7 +172,7 @@ export function StaffAdmin({
                 <div className="min-w-0">
                   <p className="truncate font-medium">{invitation.email}</p>
                   <p className="label-caps mt-0.5 normal-case">
-                    {STAFF_ROLE_LABELS[invitation.role]} · gäller till{" "}
+                    {roleLabels[invitation.role]} · gäller till{" "}
                     {new Date(invitation.expiresAt).toLocaleDateString("sv-SE")}
                   </p>
                 </div>
@@ -211,7 +214,7 @@ export function StaffAdmin({
                   </p>
                   <p className="label-caps mt-0.5 normal-case">
                     {member.fullName ? `${member.email} · ` : ""}
-                    {STAFF_ROLE_LABELS[member.role]}
+                    {roleLabels[member.role]}
                     {member.isActive ? "" : " · avslutad"}
                   </p>
                 </div>
@@ -228,7 +231,7 @@ export function StaffAdmin({
                     >
                       {grantable.map((option) => (
                         <option key={option} value={option}>
-                          {STAFF_ROLE_LABELS[option]}
+                          {roleLabels[option]}
                         </option>
                       ))}
                     </select>

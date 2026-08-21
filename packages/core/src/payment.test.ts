@@ -10,7 +10,6 @@ import {
   isPaymentSettled,
   isPaymentTerminal,
   isStaffRegistered,
-  PAYMENT_PROVIDER_LABELS,
   providerForMethod,
   requiresUpfrontPayment,
   settlesOutsideBurp,
@@ -196,9 +195,15 @@ describe("kort i restaurangens egen terminal", () => {
    */
   it("är ett eget betalsätt och inte kontanter", () => {
     expect(PAYMENT_PROVIDERS).toContain("TERMINAL");
-    expect(PAYMENT_PROVIDER_LABELS.TERMINAL).toBe("Kort i terminal");
-    expect(PAYMENT_PROVIDER_LABELS.TERMINAL).not.toBe(PAYMENT_PROVIDER_LABELS.CASH);
   });
+
+  /*
+   * Att TERMINAL också HETER något annat än CASH prövas inte här längre.
+   *
+   * Etiketterna flyttade till ordboken 2026-08-21 — kärnan får inte importera
+   * i18n-modulen och kunde därför bara någonsin bära ett språk. Kravet står
+   * kvar och prövas på alla fem språk i apps/web/src/lib/i18n/i18n.test.ts.
+   */
 
   it("är inget gästen kan välja i kassan", () => {
     // Gästen väljer CASH, CARD eller GIFT_CARD. Terminalen är personalens val
@@ -226,11 +231,4 @@ describe("kort i restaurangens egen terminal", () => {
     expect(settlesOutsideBurp("MONRI")).toBe(false);
   });
 
-  it("varje leverantör har en etikett", () => {
-    // En saknad etikett visar rå enum-text för personalen. Testet finns för att
-    // nästa leverantör inte ska kunna läggas till utan en.
-    for (const provider of PAYMENT_PROVIDERS) {
-      expect(PAYMENT_PROVIDER_LABELS[provider]).toBeTruthy();
-    }
-  });
 });

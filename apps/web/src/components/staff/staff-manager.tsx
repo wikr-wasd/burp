@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import { STAFF_ROLE_LABELS, STAFF_ROLES, type StaffRole } from "@burp/core";
+import { STAFF_ROLES, type StaffRole } from "@burp/core";
 import {
   inviteStaff,
   setStaffActive,
@@ -18,7 +18,14 @@ import type { StaffMember } from "@/app/dashboard/installningar/page";
  * ägaren kan varken degradera eller stänga av sig själv. Sista ägaren som blir
  * kock låser hela restaurangen ute från sina egna inställningar.
  */
-export function StaffManager({ members }: { members: StaffMember[] }) {
+export function StaffManager({
+  members,
+  roleLabels,
+}: {
+  members: StaffMember[];
+  /** Rollernas namn ur ordboken. Rena strängar — komponenten är klientkod. */
+  roleLabels: Record<StaffRole, string>;
+}) {
   const [result, formAction] = useActionState<ActionResult | null, FormData>(inviteStaff, null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +73,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
               >
                 {STAFF_ROLES.map((role) => (
                   <option key={role} value={role}>
-                    {STAFF_ROLE_LABELS[role]}
+                    {roleLabels[role]}
                   </option>
                 ))}
               </select>
@@ -144,7 +151,7 @@ export function StaffManager({ members }: { members: StaffMember[] }) {
             >
               {STAFF_ROLES.map((role) => (
                 <option key={role} value={role}>
-                  {STAFF_ROLE_LABELS[role]}
+                  {roleLabels[role]}
                 </option>
               ))}
             </select>

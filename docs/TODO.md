@@ -407,19 +407,47 @@ fråga 15.
 De fem översta är kod och går att börja på direkt. Resten kräver dig, hårdvara
 eller ett beslut.
 
-- [ ] **Personalytorna översätts.** Beslutat 2026-08-19: gästytorna först,
-      personalen sedan. Gästytorna är klara sedan 2026-08-20, alltså är det här
-      på tur.
+- [ ] **Personalytorna översätts — mekaniken klar 2026-08-21, ytorna kvar.**
+      Beslutat 2026-08-19: gästytorna först, personalen sedan.
 
-      **Större än gästytorna var, inte mindre.** Strängarna ligger hårdkodade i
-      komponenterna och inte i en ordbok, och tre etikettabeller ligger på
-      svenska i `@burp/core`: `ORDER_STATUS_LABELS`, `STAFF_ROLE_LABELS` och
-      `PAYMENT_PROVIDER_LABELS`. `@burp/core` får inte importera i18n-modulen —
-      etiketterna måste därför flyttas ut till ordboken och kärnan lämna kvar
-      bara nycklarna.
+      **Klart:**
 
-      Att köket inte ska byta språk för att en gäst gjorde det står kvar. Det
-      handlar om ett val per anställd, inte om att följa `Accept-Language`.
+      - `staff.locale` med `set_staff_locale()` (migration 0047). Språket är ett
+        val per anställd och läses aldrig ur `Accept-Language`. En funktion och
+        inte en policy, därför att `authenticated` har `grant update` på hela
+        tabellen: en policy som släppte igenom den egna raden hade låtit kocken
+        sätta `role = 'owner'` på sig själv. Bevisat i `verify-schema-tests.sql`.
+      - `StaffContext.locale`, upplöst en gång och läst av varje yta — samma
+        skäl som landet och valutan ligger där.
+      - Språkväljaren i sidomenyn OCH i toppraden, så att kocken och den som
+        bara har en telefon når den.
+      - Ordbokens `staff`-avsnitt på alla fem språk: navigering, roller,
+        orderstatusar och betalsätt.
+      - **Sex** svenska etikettabeller borta ur `@burp/core`, inte tre.
+        `WEEKDAY_LABELS` stod inte i den här listan och var dessutom en ren
+        dubblett av ordbokens `weekday`. `PAYMENT_STATUS_LABELS` och
+        `PAYMENT_METHOD_LABELS` var helt oanvända och fick ingen ersättning.
+        Kraven som prövades i `payment.test.ts` följde med till `i18n.test.ts`
+        och gäller nu fem språk i stället för ett.
+
+      **Kvar: sidornas eget innehåll.** Ungefär 40 filer och 8 700 rader under
+      `components/staff/`, `app/dashboard/`, `app/backoffice/` och `app/kok/`.
+      Störst är `menu-editor.tsx`, `cash-register.tsx` och
+      `order-policy-editor.tsx`.
+
+      En yta som inte är översatt håller sig **helt** på svenska genom att
+      anropa `untranslatedSurface()` i stället för `dictionary(staff.locale)`.
+      Skälet är att en svensk mening med ett bosniskt ord i är svårare att läsa
+      än vilketdera språket som helst. `grep -rn untranslatedSurface apps/web`
+      räknar exakt vad som återstår, och raden försvinner av sig själv när ytan
+      blir klar.
+
+      **Landsspråket är med flit inte påslaget än.** `staff.locale` är NULL för
+      alla i dag och alla ser svenska, precis som förut — ingens vardag ändras
+      utan att hen bett om det. Den ärliga gissningen för någon som inte valt
+      är restaurangens land, och den kartan läggs till i samma commit som gör
+      den sista ytan färdig. Att flytta en bosnisk restaurang till bosniska nu
+      hade gett en bosnisk meny över en svensk sida.
 
 - [ ] **`/anslut` talar bara svenska — och det är värvningssidan.**
       `application-form.tsx` har fälten hårdkodade: Land, Restaurangens namn,
@@ -564,7 +592,8 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Presentkort är inte juridiskt kontrollerade per land | Migration 0030 | Innan kort säljs skarpt |
 | Ingen automatisk gallring — en gäst som slutar använda tjänsten ligger kvar för alltid | — | Kräver ett svar på hur länge. Öppen fråga 13 |
 | Personal kan inte radera sig själv genom flödet | `erase_guest()` | Anställningen måste avslutas först; ytan för det saknas |
-| Personalytorna är enbart svenska | — | **Nästa steg, beslutat 2026-08-20.** Gästytorna talar fem språk; personalens gör det inte. Att köket inte byter språk för att en gäst gjorde det står kvar — men en serveringspersonal i Sarajevo ska inte behöva svenska. Strängarna ligger hårdkodade i komponenterna, inte i ordboken, och `ORDER_STATUS_LABELS`, `STAFF_ROLE_LABELS` och `PAYMENT_PROVIDER_LABELS` ligger på svenska i `@burp/core` |
+| Personalytornas sidinnehåll är enbart svenskt | `grep -rn untranslatedSurface apps/web` räknar dem | **Påbörjat 2026-08-21.** Mekaniken är klar — språkval per anställd, ordbokens `staff`-avsnitt, ramen översatt. Kvar är sidornas egen text, ~40 filer. En yta som inte är klar håller sig helt på svenska; en svensk mening med ett bosniskt ord i är sämre än båda |
+| Språkvalet syns inte i en webbläsare | `components/staff/language-picker.tsx` | Personalytorna kräver inloggning. Väljaren är bevisad i SQL — funktionen skriver bara `locale`, bara på `auth.uid()`, och kocken kan inte befordra sig själv — men ingen har sett rutan. **Behöver göras av William** |
 | `/anslut` talar bara svenska | `components/site/application-form.tsx` | Väger tyngre än `/konto`: det är den enda vägen in för en restaurang på marknaden, och den är indexerad. Behöver in under `[locale]`, inte bara `Accept-Language` |
 | `/konto`-ytorna talar bara svenska | `components/guest/` | Strukturfråga, inte glömda strängar: `/konto` ligger utanför `[locale]` och har inget språk i adressen alls. Ytorna är noindex — att läsa `Accept-Language` som kvittona gör räcker |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |

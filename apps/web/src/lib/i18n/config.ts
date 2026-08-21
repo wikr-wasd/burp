@@ -11,6 +11,9 @@
  * backoffice ligger kvar på sina adresser: de är noindex ändå, och statiska
  * segment vinner över dynamiska i Next:s router, så `/dashboard` kan aldrig
  * tolkas som ett språk.
+ *
+ * Personalytorna har därför sitt språk på personen i stället — `staff.locale`,
+ * migration 0047 — och inte i adressen och inte i `Accept-Language`.
  */
 
 /**
@@ -40,6 +43,33 @@ export type Locale = (typeof LOCALES)[number];
  * återfallet för den vars telefon inte säger något vi känner igen.
  */
 export const DEFAULT_LOCALE: Locale = "sv";
+
+/**
+ * Personalens språk: det hen valt, annars svenska.
+ *
+ * Gästytorna läser `Accept-Language`; personalytorna får inte göra det. Köket
+ * ska inte byta språk för att en gäst gjorde det, och en surfplatta på en disk
+ * delas av flera — den som ställer in sitt språk ska hitta det kvar nästa
+ * pass, oavsett vilken webbläsare hon råkar stå framför.
+ *
+ * `null` betyder "har inte valt" och inte "valde svenska", och skillnaden är
+ * hela skälet till att `staff.locale` saknar default i schemat (migration
+ * 0047). Den skillnaden används inte än, men den kommer att göra det: den
+ * ärliga gissningen för någon som inte valt är restaurangens land, inte
+ * svenska. En nyanställd i Sarajevo som möts av svenska drar slutsatsen att
+ * produkten inte är gjord för henne.
+ *
+ * **Att den gissningen inte gäller ännu är med flit.** Personalytorna är
+ * halvöversatta så länge arbetet pågår, och att flytta en bosnisk restaurang
+ * till bosniska innan innehållet följer med hade gett en meny på bosniska över
+ * en sida på svenska — sämre än den svenska de har i dag. Kartan över land och
+ * språk läggs till i samma commit som gör den sista ytan färdig. Till dess är
+ * språket något man aktivt väljer, och ingens vardag ändras utan att hen bett
+ * om det.
+ */
+export function staffLocale(chosen: unknown): Locale {
+  return isLocale(chosen) ? chosen : DEFAULT_LOCALE;
+}
 
 /**
  * Vad språket heter — på sitt eget språk.

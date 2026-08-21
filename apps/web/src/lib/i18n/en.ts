@@ -299,6 +299,57 @@ export const en: Dictionary = {
     mapOf: (name: string) => `Map showing ${name}`,
   },
 
+  staff: {
+    home: "Burp — to the home page",
+    navLabel: "Staff navigation",
+    logOut: "Log out",
+    language: "Language",
+    languageSaving: "Saving…",
+    languageError: "Could not save the language. Try again.",
+
+    role: {
+      owner: "Owner",
+      manager: "Manager",
+      staff: "Staff",
+      kitchen: "Chef",
+    },
+
+    section: {
+      oversikt: "Overview",
+      order: "Orders",
+      kok: "Kitchen screen",
+      kassa: "Register",
+      meny: "Menu",
+      bord: "Tables & QR",
+      erbjudanden: "Offers",
+      omdomen: "Reviews",
+      statistik: "Statistics",
+      avrakning: "Settlement",
+      handelser: "Events",
+      personal: "Staff",
+      installningar: "Settings",
+    },
+
+    status: {
+      DRAFT: "Draft",
+      PLACED: "Placed",
+      ACCEPTED: "Accepted",
+      PREPARING: "Preparing",
+      READY: "Ready",
+      COMPLETED: "Completed",
+      CANCELLED: "Cancelled",
+      REFUNDED: "Refunded",
+    },
+
+    provider: {
+      CASH: "Cash",
+      TERMINAL: "Card in terminal",
+      GIFT_CARD: "Gift card",
+      STRIPE: "Card",
+      MONRI: "Card",
+    },
+  },
+
   weekday: {
     mon: "Monday",
     tue: "Tuesday",

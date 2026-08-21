@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { STAFF_ROLE_LABELS, type StaffRole } from "@burp/core";
+import { type StaffRole } from "@burp/core";
 import { requireStaff } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/notify/email";
 import { invitationEmail } from "@/lib/notify/messages";
 import { newInvitationToken } from "@/lib/staff-admin";
 import { createClient } from "@/lib/supabase/server";
+import { untranslatedSurface } from "@/lib/i18n";
 
 /**
  * Personalens åtgärder.
@@ -74,7 +75,7 @@ export async function inviteStaff(email: string, role: StaffRole): Promise<Actio
       [address],
       invitationEmail({
         restaurantName: staff.restaurantName,
-        roleLabel: STAFF_ROLE_LABELS[role],
+        roleLabel: untranslatedSurface().staff.role[role],
         link,
       }),
     );

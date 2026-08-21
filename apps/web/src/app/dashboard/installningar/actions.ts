@@ -11,7 +11,6 @@ import {
   serializeOrderPolicy,
   validateOpeningHours,
   WEEKDAY_KEYS,
-  WEEKDAY_LABELS,
   type CurrencyCode,
   type OpeningHours,
   type OrderStatus,
@@ -22,6 +21,7 @@ import { publicEnv } from "@/lib/env";
 import { connectableProviders, paymentProvider, PaymentProviderError } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { untranslatedSurface } from "@/lib/i18n";
 
 /**
  * Restaurangens inställningar.
@@ -53,7 +53,7 @@ export async function saveOpeningHours(hours: OpeningHours): Promise<ActionResul
   const problems = validateOpeningHours(hours);
   if (problems.length > 0) {
     const first = problems[0]!;
-    const day = WEEKDAY_LABELS[first.day];
+    const day = untranslatedSurface().weekday[first.day];
 
     // Överlapp kan numera korsa dygnsgränsen: fredagens nattpass mot lördagens
     // morgonpass rapporteras på lördagen, som är den dag som lades till sist.

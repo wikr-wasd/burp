@@ -6,13 +6,12 @@ import type { Ore } from "./money";
 export const STAFF_ROLES = ["owner", "manager", "staff", "kitchen"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
-/** Svenska etiketter för UI. */
-export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
-  owner: "Ägare",
-  manager: "Chef",
-  staff: "Personal",
-  kitchen: "Kock",
-};
+/*
+ * Rollernas namn låg här på svenska som `STAFF_ROLE_LABELS` till 2026-08-21.
+ * De ligger nu i ordboken som `staff.role`; kärnan känner bara nycklarna.
+ * `@burp/core` får inte importera i18n-modulen, så en tabell här kunde bara
+ * någonsin vara ett språk.
+ */
 
 /* ── Order ───────────────────────────────────────────────────────────────── */
 

@@ -4,6 +4,7 @@ import { CashRegister } from "@/components/staff/cash-register";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
 import { getCashRegister, getTipsSummary, type TipsSummary } from "@/lib/cash-register";
+import { untranslatedSurface } from "@/lib/i18n";
 
 /**
  * Kassan — slutförda order och vad som faktiskt betalats för dem.
@@ -48,6 +49,7 @@ export default async function CashRegisterPage() {
         unsettled={unsettled}
         settled={settled}
         canRefund={staff.role === "owner" || staff.role === "manager"}
+        providerLabels={untranslatedSurface().staff.provider}
       />
     </StaffShell>
   );

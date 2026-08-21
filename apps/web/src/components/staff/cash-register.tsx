@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { createContext, useContext, useState, useTransition } from "react";
 import { Banknote, Check, CreditCard, RotateCcw, TriangleAlert, Users } from "lucide-react";
 import {
   formatAmountInput,
   formatMoney,
   parseAmount,
   settleCash,
-  PAYMENT_PROVIDER_LABELS,
   type CurrencyCode,
   type PaymentProviderId,
 } from "@burp/core";
@@ -38,11 +37,41 @@ import type { RegisterOrder, RegisterTable, SettledPayment } from "@/lib/cash-re
  * sparas; samma princip som varukorgen.
  */
 
+/**
+ * Betalsättens namn, tillgängliga för hela kassans träd.
+ *
+ * En context och inte en prop, därför att uppslaget behövs fem nivåer ned —
+ * i notraden, i leverantörsvalet, i den kvitterade raden och två gånger i
+ * betalningsraden. Att tråda samma oföränderliga tabell genom fem
+ * komponenter hade gjort varje framtida ändring till fem ändringar.
+ *
+ * Värdet kommer in som en prop till `CashRegister` och därifrån in i
+ * providern. Ordboken importeras alltså aldrig av klientkoden — texterna
+ * hämtas på servern och skickas hit som rena strängar.
+ */
+const ProviderLabels = createContext<Record<PaymentProviderId, string> | null>(null);
+
+/*
+ * Vidgas till `Record<string, string>` vid uppslaget, med flit.
+ *
+ * `payments.provider` kommer ur databasen som en sträng och kan i teorin bära
+ * en leverantör den här versionen av gränssnittet inte känner till. Varje
+ * uppslag har därför ett `?? payment.provider` efter sig, och den fallbacken
+ * är oåtkomlig om typen låtsas att nyckeln alltid finns. En okänd leverantör
+ * ska visa sin kod i kassan — inte fälla sidan som räknar pengarna.
+ */
+function useProviderLabels(): Record<string, string> {
+  const labels = useContext(ProviderLabels);
+  if (!labels) throw new Error("ProviderLabels saknas — kassan måste renderas inuti CashRegister.");
+  return labels;
+}
+
 export function CashRegister({
   tables,
   unsettled,
   settled,
   canRefund,
+  providerLabels,
 }: {
   tables: RegisterTable[];
   unsettled: RegisterOrder[];
@@ -52,10 +81,13 @@ export function CashRegister({
    * — samma gräns som statistiksidan drar.
    */
   canRefund: boolean;
+  /** Betalsättens namn ur ordboken. Rena strängar — komponenten är klientkod. */
+  providerLabels: Record<PaymentProviderId, string>;
 }) {
   const nothingLeft = tables.length === 0 && unsettled.length === 0;
 
   return (
+    <ProviderLabels value={providerLabels}>
     <div className="mt-8">
       <section>
         <h2 className="font-display text-2xl">Att kvittera</h2>
@@ -101,6 +133,7 @@ export function CashRegister({
         </section>
       ) : null}
     </div>
+    </ProviderLabels>
   );
 }
 
@@ -263,6 +296,7 @@ function UnsettledRow({
   /** Inuti ett bords nota. Då bär bordet kortet, och raden ska inte ha ett eget. */
   compact?: boolean;
 }) {
+  const providerLabels = useProviderLabels();
   // Förifyllt med vad som ÅTERSTÅR, inte med hela notan. Har gästen betalat
   // halva med presentkort är det bara resten som ska tas emot kontant, och ett
   // fält som föreslår hela notan hade fått kassan att gå plus varje gång.
@@ -302,7 +336,7 @@ function UnsettledRow({
           notan — annars ser det ut som ett fel. */}
       {order.paidOre > 0 ? (
         <p className="mt-2 text-sm text-[var(--muted)]">
-          {order.payments.map((payment) => PROVIDER_LABELS[payment.provider] ?? payment.provider).join(", ")}
+          {order.payments.map((payment) => providerLabels[payment.provider] ?? payment.provider).join(", ")}
           {" · "}
           {formatMoney(order.paidOre, order.currency)} betalt av{" "}
           {formatMoney(order.totalOre, order.currency)}
@@ -392,6 +426,7 @@ function ProviderChoice({
   onChange: (provider: PaymentProviderId) => void;
   disabled?: boolean;
 }) {
+  const providerLabels = useProviderLabels();
   return (
     <fieldset className="min-w-0">
       <legend className="label-caps">Betalsätt</legend>
@@ -414,7 +449,7 @@ function ProviderChoice({
               }`}
             >
               <Icon size={16} aria-hidden="true" />
-              {PAYMENT_PROVIDER_LABELS[provider]}
+              {providerLabels[provider]}
             </button>
           );
         })}
@@ -432,9 +467,10 @@ function ProviderChoice({
  * leverantörerna själva, så att kassan och gästens kvitto inte kan säga olika
  * saker om samma betalning.
  */
-const PROVIDER_LABELS: Record<string, string> = PAYMENT_PROVIDER_LABELS;
+
 
 function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boolean }) {
+  const providerLabels = useProviderLabels();
   const difference = order.paidOre - order.totalOre;
   const refundedOre = order.payments.reduce((sum, payment) => sum + payment.refundedOre, 0);
 
@@ -445,7 +481,7 @@ function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boo
         <span className="font-medium">{orderLabel(order)}</span>
         <span className="text-sm text-[var(--muted)]">
           {order.payments
-            .map((payment) => PROVIDER_LABELS[payment.provider] ?? payment.provider)
+            .map((payment) => providerLabels[payment.provider] ?? payment.provider)
             .join(" + ")}
           {order.payments[0] ? ` · ${order.payments[0].capturedLabel}` : ""}
         </span>
@@ -492,6 +528,7 @@ function PaymentLine({
   canRefund: boolean;
   showLabel: boolean;
 }) {
+  const providerLabels = useProviderLabels();
   const [open, setOpen] = useState(false);
   const remainingOre = payment.amountOre - payment.refundedOre;
 
@@ -500,7 +537,7 @@ function PaymentLine({
       {payment.refundedOre > 0 ? (
         <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
           <RotateCcw size={14} aria-hidden="true" className="shrink-0" />
-          {showLabel ? `${PROVIDER_LABELS[payment.provider] ?? payment.provider}: ` : ""}
+          {showLabel ? `${providerLabels[payment.provider] ?? payment.provider}: ` : ""}
           återbetalt {formatMoney(payment.refundedOre, currency)}
           {remainingOre > 0 ? ` · kvar ${formatMoney(remainingOre, currency)}` : ""}
         </p>
@@ -521,7 +558,7 @@ function PaymentLine({
             className="text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
           >
             Betala tillbaka
-            {showLabel ? ` ${PROVIDER_LABELS[payment.provider] ?? payment.provider}` : ""}
+            {showLabel ? ` ${providerLabels[payment.provider] ?? payment.provider}` : ""}
           </button>
         )
       ) : null}

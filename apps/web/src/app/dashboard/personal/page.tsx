@@ -3,6 +3,7 @@ import { StaffShell } from "@/components/staff/staff-shell";
 import { StaffAdmin } from "@/components/staff/staff-admin";
 import { requireStaff } from "@/lib/auth";
 import { getOpenInvitations, getStaff } from "@/lib/staff-admin";
+import { untranslatedSurface } from "@/lib/i18n";
 
 /**
  * Personalen — vem som arbetar här och vem som är på väg in.
@@ -40,7 +41,12 @@ export default async function StaffPage() {
       intro="Vem som arbetar här, med vilken roll, och vem som är inbjuden men inte kommit in än."
       width="narrow"
     >
-      <StaffAdmin members={members} invitations={invitations} myRole={staff.role} />
+      <StaffAdmin
+        members={members}
+        invitations={invitations}
+        myRole={staff.role}
+        roleLabels={untranslatedSurface().staff.role}
+      />
     </StaffShell>
   );
 }

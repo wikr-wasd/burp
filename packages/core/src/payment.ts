@@ -225,32 +225,22 @@ export function isStaffRegistered(provider: PaymentProviderId): boolean {
   return provider === "CASH" || provider === "TERMINAL";
 }
 
-/**
- * Vad ett betalsätt heter för en människa.
+/*
+ * Vad ett betalsätt heter för en människa stod tills 2026-08-21 här, på
+ * svenska, som `PAYMENT_PROVIDER_LABELS`. Orden ligger numera i ordboken —
+ * `staff.provider` i apps/web/src/lib/i18n — och kärnan känner bara nycklarna.
  *
- * Låg tidigare som en egen lista i `cash-register.tsx`. Två listor betyder att
- * kassan och kvittot kan säga olika saker om samma betalning, och gästen som
- * jämför dem har rätt att bli förvirrad.
+ * Skälet är att `@burp/core` aldrig får importera i18n-modulen: paketet ska
+ * kunna köras var som helst, och det är hela poängen med att webben och den
+ * kommande mobilappen delar det. En etikettabell i kärnan kunde därför bara
+ * någonsin vara ETT språk, och det språket blev svenska av gammal vana.
+ *
+ * Skälet till att tabellen fanns står kvar och gäller fortfarande: två listor
+ * betyder att kassan och kvittot kan säga olika saker om samma betalning. Det
+ * kravet är nu ordbokens, och den är lika mycket en enda plats.
+ *
+ * `PAYMENT_STATUS_LABELS` och `PAYMENT_METHOD_LABELS` togs bort i samma svep
+ * och fick ingen ersättning. De var oanvända — inget gränssnitt läste dem,
+ * varken personalens eller gästens. Att översätta dem hade varit att bygga ett
+ * skal på fem språk i stället för på ett.
  */
-export const PAYMENT_PROVIDER_LABELS: Record<PaymentProviderId, string> = {
-  CASH: "Kontant",
-  TERMINAL: "Kort i terminal",
-  GIFT_CARD: "Presentkort",
-  STRIPE: "Kort",
-  MONRI: "Kort",
-};
-
-export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  PENDING: "Väntar",
-  AUTHORIZED: "Reserverad",
-  CAPTURED: "Betald",
-  FAILED: "Misslyckad",
-  REFUNDED: "Återbetald",
-  PARTIALLY_REFUNDED: "Delvis återbetald",
-};
-
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  CASH: "Kontant",
-  CARD: "Kort",
-  GIFT_CARD: "Presentkort",
-};

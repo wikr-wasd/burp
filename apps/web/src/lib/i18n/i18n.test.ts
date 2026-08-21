@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  ORDER_STATUSES,
+  PAYMENT_PROVIDERS,
+  STAFF_ROLES,
+  WEEKDAY_KEYS,
+} from "@burp/core";
+import {
   DEFAULT_LOCALE,
   fill,
   isLocale,
@@ -134,6 +140,8 @@ describe("ordböckerna", () => {
       "menu.discount",
       "receipt.discount",
       "receipt.reviewComment",
+      // "Statistik" stavas likadant på tyska och svenska.
+      "staff.section.statistik",
     ],
 
     en: ["errors.notFoundLabel", "menu.giftCardPlaceholder"],
@@ -178,6 +186,24 @@ describe("ordböckerna", () => {
       "weekday.wed",
       "weekday.thu",
       "weekday.fri",
+      /*
+       * Personalytorna. Samma mönster som ovan: norskan och svenskan delar
+       * orden rakt av, och att skriva om dem för att slippa en kollision hade
+       * gjort norskan sämre.
+       *
+       * "Kort i terminal" är hela vägen identisk, och det säger något om hur
+       * nära språken ligger — inte att raden är oöversatt. Notera att
+       * `staff.provider.GIFT_CARD` INTE står här: "Gavekort" mot
+       * "Presentkort" är kvittot på att avsnittet faktiskt är norskt.
+       */
+      "staff.language",
+      "staff.section.meny",
+      "staff.status.DRAFT",
+      "staff.status.READY",
+      "staff.provider.CASH",
+      "staff.provider.TERMINAL",
+      "staff.provider.STRIPE",
+      "staff.provider.MONRI",
     ],
   };
 
@@ -355,5 +381,75 @@ describe("isLocale", () => {
     for (const bad of ["hr", "sr", "nb", "fr", "sv-SE", "", null, 1, {}]) {
       expect(isLocale(bad), String(bad)).toBe(false);
     }
+  });
+});
+
+/**
+ * Personalytornas etiketter.
+ *
+ * Låg till 2026-08-21 i `@burp/core` som `STAFF_ROLE_LABELS`,
+ * `ORDER_STATUS_LABELS`, `PAYMENT_PROVIDER_LABELS` och `WEEKDAY_LABELS`, på
+ * svenska. Kärnan får inte importera i18n-modulen och kunde därför bara
+ * någonsin bära ett språk.
+ *
+ * Kraven som prövades där följer med hit, och blir strängare på köpet: de
+ * gäller nu alla fem språken i stället för ett. Kärnan bidrar med nycklarna,
+ * som är det den fortfarande äger.
+ */
+describe("personalytornas etiketter", () => {
+  const TRANSLATIONS = { bs, de, en, no, sv };
+
+  it("varje roll, status och leverantör har en etikett på varje språk", () => {
+    // En saknad etikett visar rå enum-text för personalen. Testet finns för
+    // att nästa leverantör inte ska kunna läggas till utan en — på något språk.
+    const missing: string[] = [];
+
+    for (const [locale, dict] of Object.entries(TRANSLATIONS)) {
+      for (const role of STAFF_ROLES) {
+        if (!dict.staff.role[role]) missing.push(`${locale}.staff.role.${role}`);
+      }
+      for (const status of ORDER_STATUSES) {
+        if (!dict.staff.status[status]) missing.push(`${locale}.staff.status.${status}`);
+      }
+      for (const provider of PAYMENT_PROVIDERS) {
+        if (!dict.staff.provider[provider]) missing.push(`${locale}.staff.provider.${provider}`);
+      }
+      for (const day of WEEKDAY_KEYS) {
+        if (!dict.weekday[day]) missing.push(`${locale}.weekday.${day}`);
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  it("kort i terminal heter något annat än kontanter, på varje språk", () => {
+    /*
+     * Kravet kom från migration 0044 och prövades i @burp/core.
+     *
+     * `TERMINAL` är restaurangens egen kortläsare. Att den bokförs som en egen
+     * leverantör och inte som `CASH` är hela poängen — utan skillnaden tror
+     * kassaavstämningen att det ligger sedlar i lådan som inte finns. Men
+     * skillnaden måste också SYNAS: en översättning som råkar kalla båda
+     * "Gotovina" gör personalens avstämning omöjlig, hur rätt databasen än har.
+     */
+    for (const [locale, dict] of Object.entries(TRANSLATIONS)) {
+      expect(dict.staff.provider.TERMINAL, locale).not.toBe(dict.staff.provider.CASH);
+    }
+  });
+
+  it("varje navigeringspunkt har en etikett på varje språk", () => {
+    // Nycklarna är sektionsnamnen i `staff-nav.tsx`. En ny yta som läggs till
+    // där utan en rad här renderar en tom länk.
+    const sections = Object.keys(sv.staff.section);
+    const missing: string[] = [];
+
+    for (const [locale, dict] of Object.entries(TRANSLATIONS)) {
+      for (const section of sections) {
+        const label = (dict.staff.section as Record<string, string>)[section];
+        if (!label) missing.push(`${locale}.staff.section.${section}`);
+      }
+    }
+
+    expect(missing).toEqual([]);
   });
 });
