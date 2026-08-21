@@ -361,10 +361,6 @@ export const no: Dictionary = {
       empty: "Ingen aktive bestillinger.",
       updateFailed: "Kunne ikke oppdatere bestilling: {message}",
       sibling: "Bestilling {index} av {count} på bordet",
-      table: "Bord {number}",
-      typePickup: "Henting",
-      typeDelivery: "Levering",
-      typeTable: "Bord",
       minutes: "{n} min",
 
       stepACCEPTED: "Ta imot",
@@ -378,6 +374,78 @@ export const no: Dictionary = {
 
       upcomingTitle: "Kommende",
       upcomingHint: "Sendes til kjøkkenet når bare tilberedningstiden gjenstår.",
+    },
+
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    orderType: {
+      table: "Bord {number}",
+      TABLE: "Bord",
+      PICKUP: "Henting",
+      DELIVERY: "Levering",
+    },
+
+    /* Kassan. ENBART strängar — skickas till klientkomponenter. */
+    register: {
+      toSettle: "Til oppgjør",
+      emptyTitle: "Alt er gjort opp",
+      emptyBody: "Hver fullført bestilling det siste døgnet har en registrert betaling.",
+      paidToday: "Betalt i dag",
+      paidTodayHint:
+        "Fasiten for vakten, kontanter og kort. Radene kan ikke endres — en feiloppgjøring rettes med en motpostering, ikke ved å skrive om historien.",
+
+      onSameBill: "{count} på samme regning",
+      alreadyPaid: "{paid} allerede betalt av {total}",
+      showOrders: "Vis bestillingene",
+      hideOrders: "Skjul bestillingene",
+
+      amountReceived: "Mottatt beløp",
+      method: "Betalingsmåte",
+      settle: "Gjør opp",
+      settleTable: "Gjør opp hele bordet",
+      settling: "Gjør opp…",
+      settleFailed: "Oppgjøret gikk ikke gjennom.",
+
+      closeBill: "Lukk regningen uten oppgjør",
+      closeConfirm:
+        "Lukke regningen uten å gjøre opp noe? Bestillingene blir liggende og kan gjøres opp hver for seg.",
+      closeFailed: "Regningen kunne ikke lukkes.",
+
+      over: "Over regningen med",
+      under: "Under regningen med",
+      spreadHint: "Fordeles på bordets bestillinger i forhold til hva hver av dem koster.",
+      asEntered: "Registreres slik det står — avrunding og rabatt i lokalet skal synes.",
+      unreadableAmount: "Beløpet kunne ikke tolkes.",
+
+      servedAt: "Servert {when}",
+      paidOfTotal: "{paid} betalt av {total}",
+      billTotal: "regningen {total}",
+      refundedAmount: "refundert {amount}",
+      remaining: "{amount} igjen",
+
+      refund: "Betal tilbake",
+      refunding: "Betaler tilbake…",
+      refundFailed: "Refusjonen gikk ikke gjennom.",
+      refundAmount: "Beløp",
+      refundReason: "Hvorfor",
+      refundReasonPlaceholder: "F.eks. kald suppe",
+      refundTooMuch: "Mer enn det som gjenstår ({amount}).",
+      cancel: "Avbryt",
+
+      refundHintGIFT_CARD: "Verdien går tilbake på gavekortet, ikke i kassen.",
+      refundHintCASH: "Registreres som en motpostering. Sedlene leverer dere tilbake over disk.",
+      refundHintTERMINAL:
+        "Registreres som en motpostering. Refusjonen gjør dere på terminalen — Burp når den ikke.",
+      refundHintPROVIDER: "Går tilbake til gjestens kort via leverandøren. Kan ta noen dager.",
+
+      intro:
+        "Fullførte bestillinger det siste døgnet. Et bordselskap står som én regning og gjøres opp i én omgang; beløpet fordeles på bestillingene for dere. Kortbetalte bestillinger er allerede gjort opp av leverandøren.",
+      tipsTitle: "Driks til fordeling",
+      tipsCash: "{amount} kontant",
+      tipsCard: "{amount} med kort",
+      tipsPending: "{amount} på regninger som ikke er betalt ennå",
+      tipsPeriod: "Siste døgn",
+      tipsHint:
+        "Driksen er de ansattes penger og inngår verken i omsetningen eller i Burps gebyr. En regning som er betalt tilbake, teller ikke.",
     },
 
     upcomingLater: (count: number) =>

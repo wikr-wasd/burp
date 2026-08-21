@@ -482,10 +482,6 @@ export const sv = {
       empty: "Inga aktiva beställningar.",
       updateFailed: "Kunde inte uppdatera order: {message}",
       sibling: "Beställning {index} av {count} på bordet",
-      table: "Bord {number}",
-      typePickup: "Avhämtning",
-      typeDelivery: "Leverans",
-      typeTable: "Bord",
       minutes: "{n} min",
 
       /*
@@ -519,6 +515,92 @@ export const sv = {
      * här får aldrig hamna i `kitchen` ovan. Den läses av sidorna, som
      * renderas på servern.
      */
+    /**
+     * Vad en order ÄR — bord, avhämtning eller leverans.
+     *
+     * Eget avsnitt därför att både köksskärmen och kassan skriver samma sak.
+     * Två uppsättningar hade betytt att biljetten kan säga "Avhämtning" medan
+     * notan säger något annat om exakt samma order. Nycklarna är enumets egna
+     * värden, så uppslaget går direkt.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    orderType: {
+      table: "Bord {number}",
+      TABLE: "Bord",
+      PICKUP: "Avhämtning",
+      DELIVERY: "Leverans",
+    },
+
+    /**
+     * Kassan.
+     *
+     * ENBART strängar. Objektet skickas i sin helhet till `CashRegister`, som
+     * är klientkod.
+     */
+    register: {
+      toSettle: "Att kvittera",
+      emptyTitle: "Allt är kvitterat",
+      emptyBody: "Varje slutförd order det senaste dygnet har en registrerad betalning.",
+      paidToday: "Betalt i dag",
+      paidTodayHint:
+        "Facit över passet, kontanter och kort. Raderna går inte att ändra — en felkvittering rättas med en motbokning, inte genom att skriva om historien.",
+
+      onSameBill: "{count} på samma nota",
+      alreadyPaid: "{paid} redan betalt av {total}",
+      showOrders: "Visa beställningarna",
+      hideOrders: "Dölj beställningarna",
+
+      amountReceived: "Mottaget belopp",
+      method: "Betalsätt",
+      settle: "Kvittera",
+      settleTable: "Kvittera hela bordet",
+      settling: "Kvitterar…",
+      settleFailed: "Kvitteringen gick inte igenom.",
+
+      closeBill: "Stäng notan utan att kvittera",
+      closeConfirm:
+        "Stäng notan utan att kvittera något? Ordrarna ligger kvar och går att kvittera var för sig.",
+      closeFailed: "Notan kunde inte stängas.",
+
+      over: "Över notan med",
+      under: "Under notan med",
+      spreadHint: "Fördelas på bordets beställningar i proportion till vad var och en kostar.",
+      asEntered: "Registreras som det står — avrundning och rabatt i lokalen ska synas.",
+      unreadableAmount: "Beloppet gick inte att tolka.",
+
+      servedAt: "Serverad {when}",
+      paidOfTotal: "{paid} betalt av {total}",
+      billTotal: "notan {total}",
+      refundedAmount: "återbetalt {amount}",
+      remaining: "kvar {amount}",
+
+      refund: "Betala tillbaka",
+      refunding: "Betalar tillbaka…",
+      refundFailed: "Återbetalningen gick inte igenom.",
+      refundAmount: "Belopp",
+      refundReason: "Varför",
+      refundReasonPlaceholder: "T.ex. kall soppa",
+      refundTooMuch: "Mer än vad som återstår ({amount}).",
+      cancel: "Avbryt",
+
+      refundHintGIFT_CARD: "Värdet läggs tillbaka på presentkortet, inte i kassan.",
+      refundHintCASH: "Registreras som en motbokning. Sedlarna lämnar ni tillbaka över disk.",
+      refundHintTERMINAL:
+        "Registreras som en motbokning. Återbetalningen gör ni i terminalen — Burp når den inte.",
+      refundHintPROVIDER: "Går tillbaka till gästens kort via leverantören. Kan ta några dagar.",
+
+      intro:
+        "Slutförda order från det senaste dygnet. Ett bordssällskap står som en nota och kvitteras i ett svep; beloppet fördelas på beställningarna åt er. Kortbetalda order är redan kvitterade av leverantören.",
+      tipsTitle: "Dricks att fördela",
+      tipsCash: "{amount} kontant",
+      tipsCard: "{amount} via kort",
+      tipsPending: "{amount} på notor som inte betalats än",
+      tipsPeriod: "Senaste dygnet",
+      tipsHint:
+        "Dricksen är personalens pengar och ingår varken i omsättningen eller i Burps avgift. En nota som lämnats tillbaka räknas inte.",
+    },
+
     upcomingLater: (count: number) =>
       count === 1 ? "1 förbeställning senare i dag." : `${count} förbeställningar senare i dag.`,
   },

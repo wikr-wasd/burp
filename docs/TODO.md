@@ -430,10 +430,18 @@ eller ett beslut.
         Kraven som prövades i `payment.test.ts` följde med till `i18n.test.ts`
         och gäller nu fem språk i stället för ett.
 
-      **Kvar: sidornas eget innehåll.** Ungefär 40 filer och 8 700 rader under
-      `components/staff/`, `app/dashboard/`, `app/backoffice/` och `app/kok/`.
-      Störst är `menu-editor.tsx`, `cash-register.tsx` och
-      `order-policy-editor.tsx`.
+      **Översatta ytor:**
+
+      - **Köksskärmen** (`/kok`) och **Order live** (`/dashboard/order`).
+        Kocken först med flit: han har bara den ytan, och han är den i hela
+        produkten som har minst nytta av svenska.
+      - **Kassan** (`/dashboard/kassa`) — kvittering, avvikelser, dricks och
+        återbetalning. Den yta där personalen håller i riktiga pengar.
+
+      **Kvar: resten av sidornas innehåll.** Ungefär 35 filer under
+      `components/staff/`, `app/dashboard/` och `app/backoffice/`. Störst är
+      `menu-editor.tsx`, `order-policy-editor.tsx` och `floor-plan-editor.tsx`.
+      Tolv `untranslatedSurface()`-anrop återstår, fördelade på fem filer.
 
       En yta som inte är översatt håller sig **helt** på svenska genom att
       anropa `untranslatedSurface()` i stället för `dictionary(staff.locale)`.

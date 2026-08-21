@@ -47,6 +47,9 @@ const NEXT_STEP: Partial<Record<OrderStatus, StepTarget>> = {
 /** Texterna köksskärmen behöver. Rena strängar — komponenten är klientkod. */
 export type KitchenLabels = Dictionary["staff"]["kitchen"];
 
+/** Bord, avhämtning eller leverans. Delas med kassan — se ordboken. */
+export type OrderTypeLabels = Dictionary["staff"]["orderType"];
+
 /**
  * Statusarna knappen kan kliva TILL — härledda ur ordboken, inte skrivna här.
  *
@@ -75,6 +78,7 @@ export function KitchenBoard({
   currency,
   statusLabels,
   labels,
+  orderTypeLabels,
 }: {
   initialOrders: KitchenOrder[];
   restaurantId: string;
@@ -86,6 +90,7 @@ export function KitchenBoard({
   /** Orderstatusarna ur ordboken. Rena strängar — komponenten är klientkod. */
   statusLabels: Record<OrderStatus, string>;
   labels: KitchenLabels;
+  orderTypeLabels: OrderTypeLabels;
 }) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
@@ -259,6 +264,7 @@ export function KitchenBoard({
               currency={currency}
               statusLabels={statusLabels}
               labels={labels}
+              orderTypeLabels={orderTypeLabels}
             />
           ))}
         </div>
@@ -277,6 +283,7 @@ function OrderCard({
   sibling,
   statusLabels,
   labels,
+  orderTypeLabels,
 }: {
   order: KitchenOrder;
   /** Null när bordet bara har en aktiv beställning. */
@@ -288,6 +295,7 @@ function OrderCard({
   currency: CurrencyCode;
   statusLabels: Record<OrderStatus, string>;
   labels: KitchenLabels;
+  orderTypeLabels: OrderTypeLabels;
 }) {
   const step = NEXT_STEP[order.status];
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -306,8 +314,8 @@ function OrderCard({
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="font-display text-4xl">
           {order.tableNumber
-            ? fill(labels.table, { number: order.tableNumber })
-            : orderTypeLabel(order.type, labels)}
+            ? fill(orderTypeLabels.table, { number: order.tableNumber })
+            : orderTypeLabels[order.type]}
         </h2>
         <Elapsed since={order.placedAt} labels={labels} />
       </header>
@@ -425,14 +433,6 @@ function OrderCard({
       ) : null}
     </article>
   );
-}
-
-function orderTypeLabel(type: KitchenOrder["type"], labels: KitchenLabels): string {
-  return type === "PICKUP"
-    ? labels.typePickup
-    : type === "DELIVERY"
-      ? labels.typeDelivery
-      : labels.typeTable;
 }
 
 /** Minuter sedan ordern lades. Det köket faktiskt bryr sig om. */

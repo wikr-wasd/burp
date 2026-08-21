@@ -361,10 +361,6 @@ export const de: Dictionary = {
       empty: "Keine aktiven Bestellungen.",
       updateFailed: "Bestellung konnte nicht aktualisiert werden: {message}",
       sibling: "Bestellung {index} von {count} für den Tisch",
-      table: "Tisch {number}",
-      typePickup: "Abholung",
-      typeDelivery: "Lieferung",
-      typeTable: "Tisch",
       minutes: "{n} min",
 
       stepACCEPTED: "Annehmen",
@@ -378,6 +374,81 @@ export const de: Dictionary = {
 
       upcomingTitle: "Demnächst",
       upcomingHint: "Geht an die Küche, sobald nur noch die Zubereitungszeit bleibt.",
+    },
+
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    orderType: {
+      table: "Tisch {number}",
+      TABLE: "Tisch",
+      PICKUP: "Abholung",
+      DELIVERY: "Lieferung",
+    },
+
+    /* Kassan. ENBART strängar — skickas till klientkomponenter. */
+    register: {
+      toSettle: "Zu kassieren",
+      emptyTitle: "Alles kassiert",
+      emptyBody: "Jede abgeschlossene Bestellung des letzten Tages hat eine erfasste Zahlung.",
+      paidToday: "Heute bezahlt",
+      paidTodayHint:
+        "Der Nachweis der Schicht, bar und Karte. Die Zeilen lassen sich nicht ändern — eine Fehlbuchung wird mit einer Gegenbuchung korrigiert, nicht durch Umschreiben der Historie.",
+
+      onSameBill: "{count} auf derselben Rechnung",
+      alreadyPaid: "{paid} bereits bezahlt von {total}",
+      showOrders: "Bestellungen anzeigen",
+      hideOrders: "Bestellungen ausblenden",
+
+      amountReceived: "Erhaltener Betrag",
+      method: "Zahlungsart",
+      settle: "Kassieren",
+      settleTable: "Ganzen Tisch kassieren",
+      settling: "Wird kassiert…",
+      settleFailed: "Die Buchung ist nicht durchgegangen.",
+
+      closeBill: "Rechnung ohne Buchung schließen",
+      closeConfirm:
+        "Die Rechnung ohne jede Buchung schließen? Die Bestellungen bleiben und lassen sich einzeln kassieren.",
+      closeFailed: "Die Rechnung konnte nicht geschlossen werden.",
+
+      over: "Über der Rechnung um",
+      under: "Unter der Rechnung um",
+      spreadHint: "Wird anteilig auf die Bestellungen des Tisches verteilt.",
+      asEntered:
+        "Wird so erfasst, wie es dasteht — Rundung und Rabatt im Haus sollen sichtbar sein.",
+      unreadableAmount: "Der Betrag ließ sich nicht lesen.",
+
+      servedAt: "Serviert {when}",
+      paidOfTotal: "{paid} bezahlt von {total}",
+      billTotal: "Rechnung {total}",
+      refundedAmount: "{amount} erstattet",
+      remaining: "{amount} offen",
+
+      refund: "Erstatten",
+      refunding: "Wird erstattet…",
+      refundFailed: "Die Erstattung ist nicht durchgegangen.",
+      refundAmount: "Betrag",
+      refundReason: "Grund",
+      refundReasonPlaceholder: "Z. B. kalte Suppe",
+      refundTooMuch: "Mehr als noch offen ist ({amount}).",
+      cancel: "Abbrechen",
+
+      refundHintGIFT_CARD: "Der Wert geht zurück auf den Gutschein, nicht in die Kasse.",
+      refundHintCASH:
+        "Wird als Gegenbuchung erfasst. Die Scheine geben Sie über den Tresen zurück.",
+      refundHintTERMINAL:
+        "Wird als Gegenbuchung erfasst. Die Erstattung machen Sie am Terminal — Burp erreicht es nicht.",
+      refundHintPROVIDER:
+        "Geht über den Anbieter zurück auf die Karte des Gastes. Kann einige Tage dauern.",
+
+      intro:
+        "Abgeschlossene Bestellungen des letzten Tages. Eine Tischrunde steht als eine Rechnung und wird in einem Zug kassiert; der Betrag wird für Sie auf die Bestellungen verteilt. Mit Karte bezahlte Bestellungen sind bereits kassiert.",
+      tipsTitle: "Trinkgeld zum Verteilen",
+      tipsCash: "{amount} bar",
+      tipsCard: "{amount} per Karte",
+      tipsPending: "{amount} auf noch nicht bezahlten Rechnungen",
+      tipsPeriod: "Der letzte Tag",
+      tipsHint:
+        "Trinkgeld ist das Geld der Mitarbeitenden und zählt weder zum Umsatz noch zur Gebühr von Burp. Eine erstattete Rechnung zählt nicht.",
     },
 
     upcomingLater: (count: number) =>

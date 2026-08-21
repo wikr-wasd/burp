@@ -357,10 +357,6 @@ export const en: Dictionary = {
       empty: "No active orders.",
       updateFailed: "Could not update order: {message}",
       sibling: "Order {index} of {count} for the table",
-      table: "Table {number}",
-      typePickup: "Pickup",
-      typeDelivery: "Delivery",
-      typeTable: "Table",
       minutes: "{n} min",
 
       stepACCEPTED: "Accept",
@@ -374,6 +370,79 @@ export const en: Dictionary = {
 
       upcomingTitle: "Upcoming",
       upcomingHint: "Sent to the kitchen once only the prep time remains.",
+    },
+
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    orderType: {
+      table: "Table {number}",
+      TABLE: "Table",
+      PICKUP: "Pickup",
+      DELIVERY: "Delivery",
+    },
+
+    /* Kassan. ENBART strängar — skickas till klientkomponenter. */
+    register: {
+      toSettle: "To settle",
+      emptyTitle: "Everything is settled",
+      emptyBody: "Every completed order from the past day has a registered payment.",
+      paidToday: "Paid today",
+      paidTodayHint:
+        "The record of the shift, cash and card. These rows cannot be edited — a mis-settlement is corrected with a counter-entry, not by rewriting history.",
+
+      onSameBill: "{count} on the same bill",
+      alreadyPaid: "{paid} already paid of {total}",
+      showOrders: "Show the orders",
+      hideOrders: "Hide the orders",
+
+      amountReceived: "Amount received",
+      method: "Payment method",
+      settle: "Settle",
+      settleTable: "Settle the whole table",
+      settling: "Settling…",
+      settleFailed: "The settlement did not go through.",
+
+      closeBill: "Close the bill without settling",
+      closeConfirm:
+        "Close the bill without settling anything? The orders stay and can be settled one by one.",
+      closeFailed: "The bill could not be closed.",
+
+      over: "Over the bill by",
+      under: "Under the bill by",
+      spreadHint: "Spread across the orders at the table in proportion to what each one costs.",
+      asEntered: "Registered as entered — rounding and in-house discounts should be visible.",
+      unreadableAmount: "The amount could not be read.",
+
+      servedAt: "Served {when}",
+      paidOfTotal: "{paid} paid of {total}",
+      billTotal: "bill {total}",
+      refundedAmount: "refunded {amount}",
+      remaining: "{amount} left",
+
+      refund: "Refund",
+      refunding: "Refunding…",
+      refundFailed: "The refund did not go through.",
+      refundAmount: "Amount",
+      refundReason: "Reason",
+      refundReasonPlaceholder: "E.g. cold soup",
+      refundTooMuch: "More than what is left ({amount}).",
+      cancel: "Cancel",
+
+      refundHintGIFT_CARD: "The value goes back onto the gift card, not into the register.",
+      refundHintCASH:
+        "Registered as a counter-entry. You hand the notes back across the counter.",
+      refundHintTERMINAL:
+        "Registered as a counter-entry. You make the refund in the terminal — Burp cannot reach it.",
+      refundHintPROVIDER: "Goes back to the card via the provider. May take a few days.",
+
+      intro:
+        "Completed orders from the past day. A table party stands as one bill and is settled in one go; the amount is spread across the orders for you. Card-paid orders are already settled by the provider.",
+      tipsTitle: "Tips to share out",
+      tipsCash: "{amount} in cash",
+      tipsCard: "{amount} by card",
+      tipsPending: "{amount} on bills not yet paid",
+      tipsPeriod: "The past day",
+      tipsHint:
+        "Tips are the staff's money and count towards neither turnover nor Burp's fee. A refunded bill does not count.",
     },
 
     upcomingLater: (count: number) =>

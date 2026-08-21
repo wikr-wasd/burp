@@ -42,6 +42,7 @@ export default async function OrdersPage() {
         currency={staff.currency}
         statusLabels={t.status}
         labels={t.kitchen}
+        orderTypeLabels={t.orderType}
       />
 
       {/* Förbeställningar visas här men inte på köksskärmen. Personalen ska

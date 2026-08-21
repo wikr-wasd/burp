@@ -17,6 +17,7 @@ import {
   settleTableSession,
 } from "@/app/dashboard/kassa/actions";
 import { EmptyState } from "@/components/ui/empty-state";
+import { fill, type Dictionary } from "@/lib/i18n";
 import type { RegisterOrder, RegisterTable, SettledPayment } from "@/lib/cash-register";
 
 /**
@@ -37,22 +38,40 @@ import type { RegisterOrder, RegisterTable, SettledPayment } from "@/lib/cash-re
  * sparas; samma princip som varukorgen.
  */
 
+/** Kassans egna texter. Rena strängar — komponenten är klientkod. */
+export type RegisterLabels = Dictionary["staff"]["register"];
+
+/** Bord, avhämtning eller leverans. Delas med köksskärmen — se ordboken. */
+export type OrderTypeLabels = Dictionary["staff"]["orderType"];
+
+interface RegisterText {
+  provider: Record<PaymentProviderId, string>;
+  orderType: OrderTypeLabels;
+  register: RegisterLabels;
+}
+
 /**
- * Betalsättens namn, tillgängliga för hela kassans träd.
+ * Kassans texter, tillgängliga för hela trädet.
  *
- * En context och inte en prop, därför att uppslaget behövs fem nivåer ned —
- * i notraden, i leverantörsvalet, i den kvitterade raden och två gånger i
- * betalningsraden. Att tråda samma oföränderliga tabell genom fem
- * komponenter hade gjort varje framtida ändring till fem ändringar.
+ * En context och inte propar, därför att uppslagen behövs fem nivåer ned — i
+ * notraden, i leverantörsvalet, i den kvitterade raden, i återbetalningen och
+ * två gånger i betalningsraden. Att tråda tre oföränderliga objekt genom fem
+ * komponenter hade gjort varje framtida ändring till femton ändringar.
  *
- * Värdet kommer in som en prop till `CashRegister` och därifrån in i
+ * Värdena kommer in som propar till `CashRegister` och därifrån in i
  * providern. Ordboken importeras alltså aldrig av klientkoden — texterna
  * hämtas på servern och skickas hit som rena strängar.
  */
-const ProviderLabels = createContext<Record<PaymentProviderId, string> | null>(null);
+const Text = createContext<RegisterText | null>(null);
+
+function useText(): RegisterText {
+  const value = useContext(Text);
+  if (!value) throw new Error("Kassans texter saknas — rendera inuti CashRegister.");
+  return value;
+}
 
 /*
- * Vidgas till `Record<string, string>` vid uppslaget, med flit.
+ * Betalsättet vidgas till `Record<string, string>` vid uppslaget, med flit.
  *
  * `payments.provider` kommer ur databasen som en sträng och kan i teorin bära
  * en leverantör den här versionen av gränssnittet inte känner till. Varje
@@ -61,9 +80,17 @@ const ProviderLabels = createContext<Record<PaymentProviderId, string> | null>(n
  * ska visa sin kod i kassan — inte fälla sidan som räknar pengarna.
  */
 function useProviderLabels(): Record<string, string> {
-  const labels = useContext(ProviderLabels);
-  if (!labels) throw new Error("ProviderLabels saknas — kassan måste renderas inuti CashRegister.");
-  return labels;
+  return useText().provider;
+}
+
+/** Kassans egna texter, ur contexten. */
+function useLabels(): RegisterLabels {
+  return useText().register;
+}
+
+/** Bord, avhämtning eller leverans, ur contexten. */
+function useOrderTypeLabels(): OrderTypeLabels {
+  return useText().orderType;
 }
 
 export function CashRegister({
@@ -72,6 +99,8 @@ export function CashRegister({
   settled,
   canRefund,
   providerLabels,
+  orderTypeLabels,
+  labels,
 }: {
   tables: RegisterTable[];
   unsettled: RegisterOrder[];
@@ -83,21 +112,23 @@ export function CashRegister({
   canRefund: boolean;
   /** Betalsättens namn ur ordboken. Rena strängar — komponenten är klientkod. */
   providerLabels: Record<PaymentProviderId, string>;
+  orderTypeLabels: OrderTypeLabels;
+  labels: RegisterLabels;
 }) {
   const nothingLeft = tables.length === 0 && unsettled.length === 0;
 
   return (
-    <ProviderLabels value={providerLabels}>
+    <Text value={{ provider: providerLabels, orderType: orderTypeLabels, register: labels }}>
     <div className="mt-8">
       <section>
-        <h2 className="font-display text-2xl">Att kvittera</h2>
+        <h2 className="font-display text-2xl">{labels.toSettle}</h2>
 
         {nothingLeft ? (
           <div className="mt-3">
             <EmptyState
               icon={Check}
-              title="Allt är kvitterat"
-              body="Varje slutförd order det senaste dygnet har en registrerad betalning."
+              title={labels.emptyTitle}
+              body={labels.emptyBody}
             />
           </div>
         ) : (
@@ -116,13 +147,12 @@ export function CashRegister({
 
       {settled.length > 0 ? (
         <section className="mt-12">
-          <h2 className="font-display text-2xl">Betalt i dag</h2>
+          <h2 className="font-display text-2xl">{labels.paidToday}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {/* Beloppen summeras inte. En restaurang har en valuta, men samma
                 regel gäller här som på plattformsöversikten: summan skrivs där
                 den är säker, inte där den ser bra ut. */}
-            Facit över passet, kontanter och kort. Raderna går inte att ändra — en
-            felkvittering rättas med en motbokning, inte genom att skriva om historien.
+            {labels.paidTodayHint}
           </p>
 
           <ul className="card mt-3 divide-y divide-[var(--rule)]">
@@ -133,7 +163,7 @@ export function CashRegister({
         </section>
       ) : null}
     </div>
-    </ProviderLabels>
+    </Text>
   );
 }
 
@@ -150,6 +180,8 @@ export function CashRegister({
  * behöver kvittera en enda av dem.
  */
 function TableBillRow({ table }: { table: RegisterTable }) {
+  const labels = useLabels();
+  const orderTypeLabels = useOrderTypeLabels();
   const [amount, setAmount] = useState(() => formatAmountInput(table.dueOre, table.currency));
   const [provider, setProvider] = useState<PaymentProviderId>("CASH");
   const [expanded, setExpanded] = useState(false);
@@ -164,14 +196,14 @@ function TableBillRow({ table }: { table: RegisterTable }) {
     setError(null);
     startTransition(async () => {
       const result = await settleTableSession(table.sessionId, amount, provider);
-      if (!result.ok) setError(result.message ?? "Kvitteringen gick inte igenom.");
+      if (!result.ok) setError(result.message ?? labels.settleFailed);
     });
   }
 
   function close() {
     if (
       !window.confirm(
-        "Stäng notan utan att kvittera något? Ordrarna ligger kvar och går att kvittera var för sig.",
+        labels.closeConfirm,
       )
     ) {
       return;
@@ -180,7 +212,7 @@ function TableBillRow({ table }: { table: RegisterTable }) {
     setError(null);
     startTransition(async () => {
       const result = await closeTableSession(table.sessionId);
-      if (!result.ok) setError(result.message ?? "Notan kunde inte stängas.");
+      if (!result.ok) setError(result.message ?? labels.closeFailed);
     });
   }
 
@@ -189,7 +221,9 @@ function TableBillRow({ table }: { table: RegisterTable }) {
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="flex items-center gap-2 font-display text-xl">
           <Users size={18} aria-hidden="true" className="text-[var(--muted)]" />
-          {table.tableNumber ? `Bord ${table.tableNumber}` : "Bord"}
+          {table.tableNumber
+            ? fill(orderTypeLabels.table, { number: table.tableNumber })
+            : orderTypeLabels.TABLE}
         </p>
         <p className="text-lg font-semibold tabular-nums">
           {formatMoney(table.dueOre, table.currency)}
@@ -197,11 +231,12 @@ function TableBillRow({ table }: { table: RegisterTable }) {
       </div>
 
       <p className="mt-1 text-sm text-[var(--muted)]">
-        {table.orders.length === 1
-          ? "En beställning"
-          : `${table.orders.length} beställningar på samma nota`}
+        {fill(labels.onSameBill, { count: table.orders.length })}
         {table.paidOre > 0
-          ? ` · ${formatMoney(table.paidOre, table.currency)} redan betalt av ${formatMoney(table.totalOre, table.currency)}`
+          ? ` · ${fill(labels.alreadyPaid, {
+              paid: formatMoney(table.paidOre, table.currency),
+              total: formatMoney(table.totalOre, table.currency),
+            })}`
           : ""}
       </p>
 
@@ -211,7 +246,7 @@ function TableBillRow({ table }: { table: RegisterTable }) {
         onClick={() => setExpanded(!expanded)}
         className="mt-2 text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
       >
-        {expanded ? "Dölj beställningarna" : "Visa beställningarna"}
+        {expanded ? labels.hideOrders : labels.showOrders}
       </button>
 
       {expanded ? (
@@ -224,7 +259,7 @@ function TableBillRow({ table }: { table: RegisterTable }) {
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="min-w-40 flex-1">
-          <span className="label-caps">Mottaget belopp</span>
+          <span className="label-caps">{labels.amountReceived}</span>
           <input
             type="text"
             inputMode="decimal"
@@ -247,7 +282,7 @@ function TableBillRow({ table }: { table: RegisterTable }) {
           ) : (
             <CreditCard size={16} aria-hidden="true" />
           )}
-          {pending ? "Kvitterar…" : "Kvittera hela bordet"}
+          {pending ? labels.settling : labels.settleTable}
         </button>
       </div>
 
@@ -255,17 +290,17 @@ function TableBillRow({ table }: { table: RegisterTable }) {
         <p className="mt-3 flex items-start gap-2 text-sm text-[var(--muted)]">
           <TriangleAlert size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
           <span>
-            {settlement.kind === "OVER" ? "Över notan med " : "Under notan med "}
+            {settlement.kind === "OVER" ? `${labels.over} ` : `${labels.under} `}
             <span className="font-medium tabular-nums">
               {formatMoney(Math.abs(settlement.differenceOre), table.currency)}
             </span>
-            . Fördelas på bordets beställningar i proportion till vad var och en kostar.
+            . {labels.spreadHint}
           </span>
         </p>
       ) : null}
 
       {receivedOre === null && amount.trim() !== "" ? (
-        <p className="mt-3 text-sm text-burp-600">Beloppet gick inte att tolka.</p>
+        <p className="mt-3 text-sm text-burp-600">{labels.unreadableAmount}</p>
       ) : null}
 
       {error ? (
@@ -280,7 +315,7 @@ function TableBillRow({ table }: { table: RegisterTable }) {
         disabled={pending}
         className="mt-3 text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
       >
-        Stäng notan utan att kvittera
+        {labels.closeBill}
       </button>
     </li>
   );
@@ -297,6 +332,9 @@ function UnsettledRow({
   compact?: boolean;
 }) {
   const providerLabels = useProviderLabels();
+  const labels = useLabels();
+  const orderTypeLabels = useOrderTypeLabels();
+
   // Förifyllt med vad som ÅTERSTÅR, inte med hela notan. Har gästen betalat
   // halva med presentkort är det bara resten som ska tas emot kontant, och ett
   // fält som föreslår hela notan hade fått kassan att gå plus varje gång.
@@ -313,14 +351,14 @@ function UnsettledRow({
     setError(null);
     startTransition(async () => {
       const result = await registerPayment(order.id, amount, provider);
-      if (!result.ok) setError(result.message ?? "Kvitteringen gick inte igenom.");
+      if (!result.ok) setError(result.message ?? labels.settleFailed);
     });
   }
 
   return (
     <li className={compact ? "" : "card p-4"}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className={compact ? "font-medium" : "font-display text-xl"}>{orderLabel(order)}</p>
+        <p className={compact ? "font-medium" : "font-display text-xl"}>{orderLabel(order, orderTypeLabels)}</p>
         <p className="text-lg font-semibold tabular-nums">
           {formatMoney(order.dueOre, order.currency)}
         </p>
@@ -330,7 +368,7 @@ function UnsettledRow({
         <p className="mt-1 text-sm text-[var(--muted)]">{order.itemSummary}</p>
       ) : null}
 
-      <p className="label-caps mt-1">Serverad {order.completedLabel}</p>
+      <p className="label-caps mt-1">{fill(labels.servedAt, { when: order.completedLabel })}</p>
 
       {/* Delbetalt. Personalen ska se varför beloppet i fältet är lägre än
           notan — annars ser det ut som ett fel. */}
@@ -338,14 +376,16 @@ function UnsettledRow({
         <p className="mt-2 text-sm text-[var(--muted)]">
           {order.payments.map((payment) => providerLabels[payment.provider] ?? payment.provider).join(", ")}
           {" · "}
-          {formatMoney(order.paidOre, order.currency)} betalt av{" "}
-          {formatMoney(order.totalOre, order.currency)}
+          {fill(labels.paidOfTotal, {
+            paid: formatMoney(order.paidOre, order.currency),
+            total: formatMoney(order.totalOre, order.currency),
+          })}
         </p>
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="min-w-40 flex-1">
-          <span className="label-caps">Mottaget belopp</span>
+          <span className="label-caps">{labels.amountReceived}</span>
           <input
             type="text"
             inputMode="decimal"
@@ -368,7 +408,7 @@ function UnsettledRow({
           ) : (
             <CreditCard size={16} aria-hidden="true" />
           )}
-          {pending ? "Kvitterar…" : "Kvittera"}
+          {pending ? labels.settling : labels.settle}
         </button>
       </div>
 
@@ -379,17 +419,17 @@ function UnsettledRow({
         <p className="mt-3 flex items-start gap-2 text-sm text-[var(--muted)]">
           <TriangleAlert size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
           <span>
-            {settlement.kind === "OVER" ? "Över notan med " : "Under notan med "}
+            {settlement.kind === "OVER" ? `${labels.over} ` : `${labels.under} `}
             <span className="font-medium tabular-nums">
               {formatMoney(Math.abs(settlement.differenceOre), order.currency)}
             </span>
-            . Registreras som det står — avrundning och rabatt i lokalen ska synas.
+            . {labels.asEntered}
           </span>
         </p>
       ) : null}
 
       {receivedOre === null && amount.trim() !== "" ? (
-        <p className="mt-3 text-sm text-burp-600">Beloppet gick inte att tolka.</p>
+        <p className="mt-3 text-sm text-burp-600">{labels.unreadableAmount}</p>
       ) : null}
 
       {error ? (
@@ -427,9 +467,11 @@ function ProviderChoice({
   disabled?: boolean;
 }) {
   const providerLabels = useProviderLabels();
+  const labels = useLabels();
+
   return (
     <fieldset className="min-w-0">
-      <legend className="label-caps">Betalsätt</legend>
+      <legend className="label-caps">{labels.method}</legend>
       <div className="mt-1.5 flex gap-2">
         {REGISTERABLE.map((provider) => {
           const active = provider === value;
@@ -471,6 +513,8 @@ function ProviderChoice({
 
 function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boolean }) {
   const providerLabels = useProviderLabels();
+  const labels = useLabels();
+  const orderTypeLabels = useOrderTypeLabels();
   const difference = order.paidOre - order.totalOre;
   const refundedOre = order.payments.reduce((sum, payment) => sum + payment.refundedOre, 0);
 
@@ -478,7 +522,7 @@ function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boo
     <li className="px-4 py-3">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <Check size={16} aria-hidden="true" className="shrink-0 text-green-600" />
-        <span className="font-medium">{orderLabel(order)}</span>
+        <span className="font-medium">{orderLabel(order, orderTypeLabels)}</span>
         <span className="text-sm text-[var(--muted)]">
           {order.payments
             .map((payment) => providerLabels[payment.provider] ?? payment.provider)
@@ -490,7 +534,7 @@ function SettledRow({ order, canRefund }: { order: RegisterOrder; canRefund: boo
 
         {difference !== 0 ? (
           <span className="text-sm tabular-nums text-[var(--muted)]">
-            notan {formatMoney(order.totalOre, order.currency)}
+            {fill(labels.billTotal, { total: formatMoney(order.totalOre, order.currency) })}
           </span>
         ) : null}
         <span
@@ -529,6 +573,7 @@ function PaymentLine({
   showLabel: boolean;
 }) {
   const providerLabels = useProviderLabels();
+  const labels = useLabels();
   const [open, setOpen] = useState(false);
   const remainingOre = payment.amountOre - payment.refundedOre;
 
@@ -538,8 +583,10 @@ function PaymentLine({
         <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
           <RotateCcw size={14} aria-hidden="true" className="shrink-0" />
           {showLabel ? `${providerLabels[payment.provider] ?? payment.provider}: ` : ""}
-          återbetalt {formatMoney(payment.refundedOre, currency)}
-          {remainingOre > 0 ? ` · kvar ${formatMoney(remainingOre, currency)}` : ""}
+          {fill(labels.refundedAmount, { amount: formatMoney(payment.refundedOre, currency) })}
+          {remainingOre > 0
+            ? ` · ${fill(labels.remaining, { amount: formatMoney(remainingOre, currency) })}`
+            : ""}
         </p>
       ) : null}
 
@@ -557,7 +604,7 @@ function PaymentLine({
             onClick={() => setOpen(true)}
             className="text-sm text-[var(--muted)] underline underline-offset-2 hover:text-burp-600"
           >
-            Betala tillbaka
+            {labels.refund}
             {showLabel ? ` ${providerLabels[payment.provider] ?? payment.provider}` : ""}
           </button>
         )
@@ -587,6 +634,7 @@ function RefundForm({
   remainingOre: number;
   onClose: () => void;
 }) {
+  const labels = useLabels();
   const [amount, setAmount] = useState(() => formatAmountInput(remainingOre, currency));
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -600,7 +648,7 @@ function RefundForm({
     startTransition(async () => {
       const result = await refundPayment(payment.id, amount, reason);
       if (result.ok) onClose();
-      else setError(result.message ?? "Återbetalningen gick inte igenom.");
+      else setError(result.message ?? labels.refundFailed);
     });
   }
 
@@ -608,7 +656,7 @@ function RefundForm({
     <div className="mt-3 rounded-lg border border-[var(--rule)] p-3">
       <div className="flex flex-wrap items-end gap-3">
         <label className="w-32">
-          <span className="label-caps">Belopp</span>
+          <span className="label-caps">{labels.refundAmount}</span>
           <input
             type="text"
             inputMode="decimal"
@@ -619,12 +667,12 @@ function RefundForm({
         </label>
 
         <label className="min-w-48 flex-1">
-          <span className="label-caps">Varför</span>
+          <span className="label-caps">{labels.refundReason}</span>
           <input
             type="text"
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="T.ex. kall soppa"
+            placeholder={labels.refundReasonPlaceholder}
             className="field mt-1.5"
           />
         </label>
@@ -635,22 +683,22 @@ function RefundForm({
           personalen ska inte stå och öppna kassalådan i onödan. */}
       <p className="mt-2 text-xs text-[var(--muted)]">
         {payment.provider === "GIFT_CARD"
-          ? "Värdet läggs tillbaka på presentkortet, inte i kassan."
+          ? labels.refundHintGIFT_CARD
           : payment.provider === "CASH"
-            ? "Registreras som en motbokning. Sedlarna lämnar ni tillbaka över disk."
+            ? labels.refundHintCASH
             : payment.provider === "TERMINAL"
-              ? "Registreras som en motbokning. Återbetalningen gör ni i terminalen — Burp når den inte."
-              : "Går tillbaka till gästens kort via leverantören. Kan ta några dagar."}
+              ? labels.refundHintTERMINAL
+              : labels.refundHintPROVIDER}
       </p>
 
       {tooMuch ? (
         <p className="mt-2 text-sm text-burp-600">
-          Mer än vad som återstår ({formatMoney(remainingOre, currency)}).
+          {fill(labels.refundTooMuch, { amount: formatMoney(remainingOre, currency) })}
         </p>
       ) : null}
 
       {amountOre === null && amount.trim() !== "" ? (
-        <p className="mt-2 text-sm text-burp-600">Beloppet gick inte att tolka.</p>
+        <p className="mt-2 text-sm text-burp-600">{labels.unreadableAmount}</p>
       ) : null}
 
       {error ? (
@@ -667,17 +715,17 @@ function RefundForm({
           className="btn btn-primary"
         >
           <RotateCcw size={16} aria-hidden="true" />
-          {pending ? "Betalar tillbaka…" : "Betala tillbaka"}
+          {pending ? labels.refunding : labels.refund}
         </button>
         <button type="button" onClick={onClose} className="btn btn-secondary">
-          Avbryt
+          {labels.cancel}
         </button>
       </div>
     </div>
   );
 }
 
-function orderLabel(order: RegisterOrder): string {
-  if (order.tableNumber) return `Bord ${order.tableNumber}`;
-  return order.type === "PICKUP" ? "Avhämtning" : order.type === "DELIVERY" ? "Leverans" : "Bord";
+function orderLabel(order: RegisterOrder, labels: OrderTypeLabels): string {
+  if (order.tableNumber) return fill(labels.table, { number: order.tableNumber });
+  return labels[order.type];
 }

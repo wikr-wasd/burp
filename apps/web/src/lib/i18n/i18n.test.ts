@@ -218,6 +218,17 @@ describe("ordböckerna", () => {
       "staff.kitchen.minutes",
       "staff.kitchen.stepREADY",
       "staff.kitchen.cancel",
+      /*
+       * Kassan. "Bord", "Avbryt", "kontant" och "betalt av" är rätt på båda
+       * språken — men "Gjør opp" mot "Kvittera", "regningen" mot "notan" och
+       * "Driks" mot "Dricks" står inte här, och det är där skillnaden syns.
+       */
+      "staff.orderType.table",
+      "staff.orderType.TABLE",
+      "staff.register.paidToday",
+      "staff.register.paidOfTotal",
+      "staff.register.cancel",
+      "staff.register.tipsCash",
     ],
   };
 
@@ -319,7 +330,7 @@ describe("texter som korsar server/klient-gränsen", () => {
    * en funktion i `staff.kitchen` för att "det behövs en variabel där" faller
    * köksskärmen med 500 — och felpayloaden innehåller ändå texterna.
    */
-  for (const section of ["kitchen", "status", "role", "provider"] as const) {
+  for (const section of ["kitchen", "status", "role", "provider", "orderType", "register"] as const) {
     it(`staff.${section} innehåller bara strängar`, () => {
       for (const [locale, dict] of Object.entries(ALL)) {
         for (const [key, value] of Object.entries(dict.staff[section])) {

@@ -61,6 +61,7 @@ export default async function KitchenPage() {
           title={t.section.kok}
           statusLabels={t.status}
           labels={t.kitchen}
+          orderTypeLabels={t.orderType}
         />
 
         {upcoming.length > 0 ? (

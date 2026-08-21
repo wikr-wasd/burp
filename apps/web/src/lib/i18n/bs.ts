@@ -384,10 +384,6 @@ export const bs: Dictionary = {
       empty: "Nema aktivnih narudžbi.",
       updateFailed: "Narudžba nije ažurirana: {message}",
       sibling: "Narudžba {index} od {count} za stol",
-      table: "Stol {number}",
-      typePickup: "Preuzimanje",
-      typeDelivery: "Dostava",
-      typeTable: "Stol",
       minutes: "{n} min",
 
       stepACCEPTED: "Primi",
@@ -413,6 +409,80 @@ export const bs: Dictionary = {
      * Undantagen på 11–14 är hela skälet till att det här är en funktion och
      * inte en mall med `{n}`.
      */
+    /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    orderType: {
+      table: "Stol {number}",
+      TABLE: "Stol",
+      PICKUP: "Preuzimanje",
+      DELIVERY: "Dostava",
+    },
+
+    /* Kassan. ENBART strängar — skickas till klientkomponenter. */
+    register: {
+      toSettle: "Za naplatu",
+      emptyTitle: "Sve je naplaćeno",
+      emptyBody: "Svaka završena narudžba u posljednja 24 sata ima evidentiranu uplatu.",
+      paidToday: "Naplaćeno danas",
+      paidTodayHint:
+        "Pregled smjene, gotovina i kartice. Redovi se ne mijenjaju — pogrešna naplata ispravlja se protustavkom, ne prepravljanjem historije.",
+
+      onSameBill: "{count} na istom računu",
+      alreadyPaid: "{paid} već plaćeno od {total}",
+      showOrders: "Prikaži narudžbe",
+      hideOrders: "Sakrij narudžbe",
+
+      amountReceived: "Primljeni iznos",
+      method: "Način plaćanja",
+      settle: "Naplati",
+      settleTable: "Naplati cijeli stol",
+      settling: "Naplaćivanje…",
+      settleFailed: "Naplata nije prošla.",
+
+      closeBill: "Zatvori račun bez naplate",
+      closeConfirm:
+        "Zatvoriti račun bez ijedne naplate? Narudžbe ostaju i mogu se naplatiti pojedinačno.",
+      closeFailed: "Račun nije zatvoren.",
+
+      over: "Iznad računa za",
+      under: "Ispod računa za",
+      spreadHint: "Raspoređuje se na narudžbe za stolom srazmjerno njihovoj cijeni.",
+      asEntered:
+        "Evidentira se kako je upisano — zaokruživanje i popust u lokalu trebaju se vidjeti.",
+      unreadableAmount: "Iznos nije čitljiv.",
+
+      servedAt: "Servirano {when}",
+      paidOfTotal: "{paid} plaćeno od {total}",
+      billTotal: "račun {total}",
+      refundedAmount: "refundirano {amount}",
+      remaining: "preostalo {amount}",
+
+      refund: "Vrati novac",
+      refunding: "Vraćanje…",
+      refundFailed: "Povrat nije prošao.",
+      refundAmount: "Iznos",
+      refundReason: "Razlog",
+      refundReasonPlaceholder: "Npr. hladna supa",
+      refundTooMuch: "Više od preostalog ({amount}).",
+      cancel: "Otkaži",
+
+      refundHintGIFT_CARD: "Vrijednost se vraća na poklon karticu, ne u kasu.",
+      refundHintCASH: "Evidentira se kao protustavka. Novčanice vraćate preko pulta.",
+      refundHintTERMINAL:
+        "Evidentira se kao protustavka. Povrat radite na terminalu — Burp ga ne doseže.",
+      refundHintPROVIDER:
+        "Vraća se na karticu gosta preko procesora. Može potrajati nekoliko dana.",
+
+      intro:
+        "Završene narudžbe iz posljednja 24 sata. Društvo za stolom stoji kao jedan račun i naplaćuje se odjednom; iznos se raspoređuje na narudžbe umjesto vas. Narudžbe plaćene karticom već su naplaćene.",
+      tipsTitle: "Napojnica za podjelu",
+      tipsCash: "{amount} gotovina",
+      tipsCard: "{amount} karticom",
+      tipsPending: "{amount} na računima koji još nisu plaćeni",
+      tipsPeriod: "Posljednja 24 sata",
+      tipsHint:
+        "Napojnica je novac osoblja i ne ulazi ni u promet ni u naknadu Burpa. Vraćen račun se ne računa.",
+    },
+
     upcomingLater: (count: number) => {
       const ones = count % 10;
       const tens = count % 100;
