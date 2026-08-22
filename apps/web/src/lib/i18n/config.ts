@@ -13,8 +13,11 @@
  * tolkas som ett språk.
  *
  * Personalytorna har därför sitt språk på personen i stället — `staff.locale`,
- * migration 0047 — och inte i adressen och inte i `Accept-Language`.
+ * migration 0047 — och inte i adressen och inte i `Accept-Language`. Har hen
+ * inte valt något avgör restaurangens land: `DEFAULT_LOCALE_BY_COUNTRY`.
  */
+
+import type { CountryCode } from "@burp/core";
 
 /**
  * Fem språk, valda efter vem som faktiskt läser dem.
@@ -45,7 +48,32 @@ export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "sv";
 
 /**
- * Personalens språk: det hen valt, annars svenska.
+ * Vilket språk ett land talar i Burp.
+ *
+ * Den ärliga gissningen för någon som inte valt är landet hen arbetar i. En
+ * nyanställd i Sarajevo som möts av svenska drar slutsatsen att produkten inte
+ * är gjord för henne — och hon har rätt i att ingen tänkt på henne, även om
+ * svenskan bara var ett standardvärde ingen kom att ändra.
+ *
+ * Tre av fyra länder pekar på `bs`, och det är inte ett slarv: ordboken täcker
+ * bosniska, kroatiska och serbiska i latinsk skrift. Skillnaden mellan
+ * standarderna är ordval, inte grammatik. Se `bs.ts`.
+ *
+ * Landet är restaurangens, inte webbläsarens och inte IP-adressens. Det är
+ * samma källa som avgör valuta, moms och tidszon — en anställd som är
+ * inloggad hos en restaurang i Belgrad arbetar i Serbien även när hon råkar
+ * öppna kassan hemifrån. Tvillingen finns i migration 0047, som namnger den
+ * här kartan i sin kolumnkommentar.
+ */
+export const DEFAULT_LOCALE_BY_COUNTRY: Record<CountryCode, Locale> = {
+  BA: "bs",
+  HR: "bs",
+  RS: "bs",
+  SE: "sv",
+};
+
+/**
+ * Personalens språk: det hen valt, annars restaurangens land.
  *
  * Gästytorna läser `Accept-Language`; personalytorna får inte göra det. Köket
  * ska inte byta språk för att en gäst gjorde det, och en surfplatta på en disk
@@ -54,21 +82,16 @@ export const DEFAULT_LOCALE: Locale = "sv";
  *
  * `null` betyder "har inte valt" och inte "valde svenska", och skillnaden är
  * hela skälet till att `staff.locale` saknar default i schemat (migration
- * 0047). Den skillnaden används inte än, men den kommer att göra det: den
- * ärliga gissningen för någon som inte valt är restaurangens land, inte
- * svenska. En nyanställd i Sarajevo som möts av svenska drar slutsatsen att
- * produkten inte är gjord för henne.
+ * 0047). Ett default i schemat hade fryst svaret vid raden skapades; med NULL
+ * följer en restaurang som byter land med utan att någon rad skrivs om.
  *
- * **Att den gissningen inte gäller ännu är med flit.** Personalytorna är
- * halvöversatta så länge arbetet pågår, och att flytta en bosnisk restaurang
- * till bosniska innan innehållet följer med hade gett en meny på bosniska över
- * en sida på svenska — sämre än den svenska de har i dag. Kartan över land och
- * språk läggs till i samma commit som gör den sista ytan färdig. Till dess är
- * språket något man aktivt väljer, och ingens vardag ändras utan att hen bett
- * om det.
+ * Landet är obligatoriskt och inte valfritt med flit. En signatur där det gick
+ * att utelämna hade gjort svenskan till det bekväma svaret igen — och den
+ * anropare som glömmer argumentet är precis den som aldrig märker att en hel
+ * restaurang står på fel språk.
  */
-export function staffLocale(chosen: unknown): Locale {
-  return isLocale(chosen) ? chosen : DEFAULT_LOCALE;
+export function staffLocale(chosen: unknown, country: CountryCode): Locale {
+  return isLocale(chosen) ? chosen : DEFAULT_LOCALE_BY_COUNTRY[country];
 }
 
 /**

@@ -1110,6 +1110,19 @@ export const sv = {
       providerRefundFailed: "Leverantören kunde inte genomföra återbetalningen.",
       providerUnreachable: "Kunde inte nå betalleverantören. Försök igen.",
 
+      /*
+       * Öppettidernas tre fel. `{day}` fylls i med veckodagen ur `weekday`.
+       *
+       * Överlapp kan korsa dygnsgränsen — fredagens nattpass mot lördagens
+       * morgonpass — och rapporteras då på lördagen, som är den dag som lades
+       * till sist. Meningen om nattpasset står där för att den som fått felet
+       * annars letar efter en krock på fel dag.
+       */
+      hoursOverlap:
+        "{day}: passet överlappar ett annat. Kom ihåg att ett nattpass fortsätter in på nästa dag.",
+      hoursZeroLength: "{day}: öppnar och stänger på samma klockslag.",
+      hoursInvalidTime: "{day}: ogiltigt klockslag. Använd formatet 11:00.",
+
       editWindowRange: "Ändringsfönstret ska vara mellan 0 och 3600 sekunder.",
       streetRequired: "Gatuadressen får inte vara tom.",
       cityRequired: "Staden får inte vara tom.",

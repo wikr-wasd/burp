@@ -20,7 +20,7 @@ import { publicEnv } from "@/lib/env";
 import { connectableProviders, paymentProvider, PaymentProviderError } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { untranslatedSurface } from "@/lib/i18n";
+import { dictionary, fill } from "@/lib/i18n";
 
 /**
  * Restaurangens inställningar.
@@ -52,18 +52,19 @@ export async function saveOpeningHours(hours: OpeningHours): Promise<ActionResul
   const problems = validateOpeningHours(hours);
   if (problems.length > 0) {
     const first = problems[0]!;
-    const day = untranslatedSurface().weekday[first.day];
+    const texts = dictionary(staff.locale);
+    const day = texts.weekday[first.day];
 
     // Överlapp kan numera korsa dygnsgränsen: fredagens nattpass mot lördagens
     // morgonpass rapporteras på lördagen, som är den dag som lades till sist.
-    const message =
+    const template =
       first.kind === "OVERLAP"
-        ? `${day}: passet överlappar ett annat. Kom ihåg att ett nattpass fortsätter in på nästa dag.`
+        ? texts.staff.errors.hoursOverlap
         : first.kind === "ZERO_LENGTH"
-          ? `${day}: öppnar och stänger på samma klockslag.`
-          : `${day}: ogiltigt klockslag. Använd formatet 11:00.`;
+          ? texts.staff.errors.hoursZeroLength
+          : texts.staff.errors.hoursInvalidTime;
 
-    return fail(message);
+    return fail(fill(template, { day }));
   }
 
   // Skriver bara de sju kända nycklarna. Kom något annat med i objektet ska

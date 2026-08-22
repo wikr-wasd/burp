@@ -11,7 +11,7 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-08-20**, branch `dev`.
+Senast uppdaterad **2026-08-22**, branch `dev`.
 
 Fas 1 är byggd i sin helhet, och **kortbetalning ingår nu**. Produkten går att
 använda rakt igenom: en gäst skannar en dekal, beställer vid bordet, betalar med
@@ -66,14 +66,42 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-08-22
+
+- **Personalens språk avgörs av restaurangens land.**
+  `DEFAULT_LOCALE_BY_COUNTRY` i `i18n/config.ts` — BA, HR och RS pekar alla på
+  `bs`, SE på `sv`. Kartan låg som en beskriven lucka i tre filer (config,
+  migration 0047 och den här listan) och var det sista som saknades: fram till
+  nu såg varje anställd svenska tills hen själv bytte, också i Sarajevo.
+  Beslutat av William 2026-08-22.
+
+  `staffLocale()` tar landet som **obligatoriskt** argument. En valfri
+  parameter hade gjort svenskan till det bekväma svaret igen, och den anropare
+  som glömmer argumentet är precis den som aldrig märker att en hel restaurang
+  står på fel språk.
+
+  Det egna valet vinner fortfarande: språkväljaren i sidomenyn och i toppraden
+  är oförändrad, och `staff.locale` är kvar som NULL för den som inte valt —
+  "valde svenska" och "har inte valt" är fortfarande två olika svar, och en
+  restaurang som byter land följer med utan att någon rad skrivs om.
+
+- **Öppettidernas tre felmeddelanden var kvar på svenska.** Sista hålet i
+  `staffErrors`: resten av `installningar/actions.ts` talade personens språk,
+  men överlapp, nolltid och ogiltigt klockslag byggdes som svenska strängar med
+  veckodagen ur `untranslatedSurface()`. Osynligt så länge alla såg svenska —
+  och tre svenska meningar mitt i en bosnisk sida i samma sekund som kartan
+  slogs på. Nu `hoursOverlap`, `hoursZeroLength` och `hoursInvalidTime` på fem
+  språk, med dagen som `{day}`.
+
 Det som återstår är i tur och ordning:
 
 1. **Konton och avtal** som ligger hos William (nedan). Inget av det är kod.
 2. **Att se produkten på riktig hårdvara** — telefon och surfplatta. Byggd för
    båda, provad på ingen. Planritningens redigerare är byggd för fingrar och
    har aldrig rörts av ett.
-3. **Personalytorna talar bara svenska.** Beslutat att de ska översättas, som
-   ett steg efter gästytorna. Se *Näst på tur*.
+3. **Personalytorna är översatta och följer restaurangens land.** Kvar är
+   `/anslut`, `/konto` och backoffice — se *Näst på tur*. Backoffice förblir
+   svensk med flit.
 4. Resten av Fas 2 och framåt: surfplatta vid bordet, mobilapp.
 
 ### Två spärrar som gäller varje session
@@ -477,11 +505,11 @@ eller ett beslut.
       appen slår upp den; det är en egen och större ändring, och den rör
       migrationer som redan är körda i produktion.
 
-      **Landsspråket kan slås på nu.** `DEFAULT_LOCALE_BY_COUNTRY` i
-      `i18n/config.ts` var det som medvetet lämnades kvar tills ytorna följde
-      med — se `staffLocale()`. Nu gör de det. Kvar att avgöra: ska en
-      restaurang i Sarajevo möta bosniska direkt, eller ska svenska förbli
-      utgångsläget tills någon aktivt väljer?
+      **Landsspråket är påslaget sedan 2026-08-22.** Frågan som stod här — ska
+      en restaurang i Sarajevo möta bosniska direkt, eller ska svenska förbli
+      utgångsläget tills någon aktivt väljer — är besvarad av William: landet
+      avgör. `DEFAULT_LOCALE_BY_COUNTRY` i `i18n/config.ts`, och språkväljaren
+      är oförändrad för den som vill något annat.
 
       **Backoffice förblir svensk, och det är ett beslut.** `/backoffice` är
       Burps egen plattformsyta och läses av Burps eget team, inte av
@@ -510,12 +538,11 @@ eller ett beslut.
       räknar exakt vad som återstår, och raden försvinner av sig själv när ytan
       blir klar.
 
-      **Landsspråket är med flit inte påslaget än.** `staff.locale` är NULL för
-      alla i dag och alla ser svenska, precis som förut — ingens vardag ändras
-      utan att hen bett om det. Den ärliga gissningen för någon som inte valt
-      är restaurangens land, och den kartan läggs till i samma commit som gör
-      den sista ytan färdig. Att flytta en bosnisk restaurang till bosniska nu
-      hade gett en bosnisk meny över en svensk sida.
+      **`staff.locale` är fortfarande NULL för alla.** Det betyder inte längre
+      svenska utan "har inte valt", och appen svarar då med restaurangens land.
+      Skillnaden är kvar i schemat med flit: den dag Burp öppnar i ett femte
+      land får dess restauranger rätt språk utan att en enda rad skrivs om, och
+      den som faktiskt har valt svenska behåller det.
 
 - [ ] **`/anslut` talar bara svenska — och det är värvningssidan.**
       `application-form.tsx` har fälten hårdkodade: Land, Restaurangens namn,

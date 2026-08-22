@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  COUNTRIES,
   ORDER_STATUSES,
   PAYMENT_PROVIDERS,
   STAFF_ROLES,
@@ -7,8 +8,10 @@ import {
 } from "@burp/core";
 import {
   DEFAULT_LOCALE,
+  DEFAULT_LOCALE_BY_COUNTRY,
   fill,
   isLocale,
+  staffLocale,
   LOCALES,
   LOCALE_ALTERNATE_TAGS,
   LOCALE_DATE_TAGS,
@@ -488,6 +491,48 @@ describe("isLocale", () => {
      */
     for (const bad of ["hr", "sr", "nb", "fr", "sv-SE", "", null, 1, {}]) {
       expect(isLocale(bad), String(bad)).toBe(false);
+    }
+  });
+});
+
+describe("staffLocale", () => {
+  it("varje land har ett språk", () => {
+    // Kartan är typad `Record<CountryCode, Locale>`, men typen skyddar bara
+    // koden i det här paketet. Testet finns för det femte landet: raden i
+    // COUNTRIES läggs till, kartan glöms, och bygget faller på ett ställe som
+    // inte pekar hit.
+    for (const country of COUNTRIES) {
+      expect(LOCALES, country).toContain(DEFAULT_LOCALE_BY_COUNTRY[country]);
+    }
+  });
+
+  it("marknaden får sitt eget språk och inte svenska", () => {
+    // Hela poängen med kartan. En nyanställd i Sarajevo, Zagreb eller Belgrad
+    // som inte valt något ska inte mötas av svenska.
+    for (const country of ["BA", "HR", "RS"] as const) {
+      expect(staffLocale(null, country), country).toBe("bs");
+    }
+
+    expect(staffLocale(null, "SE")).toBe("sv");
+  });
+
+  it("det egna valet vinner över landet", () => {
+    // Språkväljaren ska betyda något. En tysk kock i Sarajevo som valt tyska
+    // ska ha tyska, oavsett var restaurangen ligger.
+    expect(staffLocale("de", "BA")).toBe("de");
+    expect(staffLocale("sv", "RS")).toBe("sv");
+
+    // Och ett aktivt val av landets eget språk får inte tolkas om till något
+    // annat — "valde bosniska" och "valde inte" ska ge samma svar i BA.
+    expect(staffLocale("bs", "BA")).toBe("bs");
+  });
+
+  it("skräp i kolumnen faller tillbaka på landet, inte på svenska", () => {
+    // `staff.locale` har ett villkor i schemat (migration 0047), men raden kan
+    // vara äldre än villkoret eller ha skrivits förbi appen. Ett okänt värde
+    // ska inte kunna dra en restaurang i Belgrad till svenska.
+    for (const junk of ["hr", "sr", "", "fr", 1, {}, undefined]) {
+      expect(staffLocale(junk, "RS"), String(junk)).toBe("bs");
     }
   });
 });

@@ -103,7 +103,7 @@ export async function getStaff(): Promise<StaffContext | null> {
     country: restaurant.country,
     currency: restaurant.currency,
     timeZone: COUNTRY_INFO[restaurant.country].timeZone,
-    locale: staffLocale(data.locale),
+    locale: staffLocale(data.locale, restaurant.country),
   };
 }
 

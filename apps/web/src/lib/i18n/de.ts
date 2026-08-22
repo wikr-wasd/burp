@@ -907,6 +907,11 @@ export const de: Dictionary = {
       providerRefundFailed: "Der Anbieter konnte die Erstattung nicht ausführen.",
       providerUnreachable: "Der Zahlungsanbieter war nicht erreichbar. Versuchen Sie es erneut.",
 
+      hoursOverlap:
+        "{day}: Die Schicht überschneidet sich mit einer anderen. Denken Sie daran, dass eine Nachtschicht in den nächsten Tag hineinreicht.",
+      hoursZeroLength: "{day}: Öffnet und schließt zur selben Uhrzeit.",
+      hoursInvalidTime: "{day}: Ungültige Uhrzeit. Verwenden Sie das Format 11:00.",
+
       editWindowRange: "Das Änderungsfenster muss zwischen 0 und 3600 Sekunden liegen.",
       streetRequired: "Die Straße darf nicht leer sein.",
       cityRequired: "Die Stadt darf nicht leer sein.",

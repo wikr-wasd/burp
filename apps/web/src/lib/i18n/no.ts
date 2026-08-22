@@ -896,6 +896,11 @@ export const no: Dictionary = {
       providerRefundFailed: "Leverandøren kunne ikke gjennomføre refusjonen.",
       providerUnreachable: "Kunne ikke nå betalingsleverandøren. Prøv igjen.",
 
+      hoursOverlap:
+        "{day}: vakten overlapper en annen. Husk at en nattevakt fortsetter inn i neste dag.",
+      hoursZeroLength: "{day}: åpner og stenger på samme klokkeslett.",
+      hoursInvalidTime: "{day}: ugyldig klokkeslett. Bruk formatet 11:00.",
+
       editWindowRange: "Endringsvinduet skal være mellom 0 og 3600 sekunder.",
       streetRequired: "Gateadressen kan ikke være tom.",
       cityRequired: "Stedet kan ikke være tomt.",

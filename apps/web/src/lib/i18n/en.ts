@@ -892,6 +892,11 @@ export const en: Dictionary = {
       providerRefundFailed: "The provider could not carry out the refund.",
       providerUnreachable: "Could not reach the payment provider. Try again.",
 
+      hoursOverlap:
+        "{day}: this shift overlaps another one. Remember that a night shift carries over into the next day.",
+      hoursZeroLength: "{day}: opens and closes at the same time.",
+      hoursInvalidTime: "{day}: invalid time. Use the format 11:00.",
+
       editWindowRange: "The edit window has to be between 0 and 3600 seconds.",
       streetRequired: "The street address cannot be empty.",
       cityRequired: "The city cannot be empty.",

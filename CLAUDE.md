@@ -244,8 +244,16 @@ som inte förstår riskerar något värre än en missad rätt.
   språkversion nå sökresultaten.
 - **QR-sidan och kvittona** läser `Accept-Language`. De är noindex och behöver
   ingen egen URL per språk — och QR-beställning används av turister.
-- **Personalytorna är svenska.** Medvetet. Köket ska inte byta språk för att en
-  gäst gjorde det.
+- **Personalytorna läser språket ur personen** — `staff.locale`, migration 0047
+  — och aldrig ur adressen eller `Accept-Language`. Köket ska inte byta språk
+  för att en gäst gjorde det, och en surfplatta på en disk delas av flera.
+  Har hen inte valt avgör **restaurangens land**:
+  `DEFAULT_LOCALE_BY_COUNTRY` i `i18n/config.ts`. NULL i kolumnen betyder "har
+  inte valt", inte "valde svenska".
+- **Backoffice är svensk.** `/backoffice` är Burps egen plattformsyta och läses
+  av Burps eget team. En plattformsadmin är inte personal någonstans och har
+  ingen `staff.locale`; där en personalkomponent lånas skickas svenskan
+  uttryckligen in med `untranslatedSurface()`.
 
 `Dictionary` härleds ur den svenska filen: en nyckel som glöms i något av de
 andra fyra språken stoppar bygget. Testerna i `i18n.test.ts` håller resten —

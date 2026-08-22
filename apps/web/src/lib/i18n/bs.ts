@@ -933,6 +933,11 @@ export const bs: Dictionary = {
       providerRefundFailed: "Procesor nije mogao izvršiti povrat.",
       providerUnreachable: "Nije bilo moguće doći do procesora plaćanja. Pokušajte ponovo.",
 
+      hoursOverlap:
+        "{day}: smjena se preklapa s drugom. Zapamtite da noćna smjena prelazi u naredni dan.",
+      hoursZeroLength: "{day}: otvara i zatvara u isto vrijeme.",
+      hoursInvalidTime: "{day}: neispravno vrijeme. Koristite format 11:00.",
+
       editWindowRange: "Prozor za izmjene treba biti između 0 i 3600 sekundi.",
       streetRequired: "Ulica ne smije biti prazna.",
       cityRequired: "Grad ne smije biti prazan.",
