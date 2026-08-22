@@ -3,6 +3,7 @@ import { Download } from "lucide-react";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { DeleteAccount } from "@/components/guest/delete-account";
 import { requireGuest } from "@/lib/guest";
+import { dictionary, requestLocale } from "@/lib/i18n";
 
 /**
  * Mina uppgifter — kopia och radering (GDPR artikel 15, 17 och 20).
@@ -13,31 +14,37 @@ import { requireGuest } from "@/lib/guest";
  * förlora sin historik.
  */
 
-export const metadata: Metadata = {
-  title: "Mina uppgifter",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = dictionary(await requestLocale());
+
+  return {
+    title: t.account.details,
+    robots: { index: false, follow: false },
+  };
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function DataPage() {
   const guest = await requireGuest("/konto/uppgifter");
+  const t = dictionary(await requestLocale());
 
   return (
     <>
-      <GuestHeader guest={guest} current="uppgifter" />
+      <GuestHeader
+        guest={guest}
+        current="uppgifter"
+        texts={t.account}
+        homeLabel={t.site.home}
+      />
 
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <p className="label-caps">Mitt konto</p>
-        <h1 className="font-display mt-2 text-4xl">Mina uppgifter</h1>
+        <p className="label-caps">{t.account.label}</p>
+        <h1 className="font-display mt-2 text-4xl">{t.account.details}</h1>
 
         <section className="mt-8">
-          <h2 className="font-display text-2xl">Hämta en kopia</h2>
-          <p className="mt-2 text-[var(--muted)]">
-            Allt Burp har om dig i en fil: ditt konto, dina adresser, alla beställningar med
-            rader, dina omdömen, favoriter, poäng, kuponger och klippkort. Filen är JSON och går
-            att läsa både av dig och av ett annat program.
-          </p>
+          <h2 className="font-display text-2xl">{t.account.exportTitle}</h2>
+          <p className="mt-2 text-[var(--muted)]">{t.account.exportBody}</p>
 
           {/*
             Vanlig länk och inget formulär. Nedladdningen är en GET som inte
@@ -46,16 +53,13 @@ export default async function DataPage() {
           */}
           <a href="/api/konto/export" download className="btn btn-secondary mt-4">
             <Download size={16} aria-hidden="true" />
-            Hämta mina uppgifter
+            {t.account.exportButton}
           </a>
         </section>
 
         <section className="mt-10 border-t border-[var(--rule)] pt-8">
-          <h2 className="font-display text-2xl">Radera mitt konto</h2>
-          <p className="mt-2 text-[var(--muted)]">
-            Ditt konto, din profil, dina adresser och dina favoriter tas bort. Det går inte att
-            ångra.
-          </p>
+          <h2 className="font-display text-2xl">{t.account.deleteTitle}</h2>
+          <p className="mt-2 text-[var(--muted)]">{t.account.deleteBody}</p>
 
           {/*
             Undantaget sägs rakt ut, före knappen.
@@ -67,21 +71,15 @@ export default async function DataPage() {
             längre att koppla till dig.
           */}
           <div className="card mt-4 p-4 text-sm">
-            <p className="font-medium">Det här står kvar, utan dig</p>
+            <p className="font-medium">{t.account.remainsTitle}</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-[var(--muted)]">
-              <li>
-                Dina beställningar och kvitton, som bokföringsunderlag hos restaurangen. De
-                slutar peka på dig.
-              </li>
-              <li>
-                Betygen du satt. Texten du skrev och bilden du laddade upp tas bort; siffran
-                står kvar utan avsändare.
-              </li>
-              <li>Dina poäng och klippkort försvinner — de går inte att använda av någon.</li>
+              <li>{t.account.remainsOrders}</li>
+              <li>{t.account.remainsRatings}</li>
+              <li>{t.account.remainsPoints}</li>
             </ul>
           </div>
 
-          <DeleteAccount />
+          <DeleteAccount texts={t.account} />
         </section>
       </main>
     </>

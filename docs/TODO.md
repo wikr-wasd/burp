@@ -123,11 +123,36 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   samtidigt till ett tredje svenskt hål i personalytorna: postnummerfelet i
   `savePresentation()` byggde landsnamnet direkt ur `COUNTRY_INFO`.
 
+- **`/konto`-ytorna talar fem språk.** Beställningar, favoriter, adresser,
+  mina uppgifter och raderingskvittot — plus `guest-header`, `address-list`,
+  `review-form`, `delete-account` och `favorite-button`. De ligger kvar utanför
+  `[locale]` och läser `Accept-Language`, som kvittona: ytorna är noindex och
+  behöver ingen egen adress per språk. Serveråtgärderna läser samma header, så
+  felet kommer på samma språk som sidan det visas på.
+
+  Tre fynd på vägen som inte var översättning:
+
+  - **Orderstatusen kom ur `staff.status`.** Gästen läste personalens ord —
+    "Slutförd" där hon skulle se "Serverad". Nu `receipt.status`, samma som på
+    bordskvittot.
+  - **Datumet var hårdkodat `sv-SE`.** En tysk gäst fick 2026-08-22 i stället
+    för 22.8.2026. Nu `LOCALE_DATE_TAGS`, som ger `en-GB` och inte `en` —
+    ett datum som läses baklänges är värre än ett datum på fel språk.
+  - **`/konto/raderat` var statisk.** En statisk sida hade serverat det första
+    språket någon råkade komma med till alla efter honom. Den renderas nu per
+    request; det är enda sidan i kontodelen som går att pröva utan inloggning,
+    och röktestet gör det på alla fem språken.
+
+  Omdömesformuläret lånar `receipt.review*` i stället för att få egna nycklar.
+  Samma handling med samma ord på två sidor — två uppsättningar hade gett
+  gästen olika ord för samma stjärnor beroende på var hon råkade trycka.
+
 - **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
   dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
   språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
-  faktiskt talar bosniska. Hela sviten: **139 kontroller, inga hopp.**
-  Siffran i `CLAUDE.md` stod på 109 och var redan inaktuell.
+  faktiskt talar bosniska — och sex till för kontoytans språk. Hela sviten:
+  **145 kontroller, inga hopp.** Siffran i `CLAUDE.md` stod på 109 och var
+  redan inaktuell innan raden rördes; den faktiska sviten låg på 127.
 
 Det som återstår är i tur och ordning:
 
@@ -135,9 +160,9 @@ Det som återstår är i tur och ordning:
 2. **Att se produkten på riktig hårdvara** — telefon och surfplatta. Byggd för
    båda, provad på ingen. Planritningens redigerare är byggd för fingrar och
    har aldrig rörts av ett.
-3. **Personalytorna är översatta och följer restaurangens land**, och
-   värvningssidan talar fem språk. Kvar är `/konto`-ytorna — se *Näst på tur*.
-   Backoffice förblir svensk med flit.
+3. **Hela produkten talar fem språk utom backoffice**, som förblir svensk med
+   flit. Personalytorna följer restaurangens land, gästytorna har språket i
+   adressen, och `/konto` plus QR-flödet läser `Accept-Language`.
 4. Resten av Fas 2 och framåt: surfplatta vid bordet, mobilapp.
 
 ### Två spärrar som gäller varje session
@@ -332,7 +357,7 @@ Spärren om lösenord gäller dashboard, kassa och backoffice — inte QR-sidan,
 menyn, varukorgen, kassan i QR-flödet eller kvittot. Just de ytorna har högst
 kvalitetskrav i produkten och är samtidigt de som aldrig setts av ett öga.
 
-`smoke.sh` kör redan 139 kontroller genom samma flöde, men den mäter något
+`smoke.sh` kör redan 145 kontroller genom samma flöde, men den mäter något
 annat. Den svarar på om servern svarar rätt; den svarar inte på om knappen går
 att träffa med en tumme, om felmeddelandet betyder något för den som läser det,
 eller om det går att förstå var i beställningen man befinner sig. Ett grep av
@@ -580,13 +605,16 @@ eller ett beslut.
       land får dess restauranger rätt språk utan att en enda rad skrivs om, och
       den som faktiskt har valt svenska behåller det.
 
-- [ ] **`/konto`-ytorna talar bara svenska.** `guest-header.tsx`,
-      `address-list.tsx`, `review-form.tsx` och `delete-account.tsx` har
-      hårdkodade strängar. Till skillnad från QR-flödet är det inte en glömd
-      sträng utan en strukturfråga: `/konto` ligger **utanför** `[locale]` och
-      har alltså inget språk i adressen alls. Antingen flyttar de in under
-      `[locale]`, eller så läser de `Accept-Language` som kvittona gör.
-      Ytorna är noindex, så det senare räcker.
+- [ ] **Gästens adress bär inget land.** `saveAddress()` kontrollerar
+      postnumret mot `^\d{5,6}$` — unionen av marknadens format — i stället för
+      mot `normalizePostalCode()`, som kräver ett land. Adressen hör till en
+      gäst och inte till en restaurang, och det finns inget land att fråga
+      efter förrän leveransflödet finns. **Öppen fråga 2 avgör.**
+
+      Fram till 2026-08-22 stod där `^\d{3}\s?\d{2}$` — exakt fem siffror,
+      svenskt format — vilket avvisade varje serbiskt postnummer med sex.
+      Fältet hade dessutom "21422" som exempel, alltså Malmö. Båda är rättade,
+      men rätt svar är ett land på adressen.
 
 - [ ] **Gå igenom gästflödet som gäst, i en webbläsare.** Beställt 2026-08-21.
       Den enda genomgången Claude kan göra utan William: QR-sidan, menyn,
@@ -936,7 +964,7 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
 - [x] **Röktestet går att köra — och hittade två fel direkt.** Diagnosen att
       `bash` var WSL2 var fel; skalet är Git Bash och saknade bara `/usr/bin` på
       `PATH`. Röktestet har alltså aldrig körts här, trots att `CLAUDE.md` säger
-      att det är det som avgör om något fungerar. Det kör nu 139 kontroller,
+      att det är det som avgör om något fungerar. Det kör nu 145 kontroller,
       inklusive de nya ytorna: avräkning, GDPR-export och poängjobbet bakom sin
       nyckel.
       Två fel föll ut. **Städningen av presentkortet kunde aldrig lyckas** —

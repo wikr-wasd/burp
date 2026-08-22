@@ -442,6 +442,118 @@ export const sv = {
     },
   },
 
+  /**
+   * Gästens konto — `/konto` och dess fyra flikar.
+   *
+   * Ytorna är noindex och ligger utanför språksegmentet. De läser
+   * `Accept-Language`, precis som QR-sidan och kvittona: en gäst som just
+   * beställt på tyska vid ett bord i Sarajevo ska inte hitta sin
+   * orderhistorik på svenska. Att i stället ge dem `/de/konto` hade betytt
+   * fem adresser till en sida ingen sökmotor får se.
+   *
+   * Omdömesformuläret här lånar `receipt.review*` och orderstatusen
+   * `receipt.status`. Det är samma handling med samma ord, bara på en annan
+   * sida — två uppsättningar hade glidit isär och gett gästen olika ord för
+   * samma stjärnor. Statusen lånas INTE från `staff.status`: personalen ser
+   * "Slutförd", gästen ser "Serverad", och det är med flit.
+   *
+   * Skickas till klientkomponenter och måste vara rena strängar rakt igenom.
+   */
+  account: {
+    label: "Mitt konto",
+
+    /* Toppradens flikar. */
+    orders: "Beställningar",
+    favorites: "Favoriter",
+    addresses: "Adresser",
+    details: "Mina uppgifter",
+    logOut: "Logga ut",
+
+    /* Beställningar — startvyn, och det gästen kommer hit för. */
+    ordersTitle: "Mina beställningar",
+    points: "Poäng",
+    pointsExpiring: "{n} poäng går ut inom 30 dagar.",
+    ordersEmpty: "Du har inte beställt något än.",
+    findRestaurant: "Hitta en restaurang",
+    ongoing: "Pågående",
+    earlier: "Tidigare",
+    atTable: "vid bordet",
+    pickup: "avhämtning",
+    reviewed: "Du har lämnat omdöme på den här beställningen.",
+    reviewPromptAt: "Hur var maten på {restaurant}?",
+    reviewNeedsFood: "Välj betyg på maten",
+
+    /* Favoriter. */
+    favoritesEmptyTitle: "Inga favoriter än",
+    favoritesEmptyBody: "Spara en restaurang så hittar du tillbaka snabbare.",
+    browseRestaurants: "Bläddra bland restauranger",
+    notAcceptingOrders: "Tar inte emot beställningar just nu.",
+    saveFavorite: "Spara som favorit",
+    removeFavorite: "Ta bort från favoriter",
+
+    /* Adresser. */
+    addressesIntro: "Sparas till leveransbeställningar. Leverans är ännu inte påslaget.",
+    addressesEmptyTitle: "Inga sparade adresser",
+    addressesEmptyBody: "Lägg till en nedan så slipper du skriva den varje gång.",
+    doorCodeShort: "portkod {code}",
+    newAddress: "Ny adress",
+    addressLabel: "Namn",
+    addressLabelPlaceholder: "Hem, Jobb…",
+    street: "Gatuadress",
+    postalCode: "Postnummer",
+    city: "Ort",
+    doorCode: "Portkod",
+    optional: "valfritt",
+    remove: "Ta bort",
+    cancel: "Avbryt",
+    saving: "Sparar…",
+    saveAddress: "Spara adress",
+
+    /* Mina uppgifter — GDPR artikel 15, 17 och 20. */
+    exportTitle: "Hämta en kopia",
+    exportBody:
+      "Allt Burp har om dig i en fil: ditt konto, dina adresser, alla beställningar med rader, dina omdömen, favoriter, poäng, kuponger och klippkort. Filen är JSON och går att läsa både av dig och av ett annat program.",
+    exportButton: "Hämta mina uppgifter",
+    deleteTitle: "Radera mitt konto",
+    deleteBody:
+      "Ditt konto, din profil, dina adresser och dina favoriter tas bort. Det går inte att ångra.",
+    remainsTitle: "Det här står kvar, utan dig",
+    remainsOrders:
+      "Dina beställningar och kvitton, som bokföringsunderlag hos restaurangen. De slutar peka på dig.",
+    remainsRatings:
+      "Betygen du satt. Texten du skrev och bilden du laddade upp tas bort; siffran står kvar utan avsändare.",
+    remainsPoints: "Dina poäng och klippkort försvinner — de går inte att använda av någon.",
+    deleteConfirmTitle: "Är du säker?",
+    deleteConfirmBody:
+      "Skriv {word} för att bekräfta. Hämta gärna en kopia av dina uppgifter först — efteråt går det inte.",
+    deleteConfirmLabel: "Skriv {word} för att bekräfta",
+    deleting: "Raderar…",
+    deleteForever: "Radera för alltid",
+
+    /* Kvittot på raderingen. Egen sida — kontosidan går inte längre att nå. */
+    erasedTitle: "Kontot är raderat",
+    erasedBody:
+      "Din profil, dina adresser och dina favoriter är borta, och ingenting hos oss pekar längre ut dig. Beställningarna finns kvar hos restaurangerna som bokföringsunderlag, utan koppling till dig.",
+    erasedAgain: "Du kan beställa igen när du vill — vid bordet behövs inget konto alls.",
+    toHome: "Till startsidan",
+
+    errors: {
+      mustBeLoggedIn: "Du måste vara inloggad.",
+      favoritesNeedAccount: "Du måste vara inloggad för att spara favoriter.",
+      favoriteFailed: "Kunde inte spara.",
+      reviewUnreadable: "Betyget kunde inte tolkas. Välj minst ett betyg på maten.",
+      orderNotFound: "Beställningen hittades inte.",
+      reviewNotCompleted: "Du kan lämna omdöme först när beställningen är klar.",
+      addressFieldsRequired: "Fyll i gata, postnummer och ort.",
+      // Fem siffror i Bosnien, Kroatien och Sverige; fem eller sex i Serbien.
+      // Adressen bär inget land — se `saveAddress` för varför.
+      postalCodeDigits: "Postnumret ska vara fem eller sex siffror.",
+      addressRemoveFailed: "Kunde inte ta bort adressen.",
+      confirmWord: "Skriv {word} för att bekräfta.",
+      eraseFailed: "Kontot kunde inte raderas.",
+    },
+  },
+
   /** Sidor som inte finns, och fel som inte gick att undvika. */
   errors: {
     notFoundLabel: "404",

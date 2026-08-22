@@ -242,8 +242,10 @@ som inte förstår riskerar något värre än en missad rätt.
 - **Indexerade ytor** har språket i URL:en — `/sv/...`, `/en/...`. Google
   indexerar en URL, inte en cookie; med språket dolt i sessionen kan bara en
   språkversion nå sökresultaten.
-- **QR-sidan och kvittona** läser `Accept-Language`. De är noindex och behöver
-  ingen egen URL per språk — och QR-beställning används av turister.
+- **QR-sidan, kvittona och `/konto`** läser `Accept-Language`. De är noindex och
+  behöver ingen egen URL per språk — och QR-beställning används av turister. Det
+  gäller också serveråtgärderna på de ytorna: felmeddelandet ska komma på samma
+  språk som sidan det visas på.
 - **Personalytorna läser språket ur personen** — `staff.locale`, migration 0047
   — och aldrig ur adressen eller `Accept-Language`. Köket ska inte byta språk
   för att en gäst gjorde det, och en surfplatta på en disk delas av flera.
@@ -337,7 +339,7 @@ där Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat
 | `apps/web` | Rena moduler: öppen vidarebefordran, rate limiter, JSON-LD, i18n, avräkningens periodräkning, köksköns ordning | inget |
 | `scripts/verify-schema.sh` | Migrationer, RLS, grants, triggers, plpgsql | PostgreSQL + PostGIS |
 | `packages/core` (forts.) | Betalningens statusmaskin, kupong, presentkort, klippkort | inget |
-| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 139 kontroller | Docker + Supabase + körande app |
+| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 145 kontroller | Docker + Supabase + körande app |
 
 Route handlers och server components har medvetet inga enhetstester — de kräver
 databas och session för att säga något meningsfullt, och täcks av `smoke.sh`.

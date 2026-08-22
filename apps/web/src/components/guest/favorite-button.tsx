@@ -13,9 +13,16 @@ import { toggleFavorite } from "@/app/konto/actions";
 export function FavoriteButton({
   restaurantId,
   isFavorite: initial,
+  saveLabel,
+  removeLabel,
+  failedLabel,
 }: {
   restaurantId: string;
   isFavorite: boolean;
+  saveLabel: string;
+  removeLabel: string;
+  /** Reserv om servern svarar utan meddelande — hjärtat rullas ändå tillbaka. */
+  failedLabel: string;
 }) {
   const [isFavorite, setIsFavorite] = useState(initial);
   const [pending, startTransition] = useTransition();
@@ -27,7 +34,7 @@ export function FavoriteButton({
         type="button"
         disabled={pending}
         aria-pressed={isFavorite}
-        aria-label={isFavorite ? "Ta bort från favoriter" : "Spara som favorit"}
+        aria-label={isFavorite ? removeLabel : saveLabel}
         onClick={() => {
           const next = !isFavorite;
           setIsFavorite(next);
@@ -37,7 +44,7 @@ export function FavoriteButton({
             const result = await toggleFavorite(restaurantId);
             if (!result.ok) {
               setIsFavorite(!next);
-              setError(result.message ?? "Kunde inte spara.");
+              setError(result.message ?? failedLabel);
             }
           });
         }}

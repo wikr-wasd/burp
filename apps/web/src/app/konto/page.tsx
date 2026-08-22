@@ -4,7 +4,14 @@ import { formatMoney, type OrderStatus } from "@burp/core";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { ReviewForm } from "@/components/guest/review-form";
 import { getGuestOrders, getLoyalty, requireGuest } from "@/lib/guest";
-import { untranslatedSurface } from "@/lib/i18n";
+import {
+  dictionary,
+  fill,
+  requestLocale,
+  LOCALE_DATE_TAGS,
+  type Dictionary,
+  type Locale,
+} from "@/lib/i18n";
 
 /**
  * Gästens konto — mina beställningar.
@@ -12,17 +19,28 @@ import { untranslatedSurface } from "@/lib/i18n";
  * Startvyn är beställningshistoriken, inte en profilsida. Det är den gästen
  * kommer hit för: se vad som är på väg, hitta ett gammalt kvitto, eller lämna
  * omdöme på gårdagens middag.
+ *
+ * Språket läses ur `Accept-Language` och inte ur adressen. `/konto` är noindex
+ * och behöver därför ingen egen URL per språk — samma val som QR-sidan och
+ * kvittona gör, och av samma skäl: en turist som just beställt på tyska ska
+ * hitta sin historik på tyska.
  */
 
-export const metadata: Metadata = {
-  title: "Mitt konto",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = dictionary(await requestLocale());
+
+  return {
+    title: t.account.label,
+    robots: { index: false, follow: false },
+  };
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
   const guest = await requireGuest();
+  const locale = await requestLocale();
+  const t = dictionary(locale);
 
   const [orders, loyalty] = await Promise.all([
     getGuestOrders(guest.userId),
@@ -38,19 +56,24 @@ export default async function AccountPage() {
 
   return (
     <>
-      <GuestHeader guest={guest} current="bestallningar" />
+      <GuestHeader
+        guest={guest}
+        current="bestallningar"
+        texts={t.account}
+        homeLabel={t.site.home}
+      />
 
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <p className="label-caps">Mitt konto</p>
-        <h1 className="font-display mt-2 text-4xl">Mina beställningar</h1>
+        <p className="label-caps">{t.account.label}</p>
+        <h1 className="font-display mt-2 text-4xl">{t.account.ordersTitle}</h1>
 
         {loyalty && loyalty.balance > 0 ? (
           <div className="card mt-4 p-4">
-            <p className="text-sm opacity-60">Poäng</p>
+            <p className="text-sm opacity-60">{t.account.points}</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums">{loyalty.balance}</p>
             {loyalty.expiringSoon > 0 ? (
               <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                {loyalty.expiringSoon} poäng går ut inom 30 dagar.
+                {fill(t.account.pointsExpiring, { n: loyalty.expiringSoon })}
               </p>
             ) : null}
           </div>
@@ -58,19 +81,19 @@ export default async function AccountPage() {
 
         {orders.length === 0 ? (
           <div className="mt-10 border-y border-[var(--rule)] py-14 text-center">
-            <p className="font-display text-3xl">Du har inte beställt något än.</p>
+            <p className="font-display text-3xl">{t.account.ordersEmpty}</p>
             <Link href="/" className="btn btn-primary mt-6">
-              Hitta en restaurang
+              {t.account.findRestaurant}
             </Link>
           </div>
         ) : null}
 
         {active.length > 0 ? (
           <section className="mt-8">
-            <h2 className="label-caps mt-5">Pågående</h2>
+            <h2 className="label-caps mt-5">{t.account.ongoing}</h2>
             <ul className="mt-3 space-y-3">
               {active.map((order) => (
-                <OrderCard key={order.id} order={order} />
+                <OrderCard key={order.id} order={order} t={t} locale={locale} />
               ))}
             </ul>
           </section>
@@ -78,10 +101,10 @@ export default async function AccountPage() {
 
         {past.length > 0 ? (
           <section className="mt-8">
-            <h2 className="label-caps mt-5">Tidigare</h2>
+            <h2 className="label-caps mt-5">{t.account.earlier}</h2>
             <ul className="mt-3 space-y-3">
               {past.map((order) => (
-                <OrderCard key={order.id} order={order} />
+                <OrderCard key={order.id} order={order} t={t} locale={locale} />
               ))}
             </ul>
           </section>
@@ -91,7 +114,15 @@ export default async function AccountPage() {
   );
 }
 
-function OrderCard({ order }: { order: Awaited<ReturnType<typeof getGuestOrders>>[number] }) {
+function OrderCard({
+  order,
+  t,
+  locale,
+}: {
+  order: Awaited<ReturnType<typeof getGuestOrders>>[number];
+  t: Dictionary;
+  locale: Locale;
+}) {
   const date = order.completedAt ?? order.placedAt;
 
   return (
@@ -111,9 +142,25 @@ function OrderCard({ order }: { order: Awaited<ReturnType<typeof getGuestOrders>
       </div>
 
       <p className="mt-1 text-sm opacity-60">
-        {untranslatedSurface().staff.status[order.status as OrderStatus]}
-        {date ? ` · ${new Date(date).toLocaleDateString("sv-SE")}` : null}
-        {order.type === "TABLE" ? " · vid bordet" : order.type === "PICKUP" ? " · avhämtning" : null}
+        {/*
+          Gästens ord för statusen, inte personalens. `receipt.status` säger
+          "Serverad" där `staff.status` säger "Slutförd" — samma tillstånd sett
+          från två håll, och gästen sitter vid bordet.
+        */}
+        {t.receipt.status[order.status as OrderStatus]}
+        {/*
+          Datumet i läsarens format. `sv-SE` stod hårdkodat här: en tysk gäst
+          fick 2026-08-22 i stället för 22.8.2026. `LOCALE_DATE_TAGS` och inte
+          `LOCALE_TAGS` — ett omärkt `en` ger amerikanskt format, alltså månad
+          före dag, och ett datum som läses baklänges är värre än ett datum på
+          fel språk.
+        */}
+        {date ? ` · ${new Date(date).toLocaleDateString(LOCALE_DATE_TAGS[locale])}` : null}
+        {order.type === "TABLE"
+          ? ` · ${t.account.atTable}`
+          : order.type === "PICKUP"
+            ? ` · ${t.account.pickup}`
+            : null}
       </p>
 
       {order.itemNames.length > 0 ? (
@@ -124,11 +171,16 @@ function OrderCard({ order }: { order: Awaited<ReturnType<typeof getGuestOrders>
           databasen enforcar, speglad här för att inte visa ett formulär som
           servern ändå kommer att avvisa. */}
       {order.status === "COMPLETED" && !order.hasReview ? (
-        <ReviewForm orderId={order.id} restaurantName={order.restaurantName} />
+        <ReviewForm
+          orderId={order.id}
+          restaurantName={order.restaurantName}
+          texts={t.account}
+          reviewTexts={t.receipt}
+        />
       ) : null}
 
       {order.hasReview ? (
-        <p className="mt-3 text-sm opacity-60">Du har lämnat omdöme på den här beställningen.</p>
+        <p className="mt-3 text-sm opacity-60">{t.account.reviewed}</p>
       ) : null}
     </li>
   );

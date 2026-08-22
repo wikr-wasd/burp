@@ -5,17 +5,23 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { FavoriteButton } from "@/components/guest/favorite-button";
 import { requireGuest } from "@/lib/guest";
+import { dictionary, requestLocale } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "Favoriter",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = dictionary(await requestLocale());
+
+  return {
+    title: t.account.favorites,
+    robots: { index: false, follow: false },
+  };
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function FavoritesPage() {
   const guest = await requireGuest("/konto/favoriter");
+  const t = dictionary(await requestLocale());
   const supabase = await createClient();
 
   const { data: favorites } = await supabase
@@ -39,21 +45,26 @@ export default async function FavoritesPage() {
 
   return (
     <>
-      <GuestHeader guest={guest} current="favoriter" />
+      <GuestHeader
+        guest={guest}
+        current="favoriter"
+        texts={t.account}
+        homeLabel={t.site.home}
+      />
 
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <p className="label-caps">Mitt konto</p>
-        <h1 className="font-display mt-2 text-4xl">Favoriter</h1>
+        <p className="label-caps">{t.account.label}</p>
+        <h1 className="font-display mt-2 text-4xl">{t.account.favorites}</h1>
 
         {ordered.length === 0 ? (
           <div className="mt-6">
             <EmptyState
               icon={Heart}
-              title="Inga favoriter än"
-              body="Spara en restaurang så hittar du tillbaka snabbare."
+              title={t.account.favoritesEmptyTitle}
+              body={t.account.favoritesEmptyBody}
               action={
                 <Link href="/" className="btn btn-primary">
-                  Bläddra bland restauranger
+                  {t.account.browseRestaurants}
                 </Link>
               }
             />
@@ -78,8 +89,12 @@ export default async function FavoritesPage() {
                   </p>
                   {restaurant.rating_count > 0 && restaurant.rating_average !== null ? (
                     <p className="text-sm opacity-60">
-                      {restaurant.rating_average.toFixed(1).replace(".", ",")} av 5 ·{" "}
-                      {restaurant.rating_count} omdömen
+                      {/* Samma formulering som startsidans träfflista. En egen
+                          hade betytt två sätt att skriva samma betyg. */}
+                      {t.home.ratingSummary(
+                        restaurant.rating_average.toFixed(1).replace(".", ","),
+                        restaurant.rating_count,
+                      )}
                     </p>
                   ) : null}
                   {/* En favoritmarkerad restaurang kan ha pausat eller stängts av.
@@ -87,12 +102,18 @@ export default async function FavoritesPage() {
                       sida som inte går att beställa från. */}
                   {restaurant.status !== "ACTIVE" ? (
                     <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                      Tar inte emot beställningar just nu.
+                      {t.account.notAcceptingOrders}
                     </p>
                   ) : null}
                 </div>
 
-                <FavoriteButton restaurantId={restaurant.id} isFavorite />
+                <FavoriteButton
+                  restaurantId={restaurant.id}
+                  isFavorite
+                  saveLabel={t.account.saveFavorite}
+                  removeLabel={t.account.removeFavorite}
+                  failedLabel={t.account.errors.favoriteFailed}
+                />
               </li>
             ))}
           </ul>

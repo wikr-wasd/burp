@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { eraseGuest } from "@/lib/gdpr";
 import { getGuest } from "@/lib/guest";
+import { dictionary, fill, requestLocale } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -27,19 +28,23 @@ const CONFIRMATION = "RADERA";
 
 export async function eraseMyAccount(confirmation: string): Promise<EraseActionResult> {
   const guest = await getGuest();
+  const t = dictionary(await requestLocale()).account;
 
   if (!guest) {
-    return { ok: false, message: "Du måste vara inloggad." };
+    return { ok: false, message: t.errors.mustBeLoggedIn };
   }
 
+  // Ordet självt översätts inte — se `delete-account.tsx`. Det är ett lösenord
+  // och inte en mening, och ett översatt ord hade krävt att servern och
+  // webbläsaren är överens om språket i exakt det ögonblicket.
   if (confirmation.trim().toUpperCase() !== CONFIRMATION) {
-    return { ok: false, message: `Skriv ${CONFIRMATION} för att bekräfta.` };
+    return { ok: false, message: fill(t.errors.confirmWord, { word: CONFIRMATION }) };
   }
 
   const result = await eraseGuest(guest.userId);
 
   if (!result.ok) {
-    return { ok: false, message: result.message ?? "Kontot kunde inte raderas." };
+    return { ok: false, message: result.message ?? t.errors.eraseFailed };
   }
 
   /*

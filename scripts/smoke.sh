@@ -1271,6 +1271,38 @@ check_status "inbjudningslänken kräver inloggning" \
   "/personal/inbjudan/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" 307
 check_status "raderat-kvittot är öppet"                "/konto/raderat"        200
 
+# ── Kontoytans språk ───────────────────────────────────────────────────────
+#
+# `/konto` är noindex och har inget språk i adressen. Ytorna läser
+# `Accept-Language`, precis som QR-sidan och kvittona — en turist som beställt
+# på tyska ska hitta sin historik på tyska.
+#
+# Raderingskvittot är den enda kontosidan som går att pröva utan inloggning,
+# och det är också den som skulle ha varit svår att upptäcka: sidan var
+# statisk, och en statisk sida hade serverat det första språket någon råkade
+# komma med till alla efter honom.
+for pair in "sv-SE|Kontot är raderat" \
+            "bs-BA|Nalog je obrisan" \
+            "en-GB|The account is deleted" \
+            "de-DE|Das Konto ist gelöscht" \
+            "nb-NO|Kontoen er slettet"; do
+  LANG_TAG="${pair%%|*}"
+  EXPECTED="${pair#*|}"
+  if curl -s -H "Accept-Language: $LANG_TAG" "$BASE/konto/raderat" | grep -qF "$EXPECTED"; then
+    pass "raderat-kvittot talar $LANG_TAG"
+  else
+    fail "raderat-kvittot saknar '$EXPECTED' för $LANG_TAG"
+  fi
+done
+
+# En kroatisk telefon skickar `hr-HR` och har ingen egen ordbok. Utan aliaset i
+# `pickLocale` faller den till svenska — mitt i Zagreb.
+if curl -s -H 'Accept-Language: hr-HR,hr;q=0.9' "$BASE/konto/raderat" | grep -qF "Nalog je obrisan"; then
+  pass "kroatisk webbläsare får bosniska på kontoytan"
+else
+  fail "kroatisk webbläsare fick inte bosniska på kontoytan"
+fi
+
 # Exporten svarar 401 och inte en omdirigering. Den som anropar rutten direkt
 # ska få veta att det var inloggningen som saknades, inte hamna på ett formulär.
 check_status "GDPR-exporten kräver inloggning"  "/api/konto/export"  401

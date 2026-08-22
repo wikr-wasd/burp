@@ -157,9 +157,10 @@ describe("ordböckerna", () => {
       // "Bild" och "Rabatt" stavas likadant på tyska och svenska.
       "staff.menu.image",
       "staff.reports.discount",
-      // "Land" och "Telefon" delas rakt av.
+      // "Land", "Telefon" och "Ort" delas rakt av.
       "join.country",
       "join.phone",
+      "account.city",
       /*
        * Kroatien och Serbien heter likadant på tyska och svenska.
        *
@@ -227,6 +228,16 @@ describe("ordböckerna", () => {
       // Sverige heter Sverige på norska. Bosnia-Hercegovina, Kroatia och
       // Serbia gör det inte, vilket är kvittot på att raderna är norska.
       "country.SE",
+      /*
+       * Kontoytan. Tre ord som stavas likadant på båda språken.
+       *
+       * Notera vilka som INTE står här: `account.orders` är "Bestillinger" mot
+       * "Beställningar", `account.remove` är "Fjern" mot "Ta bort", och
+       * `account.details` är "Mine opplysninger" mot "Mina uppgifter".
+       */
+      "account.addresses",
+      "account.postalCode",
+      "account.cancel",
       /*
        * Personalytorna. Samma mönster som ovan: norskan och svenskan delar
        * orden rakt av, och att skriva om dem för att slippa en kollision hade
@@ -366,7 +377,7 @@ function flatten(value: unknown, prefix = ""): Record<string, unknown> {
  * precis det sättet, och såg fungerande ut.
  */
 describe("texter som korsar server/klient-gränsen", () => {
-  for (const section of ["menu", "table", "receipt", "join"] as const) {
+  for (const section of ["menu", "table", "receipt", "join", "account"] as const) {
     it(`${section} innehåller bara strängar`, () => {
       for (const dict of Object.values(ALL)) {
         for (const [key, value] of Object.entries(dict[section])) {

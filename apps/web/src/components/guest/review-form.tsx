@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitReview, type ActionResult } from "@/app/konto/actions";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
  * Omdömesformuläret (avsnitt 7).
@@ -10,13 +11,21 @@ import { submitReview, type ActionResult } from "@/app/konto/actions";
  * Mat och service betygsätts separat. En långsam servering ska inte dra ned
  * betyget på maten — och restaurangen ska kunna se vilket av de två som är
  * problemet.
+ *
+ * Orden lånas ur `receipt` och inte ur `account`. Bordskvittot har samma
+ * formulär, och två uppsättningar hade glidit isär och gett samma gäst olika
+ * ord för samma stjärnor beroende på var hon råkade trycka.
  */
 export function ReviewForm({
   orderId,
   restaurantName,
+  texts,
+  reviewTexts,
 }: {
   orderId: string;
   restaurantName: string;
+  texts: Dictionary["account"];
+  reviewTexts: Dictionary["receipt"];
 }) {
   const [result, formAction] = useActionState<ActionResult | null, FormData>(submitReview, null);
   const [open, setOpen] = useState(false);
@@ -34,7 +43,7 @@ export function ReviewForm({
         onClick={() => setOpen(true)}
         className="card mt-3 min-h-11  px-4 text-sm"
       >
-        Lämna omdöme
+        {reviewTexts.reviewOpen}
       </button>
     );
   }
@@ -45,17 +54,26 @@ export function ReviewForm({
       <input type="hidden" name="rating_food" value={food} />
       <input type="hidden" name="rating_service" value={service || ""} />
 
-      <p className="text-sm font-medium">Hur var maten på {restaurantName}?</p>
-      <Stars value={food} onChange={setFood} label="Betyg på maten" />
+      <p className="text-sm font-medium">
+        {fill(texts.reviewPromptAt, { restaurant: restaurantName })}
+      </p>
+      <Stars value={food} onChange={setFood} label={reviewTexts.reviewFood} star={reviewTexts.reviewStar} />
 
       <p className="mt-3 text-sm font-medium">
-        Service <span className="normal-case whitespace-nowrap">valfritt</span>
+        {reviewTexts.reviewService}{" "}
+        <span className="normal-case whitespace-nowrap">{reviewTexts.reviewOptional}</span>
       </p>
-      <Stars value={service} onChange={setService} label="Betyg på servicen" />
+      <Stars
+        value={service}
+        onChange={setService}
+        label={reviewTexts.reviewService}
+        star={reviewTexts.reviewStar}
+      />
 
       <label className="mt-3 block">
         <span className="label-caps">
-          Kommentar <span className="normal-case whitespace-nowrap">valfritt</span>
+          {reviewTexts.reviewComment}{" "}
+          <span className="normal-case whitespace-nowrap">{reviewTexts.reviewOptional}</span>
         </span>
         <textarea
           name="comment"
@@ -72,13 +90,18 @@ export function ReviewForm({
       ) : null}
 
       <div className="mt-3 flex gap-2">
-        <Submit disabled={food === 0} />
+        <Submit
+          disabled={food === 0}
+          sending={reviewTexts.reviewSending}
+          needsFood={texts.reviewNeedsFood}
+          submit={reviewTexts.reviewSubmit}
+        />
         <button
           type="button"
           onClick={() => setOpen(false)}
           className="card min-h-11  px-4"
         >
-          Avbryt
+          {reviewTexts.reviewCancel}
         </button>
       </div>
     </form>
@@ -89,23 +112,26 @@ function Stars({
   value,
   onChange,
   label,
+  star,
 }: {
   value: number;
   onChange: (value: number) => void;
   label: string;
+  /** "{n} av 5" — varje knapp säger vilket betyg den sätter. */
+  star: string;
 }) {
   return (
     <div className="mt-1 flex gap-1" role="group" aria-label={label}>
-      {[1, 2, 3, 4, 5].map((star) => (
+      {[1, 2, 3, 4, 5].map((n) => (
         <button
-          key={star}
+          key={n}
           type="button"
-          aria-label={`${star} av 5`}
-          aria-pressed={value === star}
-          onClick={() => onChange(star)}
+          aria-label={fill(star, { n })}
+          aria-pressed={value === n}
+          onClick={() => onChange(n)}
           // 44 px minst — det här trycks med tummen på en telefon.
           className={`h-11 w-11 border text-lg ${
-            star <= value
+            n <= value
               ? "border-transparent bg-burp-600 text-white"
               : "border-[var(--rule)]"
           }`}
@@ -117,7 +143,17 @@ function Stars({
   );
 }
 
-function Submit({ disabled }: { disabled: boolean }) {
+function Submit({
+  disabled,
+  sending,
+  needsFood,
+  submit,
+}: {
+  disabled: boolean;
+  sending: string;
+  needsFood: string;
+  submit: string;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -126,7 +162,7 @@ function Submit({ disabled }: { disabled: boolean }) {
       disabled={disabled || pending}
       className="min-h-11 flex-1 bg-burp-600 px-4 font-medium text-white disabled:opacity-50"
     >
-      {pending ? "Skickar…" : disabled ? "Välj betyg på maten" : "Skicka omdöme"}
+      {pending ? sending : disabled ? needsFood : submit}
     </button>
   );
 }

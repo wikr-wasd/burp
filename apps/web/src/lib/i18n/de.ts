@@ -331,6 +331,97 @@ export const de: Dictionary = {
     },
   },
 
+  account: {
+    label: "Mein Konto",
+
+    orders: "Bestellungen",
+    favorites: "Favoriten",
+    addresses: "Adressen",
+    details: "Meine Daten",
+    logOut: "Abmelden",
+
+    ordersTitle: "Meine Bestellungen",
+    points: "Punkte",
+    pointsExpiring: "{n} Punkte verfallen innerhalb von 30 Tagen.",
+    ordersEmpty: "Sie haben noch nichts bestellt.",
+    findRestaurant: "Ein Restaurant finden",
+    ongoing: "Laufend",
+    earlier: "Früher",
+    atTable: "am Tisch",
+    pickup: "Abholung",
+    reviewed: "Sie haben diese Bestellung bereits bewertet.",
+    reviewPromptAt: "Wie war das Essen im {restaurant}?",
+    reviewNeedsFood: "Bewerten Sie das Essen",
+
+    favoritesEmptyTitle: "Noch keine Favoriten",
+    favoritesEmptyBody: "Speichern Sie ein Restaurant, dann finden Sie schneller zurück.",
+    browseRestaurants: "Restaurants durchsehen",
+    notAcceptingOrders: "Nimmt gerade keine Bestellungen an.",
+    saveFavorite: "Als Favorit speichern",
+    removeFavorite: "Aus den Favoriten entfernen",
+
+    addressesIntro:
+      "Wird für Lieferbestellungen gespeichert. Lieferung ist noch nicht freigeschaltet.",
+    addressesEmptyTitle: "Keine gespeicherten Adressen",
+    addressesEmptyBody:
+      "Legen Sie unten eine an, dann müssen Sie sie nicht jedes Mal eintippen.",
+    doorCodeShort: "Türcode {code}",
+    newAddress: "Neue Adresse",
+    addressLabel: "Bezeichnung",
+    addressLabelPlaceholder: "Zuhause, Arbeit…",
+    street: "Straße und Hausnummer",
+    postalCode: "Postleitzahl",
+    city: "Ort",
+    doorCode: "Türcode",
+    optional: "optional",
+    remove: "Entfernen",
+    cancel: "Abbrechen",
+    saving: "Wird gespeichert…",
+    saveAddress: "Adresse speichern",
+
+    exportTitle: "Eine Kopie herunterladen",
+    exportBody:
+      "Alles, was Burp über Sie hat, in einer Datei: Ihr Konto, Ihre Adressen, alle Bestellungen mit ihren Positionen, Ihre Bewertungen, Favoriten, Punkte, Gutscheincodes und Stempelkarten. Die Datei ist JSON und sowohl für Sie als auch für ein anderes Programm lesbar.",
+    exportButton: "Meine Daten herunterladen",
+    deleteTitle: "Mein Konto löschen",
+    deleteBody:
+      "Ihr Konto, Ihr Profil, Ihre Adressen und Ihre Favoriten werden entfernt. Das lässt sich nicht rückgängig machen.",
+    remainsTitle: "Das bleibt, ohne Sie",
+    remainsOrders:
+      "Ihre Bestellungen und Belege, als Buchhaltungsunterlagen des Restaurants. Sie verweisen nicht mehr auf Sie.",
+    remainsRatings:
+      "Die Noten, die Sie vergeben haben. Ihr Text und Ihr hochgeladenes Bild werden gelöscht; die Zahl bleibt ohne Absender.",
+    remainsPoints: "Ihre Punkte und Stempelkarten verschwinden — niemand kann sie einlösen.",
+    deleteConfirmTitle: "Sind Sie sicher?",
+    deleteConfirmBody:
+      "Tippen Sie {word} zur Bestätigung. Laden Sie vorher eine Kopie Ihrer Daten herunter — danach geht es nicht mehr.",
+    deleteConfirmLabel: "Tippen Sie {word} zur Bestätigung",
+    deleting: "Wird gelöscht…",
+    deleteForever: "Endgültig löschen",
+
+    erasedTitle: "Das Konto ist gelöscht",
+    erasedBody:
+      "Ihr Profil, Ihre Adressen und Ihre Favoriten sind weg, und nichts bei uns verweist noch auf Sie. Die Bestellungen bleiben bei den Restaurants als Buchhaltungsunterlagen, ohne Verbindung zu Ihnen.",
+    erasedAgain:
+      "Sie können jederzeit wieder bestellen — am Tisch brauchen Sie überhaupt kein Konto.",
+    toHome: "Zur Startseite",
+
+    errors: {
+      mustBeLoggedIn: "Sie müssen angemeldet sein.",
+      favoritesNeedAccount: "Sie müssen angemeldet sein, um Favoriten zu speichern.",
+      favoriteFailed: "Konnte nicht gespeichert werden.",
+      reviewUnreadable:
+        "Die Bewertung konnte nicht gelesen werden. Bewerten Sie zumindest das Essen.",
+      orderNotFound: "Die Bestellung wurde nicht gefunden.",
+      reviewNotCompleted: "Bewerten können Sie erst, wenn die Bestellung abgeschlossen ist.",
+      addressFieldsRequired: "Füllen Sie Straße, Postleitzahl und Ort aus.",
+      postalCodeDigits: "Die Postleitzahl muss fünf oder sechs Ziffern haben.",
+      addressRemoveFailed: "Die Adresse konnte nicht entfernt werden.",
+      confirmWord: "Tippen Sie {word} zur Bestätigung.",
+      eraseFailed: "Das Konto konnte nicht gelöscht werden.",
+    },
+  },
+
   errors: {
     notFoundLabel: "404",
     notFoundTitle: "Diese Seite gibt es nicht.",

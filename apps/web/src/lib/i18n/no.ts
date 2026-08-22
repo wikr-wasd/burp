@@ -331,6 +331,93 @@ export const no: Dictionary = {
     },
   },
 
+  account: {
+    label: "Min konto",
+
+    orders: "Bestillinger",
+    favorites: "Favoritter",
+    addresses: "Adresser",
+    details: "Mine opplysninger",
+    logOut: "Logg ut",
+
+    ordersTitle: "Mine bestillinger",
+    points: "Poeng",
+    pointsExpiring: "{n} poeng utløper innen 30 dager.",
+    ordersEmpty: "Du har ikke bestilt noe ennå.",
+    findRestaurant: "Finn en restaurant",
+    ongoing: "Pågår",
+    earlier: "Tidligere",
+    atTable: "ved bordet",
+    pickup: "henting",
+    reviewed: "Du har allerede gitt tilbakemelding på denne bestillingen.",
+    reviewPromptAt: "Hvordan var maten på {restaurant}?",
+    reviewNeedsFood: "Gi maten en karakter",
+
+    favoritesEmptyTitle: "Ingen favoritter ennå",
+    favoritesEmptyBody: "Lagre en restaurant, så finner du raskere tilbake.",
+    browseRestaurants: "Bla gjennom restauranter",
+    notAcceptingOrders: "Tar ikke imot bestillinger akkurat nå.",
+    saveFavorite: "Lagre som favoritt",
+    removeFavorite: "Fjern fra favoritter",
+
+    addressesIntro: "Lagres til leveringsbestillinger. Levering er ikke slått på ennå.",
+    addressesEmptyTitle: "Ingen lagrede adresser",
+    addressesEmptyBody: "Legg til en under, så slipper du å skrive den hver gang.",
+    doorCodeShort: "portkode {code}",
+    newAddress: "Ny adresse",
+    addressLabel: "Navn",
+    addressLabelPlaceholder: "Hjemme, Jobb…",
+    street: "Gateadresse",
+    postalCode: "Postnummer",
+    city: "Sted",
+    doorCode: "Portkode",
+    optional: "valgfritt",
+    remove: "Fjern",
+    cancel: "Avbryt",
+    saving: "Lagrer…",
+    saveAddress: "Lagre adresse",
+
+    exportTitle: "Last ned en kopi",
+    exportBody:
+      "Alt Burp har om deg i én fil: kontoen din, adressene dine, alle bestillinger med linjer, tilbakemeldingene dine, favoritter, poeng, kuponger og klippekort. Filen er JSON og kan leses både av deg og av et annet program.",
+    exportButton: "Last ned opplysningene mine",
+    deleteTitle: "Slett kontoen min",
+    deleteBody:
+      "Kontoen din, profilen din, adressene dine og favorittene dine fjernes. Det kan ikke angres.",
+    remainsTitle: "Dette blir stående, uten deg",
+    remainsOrders:
+      "Bestillingene og kvitteringene dine, som regnskapsgrunnlag hos restauranten. De slutter å peke på deg.",
+    remainsRatings:
+      "Karakterene du har gitt. Teksten du skrev og bildet du lastet opp slettes; tallet blir stående uten avsender.",
+    remainsPoints: "Poengene og klippekortene dine forsvinner — ingen kan bruke dem.",
+    deleteConfirmTitle: "Er du sikker?",
+    deleteConfirmBody:
+      "Skriv {word} for å bekrefte. Last gjerne ned en kopi av opplysningene dine først — etterpå går det ikke.",
+    deleteConfirmLabel: "Skriv {word} for å bekrefte",
+    deleting: "Sletter…",
+    deleteForever: "Slett for alltid",
+
+    erasedTitle: "Kontoen er slettet",
+    erasedBody:
+      "Profilen din, adressene dine og favorittene dine er borte, og ingenting hos oss peker lenger ut deg. Bestillingene blir stående hos restaurantene som regnskapsgrunnlag, uten kobling til deg.",
+    erasedAgain: "Du kan bestille igjen når du vil — ved bordet trengs ingen konto i det hele tatt.",
+    toHome: "Til forsiden",
+
+    errors: {
+      mustBeLoggedIn: "Du må være innlogget.",
+      favoritesNeedAccount: "Du må være innlogget for å lagre favoritter.",
+      favoriteFailed: "Kunne ikke lagre.",
+      reviewUnreadable: "Karakteren kunne ikke tolkes. Gi i det minste maten en karakter.",
+      orderNotFound: "Bestillingen ble ikke funnet.",
+      reviewNotCompleted: "Du kan gi tilbakemelding først når bestillingen er ferdig.",
+      addressFieldsRequired: "Fyll inn gate, postnummer og sted.",
+      postalCodeDigits: "Postnummeret skal ha fem eller seks siffer.",
+      addressRemoveFailed: "Adressen kunne ikke fjernes.",
+      confirmWord: "Skriv {word} for å bekrefte.",
+      eraseFailed: "Kontoen kunne ikke slettes.",
+    },
+  },
+
   errors: {
     notFoundLabel: "404",
     notFoundTitle: "Denne siden finnes ikke.",

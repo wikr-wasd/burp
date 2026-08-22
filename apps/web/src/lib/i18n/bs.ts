@@ -354,6 +354,93 @@ export const bs: Dictionary = {
     },
   },
 
+  account: {
+    label: "Moj nalog",
+
+    orders: "Narudžbe",
+    favorites: "Omiljeni",
+    addresses: "Adrese",
+    details: "Moji podaci",
+    logOut: "Odjava",
+
+    ordersTitle: "Moje narudžbe",
+    points: "Bodovi",
+    pointsExpiring: "{n} bodova ističe u narednih 30 dana.",
+    ordersEmpty: "Još niste ništa naručili.",
+    findRestaurant: "Pronađi restoran",
+    ongoing: "U toku",
+    earlier: "Ranije",
+    atTable: "za stolom",
+    pickup: "preuzimanje",
+    reviewed: "Već ste ocijenili ovu narudžbu.",
+    reviewPromptAt: "Kakva je bila hrana u {restaurant}?",
+    reviewNeedsFood: "Ocijenite hranu",
+
+    favoritesEmptyTitle: "Još nema omiljenih",
+    favoritesEmptyBody: "Sačuvajte restoran pa ćete ga brže pronaći ponovo.",
+    browseRestaurants: "Pregledaj restorane",
+    notAcceptingOrders: "Trenutno ne prima narudžbe.",
+    saveFavorite: "Sačuvaj kao omiljeno",
+    removeFavorite: "Ukloni iz omiljenih",
+
+    addressesIntro: "Čuva se za narudžbe s dostavom. Dostava još nije uključena.",
+    addressesEmptyTitle: "Nema sačuvanih adresa",
+    addressesEmptyBody: "Dodajte jednu ispod pa je nećete morati pisati svaki put.",
+    doorCodeShort: "šifra ulaza {code}",
+    newAddress: "Nova adresa",
+    addressLabel: "Naziv",
+    addressLabelPlaceholder: "Kuća, Posao…",
+    street: "Ulica i broj",
+    postalCode: "Poštanski broj",
+    city: "Mjesto",
+    doorCode: "Šifra ulaza",
+    optional: "nije obavezno",
+    remove: "Ukloni",
+    cancel: "Odustani",
+    saving: "Čuvam…",
+    saveAddress: "Sačuvaj adresu",
+
+    exportTitle: "Preuzmite kopiju",
+    exportBody:
+      "Sve što Burp ima o vama u jednoj datoteci: vaš nalog, vaše adrese, sve narudžbe sa stavkama, vaše ocjene, omiljeni restorani, bodovi, kuponi i kartice vjernosti. Datoteka je JSON i može je čitati i čovjek i drugi program.",
+    exportButton: "Preuzmi moje podatke",
+    deleteTitle: "Obriši moj nalog",
+    deleteBody:
+      "Vaš nalog, profil, adrese i omiljeni restorani se brišu. To se ne može poništiti.",
+    remainsTitle: "Ovo ostaje, bez vas",
+    remainsOrders:
+      "Vaše narudžbe i računi, kao knjigovodstvena dokumentacija restorana. Prestaju upućivati na vas.",
+    remainsRatings:
+      "Ocjene koje ste dali. Tekst koji ste napisali i slika koju ste dodali se brišu; broj ostaje bez pošiljaoca.",
+    remainsPoints: "Vaši bodovi i kartice vjernosti nestaju — niko ih ne može iskoristiti.",
+    deleteConfirmTitle: "Jeste li sigurni?",
+    deleteConfirmBody:
+      "Upišite {word} za potvrdu. Preuzmite prvo kopiju svojih podataka — poslije više neće ići.",
+    deleteConfirmLabel: "Upišite {word} za potvrdu",
+    deleting: "Brišem…",
+    deleteForever: "Obriši zauvijek",
+
+    erasedTitle: "Nalog je obrisan",
+    erasedBody:
+      "Vaš profil, vaše adrese i vaši omiljeni restorani su nestali, i ništa kod nas više ne upućuje na vas. Narudžbe ostaju kod restorana kao knjigovodstvena dokumentacija, bez veze s vama.",
+    erasedAgain: "Možete naručiti ponovo kad god želite — za stolom nalog uopšte ne treba.",
+    toHome: "Na početnu stranicu",
+
+    errors: {
+      mustBeLoggedIn: "Morate biti prijavljeni.",
+      favoritesNeedAccount: "Morate biti prijavljeni da biste čuvali omiljene restorane.",
+      favoriteFailed: "Nije uspjelo čuvanje.",
+      reviewUnreadable: "Ocjena se nije mogla pročitati. Ocijenite bar hranu.",
+      orderNotFound: "Narudžba nije pronađena.",
+      reviewNotCompleted: "Ocjenu možete ostaviti tek kad narudžba bude gotova.",
+      addressFieldsRequired: "Popunite ulicu, poštanski broj i mjesto.",
+      postalCodeDigits: "Poštanski broj treba imati pet ili šest cifara.",
+      addressRemoveFailed: "Adresa se nije mogla ukloniti.",
+      confirmWord: "Upišite {word} za potvrdu.",
+      eraseFailed: "Nalog se nije mogao obrisati.",
+    },
+  },
+
   errors: {
     notFoundLabel: "404",
     notFoundTitle: "Ova stranica ne postoji.",

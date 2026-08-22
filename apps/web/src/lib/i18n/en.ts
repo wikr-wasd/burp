@@ -329,6 +329,93 @@ export const en: Dictionary = {
     },
   },
 
+  account: {
+    label: "My account",
+
+    orders: "Orders",
+    favorites: "Favourites",
+    addresses: "Addresses",
+    details: "My data",
+    logOut: "Log out",
+
+    ordersTitle: "My orders",
+    points: "Points",
+    pointsExpiring: "{n} points expire within 30 days.",
+    ordersEmpty: "You have not ordered anything yet.",
+    findRestaurant: "Find a restaurant",
+    ongoing: "In progress",
+    earlier: "Earlier",
+    atTable: "at the table",
+    pickup: "pickup",
+    reviewed: "You have already reviewed this order.",
+    reviewPromptAt: "How was the food at {restaurant}?",
+    reviewNeedsFood: "Rate the food",
+
+    favoritesEmptyTitle: "No favourites yet",
+    favoritesEmptyBody: "Save a restaurant and you will find your way back faster.",
+    browseRestaurants: "Browse restaurants",
+    notAcceptingOrders: "Not taking orders right now.",
+    saveFavorite: "Save as favourite",
+    removeFavorite: "Remove from favourites",
+
+    addressesIntro: "Saved for delivery orders. Delivery is not switched on yet.",
+    addressesEmptyTitle: "No saved addresses",
+    addressesEmptyBody: "Add one below and you will not have to type it every time.",
+    doorCodeShort: "door code {code}",
+    newAddress: "New address",
+    addressLabel: "Name",
+    addressLabelPlaceholder: "Home, Work…",
+    street: "Street address",
+    postalCode: "Postcode",
+    city: "Town",
+    doorCode: "Door code",
+    optional: "optional",
+    remove: "Remove",
+    cancel: "Cancel",
+    saving: "Saving…",
+    saveAddress: "Save address",
+
+    exportTitle: "Download a copy",
+    exportBody:
+      "Everything Burp holds about you in one file: your account, your addresses, every order with its lines, your reviews, favourites, points, coupons and punch cards. The file is JSON and can be read both by you and by another program.",
+    exportButton: "Download my data",
+    deleteTitle: "Delete my account",
+    deleteBody:
+      "Your account, your profile, your addresses and your favourites are removed. This cannot be undone.",
+    remainsTitle: "This stays, without you",
+    remainsOrders:
+      "Your orders and receipts, as accounting records at the restaurant. They stop pointing to you.",
+    remainsRatings:
+      "The ratings you gave. The text you wrote and the photo you uploaded are deleted; the number stays without a sender.",
+    remainsPoints: "Your points and punch cards disappear — nobody can use them.",
+    deleteConfirmTitle: "Are you sure?",
+    deleteConfirmBody:
+      "Type {word} to confirm. Download a copy of your data first — afterwards it is no longer possible.",
+    deleteConfirmLabel: "Type {word} to confirm",
+    deleting: "Deleting…",
+    deleteForever: "Delete forever",
+
+    erasedTitle: "The account is deleted",
+    erasedBody:
+      "Your profile, your addresses and your favourites are gone, and nothing here points to you any more. The orders stay with the restaurants as accounting records, with no link to you.",
+    erasedAgain: "You can order again whenever you like — at the table no account is needed at all.",
+    toHome: "Go to the home page",
+
+    errors: {
+      mustBeLoggedIn: "You have to be logged in.",
+      favoritesNeedAccount: "You have to be logged in to save favourites.",
+      favoriteFailed: "Could not save that.",
+      reviewUnreadable: "The rating could not be read. Rate the food at least.",
+      orderNotFound: "The order was not found.",
+      reviewNotCompleted: "You can leave a review once the order is done.",
+      addressFieldsRequired: "Fill in street, postcode and town.",
+      postalCodeDigits: "The postcode has to be five or six digits.",
+      addressRemoveFailed: "The address could not be removed.",
+      confirmWord: "Type {word} to confirm.",
+      eraseFailed: "The account could not be deleted.",
+    },
+  },
+
   errors: {
     notFoundLabel: "404",
     notFoundTitle: "This page does not exist.",

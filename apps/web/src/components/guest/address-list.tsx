@@ -6,8 +6,15 @@ import { MapPin } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteAddress, saveAddress, type ActionResult } from "@/app/konto/actions";
 import type { GuestAddress } from "@/app/konto/adresser/page";
+import { fill, type Dictionary } from "@/lib/i18n";
 
-export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
+export function AddressList({
+  addresses,
+  texts,
+}: {
+  addresses: GuestAddress[];
+  texts: Dictionary["account"];
+}) {
   const [result, formAction] = useActionState<ActionResult | null, FormData>(saveAddress, null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +24,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
     setError(null);
     startTransition(async () => {
       const outcome = await deleteAddress(addressId);
-      if (!outcome.ok) setError(outcome.message ?? "Kunde inte ta bort adressen.");
+      if (!outcome.ok) setError(outcome.message ?? texts.errors.addressRemoveFailed);
       setConfirmDelete(null);
     });
   }
@@ -42,7 +49,9 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
                 <p>{address.streetAddress}</p>
                 <p className="text-sm opacity-60">
                   {address.postalCode} {address.city}
-                  {address.doorCode ? ` · portkod ${address.doorCode}` : ""}
+                  {address.doorCode
+                    ? ` · ${fill(texts.doorCodeShort, { code: address.doorCode })}`
+                    : ""}
                 </p>
               </div>
 
@@ -54,14 +63,14 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
                     onClick={() => remove(address.id)}
                     className="min-h-11 bg-red-600 px-4 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    Ta bort
+                    {texts.remove}
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(null)}
                     className="card min-h-11  px-4 text-sm"
                   >
-                    Avbryt
+                    {texts.cancel}
                   </button>
                 </div>
               ) : (
@@ -70,7 +79,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
                   onClick={() => setConfirmDelete(address.id)}
                   className="card min-h-11  px-4 text-sm"
                 >
-                  Ta bort
+                  {texts.remove}
                 </button>
               )}
             </li>
@@ -80,8 +89,8 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
         <div className="mt-6">
           <EmptyState
             icon={MapPin}
-            title="Inga sparade adresser"
-            body="Lägg till en nedan så slipper du skriva den varje gång."
+            title={texts.addressesEmptyTitle}
+            body={texts.addressesEmptyBody}
           />
         </div>
       )}
@@ -90,14 +99,26 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
         action={formAction}
         className="card mt-8  p-4"
       >
-        <h2 className="font-semibold">Ny adress</h2>
+        <h2 className="font-semibold">{texts.newAddress}</h2>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field name="label" label="Namn" hint="valfritt" placeholder="Hem, Jobb…" />
-          <Field name="street_address" label="Gatuadress" required />
-          <Field name="postal_code" label="Postnummer" required inputMode="numeric" placeholder="21422" />
-          <Field name="city" label="Ort" required />
-          <Field name="door_code" label="Portkod" hint="valfritt" />
+          <Field
+            name="label"
+            label={texts.addressLabel}
+            hint={texts.optional}
+            placeholder={texts.addressLabelPlaceholder}
+          />
+          <Field name="street_address" label={texts.street} required />
+          {/*
+            Inget exempelpostnummer i platshållaren.
+
+            Där stod "21422", vilket är Malmö. Ett svenskt postnummer som
+            exempel i Sarajevo säger antingen ingenting eller fel sak, och
+            fältet behöver ingen förklaring — rubriken är hela instruktionen.
+          */}
+          <Field name="postal_code" label={texts.postalCode} required inputMode="numeric" />
+          <Field name="city" label={texts.city} required />
+          <Field name="door_code" label={texts.doorCode} hint={texts.optional} />
         </div>
 
         {result?.message ? (
@@ -111,7 +132,7 @@ export function AddressList({ addresses }: { addresses: GuestAddress[] }) {
           </p>
         ) : null}
 
-        <SubmitButton />
+        <SubmitButton saving={texts.saving} save={texts.saveAddress} />
       </form>
     </>
   );
@@ -150,7 +171,7 @@ function Field({
   );
 }
 
-function SubmitButton() {
+function SubmitButton({ saving, save }: { saving: string; save: string }) {
   const { pending } = useFormStatus();
 
   return (
@@ -159,7 +180,7 @@ function SubmitButton() {
       disabled={pending}
       className="mt-4 min-h-11 bg-burp-600 px-5 font-medium text-white disabled:opacity-60"
     >
-      {pending ? "Sparar…" : "Spara adress"}
+      {pending ? saving : save}
     </button>
   );
 }
