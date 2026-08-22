@@ -5,6 +5,7 @@ import { fill, type Dictionary } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import {
   availableEditActions,
+  policyOffersEditWindow,
   type OrderPolicy,
   type OrderStatus,
 } from "@burp/core";
@@ -92,7 +93,16 @@ export function OrderActions({
     <section className="card mt-6  p-4">
       <h2 className="font-semibold">{labels.editTitle}</h2>
 
-      {secondsLeft !== null && allowed.some((action) => action !== "CANCEL") ? (
+      {/*
+        Villkoret ställs mot POLICYN och inte mot `allowed`.
+
+        Det stod tidigare `allowed.some((action) => action !== "CANCEL")`, vilket
+        är sant precis så länge nedräkningen är positiv — och falskt i samma
+        sekund som beskedet skulle säga att tiden gått ut. `labels.editExpired`
+        gick därför aldrig att nå, och gästen såg rubriken "Ändra beställningen"
+        med rättlistan borta och ingen förklaring.
+      */}
+      {secondsLeft !== null && policyOffersEditWindow(policy) ? (
         <p className="mt-1 text-sm opacity-60">
           {secondsLeft > 0
             ? fill(labels.editWindow, { n: secondsLeft })

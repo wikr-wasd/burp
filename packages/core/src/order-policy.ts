@@ -96,6 +96,28 @@ function hasPassedStatus(current: OrderStatus, limit: OrderStatus): boolean {
   return current !== limit && hasReachedStatus(current, limit);
 }
 
+/**
+ * Erbjöd restaurangen någonsin ett ändringsfönster?
+ *
+ * Frågan gäller POLICYN och inte vad som är tillåtet just nu, och skillnaden är
+ * hela poängen. Kvittosidan visade nedräkningen bara när en icke-avbokande
+ * åtgärd fortfarande var tillåten — alltså exakt så länge nedräkningen var
+ * positiv. I samma sekund som fönstret gick ut försvann villkoret, och med det
+ * beskedet om att det gått ut: `receipt.editExpired` fanns översatt på fem
+ * språk och kunde aldrig renderas.
+ *
+ * Gästen såg då rubriken "Ändra beställningen" med rättlistan borta och
+ * ingenting som sa varför. Fyndet kom ur genomgången av gästflödet 2026-08-22.
+ *
+ * En restaurang som stängt av alla innehållsändringar, eller satt fönstret till
+ * noll, ska däremot inte visa någon nedräkning alls — det finns inget som gått
+ * ut. Det är den kontrollen som ska stå i UI:t, och den är statisk.
+ */
+export function policyOffersEditWindow(policy: OrderPolicy): boolean {
+  if (policy.editWindowSeconds <= 0) return false;
+  return policy.allowAddItems || policy.allowRemoveItems || policy.allowChangeOptions;
+}
+
 /** Alla åtgärder gästen får utföra just nu. Bekvämt för att rendera UI. */
 export function availableEditActions(
   policy: OrderPolicy,

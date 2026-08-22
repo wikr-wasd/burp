@@ -14,6 +14,7 @@ import {
   availableEditActions,
   canGuestEdit,
   parseOrderPolicy,
+  policyOffersEditWindow,
   serializeOrderPolicy,
 } from "./order-policy";
 import { DEFAULT_ORDER_POLICY, type OrderPolicy } from "./types";
@@ -179,6 +180,56 @@ describe("availableEditActions", () => {
       now: secondsAfter(30),
     });
     expect(actions).toEqual(["ADD_ITEM", "REMOVE_ITEM", "CANCEL"]);
+  });
+});
+
+/**
+ * Villkoret för att visa nedräkningen på kvittosidan.
+ *
+ * Fråga: erbjöd restaurangen någonsin ett fönster? Inte: är fönstret öppet nu.
+ * Skillnaden är hela buggen den här funktionen finns för. Kvittosidan
+ * kontrollerade tidigare `availableEditActions(...).some(a => a !== "CANCEL")`,
+ * vilket är sant precis så länge nedräkningen är positiv — och falskt i samma
+ * sekund som beskedet skulle säga att tiden gått ut. Texten `receipt.editExpired`
+ * fanns översatt på fem språk och gick aldrig att nå.
+ */
+describe("policyOffersEditWindow", () => {
+  it("är sant för standardpolicyn — och förblir sant när fönstret gått ut", () => {
+    // Det andra påståendet är poängen: funktionen tar ingen tid, just för att
+    // svaret inte får ändra sig när klockan passerar fönstret.
+    expect(policyOffersEditWindow(DEFAULT_ORDER_POLICY)).toBe(true);
+  });
+
+  it("är falskt när fönstret är noll sekunder", () => {
+    // Ingenting har gått ut om ingenting någonsin var öppet. En nedräkning från
+    // noll hade bara varit brus på en sida gästen läser för att se sin nota.
+    expect(
+      policyOffersEditWindow({ ...DEFAULT_ORDER_POLICY, editWindowSeconds: 0 }),
+    ).toBe(false);
+  });
+
+  it("är falskt när restaurangen stängt av varje innehållsändring", () => {
+    // Avbokning räknas inte: den styrs av status och inte av fönstret, och en
+    // gäst får avboka långt efter att fönstret stängt.
+    expect(
+      policyOffersEditWindow({
+        ...DEFAULT_ORDER_POLICY,
+        allowAddItems: false,
+        allowRemoveItems: false,
+        allowChangeOptions: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("räcker med en enda tillåten ändring", () => {
+    expect(
+      policyOffersEditWindow({
+        ...DEFAULT_ORDER_POLICY,
+        allowAddItems: false,
+        allowRemoveItems: false,
+        allowChangeOptions: true,
+      }),
+    ).toBe(true);
   });
 });
 

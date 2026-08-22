@@ -147,6 +147,49 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   Samma handling med samma ord på två sidor — två uppsättningar hade gett
   gästen olika ord för samma stjärnor beroende på var hon råkade trycka.
 
+- **Gästflödet genomgånget i webbläsare** — QR-sida, meny, tillval, varukorg,
+  beställning, kvitto och orderändring. Beställt 2026-08-21, gjort 2026-08-22
+  mot seed-bord 1 och 2 hos Željo. Öppettiderna öppnades tillfälligt i SQL och
+  återställdes efteråt, som `smoke.sh` gör.
+
+  **Det som fungerade** — och som ingen kontroll hade kunnat svara på:
+  tillvalspanelen räknar rätt, också med ett negativt tillval (12,00 − 1,00 +
+  2,00 = 13,00 KM); momsen ligger inbakad och stämmer på 17 % (2,47 av 17,00);
+  dricksen ligger **utanför** momsunderlaget; `SLUT FÖR DAGEN` tar bort
+  köpknappen; sökningen filtrerar och går att rensa; rundturen meny → kvitto →
+  "Beställ mer" → meny håller ihop, med bannern om pågående order på vägen
+  tillbaka; en borttagen rad räknar om notan direkt; och sista raden går inte
+  att ta bort — där står "Avbryt beställningen" i stället.
+
+  **En bugg, rättad:** `receipt.editExpired` gick aldrig att nå. Villkoret för
+  att visa nedräkningen var `availableEditActions(...).some(a => a !== "CANCEL")`
+  — sant precis så länge nedräkningen är positiv, falskt i samma sekund som
+  beskedet skulle säga att tiden gått ut. Gästen såg rubriken "Ändra
+  beställningen" med rättlistan borta och ingen förklaring. Texten fanns
+  översatt på fem språk och renderades aldrig.
+
+  Villkoret ställs nu mot policyn i stället, genom `policyOffersEditWindow()` i
+  `@burp/core` — "erbjöd restaurangen någonsin ett fönster", inte "är fönstret
+  öppet nu". Fyra test i `order.test.ts`, och beskedet är sett i webbläsaren
+  efter att fönstret gått ut.
+
+  Två fynd som INTE var buggar, men som är värda att veta:
+
+  - **Dricksen fryses som belopp när en rad tas bort.** 10 % av 17,00 KM blev
+    1,70, och efter att en rätt på 4,00 togs bort står den kvar på 1,70 av
+    13,00 — alltså 13 %. Det är precis vad regel 8 föreskriver: `orders.tip_ore`
+    är vad gästen valde på notan och ändras aldrig i efterhand.
+    `recalculate_order_totals` räknar om mat, moms, rabatt och avgift, och bär
+    dricksen vidare orörd.
+  - **Kvittot visar ingen momsrad** trots att varukorgen gör det ("varav moms").
+    Rimligt — sidan säger uttryckligen att den inte är ett kvitto — men de två
+    ytorna säger olika saker om samma order.
+
+  Och en observation om seed-datan: Željo är bosnisk, men rätternas
+  beskrivningar och allergener står på svenska ("Saltat mjölkfett från Vlašić",
+  "ALLERGENER: MJÖLK"). Restaurangens egen text översätts aldrig, så det är
+  seeden som är fel språk, inte produkten.
+
 - **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
   dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
   språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
@@ -616,14 +659,30 @@ eller ett beslut.
       Fältet hade dessutom "21422" som exempel, alltså Malmö. Båda är rättade,
       men rätt svar är ett land på adressen.
 
-- [ ] **Gå igenom gästflödet som gäst, i en webbläsare.** Beställt 2026-08-21.
-      Den enda genomgången Claude kan göra utan William: QR-sidan, menyn,
-      varukorgen, QR-kassan och kvittot kräver ingen inloggning. Det är också
-      de ytor som har högst kvalitetskrav i produkten och som aldrig setts av
-      ett öga. `smoke.sh` svarar på om servern svarar rätt, inte på om flödet
-      går att förstå. Länkarna till seed-borden ur
-      `node scripts/print-qr-links.mjs`; öppna på `localhost`, aldrig
-      `127.0.0.1`.
+- [ ] **QR-sidan är en återvändsgränd när restaurangen är stängd.** Fynd i
+      gästgenomgången 2026-08-22. `/t/[token]` har fyra utgångar som alla
+      renderar samma nakna `TableMessage` — en rubrik och en mening, ingenting
+      annat. "Restaurangen är stängd. Beställningar går bara att lägga under
+      öppettiderna." säger inte **när** den öppnar, länkar inte till
+      restaurangsidan, och ger inget telefonnummer.
+
+      Värre: **bannern till en pågående order ligger innanför den öppna
+      grenen.** En gäst som sitter kvar 23:05 med en obetald nota och skannar om
+      dekalen får "stängt" och har ingen väg tillbaka till sin egen nota alls.
+      Restaurangerna i seeden stänger 22:00–23:00, så det är inte ett kantfall.
+
+      Rättningen kräver att `lookupTable()` bär restaurangen vidare i
+      CLOSED-grenen — den kastar den i dag. `INVALID_TOKEN` och `UNKNOWN_TABLE`
+      måste förbli oskiljbara (orakelskyddet), men CLOSED avslöjar redan att
+      token är giltig, så där finns inget nytt att läcka.
+
+- [ ] **Gå igenom gästflödet på en riktig telefon.** Genomgången 2026-08-22
+      gjordes i Chrome på skrivbordet; `resize_window` tog inte på den här
+      maskinen, så tvåkolumnsrutnätet är sett men enkolumnsvyn inte. Se även
+      raden om mobilvyn nedan.
+
+      **Ljust läge är inte heller sett.** Webbläsaren stod i mörkt läge hela
+      genomgången, och `docs/DESIGN.md` beskriver det ljusa som utgångsläget.
 
 - [ ] **Avhämtning: uppskattad tid från personalen, och notis till gästen.**
       Beställt 2026-08-21. Avhämtning fungerar redan — `PICKUP`,
