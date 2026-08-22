@@ -68,7 +68,7 @@ export function RestaurantList({
 
               <StatusBadge status={restaurant.status} />
 
-              {restaurant.status === "ACTIVE" ? (
+              {restaurant.status === "ACTIVE" && restaurant.citySlug ? (
                 <Link
                   href={`/r/${restaurant.citySlug}/${restaurant.slug}`}
                   className="text-sm underline underline-offset-4 opacity-60 hover:opacity-100"

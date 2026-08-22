@@ -45,9 +45,19 @@ export default async function MediaPage({ searchParams }: PageProps) {
   const admin = await requirePlatformAdmin();
   const params = await searchParams;
 
-  const status = ["PENDING", "APPROVED", "REJECTED"].includes(params.status ?? "")
-    ? params.status!
-    : "PENDING";
+  /*
+    * Frågesträngen är gästens att skriva, och `.includes()` smalnar inte av en
+    * sträng åt TypeScript. Listan är därför typad och kontrollen ett riktigt
+    * typvakt-uttryck — ett okänt värde faller på "PENDING" i stället för att
+    * skickas vidare till en enum-kolumn.
+    */
+  const MEDIA_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+  type MediaStatus = (typeof MEDIA_STATUSES)[number];
+
+  const isMediaStatus = (value: string | undefined): value is MediaStatus =>
+    MEDIA_STATUSES.includes(value as MediaStatus);
+
+  const status: MediaStatus = isMediaStatus(params.status) ? params.status : "PENDING";
 
   const supabase = await createClient();
 

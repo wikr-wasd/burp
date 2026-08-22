@@ -4,6 +4,7 @@ import { COUNTRY_INFO, type CountryCode, type CurrencyCode } from "@burp/core";
 import { publicEnv, serverEnv } from "@/lib/env";
 import { dictionary, staffLocale } from "@/lib/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { nullableArg } from "@/lib/supabase/types";
 import { sendEmail, type EmailOutcome } from "./email";
 import {
   applicationEmail,
@@ -427,7 +428,8 @@ async function acknowledge(
 ): Promise<void> {
   const { error: rpcError } = await supabase.rpc("mark_notice_sent", {
     p_id: id,
-    p_error: error,
+    // Null när kvitteringen är ett lyckat utskick och inte ett fel.
+    p_error: nullableArg(error),
   });
 
   if (rpcError) {

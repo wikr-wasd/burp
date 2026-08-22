@@ -59,8 +59,10 @@ interface RestaurantRow {
   city: string;
   street_address: string;
   postal_code: string;
-  latitude: number;
-  longitude: number;
+  // Nullbara i schemat. Påstods vara `number` här tills Supabase-typerna
+  // kopplades in 2026-08-22 — se `Directions`.
+  latitude: number | null;
+  longitude: number | null;
   phone: string | null;
   price_tier: number | null;
   cuisines: string[] | null;

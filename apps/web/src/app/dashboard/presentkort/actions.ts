@@ -6,6 +6,7 @@ import { requireStaff, staffErrors } from "@/lib/auth";
 import { generateGiftCardCode } from "@/lib/gift-cards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { nullableArg } from "@/lib/supabase/types";
 
 /**
  * Presentkort — utgivning och spärr.
@@ -67,9 +68,10 @@ export async function issueGiftCard(input: {
       p_code: code,
       p_amount_ore: amountOre,
       p_currency: currency,
-      p_expires_at: expiresAt,
-      p_email: input.email.trim() || null,
-      p_note: input.note.trim() || null,
+      // Tre parametrar som SQL:en tar emot som null. Se `nullableArg`.
+      p_expires_at: nullableArg(expiresAt),
+      p_email: nullableArg(input.email.trim() || null),
+      p_note: nullableArg(input.note.trim() || null),
       p_actor_id: staff.userId,
     });
 

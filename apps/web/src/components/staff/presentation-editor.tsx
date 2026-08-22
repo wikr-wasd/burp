@@ -34,8 +34,9 @@ export interface Presentation {
   streetAddress: string;
   postalCode: string;
   city: string;
-  latitude: number;
-  longitude: number;
+  // Null tills ägaren klistrat in en kartlänk. En ny restaurang har inga.
+  latitude: number | null;
+  longitude: number | null;
   heroImageUrl: string | null;
 }
 

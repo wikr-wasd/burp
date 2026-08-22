@@ -27,8 +27,20 @@ export interface DirectionsProps {
   streetAddress: string;
   postalCode: string;
   city: string;
-  latitude: number;
-  longitude: number;
+  /**
+   * Koordinaterna, eller null.
+   *
+   * En restaurang som just godkänts HAR inga: ansökningsformuläret frågar inte
+   * efter dem, och de sätts först när ägaren klistrar in en kartlänk i sina
+   * inställningar. Fältet var typat `number` fram till 2026-08-22, och länkarna
+   * pekade då på `?destination=null,null` för varje ny restaurang — en
+   * vägbeskrivning till ingenstans, på den sida som ska få gästen dit.
+   *
+   * Felet syntes inte förrän Supabase-typerna kopplades in: sidorna hade egna
+   * handskrivna gränssnitt som påstod `number`, och påståendet prövades aldrig.
+   */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export function Directions({
@@ -41,9 +53,23 @@ export function Directions({
   longitude,
 }: DirectionsProps) {
   const t = dictionary(locale);
-  const coordinates = `${latitude},${longitude}`;
   const label = encodeURIComponent(name);
   const fullAddress = `${streetAddress}, ${postalCode} ${city}`;
+
+  /*
+   * Koordinater när de finns, adressen annars.
+   *
+   * Koordinaterna är alltid bättre: en adress måste geokodas av mottagaren, och
+   * en gata som stavas olika i två register kan hamna i fel kvarter — eller i
+   * fel stad. Men en adress som kanske landar i rätt kvarter slår en länk till
+   * "null,null", som landar ingenstans alls.
+   *
+   * Alla tre tjänsterna tar emot fritext på samma parameter som tar koordinater.
+   */
+  const hasPoint = latitude !== null && longitude !== null;
+  const destination = encodeURIComponent(
+    hasPoint ? `${latitude},${longitude}` : `${name}, ${fullAddress}`,
+  );
 
   const links = [
     {
@@ -51,18 +77,22 @@ export function Directions({
       Icon: MapPin,
       // `api=1` är den dokumenterade, versionsstabila formen. Den äldre
       // maps.google.com-syntaxen fungerar men kan ändras utan förvarning.
-      href: `https://www.google.com/maps/dir/?api=1&destination=${coordinates}`,
+      href: `https://www.google.com/maps/dir/?api=1&destination=${destination}`,
     },
     {
       name: "Apple Kartor",
       Icon: MapPin,
       // `daddr` är destinationen, `q` etiketten som visas på nålen.
-      href: `https://maps.apple.com/?daddr=${coordinates}&q=${label}`,
+      href: `https://maps.apple.com/?daddr=${destination}&q=${label}`,
     },
     {
       name: "Waze",
       Icon: Navigation,
-      href: `https://waze.com/ul?ll=${coordinates}&q=${label}&navigate=yes`,
+      // `ll` tar bara koordinater. Utan dem får `q` bära destinationen —
+      // Waze söker då på texten i stället för att peka på en punkt.
+      href: hasPoint
+        ? `https://waze.com/ul?ll=${destination}&q=${label}&navigate=yes`
+        : `https://waze.com/ul?q=${destination}&navigate=yes`,
     },
   ];
 

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { normalizeCouponCode, parseAmount, type CurrencyCode } from "@burp/core";
 import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import type { TableInsert } from "@/lib/supabase/types";
 
 /**
  * Restaurangens egna erbjudanden.
@@ -55,7 +56,7 @@ export async function createCoupon(input: CouponInput): Promise<ActionResult> {
     return fail(staffErrors(staff).couponCodeFormat);
   }
 
-  const row: Record<string, unknown> = {
+  const row: TableInsert<"coupons"> = {
     restaurant_id: staff.restaurantId,
     code,
     // Restaurangens egen kampanj. Policyn i 0029 tillåter inget annat härifrån.

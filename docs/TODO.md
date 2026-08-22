@@ -296,6 +296,49 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   den gjorde varje genomgång av gästflödet ohederlig. Beslutat av William
   2026-08-22. Priset är att den som felsöker får slå upp ett ord ibland.
 
+- **Supabase-klienterna är typade mot schemat** — `createClient<Database>()` i
+  alla tre (browser, server, service role). Det gör varje
+  `.select("kolumn_som_inte_finns")` till ett byggfel i stället för något
+  `smoke.sh` får hitta i efterhand.
+
+  Det gav **28 fel direkt, varav fyra riktiga**. Ingen av dem var ett stavfel i
+  ett kolumnnamn — det fångar röktestet redan — utan alla fyra samma sort:
+  **en nullbar kolumn som koden påstod aldrig var null.** De handskrivna
+  gränssnitten sa `latitude: number`, och påståendet prövades aldrig mot
+  schemat.
+
+  - **Vägbeskrivningen pekade på `null,null`.** En restaurang som just godkänts
+    HAR inga koordinater: ansökningsformuläret frågar inte efter dem, och de
+    sätts först när ägaren klistrar in en kartlänk. Fram till dess byggde
+    "Hitta hit" länkar till `?destination=null,null` — mot Google Maps, Apple
+    Kartor och Waze. På den sida vars enda uppgift är att få gästen dit.
+    `Directions` faller nu tillbaka på adressen.
+  - **Kartan blev en `NaN`-ruta.** Samma orsak: `MapEmbed` räknade
+    `null - 0.004` till en bbox. Den renderar nu ingenting alls — en tom ruta
+    där en karta ska stå säger mindre än frånvaron av rutan.
+  - **JSON-LD:n innehöll `"latitude": null`.** Ett `GeoCoordinates` med null är
+    inte tomt utan felaktigt, och Google läser strukturerad data strikt — ett
+    ogiltigt fält kan diskvalificera hela blocket. `geo` utelämnas nu när
+    punkten saknas.
+  - **"Visa publikt" i backoffice byggde `/r/null/slug`.** `city_slug` är
+    nullbar; länken visas nu bara när den leder någonstans.
+
+  Resten var mekaniskt, och två mönster är värda att känna igen:
+
+  - **Generatorn typar varje funktionsparameter som icke-nullbar**, oavsett vad
+    SQL:en säger — i Postgres är varje parameter nullbar. `redeem_coupon` tar
+    emot en anonym gäst som null och gör rätt sak med det. `nullableArg()` i
+    `lib/supabase/types.ts` ger den lögnen ett namn i stället för att sprida
+    nakna `as string` över tio filer.
+  - **Generatorn vet inte att en trigger fyller ett fält.** `payments.currency`
+    är `not null` utan default och sätts av `payments_set_currency` ur ordern —
+    migration 0026 säger uttryckligen "aldrig satt av anroparen". Casten där är
+    inte ett kringgående av regeln utan av generatorns blinda fläck.
+
+  `Record<string, unknown>` som payload till `.update()` är ersatt av
+  `TableUpdate<"orders">` och vänner. Det var den vanliga genvägen, och den
+  kastade bort precis det skydd som nyss lades in.
+
 - **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
   dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
   språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
@@ -660,16 +703,16 @@ fråga 15.
 Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
 det utskrivet — och ligger kvar tills beslutet är fattat.
 
-- [ ] **Ingen kod importerar de genererade typerna.** `npm run db:types`
-      fungerar sedan 2026-08-22 och ger 3 885 rader ur den lokala stacken, men
-      filen läses inte av något — den är gitignorerad just därför. Vinsten
-      ligger i att koppla den till klienterna: `createClient<Database>()` gör
-      varje `.select("kolumn_som_inte_finns")` till ett byggfel i stället för
-      ett runtimefel som `smoke.sh` får hitta.
+- [ ] **Typfilen kan bli inaktuell utan att något säger till.**
+      `database.types.ts` är genererad och spårad sedan 2026-08-22, och koden
+      importerar den. En ny KOLUMN som glöms bort märks direkt — koden som
+      använder den kompilerar inte. En **borttagen eller omdöpt** kolumn gör
+      det inte: typerna påstår att den finns, bygget går igenom, och felet
+      dyker upp i drift.
 
-      **Det rör varje fråga i produkten** och kommer att visa ett antal ställen
-      där en kolumn heter något annat än koden tror. Egen omgång, inte ett
-      påhäng på nästa funktion. Ren kod, ingen som blockerar.
+      `npm run db:types` efter varje migration räcker som rutin. En kontroll
+      som faller när filen är gammal vore bättre, men den kräver en databas —
+      `verify-schema.sh` har en, men inte appen. Värt en egen fundering.
 
 - [ ] **Gästens adress bär inget land.** `saveAddress()` kontrollerar
       postnumret mot `^\d{5,6}$` — unionen av marknadens format — i stället för

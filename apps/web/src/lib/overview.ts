@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { OrderStatus } from "@burp/core";
+
 import { createClient } from "./supabase/server";
 
 /**
@@ -65,10 +67,10 @@ export interface OverviewTables {
 }
 
 /** Statusar där köket äger ordern. Servitören behöver inte göra något. */
-const KITCHEN_STATUSES = ["PLACED", "ACCEPTED", "PREPARING"];
+const KITCHEN_STATUSES = ["PLACED", "ACCEPTED", "PREPARING"] as const satisfies readonly OrderStatus[];
 
 /** Klar att köras ut. Det enda som kräver ett steg av serveringen. */
-const READY_STATUS = "READY";
+const READY_STATUS = "READY" satisfies OrderStatus;
 
 export async function getTableSnapshots(restaurantId: string): Promise<OverviewTables> {
   const supabase = await createClient();
@@ -115,7 +117,7 @@ export async function getTableSnapshots(restaurantId: string): Promise<OverviewT
 
   const kitchenTables = new Set(
     (orders ?? [])
-      .filter((row) => KITCHEN_STATUSES.includes(row.status as string))
+      .filter((row) => KITCHEN_STATUSES.includes(row.status as (typeof KITCHEN_STATUSES)[number]))
       .map((row) => row.table_id as string),
   );
 

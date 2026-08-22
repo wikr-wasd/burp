@@ -12,6 +12,7 @@ import {
   type ApplicationInput,
 } from "@/lib/restaurant-application";
 import { createClient } from "@/lib/supabase/server";
+import { asJson } from "@/lib/supabase/types";
 
 /**
  * Restaurangens ansökan om att ansluta sig.
@@ -71,7 +72,7 @@ export async function applyForRestaurant(
   }
 
   const { error } = await supabase.rpc("apply_for_restaurant", {
-    p_input: validation.value,
+    p_input: asJson(validation.value),
   });
 
   if (error) {

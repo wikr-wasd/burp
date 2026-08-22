@@ -26,12 +26,23 @@ export function MapEmbed({
   className = "",
 }: {
   locale?: Locale;
-  latitude: number;
-  longitude: number;
+  /**
+   * Koordinaterna, eller null.
+   *
+   * En restaurang som just godkänts har inga — ansökningsformuläret frågar inte
+   * efter dem. Utan den här nullbarheten byggdes en bbox av `null - 0.004`,
+   * alltså `NaN`, och iframen laddade en karta över ingenting. Komponenten
+   * renderar i stället ingenting alls: en tom ruta där en karta ska stå säger
+   * mindre än frånvaron av rutan.
+   */
+  latitude: number | null;
+  longitude: number | null;
   name: string;
   className?: string;
 }) {
   const t = dictionary(locale);
+
+  if (latitude === null || longitude === null) return null;
   /*
    * Rutan runt punkten, i grader.
    *

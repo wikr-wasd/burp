@@ -33,7 +33,7 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const TARGET = "packages/core/src/database.types.ts";
+const TARGET = "apps/web/src/lib/supabase/database.types.ts";
 
 /** `--local` som standard. Molnet kräver ett projekt-id som ännu inte finns. */
 const remote = process.argv.includes("--remote");

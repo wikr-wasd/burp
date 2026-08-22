@@ -30,7 +30,3 @@ supabase/.branches
 supabase/.temp
 supabase/.env
 
-# Genereras ur schemat med `npm run db:types`. Ingen kod importerar den än —
-# se docs/TODO.md om att koppla `Database` till Supabase-klienterna. Filen är
-# 3900 rader och skulle ruttna tyst i repot mellan varje migration.
-packages/core/src/database.types.ts

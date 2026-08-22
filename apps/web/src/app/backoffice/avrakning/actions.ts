@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { SETTLEMENT_NEXT, type SettlementStatus } from "@/lib/settlement-period";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { TableUpdate } from "@/lib/supabase/types";
 
 /**
  * Avräkningens åtgärder (migration 0039).
@@ -122,7 +123,7 @@ export async function setSettlementStatus(
     return fail(`En avräkning kan inte gå från ${from} till ${to}.`);
   }
 
-  const patch: Record<string, unknown> = { status: to };
+  const patch: TableUpdate<"settlements"> = { status: to };
   if (to === "INVOICED") {
     const trimmed = invoiceNumber?.trim() ?? "";
     if (trimmed === "") return fail("Skriv fakturanumret ur bokföringen.");

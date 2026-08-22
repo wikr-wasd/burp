@@ -28,7 +28,14 @@ export interface PlatformRestaurant {
   id: string;
   name: string;
   slug: string;
-  citySlug: string;
+  /**
+   * Null för en restaurang utan stads-slug.
+   *
+   * Länken "Visa publikt" byggde `/r/null/slug` i det fallet — en 404 mitt i
+   * backoffice. Fyndet kom när Supabase-typerna kopplades in 2026-08-22; det
+   * handskrivna gränssnittet påstod `string` och prövades aldrig.
+   */
+  citySlug: string | null;
   city: string;
   orgNumber: string;
   status: string;
@@ -49,9 +56,12 @@ export default async function PlatformRestaurantsPage({ searchParams }: PageProp
   const admin = await requirePlatformAdmin();
   const params = await searchParams;
 
-  const statusFilter = (STATUSES as readonly string[]).includes(params.status ?? "")
-    ? params.status
-    : undefined;
+  // `.includes()` smalnar inte av en sträng åt TypeScript, och `status` går
+  // vidare till en enum-kolumn. Vakten gör kontrollen till en typkontroll.
+  const isStatus = (value: string | undefined): value is (typeof STATUSES)[number] =>
+    (STATUSES as readonly string[]).includes(value ?? "");
+
+  const statusFilter = isStatus(params.status) ? params.status : undefined;
 
   const supabase = await createClient();
 

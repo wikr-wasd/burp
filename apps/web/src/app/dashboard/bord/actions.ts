@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { generatePublicId } from "@burp/core";
 import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { asJson } from "@/lib/supabase/types";
 
 /**
  * Bordshantering. Bara ägare och chef — att skapa ett bord är att skapa en
@@ -173,7 +174,7 @@ export async function saveFloorPlanPositions(
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_floor_plan_positions", {
     p_floor_plan_id: planId,
-    p_positions: positions,
+    p_positions: asJson(positions),
   });
 
   if (error) return { ok: false, message: error.message };

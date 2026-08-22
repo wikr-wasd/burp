@@ -20,6 +20,7 @@ import { connectableProviders, paymentProvider, PaymentProviderError } from "@/l
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { dictionary, fill } from "@/lib/i18n";
+import { asJson, type TableUpdate } from "@/lib/supabase/types";
 
 /**
  * Restaurangens inställningar.
@@ -76,7 +77,7 @@ export async function saveOpeningHours(hours: OpeningHours): Promise<ActionResul
   const supabase = await createClient();
   const { error } = await supabase
     .from("restaurants")
-    .update({ opening_hours: payload })
+    .update({ opening_hours: asJson(payload) })
     .eq("id", staff.restaurantId);
 
   return error ? fail(error.message) : done();
@@ -113,7 +114,7 @@ export async function saveOrderPolicy(input: OrderPolicyInput): Promise<ActionRe
   const supabase = await createClient();
   const { error } = await supabase
     .from("restaurants")
-    .update({ order_policy: serializeOrderPolicy(policy) })
+    .update({ order_policy: asJson(serializeOrderPolicy(policy)) })
     .eq("id", staff.restaurantId);
 
   return error ? fail(error.message) : done();
@@ -200,7 +201,7 @@ export async function savePresentation(input: PresentationInput): Promise<Action
     ),
   ].slice(0, 8);
 
-  const update: Record<string, unknown> = {
+  const update: TableUpdate<"restaurants"> = {
     description: input.description.trim() || null,
     phone: input.phone.trim() || null,
     cuisines,
@@ -259,7 +260,7 @@ export async function savePunchCard(input: {
   const staff = await requireStaff(["owner", "manager"]);
   const currency = staff.currency as CurrencyCode;
 
-  const update: Record<string, unknown> = {};
+  const update: TableUpdate<"restaurants"> = {};
 
   if (!input.size.trim()) {
     update["punch_card_size"] = null;

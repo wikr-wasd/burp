@@ -26,6 +26,7 @@ import { notifyNewOrder } from "@/lib/notify";
 import { getCardAccount, paymentProvider, PaymentProviderError } from "@/lib/payments";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { nullableArg, type TableInsert } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateTableSession, lookupTable } from "@/lib/table-session";
 
@@ -417,7 +418,9 @@ export async function POST(request: Request) {
     const { error: redeemError } = await supabase.rpc("redeem_coupon", {
       p_coupon_id: couponId,
       p_order_id: order,
-      p_guest_id: guestId,
+      // Null för en anonym bordsgäst. Generatorn typar varje funktions-
+      // parameter som icke-nullbar; SQL:en gör det inte. Se `nullableArg`.
+      p_guest_id: nullableArg(guestId),
       p_discount_ore: discountOre,
     });
 
@@ -441,7 +444,7 @@ export async function POST(request: Request) {
   if (input.use_punch_card) {
     const { error: punchError } = await supabase.rpc("redeem_punch_card", {
       p_restaurant_id: restaurantId,
-      p_guest_id: guestId,
+      p_guest_id: nullableArg(guestId),
       p_order_id: order,
       p_reward_ore: punchCardRewardOre,
     });
@@ -564,7 +567,19 @@ export async function POST(request: Request) {
         // Samma nyckel som ordern och som leverantörens intent. Ett dubbeltryck
         // ger en order, en intent och en betalningsrad.
         idempotency_key: input.idempotency_key,
-      })
+        /*
+         * `currency` saknas med flit.
+         *
+         * Kolumnen är `not null` utan default sedan migration 0026, men fylls
+         * av triggern `payments_set_currency` ur ORDERN. Kommentaren i
+         * migrationen säger det rakt ut: "Aldrig satt av anroparen — en
+         * betalning i annan valuta än sin order går inte att stämma av."
+         *
+         * Typgeneratorn kan inte veta att en trigger fyller fältet, så den
+         * kräver det här. Casten är därför inte ett kringgående av regeln utan
+         * av generatorns blinda fläck.
+         */
+      } as TableInsert<"payments">)
       .select("id")
       .single();
 

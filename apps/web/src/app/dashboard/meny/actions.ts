@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { allowedVatRates, COUNTRY_INFO, parseAmount } from "@burp/core";
 import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import type { TableUpdate } from "@/lib/supabase/types";
 
 /**
  * Menyhantering (avsnitt 11).
@@ -60,7 +61,7 @@ export async function updateMenu(menuId: string, patch: {
 }): Promise<ActionResult> {
   const staff = await requireStaff(EDITOR_ROLES);
 
-  const update: Record<string, unknown> = {};
+  const update: TableUpdate<"menus"> = {};
 
   if (patch.name !== undefined) {
     const name = patch.name.trim();
@@ -244,7 +245,7 @@ export interface MenuItemPatch {
 export async function updateMenuItem(itemId: string, patch: MenuItemPatch): Promise<ActionResult> {
   const staff = await requireStaff(EDITOR_ROLES);
 
-  const update: Record<string, unknown> = {};
+  const update: TableUpdate<"menu_items"> = {};
 
   if (patch.name !== undefined) {
     const name = patch.name.trim();

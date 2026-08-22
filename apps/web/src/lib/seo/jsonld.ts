@@ -26,8 +26,15 @@ export interface RestaurantJsonLdInput {
   streetAddress: string;
   postalCode: string;
   city: string;
-  latitude: number;
-  longitude: number;
+  /**
+   * Koordinaterna, eller null för en restaurang som inte satt några.
+   *
+   * `geo` utelämnas då helt. Ett `GeoCoordinates` med `"latitude": null` är
+   * inte tomt utan felaktigt, och Google läser strukturerad data strikt — ett
+   * ogiltigt fält kan diskvalificera hela blocket, inte bara det fältet.
+   */
+  latitude: number | null;
+  longitude: number | null;
   phone: string | null;
   /** Prisklass 1–4 → "$".."$$$$" i schema.org:s notation. */
   priceTier: number | null;
@@ -67,13 +74,16 @@ export function restaurantJsonLd(input: RestaurantJsonLdInput): Record<string, u
       addressLocality: input.city,
       addressCountry: input.country,
     },
-    geo: {
+    currenciesAccepted: input.currency,
+  };
+
+  if (input.latitude !== null && input.longitude !== null) {
+    jsonLd["geo"] = {
       "@type": "GeoCoordinates",
       latitude: input.latitude,
       longitude: input.longitude,
-    },
-    currenciesAccepted: input.currency,
-  };
+    };
+  }
 
   if (input.description) jsonLd["description"] = input.description;
   if (input.imageUrl) jsonLd["image"] = input.imageUrl;

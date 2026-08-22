@@ -8,6 +8,7 @@ import {
   type ProviderEvent,
 } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { nullableArg } from "@/lib/supabase/types";
 
 /**
  * Betalleverantörens webhook.
@@ -146,7 +147,8 @@ export async function POST(request: Request, context: Context) {
 
       const { data: status, error } = await supabase.rpc("confirm_order_payment", {
         p_payment_id: payment.id,
-        p_method: event.method,
+        // Leverantören säger inte alltid hur kortet lästes. Se `nullableArg`.
+        p_method: nullableArg(event.method),
       });
 
       if (error) {
@@ -178,7 +180,8 @@ export async function POST(request: Request, context: Context) {
     case "PAYMENT_CANCELLED": {
       const { error } = await supabase.rpc("fail_order_payment", {
         p_payment_id: payment.id,
-        p_reason: event.failureReason,
+        // Leverantören anger inte alltid ett skäl. Se `nullableArg`.
+        p_reason: nullableArg(event.failureReason),
       });
 
       if (error) {

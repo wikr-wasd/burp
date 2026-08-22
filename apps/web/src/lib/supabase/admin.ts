@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { publicEnv, serverEnv } from "../env";
+import type { Database } from "./database.types";
 
 /**
  * Supabase-klient med service role. KRINGGÅR ALL RLS.
@@ -21,7 +22,7 @@ import { publicEnv, serverEnv } from "../env";
  * från en klientkomponent.
  */
 export function createAdminClient() {
-  return createSupabaseClient(publicEnv.NEXT_PUBLIC_SUPABASE_URL, serverEnv().SUPABASE_SERVICE_ROLE_KEY, {
+  return createSupabaseClient<Database>(publicEnv.NEXT_PUBLIC_SUPABASE_URL, serverEnv().SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
