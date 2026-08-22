@@ -122,3 +122,60 @@ export function parseCoordinates(input: string): Coordinates | null {
 export function toWkt({ latitude, longitude }: Coordinates): string {
   return `POINT(${longitude} ${latitude})`;
 }
+
+/**
+ * Avståndet mellan två punkter, i meter.
+ *
+ * Haversine på en klotformad jord. Jorden är en ellipsoid och formeln har
+ * därför ett fel på upp till en halv procent — fem meter per kilometer. För
+ * "hur långt är det till stället" är det ingenting; för lantmäteri vore det
+ * fel formel, men det är inte vad Burp gör.
+ *
+ * Fågelvägen, inte gångvägen. En gäst som ser "400 m" och går 600 för att
+ * floden ligger emellan känner sig inte lurad — men den som ser "2 minuter"
+ * och går i tio gör det. Därför meter och aldrig minuter: siffran ska vara
+ * ärlig om vad den mäter.
+ */
+export function distanceMeters(from: Coordinates, to: Coordinates): number {
+  const EARTH_RADIUS_M = 6_371_000;
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+
+  const dLat = toRadians(to.latitude - from.latitude);
+  const dLon = toRadians(to.longitude - from.longitude);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(from.latitude)) *
+      Math.cos(toRadians(to.latitude)) *
+      Math.sin(dLon / 2) ** 2;
+
+  return Math.round(2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(a))));
+}
+
+/**
+ * Avståndet avrundat till något en människa säger högt.
+ *
+ * Under en kilometer: närmaste femtiotal meter. "430 m" låter uppmätt, och
+ * det är det inte — GPS:en i en telefon har ofta tio meters fel och
+ * fågelvägen är ändå inte den väg gästen går. "450 m" lovar precis så mycket
+ * som siffran håller.
+ *
+ * Över en kilometer: en decimal upp till tio, sedan heltal. "12,3 km" är
+ * falsk precision för något man ändå kör bil till.
+ *
+ * Returnerar talet och enheten var för sig. Ordningen mellan dem, och om det
+ * heter "m" eller något annat, är en fråga för ordboken — inte för core.
+ */
+export interface RoundedDistance {
+  value: number;
+  unit: "m" | "km";
+}
+
+export function roundDistance(meters: number): RoundedDistance {
+  if (meters < 1000) {
+    return { value: Math.max(0, Math.round(meters / 50) * 50), unit: "m" };
+  }
+
+  const km = meters / 1000;
+  return { value: km < 10 ? Number(km.toFixed(1)) : Math.round(km), unit: "km" };
+}

@@ -50,6 +50,12 @@ export const de: Dictionary = {
     mapLabel: "Karte der Restaurants",
     mapEmpty: "Noch keiner der Treffer hat eine Markierung auf der Karte.",
     mapFailed: "Die Karte konnte nicht geladen werden. Die Liste daneben zeigt dieselben Lokale.",
+
+    mapLocate: "Meinen Standort zeigen",
+    mapLocating: "Suche…",
+    mapLocateFailed: "Standort nicht verfügbar",
+    mapYouAreHere: "Sie sind hier",
+    mapDistanceAway: "{value} {unit} von hier",
     results: "Treffer",
     empty: "Kein Restaurant passt zum Filter.",
     emptyHint: "Entfernen Sie einen Filter oder durchsuchen Sie den gesamten Marktplatz.",

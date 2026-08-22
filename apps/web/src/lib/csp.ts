@@ -135,8 +135,17 @@ export function buildCsp({ nonce, isDevelopment, supabaseUrl, mapTileUrl }: CspO
     // Supabase REST och Realtime, samt Stripes eget API från kortfältet.
     `connect-src 'self' ${supabaseOrigin} ${supabaseSocket} https://api.stripe.com`.trim(),
 
-    // Stripes betalfält och OpenStreetMaps inbäddade karta.
-    `frame-src https://js.stripe.com https://hooks.stripe.com https://www.openstreetmap.org`,
+    /*
+     * Bara Stripes betalfält.
+     *
+     * `https://www.openstreetmap.org` stod här fram till 2026-08-23, för den
+     * inbäddade kartan på restaurangsidan. Kartan ritas numera av Leaflet i
+     * vår egen kod och hämtar bara rutor, som täcks av `img-src`. Ett
+     * ursprung som ingenting längre använder ska inte stå kvar i en policy —
+     * då är policyn en beskrivning av vad appen råkade göra en gång, inte av
+     * vad den får göra.
+     */
+    `frame-src https://js.stripe.com https://hooks.stripe.com`,
 
     // Samma löfte som `X-Frame-Options: DENY`, men i den moderna formen.
     `frame-ancestors 'none'`,

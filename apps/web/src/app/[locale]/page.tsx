@@ -177,6 +177,13 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
             label={t.discover.mapLabel}
             emptyLabel={t.discover.mapEmpty}
             failedLabel={t.discover.mapFailed}
+            texts={{
+              locate: t.discover.mapLocate,
+              locating: t.discover.mapLocating,
+              locateFailed: t.discover.mapLocateFailed,
+              youAreHere: t.discover.mapYouAreHere,
+              distanceAway: t.discover.mapDistanceAway,
+            }}
           />
         </section>
 

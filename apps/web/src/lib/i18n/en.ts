@@ -51,6 +51,12 @@ export const en: Dictionary = {
     mapLabel: "Map of the restaurants",
     mapEmpty: "None of the matches has a map pin yet.",
     mapFailed: "The map could not be loaded. The list beside it shows the same places.",
+
+    mapLocate: "Show where I am",
+    mapLocating: "Locating…",
+    mapLocateFailed: "Location is not available",
+    mapYouAreHere: "You are here",
+    mapDistanceAway: "{value} {unit} from here",
     results: "Matches",
     empty: "No restaurant matches the filter.",
     emptyHint: "Remove a filter, or search the whole marketplace.",

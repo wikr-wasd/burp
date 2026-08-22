@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCoordinates, toWkt } from "./geo";
+import { distanceMeters, parseCoordinates, roundDistance, toWkt } from "./geo";
 
 /** Ćevabdžinica Željo i Baščaršija — punkten seed-datan använder. */
 const ZELJO = { latitude: 43.8595, longitude: 18.4287 };
@@ -101,5 +101,66 @@ describe("toWkt", () => {
   it("överlever en tur genom parsern", () => {
     const point = parseCoordinates("43.8595, 18.4287")!;
     expect(toWkt(point)).toBe("POINT(18.4287 43.8595)");
+  });
+});
+
+describe("distanceMeters", () => {
+  // Baščaršija och Vijećnica i Sarajevo, ungefär 500 meter isär.
+  const bascarsija = { latitude: 43.8595, longitude: 18.4287 };
+  const vijecnica = { latitude: 43.8589, longitude: 18.4342 };
+
+  it("mäter en kort sträcka inom några meter", () => {
+    const meters = distanceMeters(bascarsija, vijecnica);
+    expect(meters).toBeGreaterThan(400);
+    expect(meters).toBeLessThan(500);
+  });
+
+  it("ger noll för samma punkt", () => {
+    expect(distanceMeters(bascarsija, bascarsija)).toBe(0);
+  });
+
+  it("är symmetrisk", () => {
+    expect(distanceMeters(bascarsija, vijecnica)).toBe(
+      distanceMeters(vijecnica, bascarsija),
+    );
+  });
+
+  /*
+   * Sarajevo–Zagreb är omkring 29 mil FÅGELVÄGEN. Vägen dit är 39, och den
+   * siffran stod först här — vilket fällde ett korrekt avstånd.
+   *
+   * Kontrollen finns för att fånga den klassiska förväxlingen: latitud och
+   * longitud i fel ordning ger ett svar som ser rimligt ut men pekar någon
+   * helt annanstans.
+   */
+  it("stämmer över en lång sträcka", () => {
+    const zagreb = { latitude: 45.815, longitude: 15.9819 };
+    const meters = distanceMeters(bascarsija, zagreb);
+    expect(meters).toBeGreaterThan(285_000);
+    expect(meters).toBeLessThan(295_000);
+  });
+
+  it("klarar att korsa datumlinjen utan att ge halva jorden", () => {
+    const väst = { latitude: 0, longitude: 179.9 };
+    const öst = { latitude: 0, longitude: -179.9 };
+    expect(distanceMeters(väst, öst)).toBeLessThan(25_000);
+  });
+});
+
+describe("roundDistance", () => {
+  it("avrundar meter till närmaste femtiotal", () => {
+    expect(roundDistance(430)).toEqual({ value: 450, unit: "m" });
+    expect(roundDistance(12)).toEqual({ value: 0, unit: "m" });
+    expect(roundDistance(999)).toEqual({ value: 1000, unit: "m" });
+  });
+
+  it("byter till kilometer vid tusen meter", () => {
+    expect(roundDistance(1000)).toEqual({ value: 1, unit: "km" });
+    expect(roundDistance(2350)).toEqual({ value: 2.4, unit: "km" });
+  });
+
+  // Falsk precision för något man kör bil till.
+  it("släpper decimalen över en mil", () => {
+    expect(roundDistance(12_340)).toEqual({ value: 12, unit: "km" });
   });
 });

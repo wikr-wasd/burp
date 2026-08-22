@@ -52,6 +52,12 @@ export const no: Dictionary = {
     mapLabel: "Kart over restaurantene",
     mapEmpty: "Ingen av treffene har en kartnål ennå.",
     mapFailed: "Kartet kunne ikke lastes. Listen ved siden av viser de samme stedene.",
+
+    mapLocate: "Vis hvor jeg er",
+    mapLocating: "Leter…",
+    mapLocateFailed: "Posisjonen er ikke tilgjengelig",
+    mapYouAreHere: "Du er her",
+    mapDistanceAway: "{value} {unit} herfra",
     results: "Treff",
     empty: "Ingen restaurant passer med filteret.",
     emptyHint: "Fjern et filter, eller søk i hele markedsplassen.",

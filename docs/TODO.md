@@ -946,7 +946,7 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett | — | **Granskat 2026-08-20: bör inte byggas.** Se nedan |
 | Röktestet strypt av rate limitern vid två körningar i rad | `scripts/smoke.sh` | Inte ett fel. Kontrollerna rapporteras som `hopp`; vänta en minut |
-| Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | Lansering av startsidans karta. Öppen fråga 8 |
+| Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | **Skärptes 2026-08-23.** Gällde startsidans karta; restaurangsidans iframe ersattes av Leaflet och hämtar nu också rutor. Blockerar därmed lansering av den mest besökta sidtypen, inte bara startsidan. Öppen fråga 8 |
 | Push är byggt men tyst utan VAPID-nycklar | `lib/notify/push.ts` | Nycklarna genereras på en minut, men de måste finnas i miljön |
 | Gästen får aldrig en notis — bara restaurangen och Burp | `lib/notify/index.ts` har `notifyNewOrder()` och `notifyRestaurantApplication()`, ingen tredje | Avhämtning. Gästen ser sin status på skärmen och får ingenting när maten är klar |
 | Push går inte att prenumerera på som gäst | `push_subscriptions` policy kräver `is_staff_of(restaurant_id)`, migration 0036 | Avhämtningsnotiser. Kräver en migration, inte bara en avsändare |

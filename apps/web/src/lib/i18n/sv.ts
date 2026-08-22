@@ -46,6 +46,20 @@ export const sv = {
     mapLabel: "Karta över restaurangerna",
     mapEmpty: "Ingen av träffarna har någon kartnål ännu.",
     mapFailed: "Kartan gick inte att ladda. Listan bredvid visar samma ställen.",
+
+    /*
+     * Platsknappen på kartan.
+     *
+     * `{unit}` är "m" eller "km" och kommer ur `roundDistance()` i core.
+     * Enheten står inte i ordboken därför att den inte översätts — meter
+     * heter meter på alla fem språken — men ORDNINGEN mellan tal och enhet,
+     * och ordet efter, gör det.
+     */
+    mapLocate: "Visa var jag är",
+    mapLocating: "Letar…",
+    mapLocateFailed: "Platsen är inte tillgänglig",
+    mapYouAreHere: "Du är här",
+    mapDistanceAway: "{value} {unit} härifrån",
     results: "Träffar",
     empty: "Ingen restaurang matchar filtret.",
     emptyHint: "Ta bort ett filter, eller sök i hela marknadsplatsen.",

@@ -72,6 +72,12 @@ export const bs: Dictionary = {
     mapLabel: "Mapa restorana",
     mapEmpty: "Nijedan od rezultata još nema oznaku na mapi.",
     mapFailed: "Mapa se nije učitala. Lista pored prikazuje ista mjesta.",
+
+    mapLocate: "Prikaži gdje sam",
+    mapLocating: "Tražim…",
+    mapLocateFailed: "Lokacija nije dostupna",
+    mapYouAreHere: "Vi ste ovdje",
+    mapDistanceAway: "{value} {unit} odavde",
     results: "Rezultati",
     empty: "Nijedan restoran ne odgovara filteru.",
     emptyHint: "Uklonite jedan filter ili pretražite cijelo tržište.",

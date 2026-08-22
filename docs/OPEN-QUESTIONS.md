@@ -354,8 +354,17 @@ Alternativ, i grov ordning efter hur lite de kostar för Burps volym:
 | **Protomaps** | Rutorna ligger i en fil man hostar själv. Ingen tredje part alls, men mer att drifta |
 | **Google Maps** | Dyrast, och en nyckel som måste rullas i tre miljöer. Gästen har ändå sin egen kartapp för vägbeskrivningen |
 
-Den enskilda restaurangens karta (`map-embed.tsx`) berörs inte — den är en
-iframe till openstreetmap.org, inte en ruthämtning, och ryms i villkoren.
+**Frågan blev större 2026-08-23, inte mindre.** Här stod att den enskilda
+restaurangens karta inte berördes, eftersom den var en iframe till
+openstreetmap.org och inte en ruthämtning. Den iframen är borta — restaurangens
+karta ritas nu av Leaflet, precis som startsidans, och hämtar rutor från samma
+URL.
+
+Det är rätt beslut för allt annat: ingen tredje part i gästens webbläsare, ett
+utseende som hör ihop med resten, och ett avstånd som går att räkna. Men det
+betyder att ruthämtningen nu ligger på **den mest besökta sidtypen i
+produkten**, och att en betald leverantör måste finnas på plats innan Burp går
+skarpt — inte bara innan startsidans karta gör det.
 
 En egen stil är värd att väga in: OSM:s standardkarta är blå och grön, och blått
 finns annars inte i produkten av ett uttalat skäl.

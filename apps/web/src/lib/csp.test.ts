@@ -95,6 +95,21 @@ describe("buildCsp", () => {
     expect(buildCsp({ ...OPTIONS, nonce: "n" })).not.toContain("{z}");
   });
 
+  it("ramar bara in Stripe", () => {
+    /*
+     * Kartan ritas av Leaflet i vår egen kod och hämtar bara rutor. Så länge
+     * openstreetmap.org stod i `frame-src` gav policyn tillstånd till något
+     * appen slutat göra — och ett tillstånd ingen använder är ett tillstånd
+     * ingen märker att en angripare börjar använda.
+     */
+    const frameSrc = buildCsp({ ...OPTIONS, nonce: "n" })
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("frame-src"));
+
+    expect(frameSrc).toBe("frame-src https://js.stripe.com https://hooks.stripe.com");
+  });
+
   it("klarar en lokal Supabase över http", () => {
     const csp = buildCsp({ ...OPTIONS, nonce: "n", supabaseUrl: "http://127.0.0.1:54321" });
     expect(csp).toContain("http://127.0.0.1:54321");
