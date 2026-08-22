@@ -63,7 +63,9 @@ export default async function PickupOrderPage({ params }: PageProps) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, type, status, total_ore, currency, items_gross_ore, discount_ore, tip_ore, placed_at, restaurant_id")
+    .select(
+      "id, type, status, total_ore, currency, items_gross_ore, discount_ore, tip_ore, placed_at, restaurant_id, prep_minutes",
+    )
     .eq("id", orderId)
     .maybeSingle();
 
@@ -114,7 +116,7 @@ export default async function PickupOrderPage({ params }: PageProps) {
       <OrderStatusView
         labels={t.receipt}
         status={order.status as OrderStatus}
-        prepTimeMinutes={policy.prepTimeMinutes}
+        prepTimeMinutes={order.prep_minutes ?? policy.prepTimeMinutes}
         placedAt={order.placed_at}
       />
 

@@ -220,6 +220,35 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   återanvände, och kontrollen hoppades över i varje körning — vilket är samma
   sak som att inte ha den.
 
+- **Köket sätter tiden, och gästen ser den.** Migration 0048 lägger
+  `orders.prep_minutes`. Kvittot räknade tidigare ned från restaurangens
+  `prep_time_minutes` — ett tal som gäller varje order dygnet runt. Fem ćevapi
+  klockan tre är inte samma sak som femton på en fredagskväll med fullsatt
+  uteservering, och köket vet det.
+
+  Knappraden "Klart om" står på biljetten i **det enda steget den hör hemma**:
+  PLACED → ACCEPTED. Det är den sekund då kocken har biljetten framför sig och
+  ser både vad som ska lagas och vad som redan står på spisen. Att fråga i
+  varje steg vore fyra frågor för ett svar.
+
+  - **NULL betyder "ingen har sagt något"**, inte noll och inte restaurangens
+    default kopierad in i raden. En order ingen satt en tid på följer
+    restaurangens regel också om regeln ändras efteråt; en order där kocken
+    sagt 30 står kvar på 30. Samma resonemang som `staff.locale` i 0047.
+  - **Tiden skrivs i samma update som statusen.** Två skrivningar hade kunnat
+    lyckas till hälften, och gästen fått en nedräkning som inte hör ihop med
+    statusen hon ser.
+  - **Inget fritextfält.** Fyra fasta val plus restaurangens eget, om det inte
+    redan står bland dem. Skärmen trycks med en tumme i ett kök, ofta med
+    handen full — ett sifferfält kräver att man tittar ned, siktar och stänger
+    ett tangentbord.
+  - **Gästen kan inte skriva den.** `anon` har ingen update-grant på `orders`
+    alls, och skulle någon ge den granten är policyn kvar som andra lager.
+    Kontrollen i `verify-schema-tests.sql` prövar båda.
+
+  Sett i webbläsaren: en order som köket satte till 45 minuter visar "Ungefär
+  45 minuter kvar" i stället för restaurangens 20.
+
 - **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
   dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
   språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
@@ -698,10 +727,10 @@ eller ett beslut.
       **Ljust läge är inte heller sett.** Webbläsaren stod i mörkt läge hela
       genomgången, och `docs/DESIGN.md` beskriver det ljusa som utgångsläget.
 
-- [ ] **Avhämtning: uppskattad tid från personalen, och notis till gästen.**
-      Beställt 2026-08-21. Avhämtning fungerar redan — `PICKUP`,
-      `MenuOrder` och `pickupSlots` finns. Tre delar saknas, och den första är
-      störst:
+- [ ] **Notis till gästen när maten är på gång.** Beställt 2026-08-21.
+      **Del 3 av 3 är byggd 2026-08-22** — personalen har nu ett tidsfält, och
+      gästens kvitto räknar ned från kökets egen siffra i stället för från
+      restaurangens standardtid. Se *Byggt 2026-08-22*. Två delar kvar:
 
       1. **Gästen får ingen notis alls i dag.** Det finns bara
          `notifyNewOrder()` till restaurangen och
@@ -709,14 +738,16 @@ eller ett beslut.
       2. **Push är personalens.** `push_subscriptions` policy kräver
          `is_staff_of(restaurant_id)` — gästprenumeration kräver en migration,
          inte bara en avsändare.
-      3. **Personalen har inget tidsfält.** Knappraden 10/15/20/30/övrigt när
-         ordern tas emot, med `prep_time_minutes` som förval, och siffran
-         vidare till gästen. Sedan ett andra meddelande när maten är klar.
 
       Kanalen är webbpush eller e-post fram till mobilappen, och båda kräver
       att gästen har konto eller lämnat en adress. Anonym QR-beställning vid
       bordet ska förbli kontolös — avhämtningsnotiser lovar därför ingenting
       till den gästen, och det är rätt.
+
+      **Kvittot är det som gör den anonyma gästen inte helt utelämnad.** Hon
+      har sidan öppen och den pollar var tionde sekund, så nedräkningen är
+      redan hennes kanal. Notisen behövs för den som stängt fliken — alltså
+      i praktiken avhämtningsgästen, som är den ordern gäller.
 
 - [ ] **VAPID-nycklar.** Push är byggt men skickar ingenting utan nycklar.
       `npx web-push generate-vapid-keys`, sedan `NEXT_PUBLIC_VAPID_PUBLIC_KEY`

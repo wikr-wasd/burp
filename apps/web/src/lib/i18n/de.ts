@@ -509,6 +509,8 @@ export const de: Dictionary = {
       sibling: "Bestellung {index} von {count} für den Tisch",
       minutes: "{n} min",
 
+      prepTime: "Fertig in",
+      prepMinutes: "{n} Min.",
       stepACCEPTED: "Annehmen",
       stepPREPARING: "Zubereitung starten",
       stepREADY: "Fertig",

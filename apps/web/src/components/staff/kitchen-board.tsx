@@ -76,6 +76,7 @@ export function KitchenBoard({
   /** Dashboarden visar belopp; köket har ingen nytta av dem. */
   showTotals = false,
   currency,
+  defaultPrepMinutes,
   statusLabels,
   labels,
   orderTypeLabels,
@@ -85,6 +86,8 @@ export function KitchenBoard({
   title: string;
   canCancel?: boolean;
   showTotals?: boolean;
+  /** Restaurangens standardtid — förval i knappraden "Klart om". */
+  defaultPrepMinutes: number;
   /** Restaurangens valuta. Krävs så fort belopp visas. */
   currency: CurrencyCode;
   /** Orderstatusarna ur ordboken. Rena strängar — komponenten är klientkod. */
@@ -184,16 +187,26 @@ export function KitchenBoard({
     };
   }, [restaurantId, router, playChime]);
 
-  async function advance(order: KitchenOrder, to: OrderStatus) {
+  /**
+   * Flyttar ordern ett steg, och skriver kökets tid när den tas emot.
+   *
+   * Tiden följer med i SAMMA update som statusen. Två skrivningar hade kunnat
+   * lyckas till hälften — en order som är mottagen men utan tid, eller tvärtom
+   * — och gästen hade fått en nedräkning som inte hör ihop med statusen hon ser.
+   */
+  async function advance(order: KitchenOrder, to: OrderStatus, prepMinutes?: number) {
     if (!allowedTransitions(order.status).includes(to)) return;
 
     setPending(order.id);
     setError(null);
 
+    const patch: { status: OrderStatus; prep_minutes?: number } = { status: to };
+    if (prepMinutes !== undefined) patch.prep_minutes = prepMinutes;
+
     const supabase = createClient();
     const { error: updateError } = await supabase
       .from("orders")
-      .update({ status: to })
+      .update(patch)
       .eq("id", order.id);
 
     if (updateError) {
@@ -202,7 +215,11 @@ export function KitchenBoard({
       // Optimistiskt lokalt, sedan bekräftat av refresh().
       setOrders((current) =>
         current
-          .map((o) => (o.id === order.id ? { ...o, status: to } : o))
+          .map((o) =>
+            o.id === order.id
+              ? { ...o, status: to, prepMinutes: prepMinutes ?? o.prepMinutes }
+              : o,
+          )
           .filter((o) => o.status !== "COMPLETED"),
       );
       router.refresh();
@@ -262,6 +279,7 @@ export function KitchenBoard({
               canCancel={canCancel}
               showTotals={showTotals}
               currency={currency}
+              defaultPrepMinutes={defaultPrepMinutes}
               statusLabels={statusLabels}
               labels={labels}
               orderTypeLabels={orderTypeLabels}
@@ -280,6 +298,7 @@ function OrderCard({
   canCancel,
   showTotals,
   currency,
+  defaultPrepMinutes,
   sibling,
   statusLabels,
   labels,
@@ -289,10 +308,11 @@ function OrderCard({
   /** Null när bordet bara har en aktiv beställning. */
   sibling: { index: number; count: number } | null;
   pending: boolean;
-  onAdvance: (order: KitchenOrder, to: OrderStatus) => void;
+  onAdvance: (order: KitchenOrder, to: OrderStatus, prepMinutes?: number) => void;
   canCancel: boolean;
   showTotals: boolean;
   currency: CurrencyCode;
+  defaultPrepMinutes: number;
   statusLabels: Record<OrderStatus, string>;
   labels: KitchenLabels;
   orderTypeLabels: OrderTypeLabels;
@@ -300,6 +320,18 @@ function OrderCard({
   const step = NEXT_STEP[order.status];
   const [confirmCancel, setConfirmCancel] = useState(false);
   const cancellable = canCancel && allowedTransitions(order.status).includes("CANCELLED");
+
+  /*
+   * Kökets uppskattning, vald när ordern tas emot.
+   *
+   * Raden visas BARA i steget PLACED → ACCEPTED. Det är den enda sekund då
+   * köket faktiskt vet något gästen inte vet: biljetten ligger framför kocken,
+   * han ser vad som ska lagas och hur mycket som redan står på spisen. Att
+   * fråga senare vore att fråga om något han redan glömt, och att fråga i varje
+   * steg vore fyra frågor för ett svar.
+   */
+  const [prepMinutes, setPrepMinutes] = useState(order.prepMinutes ?? defaultPrepMinutes);
+  const askForPrepTime = step === "ACCEPTED";
 
   return (
     <article
@@ -388,11 +420,46 @@ function OrderCard({
         </p>
       ) : null}
 
+      {/*
+        Knappraden "Klart om", före mottagningsknappen.
+
+        Fyra fasta val plus restaurangens eget, om det inte redan står där. Inget
+        fritextfält: det här trycks med en tumme i ett kök, ofta med handen full,
+        och ett sifferfält kräver att man tittar ned, siktar och stänger ett
+        tangentbord. Restaurangen som lagar på 45 minuter sätter det som sin
+        standard i inställningarna och får det som en femte knapp här.
+      */}
+      {askForPrepTime ? (
+        <div className="mt-4">
+          <p className="text-sm font-medium uppercase tracking-wide opacity-60">
+            {labels.prepTime}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {prepChoices(defaultPrepMinutes).map((minutes) => (
+              <button
+                key={minutes}
+                type="button"
+                disabled={pending}
+                aria-pressed={minutes === prepMinutes}
+                onClick={() => setPrepMinutes(minutes)}
+                className={`min-h-12 min-w-14 rounded-lg border-2 px-3 font-semibold tabular-nums disabled:opacity-50 ${
+                  minutes === prepMinutes
+                    ? "border-burp-600 bg-burp-600 text-white"
+                    : "border-black/15 dark:border-white/20"
+                }`}
+              >
+                {fill(labels.prepMinutes, { n: minutes })}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {step ? (
         <button
           type="button"
           disabled={pending}
-          onClick={() => onAdvance(order, step)}
+          onClick={() => onAdvance(order, step, askForPrepTime ? prepMinutes : undefined)}
           className="mt-4 min-h-14 w-full rounded-lg bg-burp-600 text-lg font-semibold text-white disabled:opacity-50"
         >
           {pending ? "…" : labels[`step${step}`]}
@@ -461,4 +528,18 @@ function Elapsed({ since, labels }: { since: string | null; labels: KitchenLabel
       {fill(labels.minutes, { n: minutes })}
     </span>
   );
+}
+
+/**
+ * Minuterna knappraden erbjuder.
+ *
+ * Fyra vanliga tider plus restaurangens egen standard, om den inte redan står
+ * bland dem. Sorterade och utan dubbletter — en rad med två 20:or ser ut som
+ * ett fel, och en rad där standardvärdet saknas tvingar den som lagar på 45
+ * minuter att välja fel varje gång.
+ */
+export function prepChoices(defaultMinutes: number): number[] {
+  return [...new Set([10, 15, 20, 30, defaultMinutes])]
+    .filter((minutes) => minutes >= 1 && minutes <= 240)
+    .sort((a, b) => a - b);
 }

@@ -501,6 +501,8 @@ export const en: Dictionary = {
       sibling: "Order {index} of {count} for the table",
       minutes: "{n} min",
 
+      prepTime: "Ready in",
+      prepMinutes: "{n} min",
       stepACCEPTED: "Accept",
       stepPREPARING: "Start cooking",
       stepREADY: "Ready",

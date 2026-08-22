@@ -48,6 +48,13 @@ export interface KitchenOrder {
   totalOre: number;
   /** Hämttid för en förbeställning. Null för en order som ska lagas nu. */
   scheduledFor: string | null;
+  /**
+   * Kökets egen uppskattning i minuter, eller null om ingen satt någon.
+   *
+   * Null betyder "ingen har sagt något" och inte "noll minuter" — kvittot
+   * faller då tillbaka på restaurangens orderregel. Se migration 0048.
+   */
+  prepMinutes: number | null;
   items: KitchenOrderItem[];
 }
 
@@ -62,6 +69,14 @@ export interface ActiveOrders {
    * ändå, i en egen lista, så att ingen tror att beställningen försvunnit.
    */
   upcoming: KitchenOrder[];
+  /**
+   * Restaurangens standardtid ur orderreglerna.
+   *
+   * Följer med ut därför att köksskärmen behöver den som förval i knappraden
+   * "Klart om". Att låta sidan hämta den själv hade betytt en andra fråga mot
+   * samma kolumn — och en andra chans att glömma den.
+   */
+  prepTimeMinutes: number;
 }
 
 /**
@@ -87,13 +102,15 @@ export async function getActiveOrders(restaurantId: string): Promise<ActiveOrder
 
   const { data: orders } = await supabase
     .from("orders")
-    .select("id, status, type, placed_at, accepted_at, note, total_ore, table_id, scheduled_for")
+    .select(
+      "id, status, type, placed_at, accepted_at, note, total_ore, table_id, scheduled_for, prep_minutes",
+    )
     .eq("restaurant_id", restaurantId)
     .in("status", ACTIVE_STATUSES)
     // Äldst först. Köket arbetar i den ordning orderna kom in, inte tvärtom.
     .order("placed_at", { ascending: true });
 
-  if (!orders || orders.length === 0) return { due: [], upcoming: [] };
+  if (!orders || orders.length === 0) return { due: [], upcoming: [], prepTimeMinutes };
 
   const orderIds = orders.map((order) => order.id);
 
@@ -160,6 +177,7 @@ export async function getActiveOrders(restaurantId: string): Promise<ActiveOrder
     note: order.note,
     totalOre: order.total_ore,
     scheduledFor: order.scheduled_for,
+    prepMinutes: order.prep_minutes,
     items: itemsByOrder.get(order.id) ?? [],
   }));
 
@@ -180,5 +198,5 @@ export async function getActiveOrders(restaurantId: string): Promise<ActiveOrder
   // dyker upp i köket.
   upcoming.sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""));
 
-  return { due, upcoming };
+  return { due, upcoming, prepTimeMinutes };
 }

@@ -4221,4 +4221,95 @@ begin
 end
 $$;
 
+\echo '   köket sätter tiden på ordern, gästen kan inte'
+
+do $$
+declare
+  v_rest  uuid;
+  v_cook  uuid;
+  v_table uuid;
+  v_order uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Kökets Tid', 'kokets-tid', '4200000000124',
+          'Ferhadija 33', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'kock-tid@example.com')
+  returning id into v_cook;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_cook, 'kitchen', true);
+
+  insert into public.tables (restaurant_id, table_number, qr_public_id)
+  values (v_rest, '1', 'TDTDTD')
+  returning id into v_table;
+
+  insert into public.orders (
+    restaurant_id, table_id, type, status, currency, idempotency_key, placed_at
+  )
+  values (v_rest, v_table, 'TABLE', 'PLACED', 'BAM', gen_random_uuid(), now())
+  returning id into v_order;
+
+  -- NULL och inte noll. Skillnaden är hela poängen: kvittot faller tillbaka på
+  -- restaurangens regel så länge ingen sagt något, och följer med om regeln
+  -- ändras. Ett default i schemat hade fryst regeln vid raden skapades.
+  if (select prep_minutes from public.orders where id = v_order) is not null then
+    raise exception 'FEL: prep_minutes fick ett default i schemat';
+  end if;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_cook::text, true);
+
+  -- Köket skriver tiden i samma update som statusen. Det är precis vad
+  -- köksskärmen gör, och det ska policyn släppa igenom.
+  update public.orders set status = 'ACCEPTED', prep_minutes = 25 where id = v_order;
+
+  if (select prep_minutes from public.orders where id = v_order) is distinct from 25 then
+    raise exception 'FEL: köket kunde inte sätta tiden';
+  end if;
+
+  -- Ett feltryck ska inte kunna lova gästen fem timmar.
+  begin
+    update public.orders set prep_minutes = 300 where id = v_order;
+    raise exception 'FEL: 300 minuter accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Noll är inte en uppskattning utan ett påstående om att maten står klar.
+  begin
+    update public.orders set prep_minutes = 0 where id = v_order;
+    raise exception 'FEL: noll minuter accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  -- Gästen vid bordet har ingen auth.uid() och därmed ingen policy som
+  -- släpper igenom en update. Tiden är kökets att sätta, inte hennes.
+  execute 'set local role anon';
+
+  -- Två spärrar räknas som godkänt, och skälet är värt att förstå: `anon` har
+  -- ingen update-grant på orders alls, så försöket faller redan på rättigheten.
+  -- Skulle någon ge rollen den granten längre fram är policyn kvar som andra
+  -- lager, och då syns det på att värdet står orört. Kontrollen prövar båda.
+  begin
+    update public.orders set prep_minutes = 5 where id = v_order;
+
+    if (select prep_minutes from public.orders where id = v_order) is distinct from 25 then
+      raise exception 'FEL: en anonym gäst kunde skriva om kökets tid';
+    end if;
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  execute 'reset role';
+end
+$$;
+
 rollback;

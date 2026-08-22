@@ -528,6 +528,8 @@ export const bs: Dictionary = {
       sibling: "Narudžba {index} od {count} za stol",
       minutes: "{n} min",
 
+      prepTime: "Gotovo za",
+      prepMinutes: "{n} min",
       stepACCEPTED: "Primi",
       stepPREPARING: "Počni pripremu",
       stepREADY: "Gotovo",

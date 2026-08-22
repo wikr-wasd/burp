@@ -505,6 +505,8 @@ export const no: Dictionary = {
       sibling: "Bestilling {index} av {count} på bordet",
       minutes: "{n} min",
 
+      prepTime: "Klart om",
+      prepMinutes: "{n} min",
       stepACCEPTED: "Ta imot",
       stepPREPARING: "Begynn å lage",
       stepREADY: "Klar",

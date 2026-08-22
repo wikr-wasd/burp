@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
   const staff = await requireStaff(["owner", "manager", "staff"]);
-  const { due, upcoming } = await getActiveOrders(staff.restaurantId);
+  const { due, upcoming, prepTimeMinutes } = await getActiveOrders(staff.restaurantId);
   const t = dictionary(staff.locale).staff;
 
   return (
@@ -40,6 +40,7 @@ export default async function OrdersPage() {
         canCancel
         showTotals
         currency={staff.currency}
+        defaultPrepMinutes={prepTimeMinutes}
         statusLabels={t.status}
         labels={t.kitchen}
         orderTypeLabels={t.orderType}

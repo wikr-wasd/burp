@@ -135,6 +135,7 @@ describe("ordböckerna", () => {
       "restaurant.phone",
       // "min" är samma förkortning på alla fem språken.
       "staff.kitchen.minutes",
+      "staff.kitchen.prepMinutes",
       // Lånordet igen — samma rot, samma stavning.
       "staff.settings.phone",
       "staff.reports.code",
@@ -172,7 +173,13 @@ describe("ordböckerna", () => {
       "country.RS",
     ],
 
-    en: ["errors.notFoundLabel", "menu.giftCardPlaceholder", "staff.kitchen.minutes"],
+    en: [
+      "errors.notFoundLabel",
+      "menu.giftCardPlaceholder",
+      "staff.kitchen.minutes",
+      // "min" igen, och "{n} min" med den.
+      "staff.kitchen.prepMinutes",
+    ],
 
     /*
      * Norskan har flest, och det är inte slarv.
@@ -238,6 +245,11 @@ describe("ordböckerna", () => {
       "account.addresses",
       "account.postalCode",
       "account.cancel",
+      // "Klart om" och "{n} min" stavas likadant på norska och svenska.
+      // Notera att `staff.kitchen.stepACCEPTED` INTE står här: "Ta imot" mot
+      // "Ta emot" är kvittot på att avsnittet faktiskt är norskt.
+      "staff.kitchen.prepTime",
+      "staff.kitchen.prepMinutes",
       /*
        * Personalytorna. Samma mönster som ovan: norskan och svenskan delar
        * orden rakt av, och att skriva om dem för att slippa en kollision hade

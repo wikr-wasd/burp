@@ -693,6 +693,17 @@ export const sv = {
        * Nycklarna är den status knappen leder TILL, så att `NEXT_STEP` i
        * köksskärmen slår upp direkt utan en tabell emellan.
        */
+      /**
+       * Knappraden köket får när ordern tas emot.
+       *
+       * "Klart om" och inte "Tillagningstid": kocken svarar på när gästen kan
+       * äta, inte på hur länge spisen går. Skillnaden syns när tre order står
+       * på kö — svaret är då längre än tillagningen, och det är det längre
+       * svaret gästen ska få.
+       */
+      prepTime: "Klart om",
+      prepMinutes: "{n} min",
+
       stepACCEPTED: "Ta emot",
       stepPREPARING: "Börja laga",
       stepREADY: "Klar",

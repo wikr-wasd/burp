@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 export default async function KitchenPage() {
   const staff = await requireStaff();
   const t = dictionary(staff.locale).staff;
-  const { due, upcoming } = await getActiveOrders(staff.restaurantId);
+  const { due, upcoming, prepTimeMinutes } = await getActiveOrders(staff.restaurantId);
 
   return (
     <>
@@ -58,6 +58,7 @@ export default async function KitchenPage() {
           initialOrders={due}
           restaurantId={staff.restaurantId}
           currency={staff.currency}
+          defaultPrepMinutes={prepTimeMinutes}
           title={t.section.kok}
           statusLabels={t.status}
           labels={t.kitchen}
