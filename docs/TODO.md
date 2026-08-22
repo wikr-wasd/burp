@@ -348,6 +348,30 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   Windows CRLF rapporterat ett schemafel som inte finns — och en kontroll som
   ropar varg är värre än ingen.
 
+- **Null-rättningarna sedda på en riktig sida, och en femte som föll ut.**
+  De fyra fixarna ovan var gjorda mot typkontrollen, inte mot en skärm. Med
+  `location` nollställd på seed-restaurangen visar `/sv/r/sarajevo/…` att alla
+  tre kartlänkarna går på adressen i stället för `null,null`, att iframen och
+  `geo` är borta, och att varken `null` eller `NaN` finns i HTML:en.
+
+  Men kortet under "Hitta hit" var ett fast `lg:grid-cols-2`. Utan karta i
+  andra spalten trängdes adressen och de fyra knapparna i vänstra fyrtiondelen
+  medan resten stod tom. Rutnätet är nu villkorat på att det FINNS en karta att
+  lägga där.
+
+- **Avhämtningsflödet genomgånget** — restaurangsidan, menyn, varukorgen och
+  kvittot på `/order/[orderId]`. Aldrig sett förut, och det enda gästflödet
+  utöver QR som går att pröva utan inloggning: ordern läggs anonymt och
+  kvittosidan bevisar åtkomst med en cookie.
+
+  Allt höll. Momsen stämmer (0,58 av 4,00 vid 17 %), kvittot bär hämtadressen
+  med vägbeskrivning, "Betalning sker på plats vid upphämtning" och en väg
+  tillbaka till restaurangen. **Ljust läge är därmed också sett** — den raden
+  kan strykas ur mobilgenomgången.
+
+  Och seeden syns nu som den ska: "Sa Vlašića, sječen iz kace",
+  "ALLERGENER: MLIJEKO". Etiketten svensk, restaurangens egen text bosnisk.
+
 - **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
   dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
   språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
@@ -724,13 +748,14 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
       Fältet hade dessutom "21422" som exempel, alltså Malmö. Båda är rättade,
       men rätt svar är ett land på adressen.
 
-- [ ] **Gå igenom gästflödet på en riktig telefon.** Genomgången 2026-08-22
+- [ ] **Gå igenom gästflödet på en riktig telefon.** Genomgångarna 2026-08-22
       gjordes i Chrome på skrivbordet; `resize_window` tog inte på den här
       maskinen, så tvåkolumnsrutnätet är sett men enkolumnsvyn inte. Se även
       raden om mobilvyn nedan.
 
-      **Ljust läge är inte heller sett.** Webbläsaren stod i mörkt läge hela
-      genomgången, och `docs/DESIGN.md` beskriver det ljusa som utgångsläget.
+      Ljust läge är sett — restaurangsidan och avhämtningskvittot renderades i
+      det när seedens språk och null-rättningarna kontrollerades. QR-flödet
+      sågs i mörkt, som är dess eget läge (`.theme-table`).
 
 - [ ] **Webbpush till gästen.** Beställt 2026-08-21. E-postvägen är byggd
       2026-08-22 — se *Byggt 2026-08-22* — och push ligger kvar. Två saker

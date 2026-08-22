@@ -315,7 +315,21 @@ export default async function RestaurantPage({ params }: PageProps) {
       <section id="hitta-hit" className="mt-16">
         <h2 className="font-display text-3xl">{t.restaurant.findUs}</h2>
 
-        <div className="card mt-6 grid gap-10 p-6 lg:grid-cols-2">
+        {/*
+          Två spalter bara när det finns en karta att lägga i den andra.
+
+          `MapEmbed` renderar ingenting för en restaurang utan koordinater — och
+          en ny restaurang har inga förrän ägaren klistrat in en kartlänk. Med
+          ett fast tvåspaltsrutnät blev följden en kortbredd där adressen och
+          knapparna trängdes i vänstra fyrtiondelen och resten stod tom.
+        */}
+        <div
+          className={`card mt-6 grid gap-10 p-6 ${
+            restaurant.latitude !== null && restaurant.longitude !== null
+              ? "lg:grid-cols-2"
+              : ""
+          }`}
+        >
           <div>
             <Directions
               locale={locale}
