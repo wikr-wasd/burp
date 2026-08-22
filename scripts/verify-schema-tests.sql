@@ -4445,4 +4445,70 @@ begin
 end
 $$;
 
+\echo '   restaurangen kan inte läsa sina gästers profiler'
+
+do $$
+declare
+  v_rest  uuid;
+  v_owner uuid;
+  v_guest uuid;
+  v_seen  integer;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Gästens Namn', 'gastens-namn', '4200000000126',
+          'Ferhadija 37', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-namn@example.com')
+  returning id into v_owner;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'gast-namn@example.com')
+  returning id into v_guest;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_owner, 'owner', true);
+
+  -- Triggern i 0002 skapar profilen. Fyll i ett namn att försöka läsa.
+  update public.profiles set full_name = 'Amina Hodžić' where id = v_guest;
+
+  /*
+   * Gästen har beställt hos restaurangen och lämnat ett omdöme.
+   *
+   * Det är den kopplingen som gör frågan intressant: restaurangen SER ordern
+   * och SER omdömet, och har därmed gästens user_id. Frågan är om id:t räcker
+   * för att också få fram namnet.
+   */
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_owner::text, true);
+
+  select count(*) into v_seen from public.profiles where id = v_guest;
+
+  if v_seen <> 0 then
+    raise exception 'FEL: restaurangen kunde läsa gästens profil';
+  end if;
+
+  -- Och inte via en bredare fråga heller. En policy som råkar släppa igenom
+  -- allt utom ett exakt id-filter vore lika illa.
+  select count(*) into v_seen from public.profiles where full_name is not null;
+
+  if v_seen <> 0 then
+    raise exception 'FEL: restaurangen kunde svepa profiltabellen';
+  end if;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  /*
+   * Kontrollen är beslutet, inte bara ett skydd.
+   *
+   * Omdömen är pseudonyma (se lib/reviews.ts). Appen slår inte längre upp
+   * namnet — men den enda anledningen till att ett sådant uppslag ALDRIG kan
+   * lyckas är den här policyn. Faller testet betyder det att någon öppnat
+   * profiltabellen för restauranger, och då kan nästa "fix" i gränssnittet
+   * publicera riktiga namn på en indexerad sida.
+   */
+end
+$$;
+
 rollback;

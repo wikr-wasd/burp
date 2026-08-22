@@ -25,6 +25,8 @@
     "db:types": "node scripts/generate-types.mjs",
     "db:types:remote": "node scripts/generate-types.mjs --remote",
     "db:types:check": "node scripts/generate-types.mjs --check",
+    "check:service-role": "node scripts/check-service-role.mjs",
+    "audit:prod": "npm audit --omit=dev --audit-level=high --workspace @burp/web",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
     "db:demo": "node scripts/seed-demo-orders.mjs"

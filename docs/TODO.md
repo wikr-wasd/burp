@@ -372,6 +372,61 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   Och seeden syns nu som den ska: "Sa Vlašića, sječen iz kace",
   "ALLERGENER: MLIJEKO". Etiketten svensk, restaurangens egen text bosnisk.
 
+- **Säkerhetsgenomgång, och fyra av sju fynd byggda.** Beställd av William
+  2026-08-22. Hela genomgången ligger som en egen artefakt; det som är kod
+  står här.
+
+  **Content-Security-Policy i rapportläge.** `lib/csp.ts` bygger policyn,
+  `proxy.ts` sätter den. Nonce och `strict-dynamic` på allt utom de tre
+  ISR-cachade sidorna — deras HTML återanvänds i en timme, och en nonce i den
+  är gammal från andra besökaren. De får `'unsafe-inline'` i stället.
+
+  **Det är den avvägning som måste lösas innan policyn slås på**, och den är
+  obekväm: just de sidorna bär mest text från restaurangerna. Antingen blir de
+  dynamiska eller så hashas skripten.
+
+  Verifierat i webbläsaren mot startsidan med kartan, restaurangsidan med
+  OSM-iframen, QR-sidan och inloggningen: **noll överträdelser, noll
+  "Unrecognized directive"**. Ursprungslistan är alltså rätt för de ytorna. Två
+  delar är fortfarande oprövade — Stripes betalfält (kräver nycklar) och
+  köksskärmens websocket (kräver inloggning).
+
+  **Omdömen är pseudonyma, och nu är det ett beslut.** `reviews.ts` slog upp
+  `profiles.full_name` via RLS-klienten. `profiles_select_own` släpper bara
+  igenom din egen rad, så frågan returnerade alltid tomt och varje omdöme visade
+  "Gäst" ändå. Utfallet var rätt — men koden såg ut att mena motsatsen, och den
+  uppenbara "fixen" hade varit `createAdminClient()`. Då publiceras varje
+  recensents riktiga namn på en indexerad sida. Uppslaget är borta, beslutet
+  skrivet, och `verify-schema-tests.sql` har nu en kontroll: *restaurangen kan
+  inte läsa sina gästers profiler*.
+
+  **`npm run check:service-role`.** Första utkastet krävde ett bokstavligt
+  `restaurant_id` och fällde 23 av 23 frågor — alla korrekta, för begränsningen
+  ärvs (`menu_categories` på `menu_id` ur en meny som redan hörde till
+  restaurangen). **Regeln var fel, inte koden.** Kontrollen letar nu efter den
+  form som faktiskt lämnar ut allt: en fråga utan filter alls. 76 anrop
+  kontrollerade, noll undantag. Prövad genom att ta bort ett riktigt filter —
+  exakt en ny rad, och borta igen när filtret återställs.
+
+  **`npm run audit:prod`.** `npm audit` i roten rapporterar 30 sårbarheter, en
+  kritisk. Alla ligger under vercel-CLI:t. Granskningen körs nu mot det som
+  levereras: **noll**. En rubrik med "1 kritisk" som aldrig betyder något är
+  precis det brus som gör att nästa riktiga varning viftas bort.
+
+  **Spärr och CI, lånade från 123Connect.** `.claude/hooks/security-gate.sh`
+  blockerar force-push till main, `--no-verify`, commit av `.env`, `DROP TABLE`
+  och — Burps eget tillägg — varje kommando som rör `QR_TOKEN_SECRET` eller
+  släpper en trigger på de oföränderliga loggarna. Prövad åt båda hållen.
+  `.github/workflows/security-audit.yml` kör varje måndag.
+
+  Ett steg i CI:n skrev jag om innan det committades: det grep:ade efter
+  `enable row level security` i varje migration som skapar en tabell, och hade
+  fällt sju korrekta migrationer på första körningen — Burp slår på RLS samlat
+  i 0009. Det steget kör i stället `verify-schema.sh` mot en riktig PostgreSQL
+  i en container, alltså den kontroll som bevisar att policyn faktiskt gömmer
+  något. Det är också den idé som borde gå tillbaka till 123Connect, vars
+  RLS-kontroll bara bevisar att strömbrytaren är på.
+
 - **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
   dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
   språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
@@ -590,7 +645,7 @@ Spärren om lösenord gäller dashboard, kassa och backoffice — inte QR-sidan,
 menyn, varukorgen, kassan i QR-flödet eller kvittot. Just de ytorna har högst
 kvalitetskrav i produkten och är samtidigt de som aldrig setts av ett öga.
 
-`smoke.sh` kör redan 157 kontroller genom samma flöde, men den mäter något
+`smoke.sh` kör redan 162 kontroller genom samma flöde, men den mäter något
 annat. Den svarar på om servern svarar rätt; den svarar inte på om knappen går
 att träffa med en tumme, om felmeddelandet betyder något för den som läser det,
 eller om det går att förstå var i beställningen man befinner sig. Ett grep av
@@ -736,6 +791,28 @@ fråga 15.
 
 Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
 det utskrivet — och ligger kvar tills beslutet är fattat.
+
+- [ ] **Slå på CSP:n på riktigt.** Den går i rapportläge sedan 2026-08-22 och
+      har noll överträdelser på de ytor som gick att pröva. Två saker återstår:
+
+      1. **ISR-frågan.** Stadssidan, kökssidan och restaurangsidan cachas i en
+         timme och kan inte bära en nonce. De får `'unsafe-inline'`, vilket är
+         svagast just där texten från restaurangerna är som mest. Antingen blir
+         de dynamiska, eller så hashas Next skript.
+      2. **Två oprövade ursprung.** Stripes betalfält kräver nycklar och
+         köksskärmens websocket kräver inloggning. Båda står i `connect-src`
+         respektive `frame-src`, men ingen har sett dem svara.
+
+      Byt sedan `CSP_HEADER` i `proxy.ts` till `Content-Security-Policy`.
+      Kontrollera samtidigt att HSTS sätts på apex-domänen — Vercel brukar göra
+      det, men det är värt att se med egna ögon.
+
+- [ ] **Ska en gäst kunna visa ett namn på sitt omdöme?** Omdömen är
+      pseudonyma sedan 2026-08-22, och det är ett medvetet beslut. Vill vi visa
+      ett namn är vägen ett EGET visningsnamn som gästen själv väljer att
+      publicera — aldrig hennes profilnamn, som hon lämnat för att kunna bli
+      kontaktad och inte för att synas. Kräver ett fält, ett formulär och ett
+      beslut. Ren kod när beslutet finns.
 
 - [ ] **Gästens adress bär inget land.** `saveAddress()` kontrollerar
       postnumret mot `^\d{5,6}$` — unionen av marknadens format — i stället för
@@ -1095,7 +1172,7 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
 - [x] **Röktestet går att köra — och hittade två fel direkt.** Diagnosen att
       `bash` var WSL2 var fel; skalet är Git Bash och saknade bara `/usr/bin` på
       `PATH`. Röktestet har alltså aldrig körts här, trots att `CLAUDE.md` säger
-      att det är det som avgör om något fungerar. Det kör nu 157 kontroller,
+      att det är det som avgör om något fungerar. Det kör nu 162 kontroller,
       inklusive de nya ytorna: avräkning, GDPR-export och poängjobbet bakom sin
       nyckel.
       Två fel föll ut. **Städningen av presentkortet kunde aldrig lyckas** —

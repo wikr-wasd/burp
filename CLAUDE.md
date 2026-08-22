@@ -101,6 +101,9 @@ npm run db:types           # TypeScript-typer ur den LOKALA stacken
 npm run db:types:remote    # …ur molnet, när SUPABASE_PROJECT_ID finns
 npm run db:types:check     # faller om filen är ur takt — kör den efter en migration
 
+npm run check:service-role # varje fråga förbi RLS smalnar av sig själv
+npm run audit:prod         # sårbarheter i det som LEVERERAS, inte i vercel-CLI:t
+
 node scripts/print-qr-links.mjs   # QR-länkar för seed-borden
 ```
 
@@ -152,7 +155,27 @@ gång, och `verify-schema.sh` kontrollerar det numera.
 
 `createAdminClient()` kringgår all RLS. Använd den bara där en policy inte
 räcker — QR-flödet (anonym gäst utan `auth.uid()`), webhooks, bakgrundsjobb.
-Varje sådant anrop måste själv filtrera på `restaurant_id`.
+Varje sådant anrop måste själv begränsa sin fråga.
+
+Begränsningen behöver inte stå som `restaurant_id` i just den raden — den ärvs
+ofta: `menu_categories` filtreras på ett `menu_id` som redan hörde till
+restaurangen. Det som ALDRIG får förekomma är en fråga utan filter alls.
+`npm run check:service-role` kontrollerar precis det över alla 76 anropen, och
+en fråga som verkligen ska gå över hela plattformen märks ut:
+
+```ts
+// service-role: hela plattformen — <skälet>
+```
+
+### 5b. Content-Security-Policy går i rapportläge
+
+`lib/csp.ts` bygger policyn, `proxy.ts` sätter den som
+`Content-Security-Policy-Report-Only`. Den blockerar alltså ingenting än.
+
+**Innan den slås på måste ISR-frågan lösas.** En nonce måste vara ny per
+request, och tre rutter är cachade i en timme — stadssidan, kökssidan och
+restaurangsidan. De får därför `'unsafe-inline'` i stället för en nonce, och
+det är just de sidorna som bär mest text från restaurangerna.
 
 ### 6. Loggarna är oföränderliga
 
@@ -341,7 +364,7 @@ där Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat
 | `apps/web` | Rena moduler: öppen vidarebefordran, rate limiter, JSON-LD, i18n, avräkningens periodräkning, köksköns ordning | inget |
 | `scripts/verify-schema.sh` | Migrationer, RLS, grants, triggers, plpgsql | PostgreSQL + PostGIS |
 | `packages/core` (forts.) | Betalningens statusmaskin, kupong, presentkort, klippkort | inget |
-| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 157 kontroller | Docker + Supabase + körande app |
+| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 162 kontroller | Docker + Supabase + körande app |
 
 Route handlers och server components har medvetet inga enhetstester — de kräver
 databas och session för att säga något meningsfullt, och täcks av `smoke.sh`.

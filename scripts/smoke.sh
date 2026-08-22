@@ -1424,6 +1424,66 @@ else
   printf '  \033[33mhopp\033[0m  poängjobbet — CRON_SECRET saknas i apps/web/.env.local\n'
 fi
 
+# ── Content-Security-Policy ────────────────────────────────────────────────
+#
+# Policyn går i rapportläge (se lib/csp.ts). Kontrollerna nedan prövar inte att
+# den blockerar något — det gör den inte — utan att den FINNS, att nonce:n når
+# Next egna skript, och att de cachade sidorna får den nonce-fria varianten.
+#
+# En nonce som inte når Next skripten är det tysta felet: policyn ser komplett
+# ut i huvudet, och varje skript på sidan rapporteras som blockerat.
+echo "→ Content-Security-Policy"
+
+CSP_HEAD=$(curl -s -D - -o /dev/null "$BASE/sv" | tr -d '\r')
+
+if grep -qi "content-security-policy-report-only:" <<<"$CSP_HEAD"; then
+  pass "policyn skickas i rapportläge"
+else
+  fail "inget CSP-huvud på en dynamisk sida"
+fi
+
+CSP_LINE=$(grep -i "content-security-policy-report-only:" <<<"$CSP_HEAD" | head -1)
+
+# Nonce:n ska stå i script-src, och Next ska ha stämplat sina skript med samma.
+CSP_NONCE=$(grep -oE "nonce-[A-Za-z0-9+/=]+" <<<"$CSP_LINE" | head -1 | cut -d- -f2-)
+if [ -n "$CSP_NONCE" ]; then
+  pass "dynamisk sida får en nonce"
+else
+  fail "nonce saknas i policyn för en dynamisk sida"
+fi
+
+# Samma request en gång till hade gett en annan nonce, så sidan hämtas om
+# tillsammans med sitt huvud.
+BOTH=$(curl -s -D "$COOKIES.head" "$BASE/sv")
+HEAD_NONCE=$(tr -d '\r' < "$COOKIES.head" | grep -i "content-security-policy-report-only:" | grep -oE "nonce-[A-Za-z0-9+/=]+" | head -1 | cut -d- -f2-)
+if [ -n "$HEAD_NONCE" ] && grep -qF "nonce=\"$HEAD_NONCE\"" <<<"$BOTH"; then
+  pass "Next stämplar sina skript med samma nonce"
+else
+  fail "nonce:n i huvudet finns inte på sidans skript"
+fi
+rm -f "$COOKIES.head"
+
+# De ISR-cachade sidorna kan inte bära en nonce — deras HTML återanvänds i en
+# timme. Får de en ändå blockeras Next skript för alla utom första besökaren.
+CACHED_CSP=$(curl -s -D - -o /dev/null "$BASE/sv/sarajevo" | tr -d '\r' | grep -i "content-security-policy-report-only:")
+if grep -q "nonce-" <<<"$CACHED_CSP"; then
+  fail "den cachade stadssidan fick en nonce"
+else
+  pass "cachad sida får den nonce-fria policyn"
+fi
+
+# Direktiven som faktiskt begränsar skadan. Utan form-action kan ett injicerat
+# formulär posta gästens uppgifter till en annan värd.
+CSP_MISSING=""
+for DIRECTIVE in "form-action 'self'" "base-uri 'self'" "object-src 'none'" "frame-ancestors 'none'"; do
+  grep -qF "$DIRECTIVE" <<<"$CSP_LINE" || CSP_MISSING="$CSP_MISSING $DIRECTIVE"
+done
+if [ -z "$CSP_MISSING" ]; then
+  pass "policyn bär form-action, base-uri, object-src och frame-ancestors"
+else
+  fail "policyn saknar:$CSP_MISSING"
+fi
+
 # ── Typerna mot schemat ────────────────────────────────────────────────────
 #
 # `database.types.ts` är genererad och spårad, och koden importerar den. Risken

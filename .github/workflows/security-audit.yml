@@ -1,0 +1,84 @@
+name: Säkerhetsgranskning
+
+# Varje måndag morgon, och vid varje ändring som rör produktionen.
+#
+# Formen är lånad från 123Connect. Innehållet är Burps: granskningen körs mot
+# det som FAKTISKT levereras, inte mot verktygskedjan. `npm audit` i roten
+# rapporterar trettio sårbarheter som alla ligger under vercel-CLI:t, och en
+# rubrik med "1 kritisk" som aldrig betyder något är precis det brus som gör
+# att nästa riktiga varning viftas bort.
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  granska:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Installera
+        run: npm ci --ignore-scripts
+
+      # Bara produktionsberoendena. CLI:t uppdateras när det uppdateras.
+      - name: Sårbarheter i det som levereras
+        run: npm run audit:prod
+
+      # Varje fråga som går förbi RLS måste smalna av själv. Ett glömt filter
+      # returnerar alla restaurangers rader utan att något test faller.
+      - name: Frågor förbi RLS
+        run: npm run check:service-role
+
+      # Hemligheter hör inte i git. `.env.example` är den enda som får finnas.
+      - name: Spårade env-filer
+        run: |
+          FOUND=$(git ls-files | grep -E '\.env' | grep -v '\.env\.example' || true)
+          if [ -n "$FOUND" ]; then
+            echo "Spårade env-filer:"; echo "$FOUND"; exit 1
+          fi
+          echo "Bara .env.example är spårad."
+
+      # En nyckel som klistrats in i källan i stället för lästs ur miljön.
+      - name: Nycklar i källan
+        run: |
+          FOUND=$(grep -rnE "eyJ[A-Za-z0-9_-]{30,}|sk_live_[A-Za-z0-9]{10,}|sk_test_[A-Za-z0-9]{20,}" \
+            apps/web/src packages/core/src scripts 2>/dev/null || true)
+          if [ -n "$FOUND" ]; then
+            echo "Hårdkodade nycklar:"; echo "$FOUND"; exit 1
+          fi
+          echo "Inga nycklar i källan."
+
+      # ── Den kontroll som faktiskt bevisar något ──────────────────────────
+      #
+      # Första utkastet grep:ade efter "enable row level security" i varje
+      # migration som skapar en tabell. Den regeln stämmer inte här: Burp slår
+      # på RLS samlat i 0009, efter att tabellerna finns. Kontrollen hade fällt
+      # sju korrekta migrationer på första körningen — och en kontroll som ropar
+      # varg är värre än ingen.
+      #
+      # Den riktiga kontrollen kräver en databas, och CI kan köra en. Samma
+      # kommando som står i CLAUDE.md: schemat mot en ren PostgreSQL med
+      # PostGIS, samtliga logiktester, och svepet som loggar in som en riktig
+      # ägare och kontrollerar att hen inte ser en annan restaurangs rader.
+      - name: Schemat, RLS och svepet mot en riktig PostgreSQL
+        run: |
+          docker run -d --name burp-verify \
+            -e POSTGRES_PASSWORD=burp -e POSTGRES_DB=burp_verify \
+            -v "$GITHUB_WORKSPACE:/repo:ro" postgis/postgis:17-3.5
+
+          for _ in $(seq 1 40); do
+            docker exec burp-verify pg_isready -U postgres > /dev/null 2>&1 && break
+            sleep 2
+          done
+
+          docker exec -u postgres -e DB_NAME=burp_check burp-verify \
+            bash /repo/scripts/verify-schema.sh

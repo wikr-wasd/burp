@@ -1,5 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { buildCsp, isCachedRoute } from "@/lib/csp";
+
+/**
+ * Rapportläge. Byt till "Content-Security-Policy" för att slå på på riktigt —
+ * men först efter att de ISR-cachade sidorna fått ett svar på nonce-frågan.
+ * Se `lib/csp.ts` och docs/TODO.md.
+ */
+const CSP_HEADER = "Content-Security-Policy-Report-Only";
 
 /**
  * Förnyar Supabase-sessionen på varje request och skyddar dashboard-ytorna.
@@ -19,7 +27,35 @@ import { NextResponse, type NextRequest } from "next/server";
 const STAFF_PATHS = ["/dashboard", "/kok", "/backoffice"];
 
 export default async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  /*
+   * Nonce och CSP byggs FÖRE sessionen.
+   *
+   * Next läser nonce:n ur CSP-huvudet på REQUESTEN — både `Content-Security-
+   * Policy` och `-Report-Only` fungerar (se `app-render.js`) — och stämplar
+   * sina egna skript med den. Sätts huvudet bara på svaret får Next aldrig
+   * veta om den, och varje skript hade rapporterats som blockerat.
+   *
+   * De ISR-cachade sidorna får ingen nonce alls: deras HTML återanvänds i en
+   * timme och en nonce i den är gammal från andra besökaren. Se `lib/csp.ts`.
+   */
+  const cached = isCachedRoute(request.nextUrl.pathname);
+  const nonce = cached ? null : Buffer.from(crypto.randomUUID()).toString("base64");
+
+  const csp = buildCsp({
+    nonce,
+    isDevelopment: process.env.NODE_ENV === "development",
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    mapTileUrl:
+      process.env.NEXT_PUBLIC_MAP_TILE_URL ?? "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  });
+
+  const requestHeaders = new Headers(request.headers);
+  if (nonce) {
+    requestHeaders.set("x-nonce", nonce);
+    requestHeaders.set(CSP_HEADER, csp);
+  }
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,7 +69,9 @@ export default async function proxy(request: NextRequest) {
           for (const { name, value } of cookiesToSet) {
             request.cookies.set(name, value);
           }
-          response = NextResponse.next({ request });
+          // Samma `requestHeaders` som ovan. Byggs svaret om utan dem tappas
+          // nonce:n, och Next stämplar inte sina skript med den.
+          response = NextResponse.next({ request: { headers: requestHeaders } });
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, options);
           }
@@ -53,8 +91,19 @@ export default async function proxy(request: NextRequest) {
   if (!user && STAFF_PATHS.some((prefix) => path.startsWith(prefix))) {
     const loginUrl = new URL("/logga-in", request.url);
     loginUrl.searchParams.set("next", path);
-    return NextResponse.redirect(loginUrl);
+    const redirect = NextResponse.redirect(loginUrl);
+    redirect.headers.set(CSP_HEADER, csp);
+    return redirect;
   }
+
+  /*
+   * Rapportläge, inte blockering.
+   *
+   * En för snäv CSP ger inget felmeddelande — den ger en sida där något tyst
+   * slutar fungera. Listan över ursprung i `lib/csp.ts` är läst ur koden, och
+   * läst är inte samma sak som bevisad. Rapporterna säger vilket som.
+   */
+  response.headers.set(CSP_HEADER, csp);
 
   return response;
 }
