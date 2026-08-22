@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { COUNTRIES, COUNTRY_INFO, type CountryCode } from "@burp/core";
-import { applyForRestaurant, type ActionResult } from "@/app/anslut/actions";
+import { applyForRestaurant, type ActionResult } from "@/app/[locale]/anslut/actions";
+import { fill, type Dictionary, type Locale } from "@/lib/i18n";
 import type { ApplicationInput } from "@/lib/restaurant-application";
 
 /**
@@ -16,8 +17,27 @@ import type { ApplicationInput } from "@/lib/restaurant-application";
  *
  * Inget fält frågar om moms, valuta eller tidszon. Allt tre följer av landet
  * och skulle bara vara tre fler sätt att fylla i fel.
+ *
+ * Texterna kommer in som en färdig `join`-ordbok och hämtas inte här.
+ * Komponenten är en klientkomponent, och det som korsar gränsen måste vara
+ * rena strängar — ett test i `i18n.test.ts` kräver det av hela avsnittet.
  */
-export function ApplicationForm() {
+export function ApplicationForm({
+  locale,
+  texts,
+  countryNames,
+}: {
+  locale: Locale;
+  texts: Dictionary["join"];
+  /**
+   * Ländernas namn, skilda från `texts`.
+   *
+   * `join.country` är etiketten över rullgardinen — ordet "Land" — och
+   * `country` är vad länderna heter. Två olika saker som ovillkorligen hade
+   * krockat i samma objekt.
+   */
+  countryNames: Dictionary["country"];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -45,18 +65,14 @@ export function ApplicationForm() {
   if (done) {
     return (
       <div className="card mt-8 p-6">
-        <h2 className="font-display text-2xl">Tack — ansökan är inne.</h2>
-        <p className="mt-3 text-[var(--muted)]">
-          Burp går igenom den och hör av sig. Under tiden kan du redan lägga upp
-          menyn och öppettiderna: din restaurang är osynlig för gäster tills den
-          godkänts, så ingenting du gör nu syns utåt i förväg.
-        </p>
+        <h2 className="font-display text-2xl">{texts.doneTitle}</h2>
+        <p className="mt-3 text-[var(--muted)]">{texts.doneBody}</p>
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
           className="btn btn-primary mt-6"
         >
-          Till din dashboard
+          {texts.toDashboard}
         </button>
       </div>
     );
@@ -68,7 +84,7 @@ export function ApplicationForm() {
       onSubmit={(event) => {
         event.preventDefault();
         startTransition(async () => {
-          const outcome = await applyForRestaurant(form);
+          const outcome = await applyForRestaurant(form, locale);
           setResult(outcome);
           if (outcome.ok) {
             setDone(true);
@@ -79,7 +95,7 @@ export function ApplicationForm() {
     >
       <div>
         <label className="label-caps" htmlFor="country">
-          Land
+          {texts.country}
         </label>
         <select
           id="country"
@@ -87,22 +103,27 @@ export function ApplicationForm() {
           onChange={(event) => set("country", event.target.value)}
           className="field mt-1.5"
         >
+          {/*
+            Landsnamnen kommer ur ordboken och inte ur `COUNTRY_INFO.name`.
+            Det senare står på engelska och är ett maskinnamn — "Bosnia and
+            Herzegovina" i en bosnisk rullgardin är precis det slarv som får
+            en restauratör att tro att sidan inte är gjord för henne.
+          */}
           {COUNTRIES.map((code) => (
             <option key={code} value={code}>
-              {COUNTRY_INFO[code].name}
+              {countryNames[code]}
             </option>
           ))}
         </select>
         <p className="mt-1.5 text-sm text-[var(--muted)]">
-          Avgör valuta ({info.currency}), momssatser och tidszon. Går att ändra
-          senare bara genom Burp.
+          {fill(texts.countryHelp, { currency: info.currency })}
         </p>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <label className="label-caps" htmlFor="name">
-            Restaurangens namn
+            {texts.name}
           </label>
           <input
             id="name"
@@ -114,6 +135,7 @@ export function ApplicationForm() {
         </div>
 
         <div>
+          {/* JIB, OIB, PIB. Aldrig översatt — hon letar efter sitt eget ord. */}
           <label className="label-caps" htmlFor="org">
             {info.orgNumberLabel}
           </label>
@@ -131,7 +153,7 @@ export function ApplicationForm() {
       <div className="grid gap-6 sm:grid-cols-[2fr_1fr_1fr]">
         <div>
           <label className="label-caps" htmlFor="street">
-            Gatuadress
+            {texts.street}
           </label>
           <input
             id="street"
@@ -143,7 +165,7 @@ export function ApplicationForm() {
         </div>
         <div>
           <label className="label-caps" htmlFor="postal">
-            Postnummer
+            {texts.postalCode}
           </label>
           <input
             id="postal"
@@ -156,7 +178,7 @@ export function ApplicationForm() {
         </div>
         <div>
           <label className="label-caps" htmlFor="city">
-            Stad
+            {texts.city}
           </label>
           <input
             id="city"
@@ -171,7 +193,7 @@ export function ApplicationForm() {
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <label className="label-caps" htmlFor="phone">
-            Telefon
+            {texts.phone}
           </label>
           <input
             id="phone"
@@ -184,7 +206,7 @@ export function ApplicationForm() {
         </div>
         <div>
           <label className="label-caps" htmlFor="email">
-            E-post
+            {texts.email}
           </label>
           <input
             id="email"
@@ -198,7 +220,7 @@ export function ApplicationForm() {
 
       <div>
         <label className="label-caps" htmlFor="description">
-          Kort presentation <span className="normal-case">valfritt</span>
+          {texts.description} <span className="normal-case">{texts.optional}</span>
         </label>
         <textarea
           id="description"
@@ -206,7 +228,7 @@ export function ApplicationForm() {
           maxLength={600}
           value={form.description}
           onChange={(event) => set("description", event.target.value)}
-          placeholder="Vad gör stället speciellt? Två meningar räcker."
+          placeholder={texts.descriptionPlaceholder}
           className="field mt-1.5 resize-y"
         />
       </div>
@@ -221,7 +243,7 @@ export function ApplicationForm() {
       ) : null}
 
       <button type="submit" disabled={pending} className="btn btn-primary">
-        {pending ? "Skickar…" : "Skicka ansökan"}
+        {pending ? texts.submitting : texts.submit}
       </button>
     </form>
   );

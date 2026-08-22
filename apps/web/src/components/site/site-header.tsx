@@ -176,7 +176,7 @@ export function SiteHeader({
             hen hittade ingen väg in utan att leta i sidfoten.
           */}
           <Link
-            href="/anslut"
+            href={localePath(locale, "/anslut")}
             className="btn btn-primary btn-pill hidden whitespace-nowrap sm:inline-flex"
           >
             {t.site.becomePartner}

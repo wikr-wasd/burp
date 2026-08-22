@@ -57,6 +57,56 @@ export const no: Dictionary = {
     emptyHint: "Fjern et filter, eller søk i hele markedsplassen.",
   },
 
+  join: {
+    metaTitle: "Meld på restauranten din",
+    metaDescription:
+      "Ta imot bestillinger med QR-kode ved bordet og til henting. Egen side med meny, bilder, åpningstider og veibeskrivelse.",
+
+    eyebrow: "For restauranter",
+    title: "Meld på restauranten din",
+    intro:
+      "Egen side med meny, bilder, åpningstider og veibeskrivelse — og bestilling rett fra bordet med en QR-kode. Gjesten trenger verken app eller konto.",
+
+    accountTitle: "Opprett en konto først",
+    accountBody:
+      "Kontoen blir eier av restauranten, og det er den vi svarer på. Det tar et halvt minutt.",
+    createAccount: "Opprett konto",
+    haveAccount: "Jeg har allerede en",
+
+    country: "Land",
+    countryHelp:
+      "Avgjør valuta ({currency}), mva-satser og tidssone. Kan senere bare endres gjennom Burp.",
+    name: "Navnet på restauranten",
+    street: "Gateadresse",
+    postalCode: "Postnummer",
+    city: "Sted",
+    phone: "Telefon",
+    email: "E-post",
+    description: "Kort presentasjon",
+    optional: "valgfritt",
+    descriptionPlaceholder: "Hva gjør stedet spesielt? To setninger holder.",
+    submit: "Send søknaden",
+    submitting: "Sender…",
+
+    doneTitle: "Takk — søknaden er inne.",
+    doneBody:
+      "Burp går gjennom den og tar kontakt. I mellomtiden kan du allerede legge inn menyen og åpningstidene: restauranten din er usynlig for gjester til den er godkjent, så ingenting du gjør nå vises utad på forhånd.",
+    toDashboard: "Til dashbordet ditt",
+
+    errors: {
+      nameRequired: "Restauranten trenger et navn.",
+      countryRequired: "Velg et land.",
+      orgNumberInvalid: "{label} ser ikke ut til å gjelde i {country}.",
+      postalCodeInvalid: "Postnummeret ser ikke ut til å gjelde i {country}.",
+      streetRequired: "Gateadressen kan ikke være tom.",
+      cityRequired: "Stedet kan ikke være tomt.",
+      emailInvalid: "E-postadressen ser ikke riktig ut.",
+      orgNumberTaken:
+        "{label} er allerede registrert på en annen restaurant. Har noen hos dere allerede søkt?",
+      orgNumberFormat: "{label} har feil format for landet.",
+    },
+  },
+
   home: {
     label: "Matmarkedsplass",
     headline: ["Hver restaurant,", "sin egen side"],
@@ -904,6 +954,7 @@ export const no: Dictionary = {
       editWindowRange: "Endringsvinduet skal være mellom 0 og 3600 sekunder.",
       streetRequired: "Gateadressen kan ikke være tom.",
       cityRequired: "Stedet kan ikke være tomt.",
+      postalCodeInvalid: "Postnummeret ser ikke ut til å gjelde i {country}.",
       priceTierRange: "Prisklassen må være 1–4.",
       locationUnreadable:
         "Det gikk ikke å lese et sted ut av det. Lim inn en lenke fra Google Maps, eller skriv koordinatene som 43.8595, 18.4287.",
@@ -950,6 +1001,13 @@ export const no: Dictionary = {
 
     upcomingLater: (count: number) =>
       count === 1 ? "1 forhåndsbestilling senere i dag." : `${count} forhåndsbestillinger senere i dag.`,
+  },
+
+  country: {
+    BA: "Bosnia-Hercegovina",
+    HR: "Kroatia",
+    RS: "Serbia",
+    SE: "Sverige",
   },
 
   weekday: {

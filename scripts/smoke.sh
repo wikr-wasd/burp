@@ -1125,6 +1125,62 @@ for tag in 'hreflang="hr"' 'hreflang="sr-Latn"' 'hreflang="de"' 'hreflang="no"';
   fi
 done
 
+# ── Värvningssidan ─────────────────────────────────────────────────────────
+#
+# `/anslut` är den enda vägen in för en restaurang, och sedan 2026-08-22 ligger
+# den under språksegmentet. Tre saker måste hålla samtidigt: den gamla adressen
+# får inte 404:a, varje språk måste svara, och den måste gå att hitta i en
+# sökning på rätt språk.
+#
+# Omdirigeringen ska vara 307 och inte 308. En permanent omdirigering cachas
+# hårt i webbläsaren och skulle låsa fast besökaren vid det språk hen råkade ha
+# första gången — och målet beror på `Accept-Language`.
+check_status "gamla /anslut skickar vidare" "/anslut" 307
+
+JOIN_TARGET=$(curl -s -o /dev/null -w '%{redirect_url}' \
+  -H 'Accept-Language: hr-HR,hr;q=0.9' "$BASE/anslut")
+if [[ "$JOIN_TARGET" == */bs/anslut ]]; then
+  pass "kroatisk webbläsare landar på /bs/anslut"
+else
+  fail "kroatisk webbläsare skickades till '$JOIN_TARGET', väntade /bs/anslut"
+fi
+
+for L in sv bs en de no; do
+  check_status "värvningssidan på /$L" "/$L/anslut" 200
+done
+
+# `/hr/` är ett alias i Accept-Language, aldrig en adress. Två URL:er med samma
+# innehåll är dubblerat innehåll för Google.
+check_status "okänt språk 404:ar" "/hr/anslut" 404
+
+if grep -q "/bs/anslut" <<<"$SITEMAP"; then
+  pass "värvningssidan finns i sitemap per språk"
+else
+  fail "sitemap saknar värvningssidan"
+fi
+
+# En sitemap som listar en omdirigering ber Google indexera en adress som inte
+# finns. Den oprefixade får därför inte stå där.
+if grep -qF "<loc>$BASE/anslut</loc>" <<<"$SITEMAP"; then
+  fail "sitemap listar den oprefixade /anslut"
+else
+  pass "sitemap listar bara de prefixade värvningssidorna"
+fi
+
+# Sidan är översatt hela vägen, inte bara i sidhuvudet. Faller den här står
+# svenska texter på en bosnisk adress.
+if curl -s "$BASE/bs/anslut" | grep -q "Priključite svoj restoran"; then
+  pass "värvningssidan talar bosniska"
+else
+  fail "/bs/anslut saknar den bosniska rubriken"
+fi
+
+if curl -s "$BASE/en" | grep -q 'href="/en/anslut"'; then
+  pass "sidhuvudets värvningsknapp behåller språket"
+else
+  fail "värvningsknappen tappar språkprefixet"
+fi
+
 if curl -s "$BASE/sv/sarajevo" | grep -q '"@type":"ItemList"'; then
   pass "stadssidan har ItemList-markup"
 else

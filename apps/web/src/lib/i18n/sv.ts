@@ -51,6 +51,82 @@ export const sv = {
     emptyHint: "Ta bort ett filter, eller sök i hela marknadsplatsen.",
   },
 
+  /**
+   * Värvningssidan `/anslut`.
+   *
+   * Den enda vägen in för en restaurang, och därför den sida där ett språkfel
+   * kostar mest: en restauratör i Sarajevo som landar på ett svenskt formulär
+   * fyller inte i det. Den ligger under språksegmentet av samma skäl som
+   * stadssidorna — den är indexerad, och en sida utan språk i adressen kan
+   * bara nå sökresultaten på ett av fem språk.
+   *
+   * Skickas till en klientkomponent och måste därför vara rena strängar rakt
+   * igenom. Variabler skrivs `{namn}` och fylls i med `fill()`.
+   */
+  join: {
+    metaTitle: "Anslut din restaurang",
+    metaDescription:
+      "Ta emot beställningar via QR-kod vid bordet och för avhämtning. Egen sida med meny, bilder, öppettider och vägbeskrivning.",
+
+    eyebrow: "För restauranger",
+    title: "Anslut din restaurang",
+    intro:
+      "Egen sida med meny, bilder, öppettider och vägbeskrivning — och beställning direkt från bordet med en QR-kod. Gästen behöver varken app eller konto.",
+
+    /* Kontot sägs före formuläret, inte efter tolv ifyllda fält. */
+    accountTitle: "Skapa ett konto först",
+    accountBody:
+      "Kontot blir ägare till restaurangen och är det vi svarar på. Det tar en halv minut.",
+    createAccount: "Skapa konto",
+    haveAccount: "Jag har redan ett",
+
+    /* Formuläret. Landet står först och styr resten av fälten. */
+    country: "Land",
+    countryHelp:
+      "Avgör valuta ({currency}), momssatser och tidszon. Går att ändra senare bara genom Burp.",
+    name: "Restaurangens namn",
+    street: "Gatuadress",
+    postalCode: "Postnummer",
+    city: "Stad",
+    phone: "Telefon",
+    email: "E-post",
+    description: "Kort presentation",
+    optional: "valfritt",
+    descriptionPlaceholder: "Vad gör stället speciellt? Två meningar räcker.",
+    submit: "Skicka ansökan",
+    submitting: "Skickar…",
+
+    doneTitle: "Tack — ansökan är inne.",
+    doneBody:
+      "Burp går igenom den och hör av sig. Under tiden kan du redan lägga upp menyn och öppettiderna: din restaurang är osynlig för gäster tills den godkänts, så ingenting du gör nu syns utåt i förväg.",
+    toDashboard: "Till din dashboard",
+
+    /**
+     * Ansökans fel.
+     *
+     * `validateApplication()` returnerar en KOD och inte en mening, därför att
+     * samma regler gäller för backoffice — som är svensk — och för det här
+     * formuläret, som talar fem språk. En delad funktion som bar färdig text
+     * kunde bara någonsin bära ett av dem.
+     *
+     * `{label}` är organisationsnumrets lokala namn (JIB, OIB, PIB) och kommer
+     * ur `COUNTRY_INFO`. Det översätts aldrig: en restauratör i Zagreb letar
+     * efter sitt OIB och inte efter "organisationsnumret".
+     */
+    errors: {
+      nameRequired: "Restaurangen behöver ett namn.",
+      countryRequired: "Välj ett land.",
+      orgNumberInvalid: "{label} ser inte ut att gälla i {country}.",
+      postalCodeInvalid: "Postnumret ser inte ut att gälla i {country}.",
+      streetRequired: "Gatuadressen får inte vara tom.",
+      cityRequired: "Staden får inte vara tom.",
+      emailInvalid: "E-postadressen ser inte ut att stämma.",
+      orgNumberTaken:
+        "{label} är redan registrerat på en annan restaurang. Har någon hos er redan ansökt?",
+      orgNumberFormat: "{label} har fel format för landet.",
+    },
+  },
+
   home: {
     label: "Matmarknadsplats",
     headline: ["Varje restaurang,", "sin egen sida"] as readonly [string, string],
@@ -1126,6 +1202,9 @@ export const sv = {
       editWindowRange: "Ändringsfönstret ska vara mellan 0 och 3600 sekunder.",
       streetRequired: "Gatuadressen får inte vara tom.",
       cityRequired: "Staden får inte vara tom.",
+      // `{country}` fylls i ur `country`-avsnittet — landet på personens eget
+      // språk, inte det engelska maskinnamnet i COUNTRY_INFO.
+      postalCodeInvalid: "Postnumret ser inte ut att gälla i {country}.",
       priceTierRange: "Prisklassen måste vara 1–4.",
       locationUnreadable:
         "Kunde inte läsa någon plats ur det där. Klistra in en länk från Google Maps, eller skriv koordinaterna som 43.8595, 18.4287.",
@@ -1177,6 +1256,24 @@ export const sv = {
 
     upcomingLater: (count: number) =>
       count === 1 ? "1 förbeställning senare i dag." : `${count} förbeställningar senare i dag.`,
+  },
+
+  /**
+   * Ländernas namn.
+   *
+   * `COUNTRY_INFO[...].name` står på engelska och är avsiktligt ett
+   * maskinnamn — det används i brev till Burp och i loggar. Det som visas för
+   * en människa hämtas här i stället, och står på hennes språk.
+   *
+   * Nycklarna är `CountryCode` ur `@burp/core`. Ett femte land måste läggas
+   * till i båda, precis som `DEFAULT_LOCALE_BY_COUNTRY` — ett test i
+   * `i18n.test.ts` kräver det.
+   */
+  country: {
+    BA: "Bosnien och Hercegovina",
+    HR: "Kroatien",
+    RS: "Serbien",
+    SE: "Sverige",
   },
 
   weekday: {

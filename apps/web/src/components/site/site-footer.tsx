@@ -182,7 +182,7 @@ export async function SiteFooter({
               </p>
               <ul className="mt-4 space-y-2.5">
                 <li>
-                  <Link href="/anslut" className="link-quiet text-sm">
+                  <Link href={localePath(locale, "/anslut")} className="link-quiet text-sm">
                     {t.site.joinBurp}
                   </Link>
                 </li>

@@ -3,10 +3,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { COUNTRY_INFO } from "@burp/core";
 import { notifyRestaurantApplication } from "@/lib/notify";
+import { dictionary, isLocale, localePath, type Locale } from "@/lib/i18n";
 import {
-  readableDatabaseError,
+  applicationErrorText,
+  databaseErrorText,
   validateApplication,
   type ApplicationInput,
 } from "@/lib/restaurant-application";
@@ -32,7 +33,23 @@ export interface ActionResult {
 
 export async function applyForRestaurant(
   input: ApplicationInput,
+  /**
+   * Språket sökanden läser sidan på.
+   *
+   * Kommer från klienten, och det är oproblematiskt här: det styr bara vilken
+   * text ett fel får, aldrig vad som sparas. Ett värde vi inte känner igen
+   * faller till standardspråket i `dictionary()` — regel 2 gäller belopp och
+   * rabatter, inte vilken mening som visas.
+   *
+   * `Accept-Language` hade varit fel källa. Sidan ligger under `/de/anslut`
+   * eller `/bs/anslut`, och den som aktivt bytt språk i sidhuvudet ska få
+   * felet på det språk hon står i — inte på det hennes telefon råkar säga.
+   */
+  rawLocale: string,
 ): Promise<ActionResult> {
+  const locale: Locale = isLocale(rawLocale) ? rawLocale : "sv";
+  const texts = dictionary(locale);
+
   const supabase = await createClient();
 
   const {
@@ -43,11 +60,15 @@ export async function applyForRestaurant(
   // Burp granskat. Funktionen i databasen kontrollerar samma sak — det här är
   // för att ge ett begripligt besked i stället för ett rättighetsfel.
   if (!user) {
-    redirect("/skapa-konto?next=%2Fanslut");
+    redirect(
+      `/skapa-konto?next=${encodeURIComponent(localePath(locale, "/anslut"))}`,
+    );
   }
 
   const validation = validateApplication(input);
-  if (!validation.ok) return { ok: false, message: validation.message };
+  if (!validation.ok) {
+    return { ok: false, message: applicationErrorText(validation.problem, texts) };
+  }
 
   const { error } = await supabase.rpc("apply_for_restaurant", {
     p_input: validation.value,
@@ -56,10 +77,7 @@ export async function applyForRestaurant(
   if (error) {
     return {
       ok: false,
-      message: readableDatabaseError(
-        error.message,
-        COUNTRY_INFO[validation.value.country].orgNumberLabel,
-      ),
+      message: databaseErrorText(error.message, validation.value.country, texts),
     };
   }
 

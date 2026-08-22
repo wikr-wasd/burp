@@ -56,6 +56,56 @@ export const en: Dictionary = {
     emptyHint: "Remove a filter, or search the whole marketplace.",
   },
 
+  join: {
+    metaTitle: "List your restaurant",
+    metaDescription:
+      "Take orders by QR code at the table and for pickup. Your own page with menu, photos, opening hours and directions.",
+
+    eyebrow: "For restaurants",
+    title: "List your restaurant",
+    intro:
+      "Your own page with menu, photos, opening hours and directions — and ordering straight from the table with a QR code. Guests need neither an app nor an account.",
+
+    accountTitle: "Create an account first",
+    accountBody:
+      "The account becomes the owner of the restaurant and is what we reply to. It takes half a minute.",
+    createAccount: "Create account",
+    haveAccount: "I already have one",
+
+    country: "Country",
+    countryHelp:
+      "Determines currency ({currency}), VAT rates and time zone. It can only be changed later through Burp.",
+    name: "Restaurant name",
+    street: "Street address",
+    postalCode: "Postcode",
+    city: "City",
+    phone: "Phone",
+    email: "Email",
+    description: "Short introduction",
+    optional: "optional",
+    descriptionPlaceholder: "What makes the place special? Two sentences will do.",
+    submit: "Send application",
+    submitting: "Sending…",
+
+    doneTitle: "Thank you — your application is in.",
+    doneBody:
+      "Burp will review it and get back to you. In the meantime you can already set up the menu and opening hours: your restaurant stays invisible to guests until it is approved, so nothing you do now shows up in advance.",
+    toDashboard: "To your dashboard",
+
+    errors: {
+      nameRequired: "The restaurant needs a name.",
+      countryRequired: "Choose a country.",
+      orgNumberInvalid: "That {label} does not look valid in {country}.",
+      postalCodeInvalid: "That postcode does not look valid in {country}.",
+      streetRequired: "The street address cannot be empty.",
+      cityRequired: "The city cannot be empty.",
+      emailInvalid: "That email address does not look right.",
+      orgNumberTaken:
+        "That {label} is already registered to another restaurant. Has someone at your place already applied?",
+      orgNumberFormat: "That {label} has the wrong format for the country.",
+    },
+  },
+
   home: {
     label: "Food marketplace",
     headline: ["Every restaurant,", "a page of its own"],
@@ -900,6 +950,7 @@ export const en: Dictionary = {
       editWindowRange: "The edit window has to be between 0 and 3600 seconds.",
       streetRequired: "The street address cannot be empty.",
       cityRequired: "The city cannot be empty.",
+      postalCodeInvalid: "That postcode does not look valid in {country}.",
       priceTierRange: "The price range has to be 1–4.",
       locationUnreadable:
         "No place could be read from that. Paste a link from Google Maps, or write the coordinates as 43.8595, 18.4287.",
@@ -946,6 +997,13 @@ export const en: Dictionary = {
 
     upcomingLater: (count: number) =>
       count === 1 ? "1 pre-order later today." : `${count} pre-orders later today.`,
+  },
+
+  country: {
+    BA: "Bosnia and Herzegovina",
+    HR: "Croatia",
+    RS: "Serbia",
+    SE: "Sweden",
   },
 
   weekday: {

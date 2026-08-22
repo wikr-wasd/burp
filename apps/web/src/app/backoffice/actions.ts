@@ -1,8 +1,9 @@
 "use server";
 
-import { COUNTRY_INFO } from "@burp/core";
+import { untranslatedSurface } from "@/lib/i18n";
 import {
-  readableDatabaseError,
+  applicationErrorText,
+  databaseErrorText,
   validateApplication,
   type ApplicationInput,
 } from "@/lib/restaurant-application";
@@ -154,8 +155,15 @@ export async function createRestaurantAsAdmin(
 ): Promise<ActionResult> {
   await requirePlatformAdmin(["admin", "owner"]);
 
+  // Backoffice är svensk och förblir det — Burps eget team, inte
+  // restaurangerna. Svenskan skickas uttryckligen in, så att valet syns i
+  // koden i stället för att vara ett standardvärde ingen tagit ställning till.
+  const texts = untranslatedSurface();
+
   const validation = validateApplication(input);
-  if (!validation.ok) return { ok: false, message: validation.message };
+  if (!validation.ok) {
+    return { ok: false, message: applicationErrorText(validation.problem, texts) };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_create_restaurant", {
@@ -165,10 +173,7 @@ export async function createRestaurantAsAdmin(
   if (error) {
     return {
       ok: false,
-      message: readableDatabaseError(
-        error.message,
-        COUNTRY_INFO[validation.value.country].orgNumberLabel,
-      ),
+      message: databaseErrorText(error.message, validation.value.country, texts),
     };
   }
 

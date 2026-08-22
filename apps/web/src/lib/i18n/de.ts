@@ -55,6 +55,56 @@ export const de: Dictionary = {
     emptyHint: "Entfernen Sie einen Filter oder durchsuchen Sie den gesamten Marktplatz.",
   },
 
+  join: {
+    metaTitle: "Ihr Restaurant anmelden",
+    metaDescription:
+      "Nehmen Sie Bestellungen per QR-Code am Tisch und zur Abholung entgegen. Eine eigene Seite mit Speisekarte, Bildern, Öffnungszeiten und Anfahrt.",
+
+    eyebrow: "Für Restaurants",
+    title: "Ihr Restaurant anmelden",
+    intro:
+      "Eine eigene Seite mit Speisekarte, Bildern, Öffnungszeiten und Anfahrt — und Bestellung direkt am Tisch per QR-Code. Ihre Gäste brauchen weder App noch Konto.",
+
+    accountTitle: "Legen Sie zuerst ein Konto an",
+    accountBody:
+      "Das Konto wird Inhaber des Restaurants und ist die Adresse, an die wir antworten. Es dauert eine halbe Minute.",
+    createAccount: "Konto anlegen",
+    haveAccount: "Ich habe bereits eines",
+
+    country: "Land",
+    countryHelp:
+      "Bestimmt Währung ({currency}), Mehrwertsteuersätze und Zeitzone. Später nur über Burp änderbar.",
+    name: "Name des Restaurants",
+    street: "Straße und Hausnummer",
+    postalCode: "Postleitzahl",
+    city: "Stadt",
+    phone: "Telefon",
+    email: "E-Mail",
+    description: "Kurze Vorstellung",
+    optional: "optional",
+    descriptionPlaceholder: "Was macht Ihr Lokal besonders? Zwei Sätze genügen.",
+    submit: "Anmeldung senden",
+    submitting: "Wird gesendet…",
+
+    doneTitle: "Danke — Ihre Anmeldung ist eingegangen.",
+    doneBody:
+      "Burp prüft sie und meldet sich bei Ihnen. In der Zwischenzeit können Sie Speisekarte und Öffnungszeiten bereits anlegen: Ihr Restaurant bleibt für Gäste unsichtbar, bis es freigegeben ist — nichts davon wird vorab sichtbar.",
+    toDashboard: "Zu Ihrem Dashboard",
+
+    errors: {
+      nameRequired: "Das Restaurant braucht einen Namen.",
+      countryRequired: "Wählen Sie ein Land.",
+      orgNumberInvalid: "Diese {label} scheint in {country} nicht zu gelten.",
+      postalCodeInvalid: "Diese Postleitzahl scheint in {country} nicht zu gelten.",
+      streetRequired: "Die Straße darf nicht leer sein.",
+      cityRequired: "Die Stadt darf nicht leer sein.",
+      emailInvalid: "Diese E-Mail-Adresse scheint nicht zu stimmen.",
+      orgNumberTaken:
+        "Diese {label} ist bereits bei einem anderen Restaurant registriert. Hat sich bei Ihnen schon jemand angemeldet?",
+      orgNumberFormat: "Diese {label} hat das falsche Format für dieses Land.",
+    },
+  },
+
   home: {
     label: "Marktplatz für Essen",
     headline: ["Jedes Restaurant,", "eine eigene Seite"],
@@ -915,6 +965,7 @@ export const de: Dictionary = {
       editWindowRange: "Das Änderungsfenster muss zwischen 0 und 3600 Sekunden liegen.",
       streetRequired: "Die Straße darf nicht leer sein.",
       cityRequired: "Die Stadt darf nicht leer sein.",
+      postalCodeInvalid: "Diese Postleitzahl scheint in {country} nicht zu gelten.",
       priceTierRange: "Die Preisklasse muss 1–4 sein.",
       locationUnreadable:
         "Daraus ließ sich kein Ort lesen. Fügen Sie einen Link aus Google Maps ein oder schreiben Sie die Koordinaten als 43.8595, 18.4287.",
@@ -963,6 +1014,13 @@ export const de: Dictionary = {
       count === 1
         ? "1 Vorbestellung später heute."
         : `${count} Vorbestellungen später heute.`,
+  },
+
+  country: {
+    BA: "Bosnien und Herzegowina",
+    HR: "Kroatien",
+    RS: "Serbien",
+    SE: "Schweden",
   },
 
   weekday: {

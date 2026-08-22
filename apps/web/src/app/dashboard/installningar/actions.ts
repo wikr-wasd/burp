@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  COUNTRY_INFO,
   normalizePostalCode,
   parseAmount,
   parseCoordinates,
@@ -171,8 +170,13 @@ export async function savePresentation(input: PresentationInput): Promise<Action
   if (!street) return fail(staffErrors(staff).streetRequired);
   if (!city) return fail(staffErrors(staff).cityRequired);
   if (postal === null) {
+    // Landet på personens eget språk, inte det engelska maskinnamnet i
+    // COUNTRY_INFO — "gäller inte i Bosnia and Herzegovina" mitt i en bosnisk
+    // mening är samma slarv som en oöversatt etikett, bara svårare att se.
     return fail(
-      `Postnumret ser inte ut att gälla i ${COUNTRY_INFO[staff.country].name}.`,
+      fill(staffErrors(staff).postalCodeInvalid, {
+        country: dictionary(staff.locale).country[staff.country],
+      }),
     );
   }
 

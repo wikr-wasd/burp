@@ -74,6 +74,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // kartan flyttade dit. En sitemap som listar en omdirigering ber Google
     // indexera en adress som inte finns.
 
+    /*
+     * Värvningssidan, en gång per språk.
+     *
+     * Hela poängen med att den flyttade under språksegmentet: en restauratör i
+     * Zagreb ska kunna hitta den genom att söka, på sitt eget språk. Utan en
+     * rad här hittar Google den bara genom sidfoten — vilket fungerar, men
+     * långsamt och utan att veta när den ändrades.
+     *
+     * `/anslut` utan prefix står INTE här. Den väljer språk på
+     * `Accept-Language` och svarar 307; en sitemap som listar en omdirigering
+     * ber Google indexera en adress som inte finns.
+     */
+    ...forEachLocale("/anslut", {
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
+    }),
+
     // Stadssidorna är landningssidorna för "ćevapi sarajevo"-sökningar och är
     // därför viktigare än enskilda restauranger.
     ...cities.flatMap((city) =>

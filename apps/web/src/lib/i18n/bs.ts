@@ -77,6 +77,56 @@ export const bs: Dictionary = {
     emptyHint: "Uklonite jedan filter ili pretražite cijelo tržište.",
   },
 
+  join: {
+    metaTitle: "Priključite svoj restoran",
+    metaDescription:
+      "Primajte narudžbe preko QR koda za stolom i za preuzimanje. Vlastita stranica s menijem, slikama, radnim vremenom i uputama do lokala.",
+
+    eyebrow: "Za restorane",
+    title: "Priključite svoj restoran",
+    intro:
+      "Vlastita stranica s menijem, slikama, radnim vremenom i uputama do lokala — i narudžba direktno za stolom preko QR koda. Gostu ne treba ni aplikacija ni nalog.",
+
+    accountTitle: "Prvo otvorite nalog",
+    accountBody:
+      "Nalog postaje vlasnik restorana i na njega vam odgovaramo. Traje pola minute.",
+    createAccount: "Otvori nalog",
+    haveAccount: "Već ga imam",
+
+    country: "Država",
+    countryHelp:
+      "Određuje valutu ({currency}), stope PDV-a i vremensku zonu. Kasnije se mijenja samo preko Burpa.",
+    name: "Naziv restorana",
+    street: "Ulica i broj",
+    postalCode: "Poštanski broj",
+    city: "Grad",
+    phone: "Telefon",
+    email: "E-mail",
+    description: "Kratko predstavljanje",
+    optional: "nije obavezno",
+    descriptionPlaceholder: "Po čemu je vaš lokal poseban? Dovoljne su dvije rečenice.",
+    submit: "Pošalji prijavu",
+    submitting: "Šaljem…",
+
+    doneTitle: "Hvala — prijava je stigla.",
+    doneBody:
+      "Burp je pregleda i javlja vam se. U međuvremenu već možete unijeti meni i radno vrijeme: vaš restoran je nevidljiv gostima dok ne bude odobren, pa se ništa što sada uradite ne vidi unaprijed.",
+    toDashboard: "Na vašu kontrolnu ploču",
+
+    errors: {
+      nameRequired: "Restoran treba naziv.",
+      countryRequired: "Odaberite državu.",
+      orgNumberInvalid: "{label} ne izgleda kao da važi u {country}.",
+      postalCodeInvalid: "Poštanski broj ne izgleda kao da važi u {country}.",
+      streetRequired: "Ulica ne smije biti prazna.",
+      cityRequired: "Grad ne smije biti prazan.",
+      emailInvalid: "E-mail adresa ne izgleda ispravno.",
+      orgNumberTaken:
+        "{label} je već registrovan na drugi restoran. Je li se neko kod vas već prijavio?",
+      orgNumberFormat: "{label} ima pogrešan format za tu državu.",
+    },
+  },
+
   home: {
     label: "Tržnica hrane",
     headline: ["Svaki restoran,", "svoja stranica"],
@@ -941,6 +991,7 @@ export const bs: Dictionary = {
       editWindowRange: "Prozor za izmjene treba biti između 0 i 3600 sekundi.",
       streetRequired: "Ulica ne smije biti prazna.",
       cityRequired: "Grad ne smije biti prazan.",
+      postalCodeInvalid: "Poštanski broj ne izgleda kao da važi u {country}.",
       priceTierRange: "Cjenovni razred mora biti 1–4.",
       locationUnreadable:
         "Iz toga se nije dalo pročitati mjesto. Zalijepite link iz Google Mapsa ili upišite koordinate kao 43.8595, 18.4287.",
@@ -998,6 +1049,13 @@ export const bs: Dictionary = {
 
       return `${count} ${word} kasnije danas.`;
     },
+  },
+
+  country: {
+    BA: "Bosna i Hercegovina",
+    HR: "Hrvatska",
+    RS: "Srbija",
+    SE: "Švedska",
   },
 
   weekday: {

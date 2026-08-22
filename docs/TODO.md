@@ -93,15 +93,51 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   slogs på. Nu `hoursOverlap`, `hoursZeroLength` och `hoursInvalidTime` på fem
   språk, med dagen som `{day}`.
 
+- **`/anslut` flyttade in under språksegmentet och talar fem språk.**
+  Värvningssidan låg utanför `[locale]` med motiveringen att den vänder sig
+  till en restaurangägare och att personalytorna är svenska. Fel slutsats av
+  ett riktigt skäl: **den som läser sidan är ännu inte personal någonstans.**
+  Hon är en restauratör i Sarajevo, Zagreb eller Belgrad som aldrig hört talas
+  om Burp, och det här är den enda vägen in.
+
+  `Accept-Language` hade inte räckt som för kvittona: sidan är indexerad, och
+  utan språk i adressen kan bara en av fem versioner nå sökresultaten. Nu finns
+  `/sv/anslut` … `/no/anslut`, alla fem i sitemapen med `hreflang`, och
+  `/anslut` står kvar som en **307** till rätt språk — tillfällig och inte
+  permanent, av samma skäl som roten: en 308 hade cachats hårt och låst fast
+  besökaren vid det språk hen råkade ha första gången.
+
+  Sidan fick också sidfoten. Den var det enda publika `[locale]`-dokumentet
+  utan, vilket den var eftersom den låg utanför.
+
+- **Ansökans validering returnerar koder i stället för meningar.**
+  `validateApplication()` delas av `/anslut` och backoffice, och de två talar
+  olika språk — fem respektive svenska. En delad funktion som bar färdig text
+  kunde bara någonsin bära ett av dem. `applicationErrorText()` och
+  `databaseErrorText()` tar ordboken utifrån; backoffice skickar
+  `untranslatedSurface()`, så att valet syns i koden.
+
+- **Landsnamnen finns i ordboken.** `COUNTRY_INFO[...].name` står på engelska
+  och är ett maskinnamn — "Bosnia and Herzegovina" i en bosnisk rullgardin.
+  Det som visas för en människa kommer nu ur `country`-avsnittet. Det täppte
+  samtidigt till ett tredje svenskt hål i personalytorna: postnummerfelet i
+  `savePresentation()` byggde landsnamnet direkt ur `COUNTRY_INFO`.
+
+- **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
+  dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
+  språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
+  faktiskt talar bosniska. Hela sviten: **139 kontroller, inga hopp.**
+  Siffran i `CLAUDE.md` stod på 109 och var redan inaktuell.
+
 Det som återstår är i tur och ordning:
 
 1. **Konton och avtal** som ligger hos William (nedan). Inget av det är kod.
 2. **Att se produkten på riktig hårdvara** — telefon och surfplatta. Byggd för
    båda, provad på ingen. Planritningens redigerare är byggd för fingrar och
    har aldrig rörts av ett.
-3. **Personalytorna är översatta och följer restaurangens land.** Kvar är
-   `/anslut`, `/konto` och backoffice — se *Näst på tur*. Backoffice förblir
-   svensk med flit.
+3. **Personalytorna är översatta och följer restaurangens land**, och
+   värvningssidan talar fem språk. Kvar är `/konto`-ytorna — se *Näst på tur*.
+   Backoffice förblir svensk med flit.
 4. Resten av Fas 2 och framåt: surfplatta vid bordet, mobilapp.
 
 ### Två spärrar som gäller varje session
@@ -296,7 +332,7 @@ Spärren om lösenord gäller dashboard, kassa och backoffice — inte QR-sidan,
 menyn, varukorgen, kassan i QR-flödet eller kvittot. Just de ytorna har högst
 kvalitetskrav i produkten och är samtidigt de som aldrig setts av ett öga.
 
-`smoke.sh` kör redan 109 kontroller genom samma flöde, men den mäter något
+`smoke.sh` kör redan 139 kontroller genom samma flöde, men den mäter något
 annat. Den svarar på om servern svarar rätt; den svarar inte på om knappen går
 att träffa med en tumme, om felmeddelandet betyder något för den som läser det,
 eller om det går att förstå var i beställningen man befinner sig. Ett grep av
@@ -543,18 +579,6 @@ eller ett beslut.
       Skillnaden är kvar i schemat med flit: den dag Burp öppnar i ett femte
       land får dess restauranger rätt språk utan att en enda rad skrivs om, och
       den som faktiskt har valt svenska behåller det.
-
-- [ ] **`/anslut` talar bara svenska — och det är värvningssidan.**
-      `application-form.tsx` har fälten hårdkodade: Land, Restaurangens namn,
-      Gatuadress, Postnummer, Stad, Telefon. Sidan ligger utanför `[locale]`,
-      precis som `/konto`, men den väger tyngre: **det är den enda vägen in för
-      en restaurang i Sarajevo, Zagreb eller Belgrad.** En restauratör som
-      landar på ett svenskt formulär fyller inte i det.
-
-      Till skillnad från `/konto` är den här indexerad och länkad från varje
-      sidfot, så `Accept-Language` räcker inte — den behöver in under
-      `[locale]` för att kunna hittas på rätt språk i sökresultaten.
-      Fynd 2026-08-20.
 
 - [ ] **`/konto`-ytorna talar bara svenska.** `guest-header.tsx`,
       `address-list.tsx`, `review-form.tsx` och `delete-account.tsx` har
@@ -912,7 +936,7 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
 - [x] **Röktestet går att köra — och hittade två fel direkt.** Diagnosen att
       `bash` var WSL2 var fel; skalet är Git Bash och saknade bara `/usr/bin` på
       `PATH`. Röktestet har alltså aldrig körts här, trots att `CLAUDE.md` säger
-      att det är det som avgör om något fungerar. Det kör nu 109 kontroller,
+      att det är det som avgör om något fungerar. Det kör nu 139 kontroller,
       inklusive de nya ytorna: avräkning, GDPR-export och poängjobbet bakom sin
       nyckel.
       Två fel föll ut. **Städningen av presentkortet kunde aldrig lyckas** —

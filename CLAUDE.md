@@ -337,7 +337,7 @@ där Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat
 | `apps/web` | Rena moduler: öppen vidarebefordran, rate limiter, JSON-LD, i18n, avräkningens periodräkning, köksköns ordning | inget |
 | `scripts/verify-schema.sh` | Migrationer, RLS, grants, triggers, plpgsql | PostgreSQL + PostGIS |
 | `packages/core` (forts.) | Betalningens statusmaskin, kupong, presentkort, klippkort | inget |
-| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 109 kontroller | Docker + Supabase + körande app |
+| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 139 kontroller | Docker + Supabase + körande app |
 
 Route handlers och server components har medvetet inga enhetstester — de kräver
 databas och session för att säga något meningsfullt, och täcks av `smoke.sh`.

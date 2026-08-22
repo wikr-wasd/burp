@@ -138,6 +138,7 @@ describe("ordböckerna", () => {
       // Lånordet igen — samma rot, samma stavning.
       "staff.settings.phone",
       "staff.reports.code",
+      "join.phone",
     ],
 
     de: [
@@ -156,6 +157,18 @@ describe("ordböckerna", () => {
       // "Bild" och "Rabatt" stavas likadant på tyska och svenska.
       "staff.menu.image",
       "staff.reports.discount",
+      // "Land" och "Telefon" delas rakt av.
+      "join.country",
+      "join.phone",
+      /*
+       * Kroatien och Serbien heter likadant på tyska och svenska.
+       *
+       * Notera vilka som INTE står här: Bosnien und Herzegowina och Schweden
+       * skiljer sig, vilket är kvittot på att raderna är tyska och inte
+       * kopierade.
+       */
+      "country.HR",
+      "country.RS",
     ],
 
     en: ["errors.notFoundLabel", "menu.giftCardPlaceholder", "staff.kitchen.minutes"],
@@ -200,6 +213,20 @@ describe("ordböckerna", () => {
       "weekday.wed",
       "weekday.thu",
       "weekday.fri",
+      /*
+       * Värvningssidan. Fyra fältetiketter som stavas likadant på båda språken.
+       *
+       * Notera vilka som INTE står här: `join.city` är "Sted" mot "Stad" och
+       * `join.street` är "Gateadresse" mot "Gatuadress". Kollisionerna sitter i
+       * de fyra ord där språken faktiskt sammanfaller, inte i avsnittet.
+       */
+      "join.country",
+      "join.postalCode",
+      "join.phone",
+      "join.email",
+      // Sverige heter Sverige på norska. Bosnia-Hercegovina, Kroatia och
+      // Serbia gör det inte, vilket är kvittot på att raderna är norska.
+      "country.SE",
       /*
        * Personalytorna. Samma mönster som ovan: norskan och svenskan delar
        * orden rakt av, och att skriva om dem för att slippa en kollision hade
@@ -339,7 +366,7 @@ function flatten(value: unknown, prefix = ""): Record<string, unknown> {
  * precis det sättet, och såg fungerande ut.
  */
 describe("texter som korsar server/klient-gränsen", () => {
-  for (const section of ["menu", "table", "receipt"] as const) {
+  for (const section of ["menu", "table", "receipt", "join"] as const) {
     it(`${section} innehåller bara strängar`, () => {
       for (const dict of Object.values(ALL)) {
         for (const [key, value] of Object.entries(dict[section])) {
@@ -569,6 +596,74 @@ describe("personalytornas etiketter", () => {
       }
       for (const day of WEEKDAY_KEYS) {
         if (!dict.weekday[day]) missing.push(`${locale}.weekday.${day}`);
+      }
+      /*
+       * Landsnamnen. Samma krav och samma skäl som veckodagarna.
+       *
+       * Ett land utan namn visar landskoden — "BA" i en rullgardin på
+       * värvningssidan — och det är den enda vägen in för en restaurang.
+       * Testet finns för det femte landet: raden i COUNTRIES läggs till, och
+       * fyra av fem ordböcker glöms.
+       */
+      for (const country of COUNTRIES) {
+        if (!dict.country[country]) missing.push(`${locale}.country.${country}`);
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  /**
+   * Ansökans felkoder har varsin text på varje språk.
+   *
+   * `validateApplication()` returnerar en kod och slår upp den i `join.errors`.
+   * En kod utan rad ger `undefined` i felrutan — alltså en tom röd ruta på den
+   * enda sida en restaurang kan ansöka från.
+   */
+  it("varje felkod i ansökan har en text på varje språk", () => {
+    const codes = Object.keys(sv.join.errors);
+    const missing: string[] = [];
+
+    for (const [locale, dict] of Object.entries(TRANSLATIONS)) {
+      for (const code of codes) {
+        const text = (dict.join.errors as Record<string, string>)[code];
+        if (!text) missing.push(`${locale}.join.errors.${code}`);
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  /**
+   * `{label}` och `{country}` måste stå kvar i översättningen.
+   *
+   * En översättare som skriver ut "OIB" i klartext i stället för `{label}` ger
+   * en kroatisk restauratör rätt ord — och en bosnisk fel. Platshållaren är
+   * inte en detalj i formuleringen utan hela skälet till att texten är en mall.
+   */
+  it("felkoder med variabler behåller sina platshållare", () => {
+    const required: Record<string, readonly string[]> = {
+      orgNumberInvalid: ["{label}", "{country}"],
+      postalCodeInvalid: ["{country}"],
+      orgNumberTaken: ["{label}"],
+      orgNumberFormat: ["{label}"],
+    };
+
+    const missing: string[] = [];
+
+    for (const [locale, dict] of Object.entries(TRANSLATIONS)) {
+      for (const [code, placeholders] of Object.entries(required)) {
+        const text = (dict.join.errors as Record<string, string>)[code] ?? "";
+        for (const placeholder of placeholders) {
+          if (!text.includes(placeholder)) {
+            missing.push(`${locale}.join.errors.${code} saknar ${placeholder}`);
+          }
+        }
+      }
+
+      // Samma krav på personalytans motsvarighet, som delar formuleringen.
+      if (!dict.staff.errors.postalCodeInvalid.includes("{country}")) {
+        missing.push(`${locale}.staff.errors.postalCodeInvalid saknar {country}`);
       }
     }
 
