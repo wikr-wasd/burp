@@ -14,7 +14,7 @@ import {
   monthBounds,
   type MonthKey,
 } from "@/lib/settlements";
-import { untranslatedSurface } from "@/lib/i18n";
+import { burpInternalSurface } from "@/lib/i18n";
 
 /**
  * Avräkning för hela plattformen.
@@ -136,7 +136,7 @@ export default async function PlatformSettlementPage({ searchParams }: PageProps
             rows={rows}
             toClose={toClose}
             canWrite={admin.role === "admin" || admin.role === "owner"}
-            figureLabels={untranslatedSurface().staff.reports}
+            figureLabels={burpInternalSurface().staff.reports}
           />
         )}
       </main>

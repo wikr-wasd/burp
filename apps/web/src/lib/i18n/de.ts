@@ -437,6 +437,13 @@ export const de: Dictionary = {
 
     viewOrder: "Bestellung ansehen",
     footer: "Sie erhalten diese Nachricht, weil Sie über Burp zur Abholung bestellt haben.",
+
+    invitationSubject: "Sie wurden zu {restaurant} auf Burp eingeladen",
+    invitationHeading: "Willkommen bei {restaurant}",
+    invitationBody: "{restaurant} hat Sie als {role} eingeladen.",
+    invitationOpenLink: "Öffnen Sie den Link, um zu beginnen:",
+    invitationCta: "Loslegen",
+    invitationExpiry: "Der Link gilt sieben Tage und nur für diese Adresse.",
   },
 
   errors: {

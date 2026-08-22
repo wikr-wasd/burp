@@ -136,7 +136,7 @@ export function validateApplication(input: ApplicationInput): Validation {
  * Felet som en mening, på läsarens språk.
  *
  * Tar ordboken utifrån i stället för att hämta den själv. `/anslut` skickar
- * gästens språk och backoffice skickar `untranslatedSurface()` — att den här
+ * gästens språk och backoffice skickar `burpInternalSurface()` — att den här
  * funktionen inte kan välja åt dem är poängen med att den finns.
  *
  * `{label}` är organisationsnumrets lokala namn och översätts aldrig: en

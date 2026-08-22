@@ -456,6 +456,13 @@ export const bs: Dictionary = {
 
     viewOrder: "Pogledaj narudžbu",
     footer: "Ovu poruku dobijate jer ste naručili za preuzimanje preko Burpa.",
+
+    invitationSubject: "Pozvani ste u {restaurant} na Burpu",
+    invitationHeading: "Dobrodošli u {restaurant}",
+    invitationBody: "{restaurant} vas je pozvao na poziciju: {role}.",
+    invitationOpenLink: "Otvorite link da biste počeli:",
+    invitationCta: "Počnite",
+    invitationExpiry: "Link vrijedi sedam dana i samo za ovu adresu.",
   },
 
   errors: {

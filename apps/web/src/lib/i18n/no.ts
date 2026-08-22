@@ -433,6 +433,13 @@ export const no: Dictionary = {
 
     viewOrder: "Se bestillingen",
     footer: "Du får denne meldingen fordi du bestilte til henting via Burp.",
+
+    invitationSubject: "Du har blitt invitert til {restaurant} på Burp",
+    invitationHeading: "Velkommen til {restaurant}",
+    invitationBody: "{restaurant} har invitert deg som {role}.",
+    invitationOpenLink: "Åpne lenken for å komme i gang:",
+    invitationCta: "Kom i gang",
+    invitationExpiry: "Lenken gjelder i sju dager og bare for denne adressen.",
   },
 
   errors: {

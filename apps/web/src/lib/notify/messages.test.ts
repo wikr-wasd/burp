@@ -1,6 +1,13 @@
 import { COUNTRY_INFO } from "@burp/core";
 import { describe, expect, it } from "vitest";
-import { applicationEmail, escapeHtml, orderEmail, type OrderNotice } from "./messages";
+import { DEFAULT_LOCALE_BY_COUNTRY, dictionary } from "@/lib/i18n";
+import {
+  applicationEmail,
+  escapeHtml,
+  invitationEmail,
+  orderEmail,
+  type OrderNotice,
+} from "./messages";
 
 /**
  * Breven är den enda delen av notissystemet som är värd att enhetstesta.
@@ -145,6 +152,74 @@ describe("applicationEmail", () => {
   it("klarar en ansökan utan beskrivning", () => {
     const message = applicationEmail({ ...APPLICATION, description: "" });
     expect(message.text).toContain("(ingen beskrivning)");
+  });
+});
+
+describe("invitationEmail", () => {
+  /*
+   * Brevet gick på svenska till alla fram till 2026-08-23, oavsett var
+   * restaurangen låg. Det var den sista personalytan som satt kvar.
+   */
+  const bjudIn = (country: "BA" | "SE") => {
+    const texts = dictionary(DEFAULT_LOCALE_BY_COUNTRY[country]);
+    return invitationEmail({
+      restaurantName: "Ćevabdžinica Željo",
+      roleLabel: texts.staff.role.kitchen,
+      link: "https://burp.se/personal/inbjudan/abc",
+      texts: texts.email,
+    });
+  };
+
+  it("skriver brevet på restaurangens landsspråk", () => {
+    const bosniska = bjudIn("BA");
+    expect(bosniska.subject).toContain("Pozvani ste");
+    expect(bosniska.text).toContain("Kuhar");
+    expect(bosniska.subject).not.toContain("inbjuden");
+  });
+
+  it("skriver svenska för en svensk restaurang", () => {
+    expect(bjudIn("SE").subject).toContain("Du har blivit inbjuden");
+  });
+
+  it("namnger restaurangen i både ämnesrad och brödtext", () => {
+    const brev = bjudIn("BA");
+    expect(brev.subject).toContain("Ćevabdžinica Željo");
+    expect(brev.text).toContain("Ćevabdžinica Željo");
+  });
+
+  /*
+   * Den gamla koden gjorde roleLabel.toLowerCase() för att meningen skulle
+   * flyta på svenska. På tyska ger det "koch" — ett stavfel i det första
+   * brev en nyanställd får från oss.
+   */
+  it("behåller rollens versal", () => {
+    const tyska = dictionary("de");
+    const brev = invitationEmail({
+      restaurantName: "Gasthaus",
+      roleLabel: tyska.staff.role.kitchen,
+      link: "https://burp.se/personal/inbjudan/abc",
+      texts: tyska.email,
+    });
+    expect(brev.text).toContain(tyska.staff.role.kitchen);
+    expect(brev.text).not.toContain(tyska.staff.role.kitchen.toLowerCase());
+  });
+
+  it("escapar restaurangnamnet i HTML-versionen", () => {
+    const texts = dictionary("bs");
+    const brev = invitationEmail({
+      restaurantName: "<script>x</script>",
+      roleLabel: texts.staff.role.owner,
+      link: "https://burp.se/personal/inbjudan/abc",
+      texts: texts.email,
+    });
+    expect(brev.html).not.toContain("<script>");
+    expect(brev.html).toContain("&lt;script&gt;");
+  });
+
+  it("har både text och HTML, och länken i båda", () => {
+    const brev = bjudIn("BA");
+    expect(brev.text).toContain("https://burp.se/personal/inbjudan/abc");
+    expect(brev.html).toContain("https://burp.se/personal/inbjudan/abc");
   });
 });
 

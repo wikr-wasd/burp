@@ -47,6 +47,23 @@ export function untranslatedSurface(): Dictionary {
 }
 
 /**
+ * Ordboken för en yta som är svensk med flit och ska förbli det.
+ *
+ * Backoffice är Burps eget kontor, inte restaurangens. Den som sitter där är
+ * anställd av oss, och ytan har inget språkval att följa — till skillnad från
+ * dashboarden, som tillhör en restaurang i Sarajevo eller Zagreb.
+ *
+ * Funktionen gör exakt samma sak som `untranslatedSurface()` och finns bara
+ * för att skilja de två fallen åt. Utan den blir räknaren obrukbar från det
+ * ögonblick den sista personalytan är klar: `grep untranslatedSurface` skulle
+ * fortsätta hitta backoffice och rapportera arbete som inte finns — och en
+ * räknare som aldrig når noll läser man till slut förbi.
+ */
+export function burpInternalSurface(): Dictionary {
+  return DICTIONARIES[DEFAULT_LOCALE];
+}
+
+/**
  * Bygger en språkprefixad sökväg.
  *
  * Alla interna länkar på de publika ytorna går genom den här. En länk som

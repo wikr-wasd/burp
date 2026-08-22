@@ -1,6 +1,6 @@
 "use server";
 
-import { untranslatedSurface } from "@/lib/i18n";
+import { burpInternalSurface } from "@/lib/i18n";
 import {
   applicationErrorText,
   databaseErrorText,
@@ -158,7 +158,7 @@ export async function createRestaurantAsAdmin(
   // Backoffice är svensk och förblir det — Burps eget team, inte
   // restaurangerna. Svenskan skickas uttryckligen in, så att valet syns i
   // koden i stället för att vara ett standardvärde ingen tagit ställning till.
-  const texts = untranslatedSurface();
+  const texts = burpInternalSurface();
 
   const validation = validateApplication(input);
   if (!validation.ok) {

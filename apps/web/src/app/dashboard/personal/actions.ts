@@ -9,7 +9,7 @@ import { sendEmail } from "@/lib/notify/email";
 import { invitationEmail } from "@/lib/notify/messages";
 import { newInvitationToken } from "@/lib/staff-admin";
 import { createClient } from "@/lib/supabase/server";
-import { untranslatedSurface } from "@/lib/i18n";
+import { DEFAULT_LOCALE_BY_COUNTRY, dictionary } from "@/lib/i18n";
 
 /**
  * Personalens åtgärder.
@@ -70,13 +70,24 @@ export async function inviteStaff(email: string, role: StaffRole): Promise<Actio
    * loggen — och länken visas ändå i gränssnittet, så att en restaurang kan
    * anställa någon innan avsändardomänen är verifierad.
    */
+  /*
+   * Brevet skrivs på restaurangens landsspråk, inte på den inbjudandes.
+   *
+   * `staff.locale` är ägarens eget val och säger ingenting om vilket språk den
+   * som anställs läser. En ägare som satt gränssnittet till svenska ska inte
+   * skicka ett svenskt brev till en kock i Sarajevo — och den nyanställda har
+   * inget konto än, alltså inget eget val att läsa.
+   */
+  const texts = dictionary(DEFAULT_LOCALE_BY_COUNTRY[staff.country]);
+
   after(async () => {
     await sendEmail(
       [address],
       invitationEmail({
         restaurantName: staff.restaurantName,
-        roleLabel: untranslatedSurface().staff.role[role],
+        roleLabel: texts.staff.role[role],
         link,
+        texts: texts.email,
       }),
     );
   });

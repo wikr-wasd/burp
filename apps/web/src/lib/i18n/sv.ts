@@ -592,6 +592,24 @@ export const sv = {
 
     viewOrder: "Se din beställning",
     footer: "Du får det här brevet för att du beställt för avhämtning via Burp.",
+
+    /*
+     * Inbjudan till en nyanställd.
+     *
+     * Brevet går till någon som ännu inte har ett konto och därför inget
+     * språkval. Det skrivs på restaurangens landsspråk — inte på den
+     * inbjudandes: en ägare som satt gränssnittet till svenska ska inte
+     * skicka ett svenskt brev till en kock i Sarajevo.
+     *
+     * {role} fylls med ordbokens egen stavning, med versal. Tyskan skriver
+     * substantiv så, och en gemen "koch" är ett stavfel.
+     */
+    invitationSubject: "Du har blivit inbjuden till {restaurant} på Burp",
+    invitationHeading: "Välkommen till {restaurant}",
+    invitationBody: "{restaurant} har bjudit in dig som {role}.",
+    invitationOpenLink: "Öppna länken för att komma igång:",
+    invitationCta: "Kom igång",
+    invitationExpiry: "Länken gäller i sju dagar och bara för den här adressen.",
   },
 
   /** Sidor som inte finns, och fel som inte gick att undvika. */

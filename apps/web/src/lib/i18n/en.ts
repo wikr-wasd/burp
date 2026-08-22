@@ -431,6 +431,13 @@ export const en: Dictionary = {
 
     viewOrder: "See your order",
     footer: "You are getting this because you ordered for pickup through Burp.",
+
+    invitationSubject: "You have been invited to {restaurant} on Burp",
+    invitationHeading: "Welcome to {restaurant}",
+    invitationBody: "{restaurant} has invited you as {role}.",
+    invitationOpenLink: "Open the link to get started:",
+    invitationCta: "Get started",
+    invitationExpiry: "The link is valid for seven days and only for this address.",
   },
 
   errors: {
