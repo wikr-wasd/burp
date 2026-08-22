@@ -660,6 +660,17 @@ fråga 15.
 Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
 det utskrivet — och ligger kvar tills beslutet är fattat.
 
+- [ ] **Ingen kod importerar de genererade typerna.** `npm run db:types`
+      fungerar sedan 2026-08-22 och ger 3 885 rader ur den lokala stacken, men
+      filen läses inte av något — den är gitignorerad just därför. Vinsten
+      ligger i att koppla den till klienterna: `createClient<Database>()` gör
+      varje `.select("kolumn_som_inte_finns")` till ett byggfel i stället för
+      ett runtimefel som `smoke.sh` får hitta.
+
+      **Det rör varje fråga i produkten** och kommer att visa ett antal ställen
+      där en kolumn heter något annat än koden tror. Egen omgång, inte ett
+      påhäng på nästa funktion. Ren kod, ingen som blockerar.
+
 - [ ] **Gästens adress bär inget land.** `saveAddress()` kontrollerar
       postnumret mot `^\d{5,6}$` — unionen av marknadens format — i stället för
       mot `normalizePostalCode()`, som kräver ett land. Adressen hör till en

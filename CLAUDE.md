@@ -97,7 +97,8 @@ npm run db:validate        # migrations genom PG17:s parser — inget Docker
 npx supabase start         # lokal stack i Docker
 npx supabase db reset      # migrations + seed + personalkonton
 npm run db:demo            # 75 dagars orderhistorik — utan den står pengaytorna tomma
-npm run db:types           # TypeScript-typer ur schemat
+npm run db:types           # TypeScript-typer ur den LOKALA stacken
+npm run db:types:remote    # …ur molnet, när SUPABASE_PROJECT_ID finns
 
 node scripts/print-qr-links.mjs   # QR-länkar för seed-borden
 ```

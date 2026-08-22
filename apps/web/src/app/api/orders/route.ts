@@ -393,6 +393,11 @@ export async function POST(request: Request) {
    * känt: går skrivningen inte igenom blir kolumnen null, och `null` är redan
    * definierat som "okänt, gissa på landet". Ordern, priset och kvittot rörs
    * inte av det.
+   *
+   * Att en anonym gäst kan skriva i `orders` ser fel ut vid en snabb läsning
+   * och är det inte: `supabase` är här service role (rad 66), samma klient som
+   * lade ordern. Gästens egen session har ingen update-rättighet alls — se
+   * kontrollen i `verify-schema-tests.sql`.
    */
   await supabase
     .from("orders")

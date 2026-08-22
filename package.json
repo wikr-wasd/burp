@@ -22,7 +22,8 @@
     "db:validate": "node scripts/validate-migrations.mjs",
     "db:verify": "bash scripts/verify-schema.sh",
     "db:env": "node scripts/write-local-env.mjs",
-    "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID --schema public > packages/core/src/database.types.ts",
+    "db:types": "node scripts/generate-types.mjs",
+    "db:types:remote": "node scripts/generate-types.mjs --remote",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
     "db:demo": "node scripts/seed-demo-orders.mjs"
