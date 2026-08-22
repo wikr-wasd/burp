@@ -1424,6 +1424,24 @@ else
   printf '  \033[33mhopp\033[0m  poängjobbet — CRON_SECRET saknas i apps/web/.env.local\n'
 fi
 
+# ── Typerna mot schemat ────────────────────────────────────────────────────
+#
+# `database.types.ts` är genererad och spårad, och koden importerar den. Risken
+# den bär är asymmetrisk: en NY kolumn som glöms bort märks direkt eftersom
+# koden som använder den inte kompilerar, men en BORTTAGEN eller omdöpt kolumn
+# märks inte alls — typerna påstår att den finns, bygget går igenom, och felet
+# dyker upp i drift.
+#
+# Kontrollen kräver den lokala stacken, som röktestet ändå har igång. Den
+# skriver ingenting: filen genereras till minnet och jämförs.
+echo "→ Genererade typer"
+
+if node scripts/generate-types.mjs --check > /dev/null 2>&1; then
+  pass "typfilen är i takt med schemat"
+else
+  fail "typfilen är inaktuell — kör: npm run db:types"
+fi
+
 # ── Notiskön ───────────────────────────────────────────────────────────────
 #
 # Gästen fick inget besked alls fram till 2026-08-22. Kön skrivs av en trigger i

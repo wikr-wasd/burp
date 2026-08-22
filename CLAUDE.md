@@ -99,6 +99,7 @@ npx supabase db reset      # migrations + seed + personalkonton
 npm run db:demo            # 75 dagars orderhistorik — utan den står pengaytorna tomma
 npm run db:types           # TypeScript-typer ur den LOKALA stacken
 npm run db:types:remote    # …ur molnet, när SUPABASE_PROJECT_ID finns
+npm run db:types:check     # faller om filen är ur takt — kör den efter en migration
 
 node scripts/print-qr-links.mjs   # QR-länkar för seed-borden
 ```
@@ -340,7 +341,7 @@ där Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat
 | `apps/web` | Rena moduler: öppen vidarebefordran, rate limiter, JSON-LD, i18n, avräkningens periodräkning, köksköns ordning | inget |
 | `scripts/verify-schema.sh` | Migrationer, RLS, grants, triggers, plpgsql | PostgreSQL + PostGIS |
 | `packages/core` (forts.) | Betalningens statusmaskin, kupong, presentkort, klippkort | inget |
-| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 156 kontroller | Docker + Supabase + körande app |
+| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 157 kontroller | Docker + Supabase + körande app |
 
 Route handlers och server components har medvetet inga enhetstester — de kräver
 databas och session för att säga något meningsfullt, och täcks av `smoke.sh`.

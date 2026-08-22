@@ -339,11 +339,21 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   `TableUpdate<"orders">` och vänner. Det var den vanliga genvägen, och den
   kastade bort precis det skydd som nyss lades in.
 
+  **Typfilen bevakas av röktestet.** Risken den bär är asymmetrisk: en NY
+  kolumn som glöms bort märks direkt eftersom koden som använder den inte
+  kompilerar, men en **borttagen eller omdöpt** kolumn märks inte alls —
+  typerna påstår att den finns, bygget går igenom, och felet dyker upp i drift.
+  `npm run db:types:check` genererar filen till minnet och jämför utan att röra
+  repot; `smoke.sh` kör den. Radslut normaliseras före jämförelsen, annars hade
+  Windows CRLF rapporterat ett schemafel som inte finns — och en kontroll som
+  ropar varg är värre än ingen.
+
 - **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
   dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
   språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
   faktiskt talar bosniska — sex till för kontoytans språk, fem för den stängda
-  dörren och sex för notiskön. Hela sviten: **156 kontroller, inga hopp.**
+  dörren, sex för notiskön och en för typfilens aktualitet. Hela sviten:
+  **157 kontroller, inga hopp.**
   Siffran i `CLAUDE.md` stod på 109 och var redan inaktuell innan raden rördes;
   den faktiska sviten låg på 127.
 
@@ -556,7 +566,7 @@ Spärren om lösenord gäller dashboard, kassa och backoffice — inte QR-sidan,
 menyn, varukorgen, kassan i QR-flödet eller kvittot. Just de ytorna har högst
 kvalitetskrav i produkten och är samtidigt de som aldrig setts av ett öga.
 
-`smoke.sh` kör redan 156 kontroller genom samma flöde, men den mäter något
+`smoke.sh` kör redan 157 kontroller genom samma flöde, men den mäter något
 annat. Den svarar på om servern svarar rätt; den svarar inte på om knappen går
 att träffa med en tumme, om felmeddelandet betyder något för den som läser det,
 eller om det går att förstå var i beställningen man befinner sig. Ett grep av
@@ -702,17 +712,6 @@ fråga 15.
 
 Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
 det utskrivet — och ligger kvar tills beslutet är fattat.
-
-- [ ] **Typfilen kan bli inaktuell utan att något säger till.**
-      `database.types.ts` är genererad och spårad sedan 2026-08-22, och koden
-      importerar den. En ny KOLUMN som glöms bort märks direkt — koden som
-      använder den kompilerar inte. En **borttagen eller omdöpt** kolumn gör
-      det inte: typerna påstår att den finns, bygget går igenom, och felet
-      dyker upp i drift.
-
-      `npm run db:types` efter varje migration räcker som rutin. En kontroll
-      som faller när filen är gammal vore bättre, men den kräver en databas —
-      `verify-schema.sh` har en, men inte appen. Värt en egen fundering.
 
 - [ ] **Gästens adress bär inget land.** `saveAddress()` kontrollerar
       postnumret mot `^\d{5,6}$` — unionen av marknadens format — i stället för
@@ -1071,7 +1070,7 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
 - [x] **Röktestet går att köra — och hittade två fel direkt.** Diagnosen att
       `bash` var WSL2 var fel; skalet är Git Bash och saknade bara `/usr/bin` på
       `PATH`. Röktestet har alltså aldrig körts här, trots att `CLAUDE.md` säger
-      att det är det som avgör om något fungerar. Det kör nu 156 kontroller,
+      att det är det som avgör om något fungerar. Det kör nu 157 kontroller,
       inklusive de nya ytorna: avräkning, GDPR-export och poängjobbet bakom sin
       nyckel.
       Två fel föll ut. **Städningen av presentkortet kunde aldrig lyckas** —

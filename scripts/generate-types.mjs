@@ -29,7 +29,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -37,6 +37,19 @@ const TARGET = "apps/web/src/lib/supabase/database.types.ts";
 
 /** `--local` som standard. Molnet kräver ett projekt-id som ännu inte finns. */
 const remote = process.argv.includes("--remote");
+
+/**
+ * `--check` skriver ingenting — den svarar bara på om filen är aktuell.
+ *
+ * Risken filen bär är asymmetrisk. En NY kolumn som glöms bort märks direkt:
+ * koden som använder den kompilerar inte. En BORTTAGEN eller omdöpt kolumn
+ * märks inte alls — typerna påstår att den finns, bygget går igenom, och felet
+ * dyker upp i drift.
+ *
+ * Det är precis den sortens fel `smoke.sh` finns för, och flaggan låter den
+ * ställa frågan utan att röra repot.
+ */
+const checkOnly = process.argv.includes("--check");
 const projectId = process.env.SUPABASE_PROJECT_ID;
 
 if (remote && !projectId) {
@@ -89,6 +102,30 @@ if (!output.includes("export type Database")) {
   console.error("Utdata såg inte ut som typer. Filen lämnades orörd.");
   console.error(output.slice(0, 300));
   process.exit(1);
+}
+
+if (checkOnly) {
+  if (!existsSync(TARGET)) {
+    console.error(`${TARGET} saknas. Kör: npm run db:types`);
+    process.exit(1);
+  }
+
+  /*
+   * Radslut normaliseras före jämförelsen.
+   *
+   * Git checkar ut CRLF på Windows och skriver LF i repot. En jämförelse som
+   * faller på det hade rapporterat ett schemafel som inte finns — och en
+   * kontroll som ropar varg är värre än ingen kontroll.
+   */
+  const normalise = (text) => text.replace(/\r\n/g, "\n").trimEnd();
+
+  if (normalise(readFileSync(TARGET, "utf8")) !== normalise(output)) {
+    console.error(`${TARGET} är inte i takt med schemat. Kör: npm run db:types`);
+    process.exit(1);
+  }
+
+  console.log(`${TARGET} är i takt med schemat.`);
+  process.exit(0);
 }
 
 // Via en temporär fil: målet skrivs över först när vi vet att innehållet håller.

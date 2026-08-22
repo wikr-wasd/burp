@@ -24,6 +24,7 @@
     "db:env": "node scripts/write-local-env.mjs",
     "db:types": "node scripts/generate-types.mjs",
     "db:types:remote": "node scripts/generate-types.mjs --remote",
+    "db:types:check": "node scripts/generate-types.mjs --check",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
     "db:demo": "node scripts/seed-demo-orders.mjs"
