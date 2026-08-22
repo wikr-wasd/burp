@@ -268,6 +268,11 @@ export const de: Dictionary = {
     noMenuTitle: "Zurzeit keine Speisekarte",
     noMenuBody:
       "Das Restaurant hat für diese Tageszeit keine Speisekarte veröffentlicht. Wenden Sie sich an das Personal.",
+
+    opensAt: "Öffnet um {time}.",
+    opensOn: "Öffnet {day} um {time}.",
+    noHours: "Die Öffnungszeiten stehen auf der Seite des Restaurants.",
+    seeRestaurant: "Zum Restaurant",
   },
 
   receipt: {

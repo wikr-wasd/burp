@@ -339,6 +339,21 @@ export const sv = {
     closedBody: "Beställningar går bara att lägga under öppettiderna.",
     noMenuTitle: "Ingen meny just nu",
     noMenuBody: "Restaurangen har inte publicerat någon meny för den här tiden. Prata med personalen.",
+
+    /**
+     * Vägarna vidare från en stängd dörr.
+     *
+     * "Restaurangen är stängd" var i sig sant och obrukbart: gästen står vid
+     * bordet och undrar om hon ska vänta tio minuter eller gå. Nu står
+     * klockslaget där, och en väg till restaurangsidan — och till hennes egen
+     * nota, om hon har en igång.
+     */
+    opensAt: "Öppnar {time}.",
+    opensOn: "Öppnar {day} {time}.",
+    // Ingen dag att lova. Gäller en restaurang utan öppettider alls, och den
+    // som väntar på godkännande eller är avstängd.
+    noHours: "Öppettiderna står på restaurangens sida.",
+    seeRestaurant: "Se restaurangen",
   },
 
   /**

@@ -190,12 +190,43 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   "ALLERGENER: MJÖLK"). Restaurangens egen text översätts aldrig, så det är
   seeden som är fel språk, inte produkten.
 
+- **Den stängda dörren har fått vägar vidare.** QR-sidans fyra utgångar var
+  alla samma nakna `TableMessage` — en rubrik och en mening. "Restaurangen är
+  stängd" är sant och obrukbart: gästen står vid bordet och undrar om hon ska
+  vänta tio minuter eller gå.
+
+  Nu står klockslaget där (`nextOpening()` i `@burp/core`, sju nya test), en
+  länk till restaurangsidan, och — viktigast — **hennes egen pågående nota**.
+  Bannern låg innanför den öppna grenen, så en gäst som satt kvar 23:05 med en
+  obetald nota och skannade om dekalen hittade ingenting alls. Seedens
+  restauranger stänger 22:00–23:00, så det var inget kantfall.
+
+  Tre saker som skiljer sig åt med flit:
+
+  - **Ett låst bord får inget klockslag.** Bordet låses av personalen medan
+    notan görs upp; köket kan vara i full gång, och "öppnar 08:00" vore fel
+    svar. Notan och restaurangsidan finns däremot där också.
+  - **En avstängd restaurang lovar ingenting.** CLOSED betyder två olika saker
+    — "har stängt för dagen" och "finns inte på marknadsplatsen än". Bara den
+    första har ett klockslag. `isActive` i `ClosedRestaurantContext` skiljer dem.
+  - **`INVALID_TOKEN` och `UNKNOWN_TABLE` bär fortfarande ingenting.** De
+    404:ar oskiljbart, annars går sidan att använda som orakel för att
+    kartlägga vilka koder som finns. Typen `TableLookup` gör skillnaden svår
+    att råka bryta: bara de två avslag som redan avslöjat att bordet finns har
+    ett `restaurant`-fält alls.
+
+  Fem nya kontroller i röktestet, och den om notan lägger en **egen** order i
+  sektionen i stället för att återanvända en tidigare. Första försöket
+  återanvände, och kontrollen hoppades över i varje körning — vilket är samma
+  sak som att inte ha den.
+
 - **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
   dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
   språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
-  faktiskt talar bosniska — och sex till för kontoytans språk. Hela sviten:
-  **145 kontroller, inga hopp.** Siffran i `CLAUDE.md` stod på 109 och var
-  redan inaktuell innan raden rördes; den faktiska sviten låg på 127.
+  faktiskt talar bosniska — sex till för kontoytans språk, och fem för den
+  stängda dörren. Hela sviten: **150 kontroller, inga hopp.** Siffran i
+  `CLAUDE.md` stod på 109 och var redan inaktuell innan raden rördes; den
+  faktiska sviten låg på 127.
 
 Det som återstår är i tur och ordning:
 
@@ -400,7 +431,7 @@ Spärren om lösenord gäller dashboard, kassa och backoffice — inte QR-sidan,
 menyn, varukorgen, kassan i QR-flödet eller kvittot. Just de ytorna har högst
 kvalitetskrav i produkten och är samtidigt de som aldrig setts av ett öga.
 
-`smoke.sh` kör redan 145 kontroller genom samma flöde, men den mäter något
+`smoke.sh` kör redan 150 kontroller genom samma flöde, men den mäter något
 annat. Den svarar på om servern svarar rätt; den svarar inte på om knappen går
 att träffa med en tumme, om felmeddelandet betyder något för den som läser det,
 eller om det går att förstå var i beställningen man befinner sig. Ett grep av
@@ -658,23 +689,6 @@ eller ett beslut.
       svenskt format — vilket avvisade varje serbiskt postnummer med sex.
       Fältet hade dessutom "21422" som exempel, alltså Malmö. Båda är rättade,
       men rätt svar är ett land på adressen.
-
-- [ ] **QR-sidan är en återvändsgränd när restaurangen är stängd.** Fynd i
-      gästgenomgången 2026-08-22. `/t/[token]` har fyra utgångar som alla
-      renderar samma nakna `TableMessage` — en rubrik och en mening, ingenting
-      annat. "Restaurangen är stängd. Beställningar går bara att lägga under
-      öppettiderna." säger inte **när** den öppnar, länkar inte till
-      restaurangsidan, och ger inget telefonnummer.
-
-      Värre: **bannern till en pågående order ligger innanför den öppna
-      grenen.** En gäst som sitter kvar 23:05 med en obetald nota och skannar om
-      dekalen får "stängt" och har ingen väg tillbaka till sin egen nota alls.
-      Restaurangerna i seeden stänger 22:00–23:00, så det är inte ett kantfall.
-
-      Rättningen kräver att `lookupTable()` bär restaurangen vidare i
-      CLOSED-grenen — den kastar den i dag. `INVALID_TOKEN` och `UNKNOWN_TABLE`
-      måste förbli oskiljbara (orakelskyddet), men CLOSED avslöjar redan att
-      token är giltig, så där finns inget nytt att läcka.
 
 - [ ] **Gå igenom gästflödet på en riktig telefon.** Genomgången 2026-08-22
       gjordes i Chrome på skrivbordet; `resize_window` tog inte på den här
@@ -1023,7 +1037,7 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
 - [x] **Röktestet går att köra — och hittade två fel direkt.** Diagnosen att
       `bash` var WSL2 var fel; skalet är Git Bash och saknade bara `/usr/bin` på
       `PATH`. Röktestet har alltså aldrig körts här, trots att `CLAUDE.md` säger
-      att det är det som avgör om något fungerar. Det kör nu 145 kontroller,
+      att det är det som avgör om något fungerar. Det kör nu 150 kontroller,
       inklusive de nya ytorna: avräkning, GDPR-export och poängjobbet bakom sin
       nyckel.
       Två fel föll ut. **Städningen av presentkortet kunde aldrig lyckas** —

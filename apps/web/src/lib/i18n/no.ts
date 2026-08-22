@@ -268,6 +268,11 @@ export const no: Dictionary = {
     noMenuTitle: "Ingen meny akkurat nå",
     noMenuBody:
       "Restauranten har ikke publisert en meny for dette tidspunktet. Snakk med de ansatte.",
+
+    opensAt: "Åpner {time}.",
+    opensOn: "Åpner {day} {time}.",
+    noHours: "Åpningstidene står på siden til restauranten.",
+    seeRestaurant: "Se restauranten",
   },
 
   receipt: {

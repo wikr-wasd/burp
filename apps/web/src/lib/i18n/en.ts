@@ -267,6 +267,11 @@ export const en: Dictionary = {
     closedBody: "Orders can only be placed during opening hours.",
     noMenuTitle: "No menu right now",
     noMenuBody: "The restaurant has not published a menu for this time of day. Ask a member of staff.",
+
+    opensAt: "Opens at {time}.",
+    opensOn: "Opens {day} at {time}.",
+    noHours: "Opening hours are on the restaurant's page.",
+    seeRestaurant: "See the restaurant",
   },
 
   receipt: {

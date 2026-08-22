@@ -1271,6 +1271,98 @@ check_status "inbjudningslänken kräver inloggning" \
   "/personal/inbjudan/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" 307
 check_status "raderat-kvittot är öppet"                "/konto/raderat"        200
 
+# ── Den stängda dörren ─────────────────────────────────────────────────────
+#
+# QR-sidan har fyra utgångar, och alla fyra var till 2026-08-22 en rubrik och en
+# mening utan väg vidare. Gästen stod vid bordet och undrade om hon skulle vänta
+# tio minuter eller gå, och sidan visste svaret utan att säga det.
+#
+# Restaurangen stängs tillfälligt här och öppnas igen efteråt. Tiden räknas i
+# RESTAURANGENS tidszon och inte i skriptets — samma regel som allt annat som
+# rör klockan, och den enda som ger samma resultat oavsett var testet körs.
+echo "→ Stängd restaurang"
+
+# Ett pass som börjar två timmar fram, satt på varje veckodag. Restaurangen är
+# därmed garanterat stängd nu, och nästa öppning är den tiden — i dag om den
+# ryms före midnatt, annars i morgon. Vilketdera spelar ingen roll: klockslaget
+# är detsamma, och det är det sidan ska visa.
+SOON=$(sql "select to_char((now() at time zone public.country_time_zone(country)) + interval '2 hours', 'HH24:MI') from public.restaurants where id = '$SEED_RESTAURANT';")
+SOON_END=$(sql "select to_char((now() at time zone public.country_time_zone(country)) + interval '3 hours', 'HH24:MI') from public.restaurants where id = '$SEED_RESTAURANT';")
+
+if [ -n "$SOON" ] && [ -n "$SOON_END" ]; then
+  # En färsk order MEDAN stället är öppet, så att kontrollen längre ned har
+  # något att leta efter. Att återanvända en order från tidigare i skriptet gick
+  # inte: de har hunnit avbrytas eller slutföras, och kontrollen hoppades över i
+  # varje körning — vilket är samma sak som att inte ha den.
+  CLOSING_ORDER=$(order_request "{
+    \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"idempotency_key\": \"$(uuid)\",
+    \"items\": [{\"menu_item_id\": \"$CEVAPI\", \"quantity\": 1, \"options\": []}]
+  }" | sed '$d' | json_field order_id)
+
+  CLOSED_HOURS="{"
+  for DAY in mon tue wed thu fri sat sun; do
+    CLOSED_HOURS="$CLOSED_HOURS\"$DAY\":[{\"opens\":\"$SOON\",\"closes\":\"$SOON_END\"}],"
+  done
+  CLOSED_HOURS="${CLOSED_HOURS%,}}"
+
+  sql "update public.restaurants set opening_hours = '$CLOSED_HOURS'::jsonb where id = '$SEED_RESTAURANT';" > /dev/null
+
+  CLOSED_PAGE=$(curl -s "$BASE/t/$TOKEN")
+
+  if grep -qF "Restaurangen är stängd" <<<"$CLOSED_PAGE"; then
+    pass "stängd restaurang säger att den är stängd"
+  else
+    fail "stängd restaurang visade inte det stängda läget"
+  fi
+
+  # Kärnan i fyndet: gästen ska få veta NÄR, inte bara ATT.
+  if grep -qF "$SOON" <<<"$CLOSED_PAGE"; then
+    pass "stängd restaurang säger när den öppnar ($SOON)"
+  else
+    fail "stängd restaurang saknar öppningstiden $SOON"
+  fi
+
+  # Och en väg vidare. En sida utan utgång är en återvändsgränd oavsett hur
+  # välformulerad meningen är.
+  if grep -qE 'href="/r/[^"]+"' <<<"$CLOSED_PAGE"; then
+    pass "stängd restaurang länkar till restaurangsidan"
+  else
+    fail "stängd restaurang saknar länk till restaurangsidan"
+  fi
+
+  # Bordssessionens pågående order ska överleva stängningen. Det här är den
+  # gäst som satt kvar 23:05 med en obetald nota och inte hittade tillbaka.
+  #
+  if [ -n "$CLOSING_ORDER" ]; then
+    CLOSED_WITH_SESSION=$(curl -s -b "$COOKIES" "$BASE/t/$TOKEN")
+    if grep -qF "/t/$TOKEN/order/$CLOSING_ORDER" <<<"$CLOSED_WITH_SESSION"; then
+      pass "pågående nota nås även när restaurangen stängt"
+    else
+      fail "pågående nota försvann när restaurangen stängde"
+    fi
+  else
+    printf '  \033[33mhopp\033[0m  pågående nota vid stängning — ordern kunde inte läggas\n'
+  fi
+
+  # En restaurang som inte är godkänd har inget klockslag att lova. Att säga
+  # "öppnar i morgon 08:00" om en avstängd restaurang vore ett löfte ingen
+  # tänker hålla.
+  sql "update public.restaurants set status = 'SUSPENDED' where id = '$SEED_RESTAURANT';" > /dev/null
+  SUSPENDED_PAGE=$(curl -s "$BASE/t/$TOKEN")
+  sql "update public.restaurants set status = 'ACTIVE' where id = '$SEED_RESTAURANT';" > /dev/null
+
+  if grep -qF "$SOON" <<<"$SUSPENDED_PAGE"; then
+    fail "avstängd restaurang lovade ett klockslag"
+  else
+    pass "avstängd restaurang lovar inget klockslag"
+  fi
+
+  # Tillbaka till dygnet runt — resten av testet behöver den öppen.
+  sql "update public.restaurants set opening_hours = '{\"mon\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"tue\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"wed\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"thu\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"fri\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"sat\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}],\"sun\":[{\"opens\":\"00:00\",\"closes\":\"23:59\"}]}'::jsonb where id = '$SEED_RESTAURANT';" > /dev/null
+else
+  printf '  \033[33mhopp\033[0m  stängd restaurang (5 kontroller) — kunde inte läsa restaurangens lokala tid\n'
+fi
+
 # ── Kontoytans språk ───────────────────────────────────────────────────────
 #
 # `/konto` är noindex och har inget språk i adressen. Ytorna läser

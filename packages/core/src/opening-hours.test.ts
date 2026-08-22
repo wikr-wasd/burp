@@ -3,6 +3,7 @@ import {
   CLOSED_ALL_WEEK,
   describeDay,
   isOpenAt,
+  nextOpening,
   parseOpeningHours,
   timeToMinutes,
   validateOpeningHours,
@@ -286,5 +287,96 @@ describe("describeDay", () => {
     // "22:00–02:00" ensamt läser som ett fel — det ser ut som att någon skrivit
     // tiderna i fel ordning.
     expect(describeDay([{ opens: "22:00", closes: "02:00" }])).toBe("22:00–02:00 (nästa dag)");
+  });
+});
+
+/**
+ * `dayIndex` följer Postgres `dow`: 0 är söndag, 1 måndag, 6 lördag. Samma
+ * räkning som `isOpenAt`, och testerna nedan skriver ut vilken dag varje siffra
+ * är — en tyst av-med-ett här ger ett svar som stämmer sex dagar i veckan.
+ */
+describe("nextOpening", () => {
+  const veckan = hours({
+    mon: [{ opens: "08:00", closes: "22:00" }],
+    tue: [{ opens: "08:00", closes: "22:00" }],
+    wed: [{ opens: "08:00", closes: "22:00" }],
+    thu: [{ opens: "08:00", closes: "22:00" }],
+    fri: [{ opens: "08:00", closes: "23:00" }],
+    sat: [{ opens: "09:00", closes: "23:00" }],
+    sun: [],
+  });
+
+  it("pekar på dagens öppning när klockan ännu inte är där", () => {
+    // Måndag (dow 1) klockan 07:00. Öppnar 08:00 samma dag.
+    expect(nextOpening(veckan, 1, timeToMinutes("07:00"))).toEqual({
+      daysAhead: 0,
+      day: "mon",
+      opens: "08:00",
+    });
+  });
+
+  it("hoppar till nästa dag när dagens öppning passerat", () => {
+    // Måndag 23:00 — efter stängning. Nästa är tisdag 08:00.
+    expect(nextOpening(veckan, 1, timeToMinutes("23:00"))).toEqual({
+      daysAhead: 1,
+      day: "tue",
+      opens: "08:00",
+    });
+  });
+
+  it("hoppar över en stängd dag", () => {
+    // Lördag (dow 6) efter stängning. Söndagen är tom, så nästa är måndag.
+    expect(nextOpening(veckan, 6, timeToMinutes("23:30"))).toEqual({
+      daysAhead: 2,
+      day: "mon",
+      opens: "08:00",
+    });
+  });
+
+  it("hittar dagens andra pass", () => {
+    // Delat dygn: lunch och kväll. Klockan 15:00 är kvällen nästa, inte
+    // morgondagens lunch.
+    const delat = hours({
+      wed: [
+        { opens: "17:00", closes: "22:00" },
+        { opens: "11:00", closes: "14:00" },
+      ],
+    });
+
+    // Onsdag är dow 3.
+    expect(nextOpening(delat, 3, timeToMinutes("15:00"))).toEqual({
+      daysAhead: 0,
+      day: "wed",
+      opens: "17:00",
+    });
+  });
+
+  it("väljer det tidigaste passet oavsett inmatningsordning", () => {
+    // Passen står i fel ordning i objektet. Gästen väntar på det tidigaste.
+    const delat = hours({
+      wed: [
+        { opens: "17:00", closes: "22:00" },
+        { opens: "11:00", closes: "14:00" },
+      ],
+    });
+
+    expect(nextOpening(delat, 3, timeToMinutes("06:00"))).toEqual({
+      daysAhead: 0,
+      day: "wed",
+      opens: "11:00",
+    });
+  });
+
+  it("ger null när stället har stängt hela veckan", () => {
+    // Ingen dag att lova. Sidan måste då säga något annat än ett klockslag.
+    expect(nextOpening(CLOSED_ALL_WEEK, 3, 0)).toBeNull();
+  });
+
+  it("räknar aldrig mer än sex dagar framåt", () => {
+    // Bara söndag öppet, och det är söndag kväll: nästa är om sju dagar, vilket
+    // ligger utanför fönstret. Att svara "om 0 dagar" vore värre än att inte
+    // svara — gästen hade väntat vid ett stängt bord.
+    const baraSondag = hours({ sun: [{ opens: "12:00", closes: "16:00" }] });
+    expect(nextOpening(baraSondag, 0, timeToMinutes("20:00"))).toBeNull();
   });
 });

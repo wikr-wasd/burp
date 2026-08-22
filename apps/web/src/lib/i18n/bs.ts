@@ -291,6 +291,11 @@ export const bs: Dictionary = {
     closedBody: "Narudžbe je moguće poslati samo u toku radnog vremena.",
     noMenuTitle: "Trenutno nema jelovnika",
     noMenuBody: "Restoran nije objavio jelovnik za ovo doba dana. Obratite se osoblju.",
+
+    opensAt: "Otvara u {time}.",
+    opensOn: "Otvara {day} u {time}.",
+    noHours: "Radno vrijeme je na stranici restorana.",
+    seeRestaurant: "Pogledaj restoran",
   },
 
   receipt: {

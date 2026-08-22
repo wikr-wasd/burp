@@ -211,6 +211,62 @@ export function describeDay(slots: readonly OpeningSlot[]): string {
     .join(", ");
 }
 
+/** Nästa gång restaurangen slår upp — dag och klockslag. */
+export interface NextOpening {
+  /** 0 = i dag, 1 = i morgon, upp till 6. */
+  daysAhead: number;
+  /** Nyckeln i `OpeningHours`, för att kunna skriva ut veckodagen. */
+  day: WeekdayKey;
+  /** "08:00". */
+  opens: string;
+}
+
+/**
+ * När öppnar den härnäst?
+ *
+ * QR-sidan sa fram till 2026-08-22 bara "Restaurangen är stängd", vilket är
+ * sant och obrukbart: gästen står vid bordet med telefonen i handen och undrar
+ * om hon ska vänta tio minuter eller gå. Svaret finns i öppettiderna och
+ * behöver bara letas fram.
+ *
+ * `dayIndex` följer Postgres `dow` precis som `isOpenAt` — 0 är söndag. Att
+ * de två skulle använda olika räkning är exakt den sortens fel som ger ett
+ * svar som stämmer sex dagar i veckan.
+ *
+ * Söker en vecka framåt och ger `null` för en restaurang som har stängt varje
+ * dag. Då finns inget klockslag att lova, och sidan ska säga något annat.
+ *
+ * Passet som korsar midnatt kräver ingen särskild behandling här: funktionen
+ * anropas bara när stället är stängt, och är det stängt nu så täcker inget pass
+ * den här minuten — varken gårdagens eller dagens.
+ */
+export function nextOpening(
+  hours: OpeningHours,
+  dayIndex: number,
+  minutes: number,
+): NextOpening | null {
+  for (let daysAhead = 0; daysAhead < 7; daysAhead++) {
+    const day = WEEKDAY_KEYS[(dayIndex + 6 + daysAhead) % 7];
+    if (!day) continue;
+
+    // Sorteras med flit i stället för att lita på inmatningsordningen: en
+    // lunchöppning och en kvällsöppning kan ha skrivits in i vilken ordning
+    // som helst, och den tidigaste är den gästen väntar på.
+    const opens = hours[day]
+      .map((slot) => slot.opens)
+      .sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+
+    for (const time of opens) {
+      // I dag räknas bara det som ännu inte varit. En senare dag räknas hela.
+      if (daysAhead > 0 || timeToMinutes(time) > minutes) {
+        return { daysAhead, day, opens: time };
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Är restaurangen öppen vid en given lokal tidpunkt?
  *

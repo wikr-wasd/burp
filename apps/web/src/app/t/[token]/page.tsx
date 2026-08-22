@@ -3,12 +3,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ChevronRight, ReceiptText } from "lucide-react";
+import { nextOpening, zonedNow } from "@burp/core";
 import { getActiveMenu } from "@/lib/menu";
 import { cardOptionFor } from "@/lib/payments";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { lookupTable, ongoingTableOrderId } from "@/lib/table-session";
+import {
+  lookupTable,
+  ongoingTableOrderId,
+  type ClosedRestaurantContext,
+} from "@/lib/table-session";
 import { MenuOrder } from "@/components/order/menu-order";
-import { dictionary, requestLocale } from "@/lib/i18n";
+import { dictionary, fill, requestLocale, type Dictionary } from "@/lib/i18n";
 
 /**
  * QR-landningssidan — burp.se/t/R7K2M9X4TB (avsnitt 4.2).
@@ -59,21 +64,51 @@ export default async function TablePage({ params }: PageProps) {
   const lookup = await lookupTable(token);
 
   if (!lookup.ok) {
-    // Ogiltig signatur och okänt bord ger avsiktligt samma svar. Skulle de
-    // skilja sig kunde sidan användas som orakel för att kartlägga vilka koder
-    // som existerar.
-    if (lookup.reason === "INVALID_TOKEN" || lookup.reason === "UNKNOWN_TABLE") {
+    /*
+     * Villkoret står i positiv form med flit.
+     *
+     * De två avslag som bär en restaurang plockas ut först, och allt annat
+     * 404:ar på sista raden. Ogiltig signatur och okänt bord ger avsiktligt
+     * samma svar — skulle de skilja sig kunde sidan användas som orakel för att
+     * kartlägga vilka koder som existerar.
+     */
+    if (lookup.reason !== "TABLE_LOCKED" && lookup.reason !== "CLOSED") {
       notFound();
     }
 
+    const { restaurant } = lookup;
+    const ongoing = await ongoingBanner(restaurant.id, token, t);
+    const restaurantHref = `/r/${restaurant.citySlug}/${restaurant.slug}`;
+
+    /*
+     * Ett låst bord är inte en stängd restaurang.
+     *
+     * Bordet låses av personalen — notan hålls på att göras upp, eller så är
+     * bordet ur bruk. Köket kan mycket väl vara i full gång, så ett klockslag
+     * vore fel svar. Vägen till den egna notan och till restaurangsidan gäller
+     * däremot lika mycket här.
+     */
     if (lookup.reason === "TABLE_LOCKED") {
       return (
-        <TableMessage title={t.table.lockedTitle} body={t.table.lockedBody} />
+        <TableMessage
+          title={t.table.lockedTitle}
+          body={t.table.lockedBody}
+          restaurantHref={restaurantHref}
+          restaurantLabel={t.table.seeRestaurant}
+          ongoing={ongoing}
+        />
       );
     }
 
     return (
-      <TableMessage title={t.table.closedTitle} body={t.table.closedBody} />
+      <TableMessage
+        title={t.table.closedTitle}
+        body={t.table.closedBody}
+        detail={opensLine(restaurant, t.table, t.weekday)}
+        restaurantHref={restaurantHref}
+        restaurantLabel={t.table.seeRestaurant}
+        ongoing={ongoing}
+      />
     );
   }
 
@@ -90,8 +125,16 @@ export default async function TablePage({ params }: PageProps) {
   const card = await cardOptionFor(table.restaurantId);
 
   if (!menu || menu.categories.length === 0) {
+    // Öppet men utan meny. Inget klockslag att ge — menyn saknas nu, inte till
+    // ett bestämt klockslag — men notan och restaurangsidan finns.
     return (
-      <TableMessage title={t.table.noMenuTitle} body={t.table.noMenuBody} />
+      <TableMessage
+        title={t.table.noMenuTitle}
+        body={t.table.noMenuBody}
+        restaurantHref={`/r/${table.citySlug}/${table.restaurantSlug}`}
+        restaurantLabel={t.table.seeRestaurant}
+        ongoing={await ongoingBanner(table.restaurantId, token, t)}
+      />
     );
   }
 
@@ -164,13 +207,127 @@ export default async function TablePage({ params }: PageProps) {
   );
 }
 
-function TableMessage({ title, body }: { title: string; body: string }) {
+/**
+ * Sidans fyra utgångar.
+ *
+ * Alla fyra var fram till 2026-08-22 en rubrik och en mening, ingenting annat.
+ * Det räcker för att stänga dörren men inte för att svara på gästens fråga —
+ * hon står vid bordet och undrar om hon ska vänta eller gå.
+ *
+ * Allt utom rubriken och brödtexten är därför valfritt: rate limit-fallet vet
+ * ingenting om vilken restaurang det gäller, och ska inte låtsas att det gör
+ * det. De andra tre vet, och säger det.
+ */
+function TableMessage({
+  title,
+  body,
+  detail,
+  restaurantHref,
+  restaurantLabel,
+  ongoing,
+}: {
+  title: string;
+  body: string;
+  /** "Öppnar 08:00." — bara den stängda dörren har ett klockslag att ge. */
+  detail?: string | null;
+  restaurantHref?: string;
+  restaurantLabel?: string;
+  /** Gästens egen pågående nota, om hon har en. */
+  ongoing?: { href: string; title: string; body: string } | null;
+}) {
   return (
     <div className="theme-table">
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-3 px-6 text-center">
         <h1 className="font-display text-3xl">{title}</h1>
         <p className="text-[var(--muted)]">{body}</p>
+        {detail ? <p className="text-[var(--muted)]">{detail}</p> : null}
+
+        {/*
+          Notan först, restaurangen sedan.
+
+          En gäst som sitter kvar efter stängning med en obetald nota har ett
+          ärende som väger tyngre än att läsa om stället. Fram till nu låg
+          bannern innanför den öppna grenen, så just hon hittade ingenting.
+        */}
+        {ongoing ? (
+          <Link
+            href={ongoing.href}
+            className="card mt-4 flex items-center gap-3 px-4 py-3 text-left no-underline"
+          >
+            <ReceiptText size={20} aria-hidden="true" className="shrink-0 text-burp-600" />
+            <span className="min-w-0">
+              <span className="block font-medium">{ongoing.title}</span>
+              <span className="block text-sm text-[var(--muted)]">{ongoing.body}</span>
+            </span>
+            <ChevronRight
+              size={18}
+              aria-hidden="true"
+              className="ml-auto shrink-0 text-[var(--muted)]"
+            />
+          </Link>
+        ) : null}
+
+        {restaurantHref && restaurantLabel ? (
+          <p className="mt-2">
+            <Link href={restaurantHref} className="link">
+              {restaurantLabel}
+            </Link>
+          </p>
+        ) : null}
       </main>
     </div>
   );
+}
+
+/**
+ * Gästens egen pågående nota vid bordet, om hon har en.
+ *
+ * Låg tidigare bara inne i den öppna grenen, och det var precis fel gäst att
+ * missa: den som sitter kvar efter stängning med en obetald nota är den som
+ * mest behöver hitta tillbaka till den.
+ */
+async function ongoingBanner(
+  restaurantId: string,
+  token: string,
+  t: Dictionary,
+): Promise<{ href: string; title: string; body: string } | null> {
+  const orderId = await ongoingTableOrderId(restaurantId);
+  if (!orderId) return null;
+
+  return {
+    href: `/t/${token}/order/${orderId}`,
+    title: t.menu.ongoingOrder,
+    body: t.menu.ongoingOrderLink,
+  };
+}
+
+/**
+ * "Öppnar 08:00." eller "Öppnar lördag 09:00."
+ *
+ * Dagen skrivs ut bara när den inte är i dag — "Öppnar i dag 17:00" är brus
+ * för någon som står där nu, och "Öppnar 17:00" om tre dagar är en lögn.
+ *
+ * `null` när det inte finns något klockslag att lova: en restaurang som väntar
+ * på godkännande, en avstängd, och en som har stängt varje dag i veckan. Då
+ * står `noHours` där i stället och pekar vidare till restaurangsidan.
+ */
+function opensLine(
+  restaurant: ClosedRestaurantContext,
+  texts: Dictionary["table"],
+  weekday: Dictionary["weekday"],
+): string {
+  if (!restaurant.isActive) return texts.noHours;
+
+  const { dayIndex, minutes } = zonedNow(new Date(), restaurant.timeZone);
+  const next = nextOpening(restaurant.openingHours, dayIndex, minutes);
+
+  if (!next) return texts.noHours;
+
+  // Veckodagen kommer ur ordboken med stor bokstav. Den behålls som den är:
+  // tyskan skriver veckodagar med versal och en gemenisering här hade gjort
+  // "samstag" av "Samstag". En versal mitt i en svensk mening är den mindre
+  // skadan av de två.
+  return next.daysAhead === 0
+    ? fill(texts.opensAt, { time: next.opens })
+    : fill(texts.opensOn, { day: weekday[next.day], time: next.opens });
 }

@@ -3,9 +3,11 @@ import "server-only";
 import { cookies } from "next/headers";
 import {
   COUNTRY_INFO,
+  parseOpeningHours,
   verifyTableToken,
   type CountryCode,
   type CurrencyCode,
+  type OpeningHours,
 } from "@burp/core";
 import { createAdminClient } from "./supabase/admin";
 import { serverEnv } from "./env";
@@ -34,6 +36,8 @@ export interface TableContext {
   restaurantName: string;
   restaurantSlug: string;
   city: string;
+  /** Stadens slug — behövs för länken till `/r/[city]/[slug]`. */
+  citySlug: string;
   /** Restaurangens land, valuta och tidszon — styr priser och meny vid bordet. */
   country: CountryCode;
   currency: CurrencyCode;
@@ -42,9 +46,52 @@ export interface TableContext {
   isLocked: boolean;
 }
 
+/**
+ * Så mycket om restaurangen som en avvisad gäst får se.
+ *
+ * Fram till 2026-08-22 fick hon ingenting: QR-sidan svarade "Restaurangen är
+ * stängd" och punkt. Det är sant och obrukbart — hon står vid bordet och undrar
+ * om hon ska vänta tio minuter eller gå, och svaret finns i öppettiderna.
+ *
+ * Inget av det här läcker något nytt. En gäst som ser CLOSED har redan bevisat
+ * att hon har ett giltigt token till just det här bordet, och namnet och
+ * öppettiderna står på den publika restaurangsidan.
+ */
+export interface ClosedRestaurantContext {
+  /** Behövs för att kunna hitta gästens pågående order vid bordet. */
+  id: string;
+  name: string;
+  slug: string;
+  citySlug: string;
+  timeZone: string;
+  openingHours: OpeningHours;
+  /**
+   * Är restaurangen godkänd och i drift?
+   *
+   * CLOSED betyder två helt olika saker: "har stängt för dagen" och "finns inte
+   * på marknadsplatsen än, eller är avstängd". Bara den första har ett
+   * klockslag att lova. Att säga "öppnar i morgon 08:00" om en avstängd
+   * restaurang vore ett löfte ingen tänker hålla.
+   */
+  isActive: boolean;
+}
+
+/**
+ * Utfallet av ett bordsuppslag.
+ *
+ * De två avslagen som INTE bär någon restaurang är avsiktligt tomma.
+ * `INVALID_TOKEN` och `UNKNOWN_TABLE` ger samma 404 av samma skäl: skulle de
+ * skilja sig kunde sidan användas som orakel för att kartlägga vilka koder som
+ * finns. Typen gör den skillnaden svår att råka bryta.
+ */
 export type TableLookup =
   | { ok: true; table: TableContext }
-  | { ok: false; reason: "INVALID_TOKEN" | "UNKNOWN_TABLE" | "TABLE_LOCKED" | "CLOSED" };
+  | { ok: false; reason: "INVALID_TOKEN" | "UNKNOWN_TABLE" }
+  | {
+      ok: false;
+      reason: "TABLE_LOCKED" | "CLOSED";
+      restaurant: ClosedRestaurantContext;
+    };
 
 /**
  * Slår upp bordet bakom ett QR-token.
@@ -72,9 +119,11 @@ export async function lookupTable(token: string): Promise<TableLookup> {
         name,
         slug,
         city,
+        city_slug,
         status,
         country,
-        currency
+        currency,
+        opening_hours
       )
     `,
     )
@@ -90,18 +139,35 @@ export async function lookupTable(token: string): Promise<TableLookup> {
     name: string;
     slug: string;
     city: string;
+    city_slug: string;
     status: string;
     country: CountryCode;
     currency: CurrencyCode;
+    opening_hours: unknown;
+  };
+
+  const timeZone = COUNTRY_INFO[restaurant.country].timeZone;
+
+  // Följer med varje avslag som redan avslöjat att bordet finns, så att sidan
+  // kan säga när det öppnar och peka på restaurangsidan i stället för att bara
+  // stänga dörren.
+  const closedContext: ClosedRestaurantContext = {
+    id: restaurant.id,
+    name: restaurant.name,
+    slug: restaurant.slug,
+    citySlug: restaurant.city_slug,
+    timeZone,
+    openingHours: parseOpeningHours(restaurant.opening_hours),
+    isActive: restaurant.status === "ACTIVE",
   };
 
   if (data.status === "LOCKED") {
-    return { ok: false, reason: "TABLE_LOCKED" };
+    return { ok: false, reason: "TABLE_LOCKED", restaurant: closedContext };
   }
 
   const isOpen = restaurant.status === "ACTIVE" && (await isCurrentlyOpen(restaurant.id));
   if (!isOpen) {
-    return { ok: false, reason: "CLOSED" };
+    return { ok: false, reason: "CLOSED", restaurant: closedContext };
   }
 
   return {
@@ -114,9 +180,10 @@ export async function lookupTable(token: string): Promise<TableLookup> {
       restaurantName: restaurant.name,
       restaurantSlug: restaurant.slug,
       city: restaurant.city,
+      citySlug: restaurant.city_slug,
       country: restaurant.country,
       currency: restaurant.currency,
-      timeZone: COUNTRY_INFO[restaurant.country].timeZone,
+      timeZone,
       isOpen,
       isLocked: false,
     },
