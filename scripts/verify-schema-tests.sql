@@ -4312,4 +4312,137 @@ begin
 end
 $$;
 
+\echo '   notiskön köas av statusen och når ingen annan'
+
+do $$
+declare
+  v_rest  uuid;
+  v_guest uuid;
+  v_cook  uuid;
+  v_table uuid;
+  v_pick  uuid;
+  v_tbl   uuid;
+  v_count integer;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Notiskön', 'notiskon', '4200000000125',
+          'Ferhadija 35', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'gast-notis@example.com')
+  returning id into v_guest;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'kock-notis@example.com')
+  returning id into v_cook;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_cook, 'kitchen', true);
+
+  insert into public.tables (restaurant_id, table_number, qr_public_id)
+  values (v_rest, '1', 'NNNNNN')
+  returning id into v_table;
+
+  -- Avhämtning med gästkonto: den enda som ska få brev.
+  insert into public.orders (
+    restaurant_id, guest_id, type, status, currency, idempotency_key, placed_at
+  )
+  values (v_rest, v_guest, 'PICKUP', 'PLACED', 'BAM', gen_random_uuid(), now())
+  returning id into v_pick;
+
+  -- Bordsbeställning med samma gästkonto. Hon sitter vid bordet med
+  -- kvittosidan öppen och ska INTE få brev.
+  insert into public.orders (
+    restaurant_id, guest_id, table_id, type, status, currency, idempotency_key, placed_at
+  )
+  values (v_rest, v_guest, v_table, 'TABLE', 'PLACED', 'BAM', gen_random_uuid(), now())
+  returning id into v_tbl;
+
+  update public.orders set status = 'ACCEPTED' where id in (v_pick, v_tbl);
+
+  select count(*) into v_count from public.notification_outbox where order_id = v_pick;
+  if v_count <> 1 then
+    raise exception 'FEL: avhämtningen köade % notiser, väntade 1', v_count;
+  end if;
+
+  select count(*) into v_count from public.notification_outbox where order_id = v_tbl;
+  if v_count <> 0 then
+    raise exception 'FEL: bordsbeställningen köade en notis';
+  end if;
+
+  -- En update som inte rör statusen får inte köa något.
+  update public.orders set note = 'utan lök' where id = v_pick;
+
+  select count(*) into v_count from public.notification_outbox where order_id = v_pick;
+  if v_count <> 1 then
+    raise exception 'FEL: en update utan statusändring köade en notis';
+  end if;
+
+  -- Nästa steg köar sin egen rad, och bara sin.
+  update public.orders set status = 'PREPARING' where id = v_pick;
+  update public.orders set status = 'READY' where id = v_pick;
+
+  select count(*) into v_count from public.notification_outbox where order_id = v_pick;
+  if v_count <> 2 then
+    raise exception 'FEL: efter READY fanns % rader, väntade 2', v_count;
+  end if;
+
+  -- PREPARING har ingen sort och ska inte ha köat något.
+  if exists (
+    select 1 from public.notification_outbox
+    where order_id = v_pick
+      and kind not in ('ORDER_ACCEPTED', 'ORDER_READY')
+  ) then
+    raise exception 'FEL: en status utan notissort köade ändå';
+  end if;
+
+  -- Anonym bordsbeställning: inget konto, ingen adress, ingen rad.
+  insert into public.orders (
+    restaurant_id, table_id, type, status, currency, idempotency_key, placed_at
+  )
+  values (v_rest, v_table, 'TABLE', 'PLACED', 'BAM', gen_random_uuid(), now())
+  returning id into v_tbl;
+
+  update public.orders set status = 'ACCEPTED' where id = v_tbl;
+
+  if exists (select 1 from public.notification_outbox where order_id = v_tbl) then
+    raise exception 'FEL: en anonym beställning köade en notis';
+  end if;
+
+  /*
+   * Restaurangen får läsa sin egen kö, men ingen får skriva i den.
+   *
+   * Läsningen finns för supportfrågan "gick brevet ut?" och läcker ingenting:
+   * ägaren ser redan samma orders guest_id. Skrivningen är stängd för alla —
+   * kön skrivs av triggern och kvitteras av mark_notice_sent, båda SECURITY
+   * DEFINER.
+   */
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_cook::text, true);
+
+  select count(*) into v_count from public.notification_outbox where restaurant_id = v_rest;
+  if v_count <> 2 then
+    raise exception 'FEL: restaurangen såg % rader i sin egen kö, väntade 2', v_count;
+  end if;
+
+  -- Kvitteringen är jobbets. Personal som kunde sätta sent_at hade kunnat
+  -- tysta ett brev till en gäst.
+  begin
+    update public.notification_outbox set sent_at = now() where restaurant_id = v_rest;
+
+    if exists (
+      select 1 from public.notification_outbox
+      where restaurant_id = v_rest and sent_at is not null
+    ) then
+      raise exception 'FEL: personalen kunde kvittera en notis';
+    end if;
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
 rollback;

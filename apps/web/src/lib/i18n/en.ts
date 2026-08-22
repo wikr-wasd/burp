@@ -421,6 +421,18 @@ export const en: Dictionary = {
     },
   },
 
+  email: {
+    acceptedSubject: "{restaurant} has accepted your order",
+    acceptedBody: "Your food will be ready in about {n} minutes.",
+    acceptedBodyNoTime: "The restaurant has accepted your order.",
+
+    readySubject: "Your order is ready for pickup",
+    readyBody: "{restaurant} has your order ready.",
+
+    viewOrder: "See your order",
+    footer: "You are getting this because you ordered for pickup through Burp.",
+  },
+
   errors: {
     notFoundLabel: "404",
     notFoundTitle: "This page does not exist.",

@@ -427,6 +427,18 @@ export const de: Dictionary = {
     },
   },
 
+  email: {
+    acceptedSubject: "{restaurant} hat Ihre Bestellung angenommen",
+    acceptedBody: "Das Essen ist in etwa {n} Minuten fertig.",
+    acceptedBodyNoTime: "Das Restaurant hat Ihre Bestellung angenommen.",
+
+    readySubject: "Ihre Bestellung ist zur Abholung bereit",
+    readyBody: "{restaurant} hat Ihre Bestellung fertig.",
+
+    viewOrder: "Bestellung ansehen",
+    footer: "Sie erhalten diese Nachricht, weil Sie über Burp zur Abholung bestellt haben.",
+  },
+
   errors: {
     notFoundLabel: "404",
     notFoundTitle: "Diese Seite gibt es nicht.",

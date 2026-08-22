@@ -12,6 +12,10 @@
     {
       "path": "/api/jobs/expire-loyalty",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/jobs/send-notices",
+      "schedule": "* * * * *"
     }
   ],
   "headers": [

@@ -1424,6 +1424,87 @@ else
   printf '  \033[33mhopp\033[0m  poängjobbet — CRON_SECRET saknas i apps/web/.env.local\n'
 fi
 
+# ── Notiskön ───────────────────────────────────────────────────────────────
+#
+# Gästen fick inget besked alls fram till 2026-08-22. Kön skrivs av en trigger i
+# samma transaktion som statusändringen (migration 0049) och töms av jobbet, så
+# två saker ska hålla: att raden hamnar där, och att den försvinner därifrån.
+#
+# Ordern skapas i SQL. Det som prövas är triggern och jobbet, inte formuläret —
+# en avhämtningsorder med gästkonto kräver en inloggning röktestet inte har.
+echo "→ Notiskön till gästen"
+
+check_status "notisjobbet nekar utan nyckel" "/api/jobs/send-notices" 401
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer fel-nyckel" \
+  "$BASE/api/jobs/send-notices")
+if [ "$CODE" = "401" ]; then
+  pass "notisjobbet nekar fel nyckel ($CODE)"
+else
+  fail "notisjobbet svarade $CODE på en felaktig nyckel, väntade 401"
+fi
+
+NOTICE_GUEST=$(sql "select id from public.profiles where email = 'agare@burp.test' limit 1;")
+
+if [ -n "$CRON_SECRET" ] && [ -n "$NOTICE_GUEST" ]; then
+  # Töm först: tidigare sektioner kan ha lämnat rader, och en kontroll som
+  # räknar måste veta vad den räknar.
+  curl -s -o /dev/null -H "Authorization: Bearer $CRON_SECRET" "$BASE/api/jobs/send-notices"
+
+  # `head -1`: psql skriver både det returnerade id:t och kommandotaggen
+  # "INSERT 0 1", och `sql()` ger tillbaka båda. Utan den blir variabeln
+  # tvårading och varje fråga efteråt får ett trasigt id.
+  NOTICE_ORDER=$(sql "insert into public.orders (restaurant_id, guest_id, type, status, currency, idempotency_key, placed_at, guest_locale) values ('$SEED_RESTAURANT', '$NOTICE_GUEST', 'PICKUP', 'PLACED', 'BAM', gen_random_uuid(), now(), 'de') returning id;" | head -1)
+
+  sql "update public.orders set status = 'ACCEPTED', prep_minutes = 25 where id = '$NOTICE_ORDER';" > /dev/null
+
+  QUEUED=$(sql "select kind from public.notification_outbox where order_id = '$NOTICE_ORDER';")
+  if [ "$QUEUED" = "ORDER_ACCEPTED" ]; then
+    pass "statusändringen köar en notis"
+  else
+    fail "notiskön fick '$QUEUED', väntade ORDER_ACCEPTED"
+  fi
+
+  # Bordsgästen får inget. Hon sitter med kvittosidan öppen, och den uppdaterar
+  # sig var tionde sekund — ett brev till någon som redan ser svaret är skräp.
+  TABLE_ORDER=$(sql "insert into public.orders (restaurant_id, guest_id, table_id, type, status, currency, idempotency_key, placed_at) select '$SEED_RESTAURANT', '$NOTICE_GUEST', id, 'TABLE', 'PLACED', 'BAM', gen_random_uuid(), now() from public.tables where restaurant_id = '$SEED_RESTAURANT' limit 1 returning id;" | head -1)
+  sql "update public.orders set status = 'ACCEPTED' where id = '$TABLE_ORDER';" > /dev/null
+
+  TABLE_QUEUED=$(sql "select count(*) from public.notification_outbox where order_id = '$TABLE_ORDER';")
+  if [ "$TABLE_QUEUED" = "0" ]; then
+    pass "bordsbeställningen köar ingen notis"
+  else
+    fail "bordsbeställningen köade $TABLE_QUEUED notiser"
+  fi
+
+  # Jobbet ska ta raden OCH kvittera den. Kvitteringen saknade sin grant till
+  # service_role i första utkastet: kön fylldes på och tömdes aldrig, och det
+  # syntes bara på att samma rad rapporterades i varje körning.
+  curl -s -o /dev/null -H "Authorization: Bearer $CRON_SECRET" "$BASE/api/jobs/send-notices"
+
+  SENT=$(sql "select sent_at is not null from public.notification_outbox where order_id = '$NOTICE_ORDER';")
+  if [ "$SENT" = "t" ]; then
+    pass "jobbet kvitterar raden det behandlat"
+  else
+    fail "raden stod kvar okvitterad efter körningen"
+  fi
+
+  AGAIN=$(curl -s -H "Authorization: Bearer $CRON_SECRET" "$BASE/api/jobs/send-notices" | json_field skipped)
+  if [ "$AGAIN" = "0" ]; then
+    pass "en andra körning hittar ingenting kvar"
+  else
+    fail "andra körningen behandlade $AGAIN rader — kön töms inte"
+  fi
+
+  # Bara kön städas. Orderna står kvar, som röktestets övriga: de bär
+  # `order_events`, och den loggen går inte att ta bort — det är hela poängen
+  # med den (regel 6). Ett `delete` här föll på främmande nyckel och skrev en
+  # varning i varje körning, vilket ser ut som ett produktfel och inte är det.
+  sql "delete from public.notification_outbox where order_id in ('$NOTICE_ORDER', '$TABLE_ORDER');" > /dev/null
+else
+  printf '  \033[33mhopp\033[0m  notiskön (5 kontroller) — CRON_SECRET eller seed-gäst saknas\n'
+fi
+
 echo ""
 if [ "$FAILED" -gt 0 ]; then
   echo "$FAILED kontroll(er) misslyckades."

@@ -249,13 +249,66 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   Sett i webbläsaren: en order som köket satte till 45 minuter visar "Ungefär
   45 minuter kvar" i stället för restaurangens 20.
 
+- **Gästen får besked när maten är på gång.** Migration 0049 lägger en
+  **utkorg**: en trigger på `orders` skriver en rad i `notification_outbox` i
+  samma transaktion som statusändringen, och `/api/jobs/send-notices` tömmer
+  kön. Beslutat av William 2026-08-22 bland tre alternativ.
+
+  Skälet till utkorgen och inte ett anrop: köksskärmen skriver status **direkt**
+  mot Supabase, så ingen server ser ändringen när den sker. Alternativet var att
+  lägga en rutt framför köksskärmen — men den vägen valdes bort med flit, och en
+  rutt som ropar på en avsändare efter sin egen update tappar notisen precis de
+  gånger något går fel. En trigger i samma transaktion har ingen sådan
+  mellanposition att krascha i. Priset är fördröjning: notisen går ut när jobbet
+  nästa gång kör, en gång i minuten.
+
+  - **Två tillfällen, inte fyra.** `PLACED` vet gästen redan — hon tryckte nyss
+    på knappen — och `COMPLETED` betyder att hon står med maten i handen.
+  - **Bara avhämtning med gästkonto.** Bordsgästen har kvittosidan öppen och
+    den uppdaterar sig var tionde sekund; ett brev till någon som redan ser
+    svaret är skräppost. Den anonyma har inget konto, och QR-flödet ska förbli
+    kontolöst — en notis får aldrig bli skälet att införa ett konto.
+  - **Språket fryses på ordern.** `orders.guest_locale`, satt när hon beställde.
+    Brevet skrivs när hon inte tittar, och utan kolumnen hade jobbet gissat på
+    restaurangens land — alltså bosniska till en tysk turist i Sarajevo. Samma
+    resonemang som valutan i migration 0020. Verifierat: en order med
+    `guest_locale = 'de'` gav "Das Essen ist in etwa 35 Minuten fertig."
+  - **Kanalen är e-post tills VAPID-nycklarna finns.** Push läggs på samma
+    utkorg när de kommer.
+
+  Två fel i första utkastet, båda fångade innan de blev produktion:
+
+  - **`mark_notice_sent` saknade sin grant till `service_role`.** `revoke från
+    public` tar bort standardrättigheten för alla — service_role inkluderat.
+    Kön fylldes på och tömdes aldrig, och det syntes bara på att samma rad
+    rapporterades i varje körning. Anropet läste dessutom inte sitt eget fel;
+    nu gör det det.
+  - **Policyn sa först nej till alla.** `verify-schema-tests.sql` sa emot och
+    hade rätt: varje tabell med `restaurant_id` ska vara läsbar för sin egen
+    restaurang, annars är kolumnen en filtrering ingen kan använda. Nu får
+    restaurangen läsa sin egen kö — vilket också är svaret på supportfrågan
+    "gick brevet ut?". Ingen får skriva.
+
+- **Seeden talar bosniska.** Beskrivningarna och allergenerna stod på svenska —
+  "Saltat mjölkfett från Vlašić", "ALLERGENER: MJÖLK" — och restaurangens egen
+  text översätts aldrig. En bosnisk ćevabdžinica med svenska rättbeskrivningar
+  är alltså inte en glömd översättning utan testdata som inte kan finnas, och
+  den gjorde varje genomgång av gästflödet ohederlig. Beslutat av William
+  2026-08-22. Priset är att den som felsöker får slå upp ett ord ibland.
+
 - **Röktestet fick tolv kontroller för värvningssidan** — omdirigeringen och
   dess statuskod, en kroatisk webbläsares väg till `/bs/anslut`, alla fem
   språken, att `/hr/anslut` 404:ar, sitemapen åt båda hållen, och att sidan
-  faktiskt talar bosniska — sex till för kontoytans språk, och fem för den
-  stängda dörren. Hela sviten: **150 kontroller, inga hopp.** Siffran i
-  `CLAUDE.md` stod på 109 och var redan inaktuell innan raden rördes; den
-  faktiska sviten låg på 127.
+  faktiskt talar bosniska — sex till för kontoytans språk, fem för den stängda
+  dörren och sex för notiskön. Hela sviten: **156 kontroller, inga hopp.**
+  Siffran i `CLAUDE.md` stod på 109 och var redan inaktuell innan raden rördes;
+  den faktiska sviten låg på 127.
+
+  **Kör aldrig två röktester samtidigt.** Ett avbrutet försök vars process levde
+  vidare gav sex spridda fel i nästa körning — 409 där 201 väntades, en
+  bordssession som inte kände igen sin egen order — och alla såg ut som riktiga
+  produktfel. De två delar seed-restaurang, bordstoken och rate limiter. En ren
+  körning efteråt gav 156 av 156.
 
 Det som återstår är i tur och ordning:
 
@@ -460,7 +513,7 @@ Spärren om lösenord gäller dashboard, kassa och backoffice — inte QR-sidan,
 menyn, varukorgen, kassan i QR-flödet eller kvittot. Just de ytorna har högst
 kvalitetskrav i produkten och är samtidigt de som aldrig setts av ett öga.
 
-`smoke.sh` kör redan 150 kontroller genom samma flöde, men den mäter något
+`smoke.sh` kör redan 156 kontroller genom samma flöde, men den mäter något
 annat. Den svarar på om servern svarar rätt; den svarar inte på om knappen går
 att träffa med en tumme, om felmeddelandet betyder något för den som läser det,
 eller om det går att förstå var i beställningen man befinner sig. Ett grep av
@@ -626,27 +679,17 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
       **Ljust läge är inte heller sett.** Webbläsaren stod i mörkt läge hela
       genomgången, och `docs/DESIGN.md` beskriver det ljusa som utgångsläget.
 
-- [ ] **Notis till gästen när maten är på gång.** Beställt 2026-08-21.
-      **Del 3 av 3 är byggd 2026-08-22** — personalen har nu ett tidsfält, och
-      gästens kvitto räknar ned från kökets egen siffra i stället för från
-      restaurangens standardtid. Se *Byggt 2026-08-22*. Två delar kvar:
+- [ ] **Webbpush till gästen.** Beställt 2026-08-21. E-postvägen är byggd
+      2026-08-22 — se *Byggt 2026-08-22* — och push ligger kvar. Två saker
+      behövs, och båda väntar på dig:
 
-      1. **Gästen får ingen notis alls i dag.** Det finns bara
-         `notifyNewOrder()` till restaurangen och
-         `notifyRestaurantApplication()` till Burp. En tredje väg behövs.
-      2. **Push är personalens.** `push_subscriptions` policy kräver
-         `is_staff_of(restaurant_id)` — gästprenumeration kräver en migration,
-         inte bara en avsändare.
+      1. **VAPID-nycklarna** (egen rad nedan). Utan dem skickar push ingenting.
+      2. **En migration för gästprenumerationer.** `push_subscriptions` policy
+         kräver `is_staff_of(restaurant_id)`; en gäst är inte personal någonstans.
 
-      Kanalen är webbpush eller e-post fram till mobilappen, och båda kräver
-      att gästen har konto eller lämnat en adress. Anonym QR-beställning vid
-      bordet ska förbli kontolös — avhämtningsnotiser lovar därför ingenting
-      till den gästen, och det är rätt.
-
-      **Kvittot är det som gör den anonyma gästen inte helt utelämnad.** Hon
-      har sidan öppen och den pollar var tionde sekund, så nedräkningen är
-      redan hennes kanal. Notisen behövs för den som stängt fliken — alltså
-      i praktiken avhämtningsgästen, som är den ordern gäller.
+      Avsändaren är däremot redan på plats: utkorgen i migration 0049 vet vem
+      som ska ha vad, och `sendPendingNotices()` behöver bara en kanal till.
+      Push läggs på samma rad som brevet, inte som ett eget spår.
 
 - [ ] **VAPID-nycklar.** Push är byggt men skickar ingenting utan nycklar.
       `npx web-push generate-vapid-keys`, sedan `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
@@ -974,7 +1017,7 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
 - [x] **Röktestet går att köra — och hittade två fel direkt.** Diagnosen att
       `bash` var WSL2 var fel; skalet är Git Bash och saknade bara `/usr/bin` på
       `PATH`. Röktestet har alltså aldrig körts här, trots att `CLAUDE.md` säger
-      att det är det som avgör om något fungerar. Det kör nu 150 kontroller,
+      att det är det som avgör om något fungerar. Det kör nu 156 kontroller,
       inklusive de nya ytorna: avräkning, GDPR-export och poängjobbet bakom sin
       nyckel.
       Två fel föll ut. **Städningen av presentkortet kunde aldrig lyckas** —

@@ -423,6 +423,18 @@ export const no: Dictionary = {
     },
   },
 
+  email: {
+    acceptedSubject: "{restaurant} har tatt imot bestillingen din",
+    acceptedBody: "Maten er ferdig om omtrent {n} minutter.",
+    acceptedBodyNoTime: "Restauranten har tatt imot bestillingen din.",
+
+    readySubject: "Bestillingen din er klar til henting",
+    readyBody: "{restaurant} har bestillingen din klar.",
+
+    viewOrder: "Se bestillingen",
+    footer: "Du får denne meldingen fordi du bestilte til henting via Burp.",
+  },
+
   errors: {
     notFoundLabel: "404",
     notFoundTitle: "Denne siden finnes ikke.",

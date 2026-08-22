@@ -446,6 +446,18 @@ export const bs: Dictionary = {
     },
   },
 
+  email: {
+    acceptedSubject: "{restaurant} je primio vašu narudžbu",
+    acceptedBody: "Hrana je gotova za otprilike {n} minuta.",
+    acceptedBodyNoTime: "Restoran je primio vašu narudžbu.",
+
+    readySubject: "Vaša narudžba je spremna za preuzimanje",
+    readyBody: "{restaurant} ima vašu narudžbu spremnu.",
+
+    viewOrder: "Pogledaj narudžbu",
+    footer: "Ovu poruku dobijate jer ste naručili za preuzimanje preko Burpa.",
+  },
+
   errors: {
     notFoundLabel: "404",
     notFoundTitle: "Ova stranica ne postoji.",

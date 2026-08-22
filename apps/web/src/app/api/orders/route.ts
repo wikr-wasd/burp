@@ -21,6 +21,7 @@ import { resolveGiftCard } from "@/lib/gift-cards";
 import { priceRequestedItems } from "@/lib/order-pricing";
 import { getPunchCard } from "@/lib/punch-cards";
 import { rememberGuestOrder } from "@/lib/guest-orders";
+import { requestLocale } from "@/lib/i18n";
 import { notifyNewOrder } from "@/lib/notify";
 import { getCardAccount, paymentProvider, PaymentProviderError } from "@/lib/payments";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -376,6 +377,27 @@ export async function POST(request: Request) {
   if (writeError || typeof order !== "string") {
     return problem(500, "Beställningen kunde inte sparas", writeError?.message ?? "Okänt fel.");
   }
+
+  /*
+   * Gästens språk fryses på ordern.
+   *
+   * Notisbrevet skrivs långt efter att gästen lämnat sidan, och då finns ingen
+   * `Accept-Language` kvar att läsa. Utan den här raden hade jobbet fått gissa
+   * — rimligen på restaurangens land, alltså bosniska till en tysk turist i
+   * Sarajevo. Det är precis den gästen avhämtning finns för.
+   *
+   * Skrivs efter `place_order` och inte i den, och det är ett medvetet
+   * undantag från "allt i en transaktion". Att lägga in kolumnen i funktionen
+   * hade betytt att hela dess kropp skrivs om i den här migrationen — hundra
+   * rader duplicerad logik för ett fält. Priset för att låta bli är litet och
+   * känt: går skrivningen inte igenom blir kolumnen null, och `null` är redan
+   * definierat som "okänt, gissa på landet". Ordern, priset och kvittot rörs
+   * inte av det.
+   */
+  await supabase
+    .from("orders")
+    .update({ guest_locale: await requestLocale() })
+    .eq("id", order);
 
   /*
    * Inlösenraden.

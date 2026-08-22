@@ -155,10 +155,10 @@ insert into public.menu_categories (id, menu_id, restaurant_id, name, descriptio
 values
   ('33333333-3333-3333-3333-333333333331',
    '22222222-2222-2222-2222-222222222222',
-   '11111111-1111-1111-1111-111111111111', 'Sa roštilja', 'Från kolgrillen', 2),
+   '11111111-1111-1111-1111-111111111111', 'Sa roštilja', 'Sa žara na ćumur', 2),
   ('33333333-3333-3333-3333-333333333332',
    '22222222-2222-2222-2222-222222222222',
-   '11111111-1111-1111-1111-111111111111', 'Pića', 'Dryck', 5),
+   '11111111-1111-1111-1111-111111111111', 'Pića', 'Za uz jelo', 5),
 
   -- Resten av menyn. En ćevabdžinica i Sarajevo har inte tre rätter, och en
   -- meny med tre rätter går inte att bedöma: kategorinavigeringen har inget
@@ -169,16 +169,16 @@ values
   -- inte stämmer med verkligheten är sämre testdata än ingen alls.
   ('33333333-3333-3333-3333-333333333333',
    '22222222-2222-2222-2222-222222222222',
-   '11111111-1111-1111-1111-111111111111', 'Predjela', 'Förrätter', 1),
+   '11111111-1111-1111-1111-111111111111', 'Predjela', 'Za početak', 1),
   ('33333333-3333-3333-3333-333333333334',
    '22222222-2222-2222-2222-222222222222',
-   '11111111-1111-1111-1111-111111111111', 'Pite', 'Bakat i vedugn', 3),
+   '11111111-1111-1111-1111-111111111111', 'Pite', 'Pečeno u krušnoj peći', 3),
   ('33333333-3333-3333-3333-333333333335',
    '22222222-2222-2222-2222-222222222222',
-   '11111111-1111-1111-1111-111111111111', 'Prilozi', 'Tillbehör', 4),
+   '11111111-1111-1111-1111-111111111111', 'Prilozi', 'Uz glavno jelo', 4),
   ('33333333-3333-3333-3333-333333333336',
    '22222222-2222-2222-2222-222222222222',
-   '11111111-1111-1111-1111-111111111111', 'Deserti', 'Efterrätt', 6);
+   '11111111-1111-1111-1111-111111111111', 'Deserti', 'Za kraj', 6);
 
 /*
  * Priser i minsta enhet, inklusive moms. Bosnien har EN momssats: 17 % på
@@ -186,6 +186,20 @@ values
  * olika satser som i Sverige eller Kroatien.
  *
  * 1200 fening = 12,00 KM.
+ *
+ * ── Beskrivningarna och allergenerna står på bosniska ──────────────────────
+ *
+ * De stod på svenska fram till 2026-08-22 — "Saltat mjölkfett från Vlašić",
+ * "ALLERGENER: MJÖLK" — och det är inte en översättning som glömts bort utan
+ * testdata som inte kan finnas. Restaurangens egen text översätts ALDRIG (se
+ * CLAUDE.md), så en bosnisk ćevabdžinica med svenska rättbeskrivningar visar
+ * en meny ingen gäst någonstans kan få se.
+ *
+ * Det gjorde varje genomgång av gästflödet ohederlig: sidan såg fel ut, och
+ * felet var seedens. Beslutat av William 2026-08-22.
+ *
+ * Priset är att den som felsöker får slå upp ett ord ibland. Vinsten är att
+ * det man ser på skärmen är det gästen ser.
  */
 insert into public.menu_items (
   id, category_id, restaurant_id, name, description,
@@ -195,19 +209,19 @@ values
   ('44444444-4444-4444-4444-444444444441',
    '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
-   'Ćevapi 10 kom', 'Tio ćevapi i lepinja, med lök och kajmak',
-   1200, 1700, array['gluten', 'mjölk'], true, 'PUBLISHED', 1),
+   'Ćevapi 10 kom', 'Deset ćevapa u lepinji, sa lukom i kajmakom',
+   1200, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 1),
 
   ('44444444-4444-4444-4444-444444444442',
    '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
-   'Pljeskavica', 'Grillad köttfärsbiff i lepinja med ajvar',
+   'Pljeskavica', 'Sa žara, u lepinji sa ajvarom',
    1400, 1700, array['gluten'], true, 'PUBLISHED', 2),
 
   ('44444444-4444-4444-4444-444444444443',
    '33333333-3333-3333-3333-333333333332',
    '11111111-1111-1111-1111-111111111111',
-   'Bosanska kafa', 'Kokt i džezva, serverad med rahat lokum',
+   'Bosanska kafa', 'Kuhana u džezvi, uz rahat lokum',
    350, 1700, array[]::text[], true, 'PUBLISHED', 1);
 
 insert into public.option_groups (id, menu_item_id, restaurant_id, name, min_select, max_select)
@@ -242,83 +256,83 @@ values
   -- Predjela
   ('44444444-4444-4444-4444-4444444444a1', '33333333-3333-3333-3333-333333333333',
    '11111111-1111-1111-1111-111111111111',
-   'Kajmak', 'Saltat mjölkfett från Vlašić, skuret ur kaggen',
-   400, 1700, array['mjölk'], true, 'PUBLISHED', 1),
+   'Kajmak', 'Sa Vlašića, sječen iz kace',
+   400, 1700, array['mlijeko'], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-4444444444a2', '33333333-3333-3333-3333-333333333333',
    '11111111-1111-1111-1111-111111111111',
-   'Ajvar domaći', 'Hemgjord, av rostad paprika och aubergine',
+   'Ajvar domaći', 'Od pečene paprike i patlidžana',
    350, 1700, array[]::text[], true, 'PUBLISHED', 2),
   ('44444444-4444-4444-4444-4444444444a3', '33333333-3333-3333-3333-333333333333',
    '11111111-1111-1111-1111-111111111111',
-   'Uštipci', 'Friterade degkulor, serveras med kajmak',
-   600, 1700, array['gluten', 'mjölk'], true, 'PUBLISHED', 3),
+   'Uštipci', 'Prženo tijesto, služi se sa kajmakom',
+   600, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 3),
   ('44444444-4444-4444-4444-4444444444a4', '33333333-3333-3333-3333-333333333333',
    '11111111-1111-1111-1111-111111111111',
-   'Suho meso', 'Rökt och lufttorkat nötkött, tunt skivat',
+   'Suho meso', 'Dimljena govedina, tanko narezana',
    900, 1700, array[]::text[], true, 'PUBLISHED', 4),
 
   -- Sa roštilja
   ('44444444-4444-4444-4444-4444444444b1', '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
-   'Ćevapi 5 kom', 'Fem ćevapi i halv lepinja — den lilla portionen',
+   'Ćevapi 5 kom', 'Pet ćevapa u pola lepinje — mala porcija',
    800, 1700, array['gluten'], true, 'PUBLISHED', 3),
   ('44444444-4444-4444-4444-4444444444b2', '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
-   'Ćevapi 15 kom', 'Femton ćevapi i hel lepinja, lök och kajmak',
-   1700, 1700, array['gluten', 'mjölk'], true, 'PUBLISHED', 4),
+   'Ćevapi 15 kom', 'Petnaest ćevapa u cijeloj lepinji, luk i kajmak',
+   1700, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 4),
   ('44444444-4444-4444-4444-4444444444b3', '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
-   'Ražnjići', 'Spett av kalv och lamm, grillat över kol',
+   'Ražnjići', 'Teletina i janjetina sa žara na ćumur',
    1600, 1700, array[]::text[], true, 'PUBLISHED', 5),
   ('44444444-4444-4444-4444-4444444444b4', '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
-   'Pileći ćevapi', 'Ćevapi på kyckling, för den som vill ha lättare',
+   'Pileći ćevapi', 'Od piletine, za lakšu varijantu',
    1300, 1700, array['gluten'], true, 'PUBLISHED', 6),
 
   -- Pite
   ('44444444-4444-4444-4444-4444444444c1', '33333333-3333-3333-3333-333333333334',
    '11111111-1111-1111-1111-111111111111',
-   'Burek', 'Rullad för hand, fylld med nötfärs och lök',
+   'Burek', 'Ručno savijen, sa junećim mesom i lukom',
    700, 1700, array['gluten'], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-4444444444c2', '33333333-3333-3333-3333-333333333334',
    '11111111-1111-1111-1111-111111111111',
-   'Sirnica', 'Med ung ost',
-   700, 1700, array['gluten', 'mjölk'], true, 'PUBLISHED', 2),
+   'Sirnica', 'Sa mladim sirom',
+   700, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 2),
   ('44444444-4444-4444-4444-4444444444c3', '33333333-3333-3333-3333-333333333334',
    '11111111-1111-1111-1111-111111111111',
-   'Zeljanica', 'Med spenat och ost',
-   700, 1700, array['gluten', 'mjölk'], true, 'PUBLISHED', 3),
+   'Zeljanica', 'Sa špinatom i sirom',
+   700, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 3),
   ('44444444-4444-4444-4444-4444444444c4', '33333333-3333-3333-3333-333333333334',
    '11111111-1111-1111-1111-111111111111',
-   'Krompiruša', 'Med potatis och lök',
+   'Krompiruša', 'Sa krompirom i lukom',
    650, 1700, array['gluten'], true, 'PUBLISHED', 4),
 
   -- Prilozi
   ('44444444-4444-4444-4444-4444444444d1', '33333333-3333-3333-3333-333333333335',
    '11111111-1111-1111-1111-111111111111',
-   'Lepinja', 'Nybakad, direkt ur vedugnen',
+   'Lepinja', 'Svježe pečena, iz krušne peći',
    200, 1700, array['gluten'], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-4444444444d2', '33333333-3333-3333-3333-333333333335',
    '11111111-1111-1111-1111-111111111111',
-   'Kiseli kupus', 'Syrad vitkål',
+   'Kiseli kupus', 'Domaći, iz kace',
    300, 1700, array[]::text[], true, 'PUBLISHED', 2),
   ('44444444-4444-4444-4444-4444444444d3', '33333333-3333-3333-3333-333333333335',
    '11111111-1111-1111-1111-111111111111',
-   'Pomfrit', 'Pommes frites',
+   'Pomfrit', 'Prženi krompirići',
    400, 1700, array[]::text[], true, 'PUBLISHED', 3),
   ('44444444-4444-4444-4444-4444444444d4', '33333333-3333-3333-3333-333333333335',
    '11111111-1111-1111-1111-111111111111',
-   'Zelena salata', 'Grönsallad med tomat och rödlök',
+   'Zelena salata', 'Sa paradajzom i crvenim lukom',
    350, 1700, array[]::text[], true, 'PUBLISHED', 4),
 
   -- Pića
   ('44444444-4444-4444-4444-4444444444e1', '33333333-3333-3333-3333-333333333332',
    '11111111-1111-1111-1111-111111111111',
-   'Čaj od nane', 'Myntate, bryggt på färska blad',
+   'Čaj od nane', 'Od svježih listova',
    300, 1700, array[]::text[], true, 'PUBLISHED', 2),
   ('44444444-4444-4444-4444-4444444444e2', '33333333-3333-3333-3333-333333333332',
    '11111111-1111-1111-1111-111111111111',
-   'Kiseljak 0,5 l', 'Sarajevskt mineralvatten',
+   'Kiseljak 0,5 l', 'Sarajevska mineralna voda',
    250, 1700, array[]::text[], true, 'PUBLISHED', 3),
   ('44444444-4444-4444-4444-4444444444e3', '33333333-3333-3333-3333-333333333332',
    '11111111-1111-1111-1111-111111111111',
@@ -326,27 +340,27 @@ values
    350, 1700, array[]::text[], true, 'PUBLISHED', 4),
   ('44444444-4444-4444-4444-4444444444e4', '33333333-3333-3333-3333-333333333332',
    '11111111-1111-1111-1111-111111111111',
-   'Sok od jabuke', 'Grumlig äppeljuice',
+   'Sok od jabuke', 'Mutni, od jabuka',
    350, 1700, array[]::text[], true, 'PUBLISHED', 5),
   -- Slut för dagen. Menyn ska kunna granskas med ett slutsålt kort i sig —
   -- det tillståndet syns annars aldrig i utvecklingsmiljön.
   ('44444444-4444-4444-4444-4444444444e5', '33333333-3333-3333-3333-333333333332',
    '11111111-1111-1111-1111-111111111111',
-   'Kefir 0,33 l', 'Syrad mjölkdryck',
-   300, 1700, array['mjölk'], false, 'PUBLISHED', 6),
+   'Kefir 0,33 l', 'Kiselo mliječno piće',
+   300, 1700, array['mlijeko'], false, 'PUBLISHED', 6),
 
   -- Deserti
   ('44444444-4444-4444-4444-4444444444f1', '33333333-3333-3333-3333-333333333336',
    '11111111-1111-1111-1111-111111111111',
-   'Tufahija', 'Kokt äpple fyllt med valnötter, med vispad grädde',
-   600, 1700, array['nötter', 'mjölk'], true, 'PUBLISHED', 1),
+   'Tufahija', 'Kuhana jabuka punjena orasima, sa šlagom',
+   600, 1700, array['orašasti plodovi', 'mlijeko'], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-4444444444f2', '33333333-3333-3333-3333-333333333336',
    '11111111-1111-1111-1111-111111111111',
-   'Baklava', 'Med valnöt och sirap',
-   500, 1700, array['gluten', 'nötter'], true, 'PUBLISHED', 2),
+   'Baklava', 'Sa orasima i agdom',
+   500, 1700, array['gluten', 'orašasti plodovi'], true, 'PUBLISHED', 2),
   ('44444444-4444-4444-4444-4444444444f3', '33333333-3333-3333-3333-333333333336',
    '11111111-1111-1111-1111-111111111111',
-   'Hurmašice', 'Doppade i sockerlag',
+   'Hurmašice', 'Natopljene agdom',
    450, 1700, array['gluten'], true, 'PUBLISHED', 3);
 
 /*

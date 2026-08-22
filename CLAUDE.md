@@ -339,7 +339,7 @@ där Next.js inte tillåter det. Alla tre fanns i koden och passerade allt annat
 | `apps/web` | Rena moduler: öppen vidarebefordran, rate limiter, JSON-LD, i18n, avräkningens periodräkning, köksköns ordning | inget |
 | `scripts/verify-schema.sh` | Migrationer, RLS, grants, triggers, plpgsql | PostgreSQL + PostGIS |
 | `packages/core` (forts.) | Betalningens statusmaskin, kupong, presentkort, klippkort | inget |
-| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 150 kontroller | Docker + Supabase + körande app |
+| `scripts/smoke.sh` | Hela flödet: QR, order, avgift, åtkomst, inloggning, statuskoder, avräkning, GDPR, bakgrundsjobb — 156 kontroller | Docker + Supabase + körande app |
 
 Route handlers och server components har medvetet inga enhetstester — de kräver
 databas och session för att säga något meningsfullt, och täcks av `smoke.sh`.
@@ -414,6 +414,24 @@ servern, bygg, starta om.
 ---
 
 ## Fällor som redan kostat tid
+
+### Två röktester samtidigt ser ut som sex produktfel
+
+`smoke.sh` tar ett par minuter, och den som avbryter ett försök och startar ett
+nytt får två som lever parallellt. De delar seed-restaurang, bordstoken och rate
+limiter, och resultatet blir spridda fel som var och en läser som en riktig bugg:
+409 där 201 väntades, en bordssession som inte känner igen sin egen order, en
+kupong som inte går att lösa in.
+
+Kontrollera att ingen körning lever kvar innan en ny startas. En ren körning gav
+156 av 156 direkt efteråt, utan en enda kodändring.
+
+### `insert … returning` ger två rader ur `sql()`
+
+Hjälpfunktionen returnerar allt psql skrev, och psql skriver både det returnerade
+id:t **och** kommandotaggen `INSERT 0 1`. En variabel som fångar det rakt av blir
+tvårading, och varje fråga som använder id:t efteråt misslyckas med ett
+felmeddelande som pekar någon helt annanstans. Avsluta med `| head -1`.
 
 ### `loading.tsx` gör varje `notFound()` till en 200:a
 

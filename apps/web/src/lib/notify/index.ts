@@ -2,9 +2,15 @@ import "server-only";
 
 import { COUNTRY_INFO, type CountryCode, type CurrencyCode } from "@burp/core";
 import { publicEnv, serverEnv } from "@/lib/env";
+import { dictionary, staffLocale } from "@/lib/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, type EmailOutcome } from "./email";
-import { applicationEmail, orderEmail, type OrderNoticeLine } from "./messages";
+import {
+  applicationEmail,
+  guestOrderEmail,
+  orderEmail,
+  type OrderNoticeLine,
+} from "./messages";
 import { sendPush } from "./push";
 
 /**
@@ -255,4 +261,176 @@ function report(outcome: EmailOutcome, subject: string): void {
   }
 
   console.error(`[notis] Utskicket för ${subject} misslyckades: ${outcome.detail ?? ""}`);
+}
+
+/* ── Utkorgen ────────────────────────────────────────────────────────────── */
+
+/** Hur många brev en körning tar. Håller jobbet under Vercels tidsgräns. */
+const NOTICE_BATCH = 50;
+
+/**
+ * Hur många gånger ett brev får misslyckas innan det får ligga.
+ *
+ * En adress som inte finns kommer aldrig att finnas. Utan taket hade jobbet
+ * försökt på samma rad varje kvart i evighet, och kön aldrig blivit tom —
+ * vilket är samma sak som att inte kunna se att något är fel.
+ */
+const NOTICE_MAX_ATTEMPTS = 5;
+
+export interface NoticeRun {
+  sent: number;
+  failed: number;
+  skipped: number;
+}
+
+/**
+ * Tömmer notiskön (migration 0049).
+ *
+ * Raderna skrivs av en trigger i samma transaktion som statusändringen, så den
+ * här funktionen kan aldrig missa en notis — bara vara sen med den. Det är den
+ * avvägning som valdes 2026-08-22: köksskärmen skriver direkt mot Supabase, och
+ * hellre en fördröjd notis än ett mellanlager som upprepar RLS-kontroller.
+ *
+ * Kastar aldrig. Ett brev som inte gick fram kvitteras som ett försök med sitt
+ * fel, och nästa körning tar raden igen.
+ */
+export async function sendPendingNotices(): Promise<NoticeRun> {
+  const supabase = createAdminClient();
+  const run: NoticeRun = { sent: 0, failed: 0, skipped: 0 };
+
+  const { data: pending, error } = await supabase
+    .from("notification_outbox")
+    .select("id, order_id, kind, recipient_id, attempts")
+    .is("sent_at", null)
+    .lt("attempts", NOTICE_MAX_ATTEMPTS)
+    .order("created_at", { ascending: true })
+    .limit(NOTICE_BATCH);
+
+  if (error) {
+    console.error(`[notis] Kön kunde inte läsas: ${error.message}`);
+    return run;
+  }
+
+  for (const row of pending ?? []) {
+    try {
+      const outcome = await sendOneNotice(supabase, row);
+      if (outcome === "SENT") run.sent += 1;
+      else run.skipped += 1;
+    } catch (cause) {
+      run.failed += 1;
+      const message = cause instanceof Error ? cause.message : String(cause);
+      await acknowledge(supabase, row.id, message.slice(0, 500));
+      console.error(`[notis] Brev ${row.id} misslyckades: ${message}`);
+    }
+  }
+
+  return run;
+}
+
+type PendingNotice = {
+  id: string;
+  order_id: string;
+  kind: string;
+  recipient_id: string;
+  attempts: number;
+};
+
+/**
+ * Ett brev ur kön.
+ *
+ * `SKIPPED` när det inte finns någon adress att skriva till. Raden kvitteras
+ * ändå som skickad: ett konto utan adress kommer inte att få en, och en rad
+ * som ligger kvar för alltid gör kön obrukbar som larm.
+ */
+async function sendOneNotice(
+  supabase: ReturnType<typeof createAdminClient>,
+  row: PendingNotice,
+): Promise<"SENT" | "SKIPPED"> {
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id, restaurant_id, prep_minutes, guest_locale")
+    .eq("id", row.order_id)
+    .maybeSingle();
+
+  if (!order) return "SKIPPED";
+
+  // Adressen ur `profiles` och inte ur auth-API:t. Triggern i migration 0002
+  // skapar profilen när kontot registreras, så raden finns alltid — och det är
+  // samma källa som personalens brev använder.
+  const [{ data: restaurant }, { data: profile }] = await Promise.all([
+    supabase
+      .from("restaurants")
+      .select("name, country")
+      .eq("id", order.restaurant_id as string)
+      .maybeSingle(),
+    supabase.from("profiles").select("email").eq("id", row.recipient_id).maybeSingle(),
+  ]);
+
+  const address = (profile?.email as string | null) ?? null;
+
+  if (!restaurant || !address) {
+    await acknowledge(supabase, row.id);
+    return "SKIPPED";
+  }
+
+  /*
+   * Språket kommer från ordern, inte från en header.
+   *
+   * Brevet skrivs när gästen inte tittar, så `Accept-Language` finns inte att
+   * läsa. `guest_locale` frystes när hon beställde. Är den null — en order
+   * lagd före migration 0049 — faller vi tillbaka på restaurangens land, vilket
+   * är samma ärliga gissning som personalytorna gör.
+   */
+  const locale = staffLocale(order.guest_locale, restaurant.country as CountryCode);
+  const texts = dictionary(locale).email;
+
+  const message = guestOrderEmail({
+    kind: row.kind === "ORDER_READY" ? "ORDER_READY" : "ORDER_ACCEPTED",
+    restaurantName: restaurant.name as string,
+    prepMinutes: (order.prep_minutes as number | null) ?? null,
+    orderUrl: new URL(`/order/${order.id}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString(),
+    texts,
+  });
+
+  const outcome = await sendEmail([address], message);
+
+  /*
+   * `NOT_CONFIGURED` är inte ett fel att försöka om.
+   *
+   * Det betyder att `RESEND_API_KEY` saknas — lokalt, eller i en miljö där
+   * breven aldrig var tänkta att gå ut. Att låta raden ligga kvar och räknas
+   * upp fem gånger hade fyllt kön med rader som beskriver en avsiktlig
+   * konfiguration, och gjort den obrukbar som larm. Brevet loggas i stället av
+   * `sendEmail` själv.
+   */
+  if (!outcome.delivered && outcome.reason !== "NOT_CONFIGURED") {
+    throw new Error(`${outcome.reason}${outcome.detail ? `: ${outcome.detail}` : ""}`);
+  }
+
+  await acknowledge(supabase, row.id);
+  return outcome.delivered ? "SENT" : "SKIPPED";
+}
+
+/**
+ * Kvitterar en rad i kön.
+ *
+ * Egen funktion för att felet ska LÄSAS. Anropet låg först inline med sitt
+ * `error` ignorerat, och funktionen saknade dessutom `grant execute` till
+ * service_role — kön fylldes på utan att någonsin tömmas, och det syntes inte
+ * på något annat än att jobbet rapporterade samma rader varje körning. En
+ * kvittering som misslyckas tyst betyder att brevet skickas igen nästa gång.
+ */
+async function acknowledge(
+  supabase: ReturnType<typeof createAdminClient>,
+  id: string,
+  error: string | null = null,
+): Promise<void> {
+  const { error: rpcError } = await supabase.rpc("mark_notice_sent", {
+    p_id: id,
+    p_error: error,
+  });
+
+  if (rpcError) {
+    console.error(`[notis] Kunde inte kvittera ${id}: ${rpcError.message}`);
+  }
 }

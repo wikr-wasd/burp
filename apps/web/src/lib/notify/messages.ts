@@ -1,4 +1,5 @@
 import { formatMoney, type CurrencyCode } from "@burp/core";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
  * Breven Burp skickar.
@@ -8,7 +9,8 @@ import { formatMoney, type CurrencyCode } from "@burp/core";
  * är värd att testa. Att en HTTP-post mot en leverantör fungerar avgörs av
  * leverantören, inte av oss.
  *
- * Språket är svenska. Personalytorna är svenska (se CLAUDE.md) och ett brev om
+ * Språket är svenska UTOM i `guestOrderEmail()`, som går till gästen och tar
+ * sina texter utifrån. Personalytorna är svenska (se CLAUDE.md) och ett brev om
  * en ny order är en personalyta som råkar levereras i en inkorg. Köket ska
  * inte behöva byta språk för att en gäst gjorde det.
  */
@@ -262,6 +264,63 @@ export function invitationEmail(notice: InvitationNotice): EmailMessage {
     notice.link,
   )}" style="display:inline-block;background:#dc2626;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 20px;border-radius:10px">Kom igång</a></p>
   <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0">Länken gäller i sju dagar och bara för den här adressen.</p>
+</div>`;
+
+  return { subject, text, html };
+}
+
+/* ── Brevet till gästen ──────────────────────────────────────────────────── */
+
+export interface GuestOrderNotice {
+  kind: "ORDER_ACCEPTED" | "ORDER_READY";
+  restaurantName: string;
+  /** Kökets uppskattning i minuter, eller null om ingen satt någon. */
+  prepMinutes: number | null;
+  /** Absolut adress till gästens kvitto. */
+  orderUrl: string;
+  /** Texterna på gästens eget språk — fryst på ordern, se migration 0049. */
+  texts: Dictionary["email"];
+}
+
+/**
+ * Brevet gästen får när köket tagit emot ordern, och när maten är klar.
+ *
+ * Det enda brevet i produkten som skrivs på gästens språk. De andra går till
+ * restaurangen eller till Burp och är svenska; det här går till någon som
+ * kanske aldrig sett ett svenskt ord.
+ *
+ * Kort med flit. Det läses på en telefon i gånghastighet, och allt utom
+ * beskedet och länken är i vägen. Ingen ordersammanfattning: den står på
+ * kvittosidan, som länken leder till.
+ */
+export function guestOrderEmail(notice: GuestOrderNotice): EmailMessage {
+  const { texts, restaurantName } = notice;
+
+  const subject =
+    notice.kind === "ORDER_READY"
+      ? texts.readySubject
+      : fill(texts.acceptedSubject, { restaurant: restaurantName });
+
+  const body =
+    notice.kind === "ORDER_READY"
+      ? fill(texts.readyBody, { restaurant: restaurantName })
+      : notice.prepMinutes !== null
+        ? fill(texts.acceptedBody, { n: notice.prepMinutes })
+        : texts.acceptedBodyNoTime;
+
+  const text = [body, "", texts.viewOrder + ":", notice.orderUrl, "", texts.footer].join("\n");
+
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;max-width:520px">
+  <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 16px">${escapeHtml(
+    subject,
+  )}</h1>
+  <p style="font-size:15px;line-height:1.6;margin:0 0 20px">${escapeHtml(body)}</p>
+  <p style="margin:0 0 20px"><a href="${escapeHtml(
+    notice.orderUrl,
+  )}" style="display:inline-block;background:#dc2626;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 20px;border-radius:10px">${escapeHtml(
+    texts.viewOrder,
+  )}</a></p>
+  <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0">${escapeHtml(texts.footer)}</p>
 </div>`;
 
   return { subject, text, html };

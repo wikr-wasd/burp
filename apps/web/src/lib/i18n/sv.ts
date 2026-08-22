@@ -569,6 +569,31 @@ export const sv = {
     },
   },
 
+  /**
+   * Breven till gästen.
+   *
+   * Enda texten i produkten som skrivs när gästen INTE tittar. Språket kan
+   * därför inte läsas ur en header — det ligger fryst på ordern som
+   * `guest_locale`, satt när hon beställde. Se migration 0049.
+   *
+   * Kort med flit. Ett brev om att maten är klar läses på en telefon i
+   * gånghastighet, och allt utom klockslaget och restaurangens namn är i
+   * vägen.
+   */
+  email: {
+    acceptedSubject: "{restaurant} har tagit emot din beställning",
+    acceptedBody: "Maten är klar om ungefär {n} minuter.",
+    // Utan tid. Restaurangen tog emot ordern utan att säga när — bättre att
+    // säga inget än att hitta på ett klockslag.
+    acceptedBodyNoTime: "Restaurangen har tagit emot din beställning.",
+
+    readySubject: "Din beställning är klar att hämtas",
+    readyBody: "{restaurant} har din beställning klar.",
+
+    viewOrder: "Se din beställning",
+    footer: "Du får det här brevet för att du beställt för avhämtning via Burp.",
+  },
+
   /** Sidor som inte finns, och fel som inte gick att undvika. */
   errors: {
     notFoundLabel: "404",
