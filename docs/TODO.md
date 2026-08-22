@@ -604,109 +604,8 @@ fråga 15.
 
 ## Näst på tur
 
-De fem översta är kod och går att börja på direkt. Resten kräver dig, hårdvara
-eller ett beslut.
-
-- [ ] **Personalytorna översätts — mekaniken klar 2026-08-21, ytorna kvar.**
-      Beslutat 2026-08-19: gästytorna först, personalen sedan.
-
-      **Klart:**
-
-      - `staff.locale` med `set_staff_locale()` (migration 0047). Språket är ett
-        val per anställd och läses aldrig ur `Accept-Language`. En funktion och
-        inte en policy, därför att `authenticated` har `grant update` på hela
-        tabellen: en policy som släppte igenom den egna raden hade låtit kocken
-        sätta `role = 'owner'` på sig själv. Bevisat i `verify-schema-tests.sql`.
-      - `StaffContext.locale`, upplöst en gång och läst av varje yta — samma
-        skäl som landet och valutan ligger där.
-      - Språkväljaren i sidomenyn OCH i toppraden, så att kocken och den som
-        bara har en telefon når den.
-      - Ordbokens `staff`-avsnitt på alla fem språk: navigering, roller,
-        orderstatusar och betalsätt.
-      - **Sex** svenska etikettabeller borta ur `@burp/core`, inte tre.
-        `WEEKDAY_LABELS` stod inte i den här listan och var dessutom en ren
-        dubblett av ordbokens `weekday`. `PAYMENT_STATUS_LABELS` och
-        `PAYMENT_METHOD_LABELS` var helt oanvända och fick ingen ersättning.
-        Kraven som prövades i `payment.test.ts` följde med till `i18n.test.ts`
-        och gäller nu fem språk i stället för ett.
-
-      **Översatta ytor:**
-
-      - **Köksskärmen** (`/kok`) och **Order live** (`/dashboard/order`).
-        Kocken först med flit: han har bara den ytan, och han är den i hela
-        produkten som har minst nytta av svenska.
-      - **Kassan** (`/dashboard/kassa`) — kvittering, avvikelser, dricks och
-        återbetalning. Den yta där personalen håller i riktiga pengar.
-      - **Översikten** (`/dashboard`) och **personalsidan**
-        (`/dashboard/personal`).
-      - **Inställningarna** (`/dashboard/installningar`) med alla sex
-        redigerare: presentation, öppettider, kortbetalning, notiser,
-        klippkort och orderregler.
-      - **Menyredigeraren** (`/dashboard/meny`) — 999 rader, den största ytan i
-        hela personaldelen.
-      - **Bord och QR-koder** (`/dashboard/bord`) med planritningens redigerare.
-      - **Statistiken, omdömena, erbjudandena, presentkorten, avräkningen och
-        händelseloggen.** Sex små ytor i ett gemensamt `reports`-avsnitt.
-
-      - **Serveråtgärdernas felmeddelanden.** Ett `errors`-avsnitt och en
-        `staffErrors(staff)` i `lib/auth.ts`. Utan dem svarade en bosnisk sida
-        på svenska så fort någon skrev ett felaktigt belopp — sidan var
-        översatt men inte samtalet.
-      - **Bilduppladdningen och inbjudningssidan.** Bilduppladdningen delas av
-        menyredigeraren och presentationen och fick ett eget litet avsnitt i
-        stället för två kopior. Inbjudningssidan läser `Accept-Language` som
-        kvittona gör, eftersom personen är inloggad men ännu **inte personal** —
-        hen har ingen `staff.locale` att läsa.
-
-      **Personaldelen är därmed översatt.** Kvar är bara `metadata.title` på
-      varje sida, ett utvecklarfelmeddelande i menyredigeraren, och backoffice.
-
-      **Databasens egna felmeddelanden står kvar på svenska.** Där en åtgärd
-      returnerar `error.message` rakt av kommer texten ur Postgres eller ur ett
-      `raise exception` i en migration — "Du får inte bjuda in någon som %",
-      "Inbjudan har gått ut". Ordboken når dem inte. Att översätta dem kräver
-      att funktionerna returnerar en **kod** i stället för en mening, och att
-      appen slår upp den; det är en egen och större ändring, och den rör
-      migrationer som redan är körda i produktion.
-
-      **Landsspråket är påslaget sedan 2026-08-22.** Frågan som stod här — ska
-      en restaurang i Sarajevo möta bosniska direkt, eller ska svenska förbli
-      utgångsläget tills någon aktivt väljer — är besvarad av William: landet
-      avgör. `DEFAULT_LOCALE_BY_COUNTRY` i `i18n/config.ts`, och språkväljaren
-      är oförändrad för den som vill något annat.
-
-      **Backoffice förblir svensk, och det är ett beslut.** `/backoffice` är
-      Burps egen plattformsyta och läses av Burps eget team, inte av
-      restaurangerna. Den har ingen `staff.locale` att läsa — en
-      plattformsadmin är inte personal någonstans — och att ge den ett eget
-      språkval hade betytt en andra mekanism för en handfull människor som
-      alla talar svenska. Där backoffice lånar en personalkomponent
-      (`SettlementFigures`) skickas svenskan uttryckligen in med
-      `untranslatedSurface()`, så att det syns i koden att valet är gjort.
-
-      **Presentkortssidan har ingen egen navigeringspunkt.** `/dashboard/
-      presentkort` sätter `current="erbjudanden"` och nås bara därifrån.
-      Rubriken kommer därför ur `reports.giftCardsTitle` och inte ur
-      `section`. Fynd 2026-08-21 — värt att avgöra om den ska ha en egen rad i
-      sidomenyn.
-
-      **Metadata-titlarna står kvar på svenska överallt.** En `metadata`-export
-      är statisk och kan inte läsa `staff.locale`; `generateMetadata` skulle
-      kosta ett eget databasanrop per rendering. En webbläsarflik på en
-      noindex-sida är inte värd den frågan.
-
-      En yta som inte är översatt håller sig **helt** på svenska genom att
-      anropa `untranslatedSurface()` i stället för `dictionary(staff.locale)`.
-      Skälet är att en svensk mening med ett bosniskt ord i är svårare att läsa
-      än vilketdera språket som helst. `grep -rn untranslatedSurface apps/web`
-      räknar exakt vad som återstår, och raden försvinner av sig själv när ytan
-      blir klar.
-
-      **`staff.locale` är fortfarande NULL för alla.** Det betyder inte längre
-      svenska utan "har inte valt", och appen svarar då med restaurangens land.
-      Skillnaden är kvar i schemat med flit: den dag Burp öppnar i ett femte
-      land får dess restauranger rätt språk utan att en enda rad skrivs om, och
-      den som faktiskt har valt svenska behåller det.
+Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
+det utskrivet — och ligger kvar tills beslutet är fattat.
 
 - [ ] **Gästens adress bär inget land.** `saveAddress()` kontrollerar
       postnumret mot `^\d{5,6}$` — unionen av marknadens format — i stället för
@@ -920,6 +819,13 @@ respons skickar statusraden innan sidan hunnit anropa `notFound()`, och en mjuk
 
 - [x] **Land och valuta per restaurang** — BA, HR, RS, SE. Valutan fryses på
       ordern; belopp från olika valutor summeras aldrig
+- [x] **Hela produkten talar fem språk utom backoffice** (2026-08-22).
+      Personalytorna följer `staff.locale`, och den som inte valt får
+      restaurangens land genom `DEFAULT_LOCALE_BY_COUNTRY`. Värvningssidan
+      ligger under `[locale]` med egen adress per språk; `/konto` och
+      QR-flödet läser `Accept-Language`. Backoffice förblir svensk med flit —
+      Burps eget team, och en plattformsadmin är inte personal någonstans.
+
 - [x] **Fem språk** — `bs` (bosniska/kroatiska/serbiska i latinsk skrift), `en`,
       `de`, `no` och `sv`. Språket i URL:en för indexerade ytor, via
       `Accept-Language` för QR och kvitton. `hr`, `sr`, `nb` och `nn` är alias
