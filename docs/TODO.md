@@ -746,9 +746,10 @@ Det som saknas är precis det William pekar på:
   och `notifyRestaurantApplication()` till Burp. Det finns ingen tredje
   funktion. Gästen får veta att ordern gick igenom på skärmen, och sedan
   ingenting.
-- **Push är personalens.** `push_subscriptions` (migration 0036) kräver
-  `is_staff_of(restaurant_id)` i sin policy. En gäst kan inte prenumerera.
-  Gästnotiser kräver alltså en schemaändring, inte bara en avsändare.
+- ~~**Push är personalens.**~~ **Byggt 2026-08-23.** Migration 0050 gör
+  `restaurant_id` nullbar; NULL betyder gästens egen enhet. Gästen slår på det
+  på `/konto/uppgifter`, och utkorgen skickar push före brevet. Kvar är bara
+  VAPID-nycklarna.
 - **Ingen uppskattad tid från personalen.** `pickupSlots` är tider gästen väljer
   i förväg ur öppettiderna. Den som går in och beställer på stående fot väljer
   ingen tid alls, och personalen har inget fält att fylla i.
@@ -834,17 +835,29 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
       det när seedens språk och null-rättningarna kontrollerades. QR-flödet
       sågs i mörkt, som är dess eget läge (`.theme-table`).
 
-- [ ] **Webbpush till gästen.** Beställt 2026-08-21. E-postvägen är byggd
-      2026-08-22 — se *Byggt 2026-08-22* — och push ligger kvar. Två saker
-      behövs, och båda väntar på dig:
+- [ ] **Webbpush till gästen — byggd 2026-08-23, väntar bara på nycklar.**
 
-      1. **VAPID-nycklarna** (egen rad nedan). Utan dem skickar push ingenting.
-      2. **En migration för gästprenumerationer.** `push_subscriptions` policy
-         kräver `is_staff_of(restaurant_id)`; en gäst är inte personal någonstans.
+      Migrationen finns: 0050 gör `push_subscriptions.restaurant_id` nullbar,
+      och NULL betyder "mina order" i stället för "en restaurangs ordning".
+      Policyn skrevs om i stället för att kompletteras — en andra policy hade
+      or:ats ihop med den första, och då hade "restaurant_id is null" släppt
+      igenom personalens rader också.
 
-      Avsändaren är däremot redan på plats: utkorgen i migration 0049 vet vem
-      som ska ha vad, och `sendPendingNotices()` behöver bara en kanal till.
-      Push läggs på samma rad som brevet, inte som ett eget spår.
+      Gästen slår på det själv på `/konto/uppgifter`. Växeln är densamma som
+      personalens; skillnaden är vilka serveråtgärder som skickas in, alltså
+      om raden får ett restaurang-id eller NULL.
+
+      `sendPendingNotices()` skickar push FÖRE brevet, och utfallet avgör
+      ingenting: brevet är löftet, notisen är det som når fram medan gästen
+      väntar. Tre röktester håller just den ordningen.
+
+      **Kvar: VAPID-nycklarna, egen rad nedan.** Utan dem är push
+      NOT_CONFIGURED och gästen får sitt besked som brev, vilket är det som
+      händer i dag.
+
+      Den anonyma bordsgästen får fortfarande ingenting, och det är avsiktligt:
+      hon har inget konto, alltså ingen `auth.uid()`, alltså ingen rad.
+      QR-flödet ska förbli kontolöst.
 
 - [ ] **VAPID-nycklar.** Push är byggt men skickar ingenting utan nycklar.
       `npx web-push generate-vapid-keys`, sedan `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
@@ -947,12 +960,10 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Inga laddningsskelett | — | **Granskat 2026-08-20: bör inte byggas.** Se nedan |
 | Röktestet strypt av rate limitern vid två körningar i rad | `scripts/smoke.sh` | Inte ett fel. Kontrollerna rapporteras som `hopp`; vänta en minut |
 | Kartrutorna hämtas från OSM:s egna servrar | `NEXT_PUBLIC_MAP_TILE_URL` | **Skärptes 2026-08-23.** Gällde startsidans karta; restaurangsidans iframe ersattes av Leaflet och hämtar nu också rutor. Blockerar därmed lansering av den mest besökta sidtypen, inte bara startsidan. Öppen fråga 8 |
-| Push är byggt men tyst utan VAPID-nycklar | `lib/notify/push.ts` | Nycklarna genereras på en minut, men de måste finnas i miljön |
-| Gästen får aldrig en notis — bara restaurangen och Burp | `lib/notify/index.ts` har `notifyNewOrder()` och `notifyRestaurantApplication()`, ingen tredje | Avhämtning. Gästen ser sin status på skärmen och får ingenting när maten är klar |
-| Push går inte att prenumerera på som gäst | `push_subscriptions` policy kräver `is_staff_of(restaurant_id)`, migration 0036 | Avhämtningsnotiser. Kräver en migration, inte bara en avsändare |
+| Push når ingen — VAPID-nycklarna saknas | `lib/notify/push.ts` | Gäller båda hållen: personalens larm och gästens besked. Vägen är byggd hela vägen sedan migration 0050; det som saknas är två nycklar i miljön |
 | Ingenting rapporterar fel från produktion | ingen Sentry, ingen `instrumentation.ts` | Lansering. Ett fel i en route handler syns i Vercels logg om någon råkar titta |
 | Kökstyperna i foten står på restaurangens språk på alla fem språkversioner | `listCuisines()` läser `restaurants.cuisines`, fritext | Medvetet så länge fältet är fritext: restaurangens egen text översätts inte. En översatt fot kräver en styrd lista att välja ur, vilket är ett större beslut än foten |
-| Push aldrig sedd på en riktig enhet | `components/staff/push-toggle.tsx` | Kräver nycklar, https och en telefon. iPhone kräver dessutom att PWA:n lagts till på hemskärmen |
+| Push aldrig sedd på en riktig enhet | `components/notifications/push-toggle.tsx` | Kräver nycklar, https och en telefon. Gäller nu både personalens larm och gästens besked — samma växel. iPhone kräver dessutom att PWA:n lagts till på hemskärmen |
 | En delåterbetalning krediterar inte Burps avgift | Migration 0039 | Beslut, inte lucka. Öppen fråga 12 |
 | Avräkningen faktureras för hand — ingen faktura genereras | `settlements.invoice_number` | Fakturan skrivs i Burps bokföring; produkten håller bara underlaget och numret |
 | Seeden har inga order alls | `supabase/seed-orders.sql`, `npm run db:demo` | Medvetet skild från seeden. Utan den står Kassa, Statistik, Översikt och Avräkning tomma lokalt. Historiken läggs in en gång per `db:reset`; **passet som pågår** är däremot återkörbart, eftersom `smoke.sh` driver varje aktiv order till `COMPLETED` och därmed tömmer Översikten |

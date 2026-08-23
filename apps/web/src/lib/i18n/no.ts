@@ -401,6 +401,18 @@ export const no: Dictionary = {
     remainsRatings:
       "Karakterene du har gitt. Teksten du skrev og bildet du lastet opp slettes; tallet blir stående uten avsender.",
     remainsPoints: "Poengene og klippekortene dine forsvinner — ingen kan bruke dem.",
+
+    pushTitle: "Varsler om bestillingene dine",
+    pushBody: "Få vite når restauranten har tatt imot hentebestillingen din og når maten er klar. E-posten kommer uansett — dette er for deg som heller vil ha et pling på telefonen.",
+    pushNotConfigured: "Varsler er ikke slått på for Burp ennå. Du får beskjedene som e-post.",
+    pushUnsupported: "Denne nettleseren kan ikke ta imot varsler. På iPhone fungerer det når Burp er lagt til på hjemskjermen.",
+    pushBlocked: "Varsler er blokkert for Burp i denne nettleseren. Det kan bare endres i nettleserens egne innstillinger — vi kan ikke spørre igjen.",
+    pushEnable: "Slå på for denne enheten",
+    pushDisable: "Slå av på denne enheten",
+    pushOnHint: "Denne enheten plinger når bestillingen din endrer status.",
+    pushOffHint: "Hver enhet må slås på for seg. Har du både telefon og datamaskin, gjør du det på begge.",
+    pushFailed: "Varslene kunne ikke slås på.",
+    pushIncomplete: "Nettleseren ga ingen fullstendig påmelding. Prøv igjen.",
     deleteConfirmTitle: "Er du sikker?",
     deleteConfirmBody:
       "Skriv {word} for å bekrefte. Last gjerne ned en kopi av opplysningene dine først — etterpå går det ikke.",

@@ -1574,13 +1574,58 @@ if [ -n "$CRON_SECRET" ] && [ -n "$NOTICE_GUEST" ]; then
     fail "andra körningen behandlade $AGAIN rader — kön töms inte"
   fi
 
+  # ── Gästens push håller inte kvar brevet ─────────────────────────────────
+  #
+  # Migration 0050 lät gästen prenumerera, och `sendPendingNotices()` skickar
+  # numera push FÖRE brevet. Den ordningen är den nya risken: en prenumeration
+  # som inte går att nå får inte hindra att brevet skickas eller att raden
+  # kvitteras. Lokalt saknas VAPID-nycklar, alltså är push NOT_CONFIGURED —
+  # vilket är exakt det tillstånd produktionen har i dag och den väg som måste
+  # hålla.
+  sql "insert into public.push_subscriptions (user_id, restaurant_id, endpoint, p256dh, auth) values ('$NOTICE_GUEST', null, 'https://push.example/rok-$$', 'nyckel', 'hemlighet');" > /dev/null
+
+  PUSH_ORDER=$(sql "insert into public.orders (restaurant_id, guest_id, type, status, currency, idempotency_key, placed_at, guest_locale) values ('$SEED_RESTAURANT', '$NOTICE_GUEST', 'PICKUP', 'PLACED', 'BAM', gen_random_uuid(), now(), 'bs') returning id;" | head -1)
+  sql "update public.orders set status = 'ACCEPTED' where id = '$PUSH_ORDER';" > /dev/null
+
+  curl -s -o /dev/null -H "Authorization: Bearer $CRON_SECRET" "$BASE/api/jobs/send-notices"
+
+  PUSH_SENT=$(sql "select sent_at is not null from public.notification_outbox where order_id = '$PUSH_ORDER';")
+  if [ "$PUSH_SENT" = "t" ]; then
+    pass "en gäst med push i kön stoppar inte brevet"
+  else
+    fail "raden stod kvar okvitterad när gästen hade en prenumeration"
+  fi
+
+  # Prenumerationen ska ligga kvar. Städningen tar bara bort rader som
+  # pushtjänsten svarat 404 eller 410 på — inte rader som aldrig skickades till.
+  # En städning som slår till när nycklarna saknas hade tömt tabellen i varje
+  # miljö som inte har dem, alltså i alla utom produktion.
+  PUSH_LEFT=$(sql "select count(*) from public.push_subscriptions where user_id = '$NOTICE_GUEST' and restaurant_id is null;")
+  if [ "$PUSH_LEFT" = "1" ]; then
+    pass "prenumerationen städas inte bort när nycklar saknas"
+  else
+    fail "gästens prenumerationer var $PUSH_LEFT efter körningen, väntade 1"
+  fi
+
+  # Gästens rad bär NULL i restaurangen. Kontrollen finns för att kolumnen just
+  # blev nullbar: en rad som råkar få ett restaurang-id skulle göra gästen till
+  # prenumerant på allt som beställs där.
+  PUSH_SCOPED=$(sql "select count(*) from public.push_subscriptions where user_id = '$NOTICE_GUEST' and restaurant_id is not null;")
+  if [ "$PUSH_SCOPED" = "0" ]; then
+    pass "gästens prenumeration hör till gästen, inte till en restaurang"
+  else
+    fail "gästen hade $PUSH_SCOPED prenumerationer bundna till en restaurang"
+  fi
+
+  sql "delete from public.push_subscriptions where user_id = '$NOTICE_GUEST';" > /dev/null
+
   # Bara kön städas. Orderna står kvar, som röktestets övriga: de bär
   # `order_events`, och den loggen går inte att ta bort — det är hela poängen
   # med den (regel 6). Ett `delete` här föll på främmande nyckel och skrev en
   # varning i varje körning, vilket ser ut som ett produktfel och inte är det.
-  sql "delete from public.notification_outbox where order_id in ('$NOTICE_ORDER', '$TABLE_ORDER');" > /dev/null
+  sql "delete from public.notification_outbox where order_id in ('$NOTICE_ORDER', '$TABLE_ORDER', '$PUSH_ORDER');" > /dev/null
 else
-  printf '  \033[33mhopp\033[0m  notiskön (5 kontroller) — CRON_SECRET eller seed-gäst saknas\n'
+  printf '  \033[33mhopp\033[0m  notiskön (8 kontroller) — CRON_SECRET eller seed-gäst saknas\n'
 fi
 
 echo ""

@@ -12,7 +12,7 @@ import {
   orderEmail,
   type OrderNoticeLine,
 } from "./messages";
-import { sendPush } from "./push";
+import { sendGuestPush, sendPush } from "./push";
 
 /**
  * Notiser.
@@ -392,6 +392,35 @@ async function sendOneNotice(
     orderUrl: new URL(`/order/${order.id}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString(),
     texts,
   });
+
+  /*
+   * Push OCH brev, inte push ELLER brev.
+   *
+   * Notisen är den som når fram medan gästen väntar; brevet är det som finns
+   * kvar när hon letar efter kvittot i morgon. Att låta push ersätta brevet
+   * hade betytt att en gäst som tackat ja till notiser tappar spåret så fort
+   * hon rensar webbläsaren — och att den som säger nej får sämre besked än
+   * den som säger ja, fast båda beställt samma mat.
+   *
+   * Push skickas FÖRST och dess utfall avgör ingenting. En prenumeration som
+   * dött ska inte kunna hålla kvar raden i kön: det är brevet som är löftet.
+   * `sendGuestPush` kastar inte, precis som `sendEmail`.
+   */
+  const pushed = await sendGuestPush(row.recipient_id, {
+    title: message.subject,
+    // Brevets brödtext är redan skriven för att läsas i gånghastighet, och
+    // första raden är hela beskedet. En egen text hade blivit en andra kopia
+    // av samma mening på fem språk.
+    body: message.text.split("\n")[0] ?? message.subject,
+    url: new URL(`/order/${order.id}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString(),
+    // Samma order ersätter sin egen notis. Gästen ska inte ha två plingar i
+    // notiscentret för att maten först togs emot och sedan blev klar.
+    tag: `order-${order.id}`,
+  });
+
+  if (!pushed.delivered && pushed.reason === "ALL_FAILED") {
+    console.warn(`[notis] Ingen av gästens enheter nåddes för order ${order.id}.`);
+  }
 
   const outcome = await sendEmail([address], message);
 

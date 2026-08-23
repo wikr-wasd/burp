@@ -2243,6 +2243,104 @@ begin
 end
 $$;
 
+\echo '   gästen prenumererar på sina egna order, inte på en restaurangs'
+
+do $$
+declare
+  v_rest_id  uuid := '11111111-1111-1111-1111-111111111111';
+  v_guest    uuid;
+  v_annan    uuid;
+  v_kock     uuid;
+  v_rows     int;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'gast-push@example.com')
+  returning id into v_guest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'gast-push-2@example.com')
+  returning id into v_annan;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'kock-push@example.com')
+  returning id into v_kock;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest_id, v_kock, 'kitchen', true);
+
+  -- ── Som gästen ────────────────────────────────────────────────────────────
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_guest::text, true);
+
+  -- Utan restaurang: hennes egen enhet, för hennes egna order.
+  insert into public.push_subscriptions (user_id, restaurant_id, endpoint, p256dh, auth)
+  values (v_guest, null, 'https://push.example/gast', 'nyckel', 'hemlighet');
+
+  /*
+   * MED restaurang ska det däremot smälla.
+   *
+   * Det är hela skälet till att villkoret skrevs om i stället för att tas
+   * bort: en gäst som skickar in ett restaurang-id skulle annars prenumerera
+   * på en restaurangs samtliga beställningar — alltså läsa vad andra gäster
+   * beställer, i realtid, från sin egen telefon.
+   */
+  begin
+    insert into public.push_subscriptions (user_id, restaurant_id, endpoint, p256dh, auth)
+    values (v_guest, v_rest_id, 'https://push.example/gast-fusk', 'nyckel', 'hemlighet');
+    raise exception 'FEL: gästen fick prenumerera på en restaurangs order';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- Och hon får inte skriva en rad åt någon annan, med eller utan restaurang.
+  begin
+    insert into public.push_subscriptions (user_id, restaurant_id, endpoint, p256dh, auth)
+    values (v_annan, null, 'https://push.example/nagon-annans', 'nyckel', 'hemlighet');
+    raise exception 'FEL: gästen fick skriva en prenumeration åt någon annan';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- ── Som den andra gästen ──────────────────────────────────────────────────
+  --
+  -- En prenumeration är en adress till en persons telefon. Att den saknar
+  -- restaurang gör den inte offentlig.
+  perform set_config('request.jwt.claim.sub', v_annan::text, true);
+
+  select count(*) into v_rows from public.push_subscriptions;
+
+  if v_rows <> 0 then
+    raise exception 'FEL: en annan gäst såg % prenumerationer', v_rows;
+  end if;
+
+  -- ── Som kocken ────────────────────────────────────────────────────────────
+  --
+  -- Personalens väg är oförändrad, och det är halva poängen med att skriva om
+  -- policyn i stället för att lägga en andra bredvid.
+  perform set_config('request.jwt.claim.sub', v_kock::text, true);
+
+  insert into public.push_subscriptions (user_id, restaurant_id, endpoint, p256dh, auth)
+  values (v_kock, v_rest_id, 'https://push.example/kock', 'nyckel', 'hemlighet');
+
+  -- Kocken ser sin egen enhet, inte gästens.
+  select count(*) into v_rows from public.push_subscriptions;
+
+  if v_rows <> 1 then
+    raise exception 'FEL: kocken såg % prenumerationer, väntade 1', v_rows;
+  end if;
+
+  perform set_config('request.jwt.claim.sub', '', true);
+  execute 'set local role postgres';
+
+  -- Det unika indexet gäller över båda sorterna. En webbläsare har EN rad,
+  -- annars får samma telefon två notiser om samma order.
+  begin
+    insert into public.push_subscriptions (user_id, restaurant_id, endpoint, p256dh, auth)
+    values (v_kock, v_rest_id, 'https://push.example/gast', 'nyckel', 'hemlighet');
+    raise exception 'FEL: gästens endpoint gick att registrera som personalens';
+  exception
+    when unique_violation then null;
+  end;
+end
+$$;
+
 \echo '   en återbetald presentkortsbetalning går tillbaka till kortet'
 
 do $$
@@ -3775,6 +3873,22 @@ begin
    */
   v_blind := array_remove(v_blind, 'rate_limit_hits');
   v_blind := array_remove(v_blind, 'loyalty_accounts');
+
+  /*
+   * `push_subscriptions` är det tredje undantaget, och det starkaste.
+   *
+   * En prenumeration är en adress till en persons telefon. Ägaren ska inte se
+   * kockens, och kocken ska inte se ägarens — policyn filtrerar på
+   * `user_id = auth.uid()` och aldrig på restaurangen. Att ägaren inte ser
+   * raderna är alltså inte en blind tabell utan hela avsikten.
+   *
+   * Undantaget stod inte här förrän 2026-08-23, och tabellen passerade ändå.
+   * Skälet var att inget tidigare test lämnade en rad kvar hos seedens
+   * restaurang, så svepet räknade den som "ingen data att gömma" och hoppade
+   * över den. Ett svep som passerar för att tabellen är tom bevisar ingenting;
+   * nu står skälet skrivet i stället för att bero på turordningen.
+   */
+  v_blind := array_remove(v_blind, 'push_subscriptions');
 
   if array_length(v_blind, 1) > 0 then
     raise exception 'FEL: ägaren ser inte sina egna rader i %', array_to_string(v_blind, ', ');

@@ -68,13 +68,63 @@ export async function sendPush(
     .select("id, endpoint, p256dh, auth")
     .eq("restaurant_id", restaurantId);
 
-  if (!subscriptions || subscriptions.length === 0) {
+  return deliver(supabase, subscriptions ?? [], message);
+}
+
+/**
+ * Skickar till gästens egna enheter.
+ *
+ * `restaurant_id is null` är inte en detalj utan hela urvalet — se migration
+ * 0050. Utan det villkoret hade en gäst som också är anställd fått sin
+ * middagsnotis på köksplattan, och personalens larm i sin egen telefon.
+ *
+ * Service role av samma skäl som ovan: jobbet körs av en cron utan session.
+ * Frågan smalnar av sig själv på `user_id`.
+ */
+export async function sendGuestPush(
+  userId: string,
+  message: PushMessage,
+): Promise<PushOutcome> {
+  if (!configure()) return { delivered: false, reason: "NOT_CONFIGURED" };
+
+  const supabase = createAdminClient();
+
+  const { data: subscriptions } = await supabase
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth")
+    .eq("user_id", userId)
+    .is("restaurant_id", null);
+
+  return deliver(supabase, subscriptions ?? [], message);
+}
+
+interface Subscriber {
+  id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
+/**
+ * Själva utskicket, gemensamt för personalen och gästen.
+ *
+ * Låg tidigare inne i `sendPush` och kopierades nästan när gästen skulle få
+ * notiser. Det som skiljer de två är VILKA rader som hämtas, ingenting annat —
+ * och just städningen av döda prenumerationer är den del man inte vill ha i
+ * två versioner, eftersom felet den rättar bara syns över veckor.
+ */
+async function deliver(
+  supabase: ReturnType<typeof createAdminClient>,
+  subscriptions: Subscriber[],
+  message: PushMessage,
+): Promise<PushOutcome> {
+  if (subscriptions.length === 0) {
     return { delivered: false, reason: "NO_SUBSCRIBERS" };
   }
 
   const payload = JSON.stringify(message);
   const stale: string[] = [];
-  let sent = 0;
+  const reached: string[] = [];
 
   await Promise.all(
     subscriptions.map(async (row) => {
@@ -87,10 +137,10 @@ export async function sendPush(
           payload,
           // Notisen är värdelös en timme senare. Att låta pushtjänsten spara
           // den längre betyder bara att köket får veta om en order som redan
-          // serverats.
+          // serverats — eller gästen att maten som hon redan hämtat är klar.
           { TTL: 3600, urgency: "high" },
         );
-        sent += 1;
+        reached.push(row.id);
       } catch (error) {
         /*
          * 404 och 410 betyder att prenumerationen är död: appen avinstallerad,
@@ -113,16 +163,24 @@ export async function sendPush(
     await supabase.from("push_subscriptions").delete().in("id", stale);
   }
 
-  if (sent > 0) {
+  /*
+   * Stämpeln sätts på de enheter som SVARADE, inte på hela urvalet.
+   *
+   * Tidigare uppdaterades varje rad för restaurangen, också de som just
+   * misslyckats. Kolumnen heter `last_used_at` och är det enda vi har för att
+   * hitta enheter som tystnat utan att svara 410 — en stämpel som förnyas även
+   * vid fel gör den kolumnen värdelös för precis det.
+   */
+  if (reached.length > 0) {
     await supabase
       .from("push_subscriptions")
       .update({ last_used_at: new Date().toISOString() })
-      .eq("restaurant_id", restaurantId);
+      .in("id", reached);
   }
 
-  return sent > 0
-    ? { delivered: true, sent, removed: stale.length }
-    : { delivered: false, sent, removed: stale.length, reason: "ALL_FAILED" };
+  return reached.length > 0
+    ? { delivered: true, sent: reached.length, removed: stale.length }
+    : { delivered: false, sent: 0, removed: stale.length, reason: "ALL_FAILED" };
 }
 
 /** Går push att erbjuda alls? Avgör om knappen visas för personalen. */

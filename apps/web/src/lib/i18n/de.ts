@@ -403,6 +403,18 @@ export const de: Dictionary = {
     remainsRatings:
       "Die Noten, die Sie vergeben haben. Ihr Text und Ihr hochgeladenes Bild werden gelöscht; die Zahl bleibt ohne Absender.",
     remainsPoints: "Ihre Punkte und Stempelkarten verschwinden — niemand kann sie einlösen.",
+
+    pushTitle: "Hinweise zu Ihren Bestellungen",
+    pushBody: "Erfahren Sie, wann das Lokal Ihre Abholbestellung angenommen hat und wann das Essen fertig ist. Die E-Mail kommt weiterhin — dies ist für alle, denen ein Ton auf dem Telefon lieber ist.",
+    pushNotConfigured: "Hinweise sind für Burp noch nicht aktiviert. Sie erhalten sie per E-Mail.",
+    pushUnsupported: "Dieser Browser kann keine Hinweise empfangen. Auf dem iPhone funktioniert es, sobald Burp zum Startbildschirm hinzugefügt wurde.",
+    pushBlocked: "Hinweise sind für Burp in diesem Browser blockiert. Das lässt sich nur in den Einstellungen des Browsers ändern — wir können nicht erneut fragen.",
+    pushEnable: "Für dieses Gerät einschalten",
+    pushDisable: "Auf diesem Gerät ausschalten",
+    pushOnHint: "Dieses Gerät meldet sich, wenn sich der Status Ihrer Bestellung ändert.",
+    pushOffHint: "Jedes Gerät wird einzeln eingeschaltet. Haben Sie Telefon und Computer, tun Sie es auf beiden.",
+    pushFailed: "Die Hinweise konnten nicht eingeschaltet werden.",
+    pushIncomplete: "Der Browser hat kein vollständiges Abonnement geliefert. Versuchen Sie es erneut.",
     deleteConfirmTitle: "Sind Sie sicher?",
     deleteConfirmBody:
       "Tippen Sie {word} zur Bestätigung. Laden Sie vorher eine Kopie Ihrer Daten herunter — danach geht es nicht mehr.",

@@ -2,34 +2,74 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
-import type { Dictionary } from "@/lib/i18n";
-import {
-  removePushSubscription,
-  savePushSubscription,
-} from "@/app/dashboard/installningar/push-actions";
 
 /**
- * Slår på notiser för den här enheten.
+ * Slår på webbpush för DEN HÄR ENHETEN.
+ *
+ * Delad mellan personalen och gästen. Dansen med webbläsaren är densamma —
+ * be om tillstånd, registrera en service worker, prenumerera, spara — och den
+ * ska bara finnas på ett ställe. Två kopior av den hade glidit isär på exakt
+ * det steg som är svårast att prova: att ta bort prenumerationen hos
+ * webbläsaren igen när servern inte kunde spara den.
+ *
+ * Det som SKILJER är texterna och vem raden hör till, och båda kommer utifrån:
+ * `labels` ur ordbokens rätta avsnitt, och de två serveråtgärderna från den yta
+ * som använder växeln. Komponenten vet därför ingenting om vare sig personal
+ * eller gäster — den vet bara hur man prenumererar.
  *
  * Knappen är per ENHET och inte per person, och texten säger det. Samma kock
- * kan ha en telefon och en surfplatta; båda ska larma, och båda måste säga ja
- * var för sig. Det är hur webbpush fungerar, och att låtsas något annat hade
- * gjort att personalen undrar varför telefonen är tyst.
+ * kan ha en telefon och en surfplatta; båda måste säga ja var för sig. Det är
+ * hur webbpush fungerar, och att låtsas något annat hade gjort att någon undrar
+ * varför telefonen är tyst.
  *
- * Frågan ställs först när någon trycker. En webbläsare som får frågan
- * oombedd vid sidladdning får ett nej av de flesta — och ett nej går inte att
- * ångra utan att gräva i webbläsarens inställningar.
+ * Frågan ställs först när någon trycker. En webbläsare som får frågan oombedd
+ * vid sidladdning får ett nej av de flesta — och ett nej går inte att ångra
+ * utan att gräva i webbläsarens inställningar.
  */
 
 type State = "OKAND" | "AV" | "PA" | "NEKAD" | "STODS_INTE";
 
+/** Vad webbläsaren ger oss när den prenumererat. */
+export interface PushSubscriptionInput {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent: string;
+}
+
+export interface PushActionResult {
+  ok: boolean;
+  message?: string;
+}
+
+/**
+ * Texterna växeln behöver.
+ *
+ * Rena strängar. Komponenten är klientkod, och en funktion går inte att
+ * serialisera över server/klient-gränsen.
+ */
+export interface PushToggleLabels {
+  notConfigured: string;
+  unsupported: string;
+  blocked: string;
+  enable: string;
+  disable: string;
+  onHint: string;
+  offHint: string;
+  failed: string;
+}
+
 export function PushToggle({
   vapidPublicKey,
   labels,
+  subscribe,
+  unsubscribe,
 }: {
   vapidPublicKey: string | null;
-  /** Inställningarnas texter ur ordboken. Rena strängar — komponenten är klientkod. */
-  labels: Dictionary["staff"]["settings"];
+  labels: PushToggleLabels;
+  /** Serveråtgärd som sparar raden. Skriver med den inloggades egen session. */
+  subscribe: (input: PushSubscriptionInput) => Promise<PushActionResult>;
+  unsubscribe: (endpoint: string) => Promise<PushActionResult>;
 }) {
   const [state, setState] = useState<State>("OKAND");
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +132,7 @@ export function PushToggle({
       const json = subscription.toJSON();
 
       startTransition(async () => {
-        const result = await savePushSubscription({
+        const result = await subscribe({
           endpoint: subscription.endpoint,
           p256dh: json.keys?.p256dh ?? "",
           auth: json.keys?.auth ?? "",
@@ -105,11 +145,11 @@ export function PushToggle({
           // Kunde inte sparas hos oss — då ska den inte ligga kvar hos
           // webbläsaren heller, annars tror enheten att den prenumererar.
           await subscription.unsubscribe();
-          setError(result.message ?? labels.pushFailed);
+          setError(result.message ?? labels.failed);
         }
       });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : labels.pushFailed);
+      setError(caught instanceof Error ? caught.message : labels.failed);
     }
   }
 
@@ -128,33 +168,21 @@ export function PushToggle({
     await subscription.unsubscribe();
 
     startTransition(async () => {
-      await removePushSubscription(endpoint);
+      await unsubscribe(endpoint);
       setState("AV");
     });
   }
 
   if (!vapidPublicKey) {
-    return (
-      <p className="mt-2 text-sm text-[var(--muted)]">
-        {labels.pushNotConfigured}
-      </p>
-    );
+    return <p className="mt-2 text-sm text-[var(--muted)]">{labels.notConfigured}</p>;
   }
 
   if (state === "STODS_INTE") {
-    return (
-      <p className="mt-2 text-sm text-[var(--muted)]">
-        {labels.pushUnsupported}
-      </p>
-    );
+    return <p className="mt-2 text-sm text-[var(--muted)]">{labels.unsupported}</p>;
   }
 
   if (state === "NEKAD") {
-    return (
-      <p className="mt-2 text-sm text-[var(--muted)]">
-        {labels.pushBlocked}
-      </p>
-    );
+    return <p className="mt-2 text-sm text-[var(--muted)]">{labels.blocked}</p>;
   }
 
   return (
@@ -172,13 +200,11 @@ export function PushToggle({
         ) : (
           <Bell size={16} aria-hidden="true" />
         )}
-        {state === "PA" ? labels.pushDisable : labels.pushEnable}
+        {state === "PA" ? labels.disable : labels.enable}
       </button>
 
       <p className="mt-2 text-sm text-[var(--muted)]">
-        {state === "PA"
-          ? labels.pushOnHint
-          : labels.pushOffHint}
+        {state === "PA" ? labels.onHint : labels.offHint}
       </p>
 
       {error ? (

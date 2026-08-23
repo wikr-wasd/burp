@@ -15,7 +15,11 @@ import { OpeningHoursEditor } from "@/components/staff/opening-hours-editor";
 import { PresentationEditor } from "@/components/staff/presentation-editor";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
 import { PunchCardEditor } from "@/components/staff/punch-card-editor";
-import { PushToggle } from "@/components/staff/push-toggle";
+import { PushToggle } from "@/components/notifications/push-toggle";
+import {
+  removePushSubscription,
+  savePushSubscription,
+} from "@/app/dashboard/installningar/push-actions";
 import { requireStaff } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
 import { connectableProviders, getPaymentAccounts } from "@/lib/payments";
@@ -151,9 +155,28 @@ export default async function SettingsPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">
             {t.settings.notifyHint}
           </p>
+          {/*
+            Åtgärderna skickas in i stället för att importeras av växeln.
+
+            Växeln delas med gästens konto, och den ska inte veta vem som
+            trycker. Personalens rader bär ett restaurang-id, gästens ett
+            NULL — se migration 0050 — och det avgörs av vilken åtgärd som
+            skickas hit, inte av en flagga inuti komponenten.
+          */}
           <PushToggle
             vapidPublicKey={publicEnv.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
-            labels={t.settings}
+            subscribe={savePushSubscription}
+            unsubscribe={removePushSubscription}
+            labels={{
+              notConfigured: t.settings.pushNotConfigured,
+              unsupported: t.settings.pushUnsupported,
+              blocked: t.settings.pushBlocked,
+              enable: t.settings.pushEnable,
+              disable: t.settings.pushDisable,
+              onHint: t.settings.pushOnHint,
+              offHint: t.settings.pushOffHint,
+              failed: t.settings.pushFailed,
+            }}
           />
         </section>
 

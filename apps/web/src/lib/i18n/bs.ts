@@ -424,6 +424,18 @@ export const bs: Dictionary = {
     remainsRatings:
       "Ocjene koje ste dali. Tekst koji ste napisali i slika koju ste dodali se brišu; broj ostaje bez pošiljaoca.",
     remainsPoints: "Vaši bodovi i kartice vjernosti nestaju — niko ih ne može iskoristiti.",
+
+    pushTitle: "Obavijesti o vašim narudžbama",
+    pushBody: "Saznajte kada je restoran primio vašu narudžbu za preuzimanje i kada je hrana gotova. Poruka stiže i dalje — ovo je za one koji radije dobiju zvuk na telefonu.",
+    pushNotConfigured: "Obavijesti još nisu uključene za Burp. Vijesti dobivate porukom.",
+    pushUnsupported: "Ovaj preglednik ne može primati obavijesti. Na iPhoneu radi kada se Burp doda na početni ekran.",
+    pushBlocked: "Obavijesti su blokirane za Burp u ovom pregledniku. To se mijenja samo u postavkama preglednika — mi ne možemo pitati ponovo.",
+    pushEnable: "Uključi na ovom uređaju",
+    pushDisable: "Isključi na ovom uređaju",
+    pushOnHint: "Ovaj uređaj se javlja kada se status vaše narudžbe promijeni.",
+    pushOffHint: "Svaki uređaj se uključuje posebno. Imate li i telefon i računar, uključite na oba.",
+    pushFailed: "Obavijesti se nisu mogle uključiti.",
+    pushIncomplete: "Preglednik nije dao potpunu pretplatu. Pokušajte ponovo.",
     deleteConfirmTitle: "Jeste li sigurni?",
     deleteConfirmBody:
       "Upišite {word} za potvrdu. Preuzmite prvo kopiju svojih podataka — poslije više neće ići.",

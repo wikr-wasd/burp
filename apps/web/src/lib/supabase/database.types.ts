@@ -1522,7 +1522,7 @@ export type Database = {
           id: string
           last_used_at: string | null
           p256dh: string
-          restaurant_id: string
+          restaurant_id: string | null
           user_agent: string | null
           user_id: string
         }
@@ -1534,7 +1534,7 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           p256dh: string
-          restaurant_id: string
+          restaurant_id?: string | null
           user_agent?: string | null
           user_id: string
         }
@@ -1546,7 +1546,7 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           p256dh?: string
-          restaurant_id?: string
+          restaurant_id?: string | null
           user_agent?: string | null
           user_id?: string
         }

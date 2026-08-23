@@ -552,6 +552,25 @@ export const sv = {
     remainsRatings:
       "Betygen du satt. Texten du skrev och bilden du laddade upp tas bort; siffran står kvar utan avsändare.",
     remainsPoints: "Dina poäng och klippkort försvinner — de går inte att använda av någon.",
+
+    /*
+     * Notisväxeln på /konto/uppgifter.
+     *
+     * Samma texter som personalens i form, olika i innehåll: kocken slår på
+     * ett LARM om restaurangens beställningar, gästen ett BESKED om sin egen.
+     * Att dela strängar mellan dem hade sparat rader och gjort båda otydliga.
+     */
+    pushTitle: "Notiser om dina beställningar",
+    pushBody: "Få veta när restaurangen tagit emot din avhämtning och när maten står klar. Brevet kommer ändå — det här är för dig som hellre får en pling i telefonen.",
+    pushNotConfigured: "Notiser är inte påslagna för Burp än. Du får dina besked som brev.",
+    pushUnsupported: "Den här webbläsaren kan inte ta emot notiser. På iPhone fungerar det när Burp lagts till på hemskärmen.",
+    pushBlocked: "Notiser är blockerade för Burp i den här webbläsaren. Det går bara att ändra i webbläsarens egna inställningar — vi kan inte fråga igen.",
+    pushEnable: "Slå på för den här enheten",
+    pushDisable: "Stäng av på den här enheten",
+    pushOnHint: "Den här enheten pling:ar när din beställning ändrar status.",
+    pushOffHint: "Varje enhet måste slås på för sig. Har du både telefon och dator gör du det på båda.",
+    pushFailed: "Notiserna kunde inte slås på.",
+    pushIncomplete: "Webbläsaren gav ingen fullständig prenumeration. Försök igen.",
     deleteConfirmTitle: "Är du säker?",
     deleteConfirmBody:
       "Skriv {word} för att bekräfta. Hämta gärna en kopia av dina uppgifter först — efteråt går det inte.",

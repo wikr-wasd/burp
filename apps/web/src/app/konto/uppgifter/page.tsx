@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { Download } from "lucide-react";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { DeleteAccount } from "@/components/guest/delete-account";
+import { PushToggle } from "@/components/notifications/push-toggle";
+import {
+  removeGuestPushSubscription,
+  saveGuestPushSubscription,
+} from "@/app/konto/push-actions";
+import { publicEnv } from "@/lib/env";
 import { requireGuest } from "@/lib/guest";
 import { dictionary, requestLocale } from "@/lib/i18n";
 
@@ -42,7 +48,35 @@ export default async function DataPage() {
         <p className="label-caps">{t.account.label}</p>
         <h1 className="font-display mt-2 text-4xl">{t.account.details}</h1>
 
+        {/*
+          Notiserna först, exporten och raderingen sedan.
+
+          Sidan hette "mina uppgifter" och bar två saker som båda handlar om
+          att LÄMNA. En växel som gör tjänsten bättre hör hemma före dem —
+          annars är det första en gäst ser på sin egen sida två vägar ut.
+        */}
         <section className="mt-8">
+          <h2 className="font-display text-2xl">{t.account.pushTitle}</h2>
+          <p className="mt-2 text-[var(--muted)]">{t.account.pushBody}</p>
+
+          <PushToggle
+            vapidPublicKey={publicEnv.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
+            subscribe={saveGuestPushSubscription}
+            unsubscribe={removeGuestPushSubscription}
+            labels={{
+              notConfigured: t.account.pushNotConfigured,
+              unsupported: t.account.pushUnsupported,
+              blocked: t.account.pushBlocked,
+              enable: t.account.pushEnable,
+              disable: t.account.pushDisable,
+              onHint: t.account.pushOnHint,
+              offHint: t.account.pushOffHint,
+              failed: t.account.pushFailed,
+            }}
+          />
+        </section>
+
+        <section className="mt-10 border-t border-[var(--rule)] pt-8">
           <h2 className="font-display text-2xl">{t.account.exportTitle}</h2>
           <p className="mt-2 text-[var(--muted)]">{t.account.exportBody}</p>
 

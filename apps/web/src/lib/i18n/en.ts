@@ -399,6 +399,18 @@ export const en: Dictionary = {
     remainsRatings:
       "The ratings you gave. The text you wrote and the photo you uploaded are deleted; the number stays without a sender.",
     remainsPoints: "Your points and punch cards disappear — nobody can use them.",
+
+    pushTitle: "Notices about your orders",
+    pushBody: "Find out when the restaurant has taken your pickup order and when the food is ready. The email still arrives — this is for those who would rather have their phone chime.",
+    pushNotConfigured: "Notices are not switched on for Burp yet. You will get yours by email.",
+    pushUnsupported: "This browser cannot receive notices. On iPhone it works once Burp has been added to the home screen.",
+    pushBlocked: "Notices are blocked for Burp in this browser. That can only be changed in the browser's own settings — we cannot ask again.",
+    pushEnable: "Turn on for this device",
+    pushDisable: "Turn off on this device",
+    pushOnHint: "This device chimes when your order changes status.",
+    pushOffHint: "Every device is turned on separately. If you have both a phone and a computer, do it on both.",
+    pushFailed: "The notices could not be turned on.",
+    pushIncomplete: "The browser did not give a complete subscription. Try again.",
     deleteConfirmTitle: "Are you sure?",
     deleteConfirmBody:
       "Type {word} to confirm. Download a copy of your data first — afterwards it is no longer possible.",
