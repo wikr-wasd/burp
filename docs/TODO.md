@@ -66,6 +66,30 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-08-23
+
+- **Inloggningen var trasig för två av tre roller — och det syntes inte.**
+  Formuläret skickade ALLA till `/dashboard`, som kastar ut var och en utan
+  rad i `staff`. En gäst och en plattformsadmin studsade därför tillbaka till
+  inloggningen, utan felmeddelande, eftersom inloggningen faktiskt hade
+  lyckats. Det läser som ett trasigt konto.
+
+  `requireStaff` skiljer nu på "utloggad" och "inloggad utan anställning" —
+  samma skillnad `requirePlatformAdmin` redan gjorde. Regeln ligger i
+  `landingFor()` som en ren funktion med sex enhetstester, och sju röktester
+  provar vart varje roll faktiskt hamnar.
+
+- **Tre konton saknades i seeden.** Chef, servitör och — viktigast — en KUND.
+  Rollmodellen gick inte att prova från gästens sida alls, för det fanns ingen
+  gäst. `gast@burp.test` har varken `staff` eller `platform_admins`, plus en
+  avslutad order, 300 poäng, en favorit och en adress: ett konto utan innehåll
+  gör `/konto` till en tom sida som inte går att bedöma.
+
+- **Gästen kan prenumerera på notiser** — migration 0050, se punkt 8.
+- **Kartorna ritas av oss** och zoomar dit gästen står. Restaurangsidans
+  OSM-iframe är ersatt av Leaflet.
+- **Inbjudan till en nyanställd** talar restaurangens landsspråk.
+
 ### Byggt 2026-08-22
 
 - **Personalens språk avgörs av restaurangens land.**

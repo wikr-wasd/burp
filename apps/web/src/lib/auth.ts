@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { COUNTRY_INFO, type CountryCode, type CurrencyCode, type StaffRole } from "@burp/core";
 import { dictionary, type Dictionary } from "./i18n";
 import { staffLocale, type Locale } from "./i18n/config";
+import { ROLE_HOME } from "./auth-roles";
+import { getPlatformAdmin } from "./platform";
 import { createClient } from "./supabase/server";
+
+export { ROLE_HOME };
 
 /**
  * Rollhämtning för personalytorna.
@@ -50,15 +54,6 @@ export interface StaffContext {
   locale: Locale;
 }
 
-/** Vart varje roll skickas efter inloggning. */
-export const ROLE_HOME: Record<StaffRole, string> = {
-  owner: "/dashboard",
-  manager: "/dashboard",
-  staff: "/dashboard",
-  // Kocken har bara köksskärmen. Att skicka honom till dashboarden vore att
-  // visa en yta han ändå inte får något ur.
-  kitchen: "/kok",
-};
 
 /**
  * Hämtar inloggad personal, eller null.
@@ -117,7 +112,27 @@ export async function requireStaff(allowed?: readonly StaffRole[]): Promise<Staf
   const staff = await getStaff();
 
   if (!staff) {
-    redirect("/logga-in");
+    /*
+     * Inloggad utan anställning är inte samma sak som utloggad.
+     *
+     * Skickade den här grenen alla till `/logga-in` hamnade en inloggad gäst
+     * eller en plattformsadmin i en studs: formuläret skickade dem till
+     * `/dashboard`, dashboarden skickade dem tillbaka, och det såg ut som att
+     * lösenordet var fel. `requirePlatformAdmin` gjorde redan skillnad på de
+     * två fallen; den här gjorde det inte.
+     *
+     * En egen `getUser()` här och inte `landingPath()`: den funktionen
+     * anropar `getStaff()` igen, och vi vet redan svaret på den frågan.
+     */
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/logga-in");
+
+    const admin = await getPlatformAdmin();
+    redirect(admin ? "/backoffice" : "/konto");
   }
 
   if (allowed && !allowed.includes(staff.role)) {

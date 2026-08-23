@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { loginDestination } from "@/app/logga-in/actions";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -39,7 +40,19 @@ export function LoginForm({ next }: { next?: string }) {
     // refresh() krävs för att server components ska läsa den nya cookien.
     // Utan den renderas nästa sida med den utloggade sessionen.
     router.refresh();
-    router.replace(next ?? "/dashboard");
+
+    /*
+     * Vart man hamnar avgörs av vem man är, inte av att alla är personal.
+     *
+     * Här stod `next ?? "/dashboard"`. Det stämde för en ägare och för en
+     * chef, men kocken skickades till en yta han ändå kastas ut ur, och för
+     * BÅDE en gäst och en plattformsadmin — som ingendera har en `staff`-rad —
+     * blev det en studs tillbaka hit. Utan felmeddelande, eftersom
+     * inloggningen faktiskt hade lyckats. Det såg ut som ett trasigt konto.
+     *
+     * `next` går före: den som klickade på en skyddad sida ska tillbaka dit.
+     */
+    router.replace(next ?? (await loginDestination()));
   }
 
   return (

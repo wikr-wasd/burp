@@ -482,7 +482,12 @@ echo "→ Personalkonton"
 SUPABASE_URL=$(grep '^NEXT_PUBLIC_SUPABASE_URL=' apps/web/.env.local | cut -d= -f2- | tr -d '\r')
 ANON_KEY=$(grep '^NEXT_PUBLIC_SUPABASE_ANON_KEY=' apps/web/.env.local | cut -d= -f2- | tr -d '\r')
 
-for account in "agare@burp.test" "kock@burp.test"; do
+# Alla sex, inte bara två. Kontona för chef, servitör och GÄST tillkom
+# 2026-08-23; fram till dess gick rollmodellen inte att prova alls från
+# gästens sida, och den som försökte drog slutsatsen att inloggningen var
+# trasig. Gästkontot är det viktigaste av dem: det har ingen rad i vare sig
+# `staff` eller `platform_admins`, vilket är precis vad en riktig kund har.
+for account in "agare@burp.test" "kock@burp.test" "chef@burp.test"                "servitor@burp.test" "burp@burp.test" "gast@burp.test"; do
   TOKEN_RESPONSE=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
     -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
     -d "{\"email\":\"$account\",\"password\":\"burp1234\"}")
@@ -493,6 +498,28 @@ for account in "agare@burp.test" "kock@burp.test"; do
   fi
 done
 
+# Gästkontot måste vara TOMT på behörigheter.
+#
+# Hela poängen med det är att bevisa vad en riktig kund möter. Får det en
+# staff-rad — av en seed som ändras, eller för att någon råkar bjuda in
+# adressen — provar det i stället en anställd, och studsen som var buggen
+# uppstår aldrig igen i testet.
+GUEST_ROLES=$(sql "select (select count(*) from public.staff s join auth.users u on u.id = s.user_id where u.email = 'gast@burp.test') + (select count(*) from public.platform_admins p join auth.users u on u.id = p.user_id where u.email = 'gast@burp.test');")
+if [ "$GUEST_ROLES" = "0" ]; then
+  pass "gästkontot är varken personal eller plattformsadmin"
+else
+  fail "gästkontot bar $GUEST_ROLES behörighetsrader — då provar det fel sak"
+fi
+
+# Och det ska ha något att visa. Ett konto utan historik gör /konto till en
+# tom sida, och då går ytan inte att bedöma.
+GUEST_CONTENT=$(sql "select (select count(*) from public.orders o join auth.users u on u.id = o.guest_id where u.email = 'gast@burp.test') + (select count(*) from public.favorites f join auth.users u on u.id = f.user_id where u.email = 'gast@burp.test') + (select count(*) from public.addresses a join auth.users u on u.id = a.user_id where u.email = 'gast@burp.test');")
+if [ "$GUEST_CONTENT" -ge 3 ] 2>/dev/null; then
+  pass "gästkontot har order, favorit och adress att visa"
+else
+  fail "gästkontot hade $GUEST_CONTENT rader att visa, väntade minst 3"
+fi
+
 # Fel lösenord ska nekas — annars är inloggningen teater.
 BAD=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
   -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
@@ -501,6 +528,91 @@ if [ -z "$(json_field access_token <<<"$BAD")" ]; then
   pass "fel lösenord nekas"
 else
   fail "fel lösenord accepterades"
+fi
+
+echo "→ Vart varje roll hamnar"
+#
+# Kontrollen som saknades när inloggningen rapporterades som trasig
+# 2026-08-23. Den var det inte: sessionen sattes, GoTrue svarade med en token,
+# och röktestet gav grönt på "kan logga in". Men formuläret skickade ALLA till
+# /dashboard, och den kastar ut var och en som saknar rad i `staff`. En gäst
+# och en plattformsadmin studsade därför tillbaka till inloggningsformuläret,
+# utan felmeddelande — vilket läses som ett konto som inte fungerar.
+#
+# Testet nedan provar det som faktiskt gick sönder: vart en riktig session
+# leder på var och en av de fyra ytorna. Regeln i sig har egna enhetstester i
+# `landing.test.ts`; det här bevisar att appen följer den.
+
+# Cookien `@supabase/ssr` skriver: namnet bär projektreferensen ur URL:en, och
+# värdet är base64url-kodad JSON med prefixet "base64-".
+COOKIE_NAME="sb-$(printf '%s' "${SUPABASE_URL#*//}" | cut -d. -f1 | cut -d: -f1)-auth-token"
+
+session_cookie() {
+  curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+    -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
+    -d "{\"email\":\"$1\",\"password\":\"burp1234\"}" |
+    node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{
+      try { if (!JSON.parse(d).access_token) { process.stdout.write(""); return; } }
+      catch { process.stdout.write(""); return; }
+      process.stdout.write("base64-" + Buffer.from(d).toString("base64url"));
+    });'
+}
+
+# Vart leder ytan för den här sessionen? Skriver statuskoden och målet.
+landing() {
+  curl -s -o /dev/null -w '%{http_code} %{redirect_url}' \
+    -H "Cookie: $COOKIE_NAME=$2" "$BASE$1"
+}
+
+check_landing() {
+  local who="$1" path="$2" expected="$3" cookie="$4"
+  local result code target
+  result=$(landing "$path" "$cookie")
+  code=${result%% *}
+  target=${result#* }
+
+  if [ "$expected" = "200" ]; then
+    if [ "$code" = "200" ]; then
+      pass "$who når $path"
+    else
+      fail "$who fick $code på $path, väntade 200 (mål: ${target:-inget})"
+    fi
+    return
+  fi
+
+  # Aldrig tillbaka till inloggningen. Det ÄR studsen, och den ska inte kunna
+  # rapporteras som ett godkänt svar bara för att statuskoden är en 307:a.
+  case "$target" in
+    *"/logga-in"*)
+      fail "$who studsade från $path till inloggningen — samma fel som 2026-08-23"
+      return ;;
+  esac
+
+  case "$target" in
+    *"$expected") pass "$who skickas från $path till $expected" ;;
+    *) fail "$who skickades från $path till '${target:-inget}', väntade $expected" ;;
+  esac
+}
+
+GUEST_COOKIE=$(session_cookie "gast@burp.test")
+ADMIN_COOKIE=$(session_cookie "burp@burp.test")
+KITCHEN_COOKIE=$(session_cookie "kock@burp.test")
+
+if [ -n "$GUEST_COOKIE" ] && [ -n "$ADMIN_COOKIE" ] && [ -n "$KITCHEN_COOKIE" ]; then
+  # Gästen: ingen personalyta alls, och alltid till sitt eget konto.
+  check_landing "gästen" /dashboard  /konto      "$GUEST_COOKIE"
+  check_landing "gästen" /kok        /konto      "$GUEST_COOKIE"
+  check_landing "gästen" /konto      200         "$GUEST_COOKIE"
+
+  # Plattformsadmin: har ingen staff-rad, men hör inte hemma hos gästen heller.
+  check_landing "plattformsadmin" /dashboard  /backoffice "$ADMIN_COOKIE"
+  check_landing "plattformsadmin" /backoffice 200         "$ADMIN_COOKIE"
+
+  # Kocken: dashboarden är inte hans, köksskärmen är det.
+  check_landing "kocken" /dashboard /kok "$KITCHEN_COOKIE"
+  check_landing "kocken" /kok       200  "$KITCHEN_COOKIE"
+else
+  printf '  \033[33mhopp\033[0m  rollernas landning (7 kontroller) — kunde inte hämta sessioner\n'
 fi
 
 echo "→ Menyhantering (RLS-vägen serveråtgärderna går)"
