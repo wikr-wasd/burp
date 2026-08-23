@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CLOSED_ALL_WEEK,
+  daySlots,
   describeDay,
   isOpenAt,
   nextOpening,
@@ -378,5 +379,56 @@ describe("nextOpening", () => {
     // svara — gästen hade väntat vid ett stängt bord.
     const baraSondag = hours({ sun: [{ opens: "12:00", closes: "16:00" }] });
     expect(nextOpening(baraSondag, 0, timeToMinutes("20:00"))).toBeNull();
+  });
+});
+
+describe("en vecka utan alla dagar", () => {
+  /*
+   * Kolumnen är JSON, och en restaurang som håller stängt på måndagar skriver
+   * ingen `mon`-nyckel. Seeden gör det redan: tre av sju restauranger har
+   * färre än sju dagar, och Konoba Fjaka saknar både måndag och söndag.
+   *
+   * Typen sa ändå `Record<WeekdayKey, OpeningSlot[]>` fram till 2026-08-24,
+   * alltså att varje dag alltid finns. TypeScript varnade därför aldrig, och
+   * fyra funktioner gjorde `hours[day].map(...)` rakt av. Resultatet var
+   * "Cannot read properties of undefined" — på QR-sidan en 500:a för en gäst
+   * som står vid bordet.
+   */
+  const FJAKA: OpeningHours = {
+    tue: [{ opens: "12:00", closes: "23:00" }],
+    wed: [{ opens: "12:00", closes: "23:00" }],
+    thu: [{ opens: "12:00", closes: "23:00" }],
+    fri: [{ opens: "12:00", closes: "00:00" }],
+    sat: [{ opens: "12:00", closes: "00:00" }],
+  };
+
+  // dayIndex följer Postgres dow: 1 = måndag, den dag som saknas.
+  it("nextOpening kraschar inte på en dag som saknas", () => {
+    const next = nextOpening(FJAKA, 1, 92);
+    expect(next).not.toBeNull();
+    expect(next?.day).toBe("tue");
+    expect(next?.daysAhead).toBe(1);
+  });
+
+  it("isOpenAt svarar stängt i stället för att kasta", () => {
+    expect(isOpenAt(FJAKA, 1, 92)).toBe(false);
+    // Tisdag 13:00 — dagen finns, och då ska svaret vara öppet.
+    expect(isOpenAt(FJAKA, 2, 13 * 60)).toBe(true);
+  });
+
+  it("validateOpeningHours godkänner en vecka med luckor", () => {
+    expect(validateOpeningHours(FJAKA)).toEqual([]);
+  });
+
+  it("daySlots ger en tom lista för dagen som saknas", () => {
+    expect(daySlots(FJAKA, "mon")).toEqual([]);
+    expect(daySlots(FJAKA, "tue")).toHaveLength(1);
+  });
+
+  // Ett helt tomt objekt är vad en restaurang har innan ägaren fyllt i något.
+  it("ett tomt schema är stängt hela veckan, inte en krasch", () => {
+    expect(isOpenAt({}, 1, 600)).toBe(false);
+    expect(nextOpening({}, 1, 600)).toBeNull();
+    expect(validateOpeningHours({})).toEqual([]);
   });
 });

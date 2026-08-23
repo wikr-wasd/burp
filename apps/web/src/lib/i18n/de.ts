@@ -50,6 +50,7 @@ export const de: Dictionary = {
     mapLabel: "Karte der Restaurants",
     mapEmpty: "Noch keiner der Treffer hat eine Markierung auf der Karte.",
     mapFailed: "Die Karte konnte nicht geladen werden. Die Liste daneben zeigt dieselben Lokale.",
+    mapClosed: "Gerade ist nichts geöffnet. Die Karte zeigt, was offen hat.",
 
     mapLocate: "Meinen Standort zeigen",
     mapLocating: "Suche…",
@@ -139,6 +140,12 @@ export const de: Dictionary = {
     emptyTitle: "Keine Restaurants gefunden.",
     emptyFiltered: "Versuchen Sie eine andere Suche, eine andere Stadt, oder entfernen Sie die Filter.",
     emptyAll: "Zurzeit gibt es keine aktiven Restaurants.",
+
+    closedNowTitle: "Gerade ist nichts geöffnet.",
+    closedNowNext: "{restaurant} öffnet um {time}.",
+    closedNowNextOn: "{restaurant} öffnet {day} um {time}.",
+    closedNowUnknown: "Keines der Lokale hat Öffnungszeiten hinterlegt.",
+    showClosedToo: "Auch geschlossene anzeigen",
     showAll: "Alle Restaurants anzeigen",
   },
 

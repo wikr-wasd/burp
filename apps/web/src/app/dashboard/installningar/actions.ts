@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  daySlots,
   normalizePostalCode,
   parseAmount,
   parseCoordinates,
@@ -71,7 +72,10 @@ export async function saveOpeningHours(hours: OpeningHours): Promise<ActionResul
   // det inte hamna i databasen och riskera att förvirra is_restaurant_open().
   const payload: Record<string, unknown> = {};
   for (const day of WEEKDAY_KEYS) {
-    payload[day] = hours[day].map((slot) => ({ opens: slot.opens, closes: slot.closes }));
+    payload[day] = daySlots(hours, day).map((slot) => ({
+      opens: slot.opens,
+      closes: slot.closes,
+    }));
   }
 
   const supabase = await createClient();

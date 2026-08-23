@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
+  daySlots,
   crossesMidnight,
   describeDay,
   WEEKDAY_KEYS,
@@ -58,11 +59,11 @@ export function OpeningHoursEditor({
           <li key={day} className="p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <p className="font-medium">{weekdayLabels[day]}</p>
-              <p className="text-sm opacity-60">{describeDay(hours[day])}</p>
+              <p className="text-sm opacity-60">{describeDay(daySlots(hours, day))}</p>
             </div>
 
             <div className="mt-2 space-y-2">
-              {hours[day].map((slot, index) => (
+              {daySlots(hours, day).map((slot, index) => (
                 <div key={index} className="flex flex-wrap items-center gap-2">
                   <input
                     type="time"
@@ -71,7 +72,7 @@ export function OpeningHoursEditor({
                     onChange={(event) =>
                       update(
                         day,
-                        hours[day].map((existing, i) =>
+                        daySlots(hours, day).map((existing, i) =>
                           i === index ? { ...existing, opens: event.target.value } : existing,
                         ),
                       )
@@ -88,7 +89,7 @@ export function OpeningHoursEditor({
                     onChange={(event) =>
                       update(
                         day,
-                        hours[day].map((existing, i) =>
+                        daySlots(hours, day).map((existing, i) =>
                           i === index ? { ...existing, closes: event.target.value } : existing,
                         ),
                       )
@@ -107,7 +108,7 @@ export function OpeningHoursEditor({
                     onClick={() =>
                       update(
                         day,
-                        hours[day].filter((_, i) => i !== index),
+                        daySlots(hours, day).filter((_, i) => i !== index),
                       )
                     }
                     className="min-h-11 border border-[var(--rule)] px-3 text-sm"
@@ -121,21 +122,21 @@ export function OpeningHoursEditor({
                 type="button"
                 onClick={() =>
                   update(day, [
-                    ...hours[day],
+                    ...daySlots(hours, day),
                     // Ett tomt pass utan tider hade sparats bort av parsern
                     // utan att någon förstod varför. Förifyllda tider gör att
                     // raden betyder något direkt.
-                    hours[day].length === 0
+                    daySlots(hours, day).length === 0
                       ? { opens: "11:00", closes: "22:00" }
                       : { opens: "17:00", closes: "22:00" },
                   ])
                 }
                 className="min-h-11 border border-[var(--rule)] px-4 text-sm"
               >
-                {hours[day].length === 0 ? labels.openThisDay : labels.addShift}
+                {daySlots(hours, day).length === 0 ? labels.openThisDay : labels.addShift}
               </button>
 
-              {hours[day].length > 0 ? (
+              {daySlots(hours, day).length > 0 ? (
                 <button
                   type="button"
                   onClick={() => update(day, [])}

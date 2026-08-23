@@ -51,6 +51,7 @@ export const en: Dictionary = {
     mapLabel: "Map of the restaurants",
     mapEmpty: "None of the matches has a map pin yet.",
     mapFailed: "The map could not be loaded. The list beside it shows the same places.",
+    mapClosed: "Nothing is open right now. The map shows what is open.",
 
     mapLocate: "Show where I am",
     mapLocating: "Locating…",
@@ -140,6 +141,12 @@ export const en: Dictionary = {
     emptyTitle: "No restaurants matched.",
     emptyFiltered: "Try another search, another city, or clear the filters.",
     emptyAll: "There are no active restaurants to show right now.",
+
+    closedNowTitle: "Nothing is open right now.",
+    closedNowNext: "{restaurant} opens at {time}.",
+    closedNowNextOn: "{restaurant} opens {day} at {time}.",
+    closedNowUnknown: "None of the matches have entered any opening hours.",
+    showClosedToo: "Show closed ones too",
     showAll: "Show all restaurants",
   },
 

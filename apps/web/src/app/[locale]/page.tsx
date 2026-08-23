@@ -16,11 +16,13 @@ import {
 } from "@/lib/discovery";
 import {
   dictionary,
+  fill,
   isLocale,
   localePath,
   type Dictionary,
   type Locale,
 } from "@/lib/i18n";
+import { soonestOpening, type SoonestOpening } from "@/lib/next-open";
 import { restaurantImage } from "@/lib/placeholder";
 
 /**
@@ -101,6 +103,30 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
     ? matched.filter((entry) => openIds.has(entry.id))
     : matched;
 
+  /*
+   * Varför är listan tom?
+   *
+   * Skillnaden mellan "inget matchade" och "allt är stängt" är hela
+   * skillnaden mellan en återvändsgränd och ett besked. `matched` är
+   * träffarna FÖRE öppettidsfiltret, så frågan går att besvara exakt:
+   * finns det träffar men ingen av dem öppen, är det klockan som stänger
+   * listan och ingenting annat.
+   */
+  const closedOnly = onlyOpen && matched.length > 0 && restaurants.length === 0;
+
+  // Vad öppnar först? Räknas bara när svaret ska visas — annars är det sju
+  // dagars slingor per träff i onödan.
+  const soonest = closedOnly
+    ? soonestOpening(
+        matched.map((entry) => ({
+          name: entry.name,
+          openingHours: entry.openingHours,
+          timeZone: entry.timeZone,
+        })),
+        new Date(),
+      )
+    : null;
+
   const activeCity = cities.find((entry) => entry.slug === city);
   const hasFilter = Boolean(query || cuisine || city || onlyOpen);
 
@@ -175,7 +201,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
           <RestaurantMap
             pins={pins}
             label={t.discover.mapLabel}
-            emptyLabel={t.discover.mapEmpty}
+            emptyLabel={closedOnly ? t.discover.mapClosed : t.discover.mapEmpty}
             failedLabel={t.discover.mapFailed}
             texts={{
               locate: t.discover.mapLocate,
@@ -270,7 +296,17 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
         ) : null}
 
         {restaurants.length === 0 ? (
-          <EmptyState t={t} locale={locale} hasFilter={hasFilter} />
+          <EmptyState
+            t={t}
+            locale={locale}
+            hasFilter={hasFilter}
+            closedOnly={closedOnly}
+            soonest={soonest}
+            // Samma sökning utan öppettidsfiltret. Den gamla knappen tog
+            // bort ALLA filter, alltså även staden och köket gästen valt —
+            // vilket är att slänga frågan i stället för att svara på den.
+            withClosedHref={localePath(locale, "/") + queryWithoutOpen(params)}
+          />
         ) : byCity.length > 0 ? (
           byCity.map((group) => (
             <section key={group.slug} className="mt-12 first:mt-8">
@@ -541,15 +577,88 @@ function RestaurantCard({
   );
 }
 
+/**
+ * Samma frågesträng, utan öppettidsfiltret.
+ *
+ * Byggs för hand i stället för med `URLSearchParams` för att ordningen ska
+ * vara densamma varje gång — en adress som byter parameterordning ser ut som
+ * en ny sida för både gästen och cachen.
+ */
+function queryWithoutOpen(params: {
+  q?: string;
+  kok?: string;
+  stad?: string;
+}): string {
+  const kept: string[] = [];
+  if (params.q?.trim()) kept.push(`q=${encodeURIComponent(params.q.trim())}`);
+  if (params.kok?.trim()) kept.push(`kok=${encodeURIComponent(params.kok.trim())}`);
+  if (params.stad?.trim()) kept.push(`stad=${encodeURIComponent(params.stad.trim())}`);
+
+  return kept.length > 0 ? `?${kept.join("&")}` : "";
+}
+
+/**
+ * Tomma listan.
+ *
+ * Tre olika tomheter, och de får inte se likadana ut:
+ *
+ * - **Inget alls finns** — nyss uppstartad plattform.
+ * - **Filtren tömde listan** — sök, stad eller kök gav ingen träff.
+ * - **Allt är stängt** — träffarna finns, klockan är fel.
+ *
+ * Den sista rapporterades som en bugg 2026-08-24: "Öppet nu" klockan halv två
+ * på natten gav "Inga restauranger matchade", kartan sa att ingen träff hade
+ * någon kartnål, och räknaren sa noll. Allt tre var formellt sant och
+ * tillsammans obegripliga — de beskriver ett datafel, och det fanns inget.
+ */
 function EmptyState({
   t,
   locale,
   hasFilter,
+  closedOnly,
+  soonest,
+  withClosedHref,
 }: {
   t: Dictionary;
   locale: Locale;
   hasFilter: boolean;
+  /** Är öppettidsfiltret det ENDA som tömde listan? */
+  closedOnly: boolean;
+  /** Vilken av träffarna som öppnar först, om någon har öppettider alls. */
+  soonest: SoonestOpening | null;
+  /** Samma sökning med öppettidsfiltret borttaget — och bara det. */
+  withClosedHref: string;
 }) {
+  if (closedOnly) {
+    return (
+      <div className="mt-10 border-y border-[var(--rule)] py-16 text-center">
+        <p className="font-display text-3xl">{t.home.closedNowTitle}</p>
+        <p className="mx-auto mt-3 max-w-sm text-[var(--muted)]">
+          {/*
+            Veckodagen behåller sin versal ur ordboken. Tyskan skriver dem med
+            stor bokstav, och en gemenisering här hade gjort "samstag" av
+            "Samstag" — samma avvägning som QR-sidan gör.
+          */}
+          {soonest === null
+            ? t.home.closedNowUnknown
+            : soonest.daysAhead === 0
+              ? fill(t.home.closedNowNext, {
+                  restaurant: soonest.name,
+                  time: soonest.opens,
+                })
+              : fill(t.home.closedNowNextOn, {
+                  restaurant: soonest.name,
+                  day: t.weekday[soonest.day],
+                  time: soonest.opens,
+                })}
+        </p>
+        <Link href={withClosedHref} className="btn btn-primary mt-7">
+          {t.home.showClosedToo}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-10 border-y border-[var(--rule)] py-16 text-center">
       <p className="font-display text-3xl">{t.home.emptyTitle}</p>

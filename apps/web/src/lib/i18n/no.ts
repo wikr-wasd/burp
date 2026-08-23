@@ -52,6 +52,7 @@ export const no: Dictionary = {
     mapLabel: "Kart over restaurantene",
     mapEmpty: "Ingen av treffene har en kartnål ennå.",
     mapFailed: "Kartet kunne ikke lastes. Listen ved siden av viser de samme stedene.",
+    mapClosed: "Ingenting er åpent akkurat nå. Kartet viser det som har åpent.",
 
     mapLocate: "Vis hvor jeg er",
     mapLocating: "Leter…",
@@ -141,6 +142,12 @@ export const no: Dictionary = {
     emptyTitle: "Ingen restauranter passet.",
     emptyFiltered: "Prøv et annet søk, en annen by, eller fjern filtrene.",
     emptyAll: "Det er ingen aktive restauranter å vise akkurat nå.",
+
+    closedNowTitle: "Ingenting er åpent akkurat nå.",
+    closedNowNext: "{restaurant} åpner {time}.",
+    closedNowNextOn: "{restaurant} åpner {day} {time}.",
+    closedNowUnknown: "Ingen av treffene har lagt inn åpningstider.",
+    showClosedToo: "Vis stengte også",
     showAll: "Vis alle restauranter",
   },
 

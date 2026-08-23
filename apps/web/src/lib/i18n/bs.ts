@@ -72,6 +72,7 @@ export const bs: Dictionary = {
     mapLabel: "Mapa restorana",
     mapEmpty: "Nijedan od rezultata još nema oznaku na mapi.",
     mapFailed: "Mapa se nije učitala. Lista pored prikazuje ista mjesta.",
+    mapClosed: "Ništa nije otvoreno trenutno. Mapa prikazuje ono što je otvoreno.",
 
     mapLocate: "Prikaži gdje sam",
     mapLocating: "Tražim…",
@@ -161,6 +162,12 @@ export const bs: Dictionary = {
     emptyTitle: "Nijedan restoran ne odgovara.",
     emptyFiltered: "Pokušajte drugu pretragu, drugi grad ili uklonite filtere.",
     emptyAll: "Trenutno nema aktivnih restorana za prikaz.",
+
+    closedNowTitle: "Ništa nije otvoreno trenutno.",
+    closedNowNext: "{restaurant} otvara u {time}.",
+    closedNowNextOn: "{restaurant} otvara u {day} u {time}.",
+    closedNowUnknown: "Nijedan od rezultata nije unio radno vrijeme.",
+    showClosedToo: "Prikaži i zatvorene",
     showAll: "Prikaži sve restorane",
   },
 

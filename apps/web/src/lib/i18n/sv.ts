@@ -46,6 +46,7 @@ export const sv = {
     mapLabel: "Karta över restaurangerna",
     mapEmpty: "Ingen av träffarna har någon kartnål ännu.",
     mapFailed: "Kartan gick inte att ladda. Listan bredvid visar samma ställen.",
+    mapClosed: "Inget är öppet just nu. Kartan visar det som har öppet.",
 
     /*
      * Platsknappen på kartan.
@@ -169,6 +170,23 @@ export const sv = {
     emptyTitle: "Inga restauranger matchade.",
     emptyFiltered: "Pröva en annan sökning, en annan stad eller ta bort filtren.",
     emptyAll: "Det finns inga aktiva restauranger att visa just nu.",
+
+    /*
+     * När "Öppet nu" är det enda som tömmer listan.
+     *
+     * Noll träffar mitt i natten är rätt svar, men "inga restauranger
+     * matchade" är fel FRÅGA. Träffarna finns — de är stängda. Skillnaden
+     * mellan de två meningarna är skillnaden mellan en återvändsgränd och
+     * ett besked, och den kostade en felrapport 2026-08-24.
+     *
+     * {day} kommer ur `weekday` och behåller sin versal: tyskan skriver
+     * veckodagar med stor bokstav.
+     */
+    closedNowTitle: "Inget är öppet just nu.",
+    closedNowNext: "{restaurant} öppnar {time}.",
+    closedNowNextOn: "{restaurant} öppnar {day} {time}.",
+    closedNowUnknown: "Ingen av träffarna har lagt in några öppettider.",
+    showClosedToo: "Visa stängda också",
     showAll: "Visa alla restauranger",
   },
 

@@ -57,7 +57,33 @@ export function slotDuration(slot: OpeningSlot): number {
 const MINUTES_PER_DAY = 24 * 60;
 const MINUTES_PER_WEEK = 7 * MINUTES_PER_DAY;
 
-export type OpeningHours = Record<WeekdayKey, OpeningSlot[]>;
+/**
+ * Öppettiderna, en lista per veckodag.
+ *
+ * `Partial` med flit, och det är inte en försiktighetsåtgärd utan en
+ * beskrivning av verkligheten: kolumnen är JSON, och en restaurang som håller
+ * stängt på söndagar skriver ingen `sun`-nyckel. Seeden gör det redan — tre
+ * av sju restauranger har färre än sju dagar.
+ *
+ * Typen sa fram till 2026-08-24 `Record<WeekdayKey, OpeningSlot[]>`, alltså
+ * att varje dag ALLTID finns. TypeScript varnade därför aldrig för de fyra
+ * ställen i den här filen som gjorde `hours[day].map(...)` rakt av, och en
+ * saknad dag gav "Cannot read properties of undefined". På QR-sidan betyder
+ * det en 500:a för en gäst som står vid bordet med telefonen i handen.
+ */
+export type OpeningHours = Partial<Record<WeekdayKey, OpeningSlot[]>>;
+
+/**
+ * Dagens pass, eller en tom lista när dagen saknas i schemat.
+ *
+ * Exporterad därför att varje yta som ritar öppettider ställer samma fråga.
+ * En `?? []` utskriven på var sitt ställe är en regel man kan glömma på ett
+ * av dem — och den som glöms kraschar först den veckodag restaurangen råkar
+ * hålla stängt.
+ */
+export function daySlots(hours: OpeningHours, day: WeekdayKey): readonly OpeningSlot[] {
+  return hours[day] ?? [];
+}
 
 export const CLOSED_ALL_WEEK: OpeningHours = {
   mon: [],
@@ -144,7 +170,7 @@ export function validateOpeningHours(hours: OpeningHours): OpeningHoursProblem[]
   const spans: WeeklySpan[] = [];
 
   WEEKDAY_KEYS.forEach((day, dayIndex) => {
-    hours[day].forEach((slot, index) => {
+    daySlots(hours, day).forEach((slot, index) => {
       if (!isValidTime(slot.opens) || !isValidTime(slot.closes)) {
         problems.push({ day, kind: "INVALID_TIME", slot: index });
         return;
@@ -252,7 +278,7 @@ export function nextOpening(
     // Sorteras med flit i stället för att lita på inmatningsordningen: en
     // lunchöppning och en kvällsöppning kan ha skrivits in i vilken ordning
     // som helst, och den tidigaste är den gästen väntar på.
-    const opens = hours[day]
+    const opens = daySlots(hours, day)
       .map((slot) => slot.opens)
       .sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
 
@@ -284,7 +310,7 @@ export function isOpenAt(hours: OpeningHours, dayIndex: number, minutes: number)
   const yesterday = WEEKDAY_KEYS[(dayIndex + 5) % 7];
   if (!today || !yesterday) return false;
 
-  const openToday = hours[today].some((slot) => {
+  const openToday = daySlots(hours, today).some((slot) => {
     const opens = timeToMinutes(slot.opens);
     const closes = timeToMinutes(slot.closes);
 
@@ -295,7 +321,7 @@ export function isOpenAt(hours: OpeningHours, dayIndex: number, minutes: number)
 
   if (openToday) return true;
 
-  return hours[yesterday].some(
+  return daySlots(hours, yesterday).some(
     (slot) => crossesMidnight(slot) && minutes < timeToMinutes(slot.closes),
   );
 }

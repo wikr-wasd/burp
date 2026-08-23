@@ -66,6 +66,37 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-08-24
+
+- **"Öppet nu" såg ut som en krasch.** Rapporterat som "hela sidan buggar och
+  allt visar error meddelande". Sidan räknade rätt — klockan var 01:32 i
+  Sarajevo och allt var stängt — men svarade med tre meddelanden som var för
+  sig lät som fel: kartan sa "ingen av träffarna har någon kartnål ännu",
+  listan sa "inga restauranger matchade", räknaren sa noll. Tillsammans
+  beskriver de ett datafel som inte fanns.
+
+  Sidan vet numera VARFÖR den är tom: `matched` är träffarna före
+  öppettidsfiltret, så "inget matchade" och "allt är stängt" går att skilja
+  åt exakt. Den senare säger nu **"Inget är öppet just nu. Pekara Zagreb
+  öppnar 06:00."** och erbjuder att ta bort bara det filtret — den gamla
+  knappen slängde stad och kök också.
+
+  `soonestOpening()` jämför i väntetid och inte i klockslag, eftersom
+  marknaden spänner över tidszoner. Sju enhetstester.
+
+- **En saknad veckodag kraschade fyra funktioner i `@burp/core`.** Hittad på
+  vägen. `OpeningHours` var typad som `Record<WeekdayKey, OpeningSlot[]>` —
+  alltså att varje dag alltid finns — men kolumnen är JSON, och en restaurang
+  som håller stängt på måndagar skriver ingen `mon`-nyckel. Seeden gör det
+  redan: tre av sju har färre än sju dagar, och Konoba Fjaka saknar både
+  måndag och söndag.
+
+  `isOpenAt`, `nextOpening` och `validateOpeningHours` gjorde
+  `hours[day].map(...)` rakt av. **På QR-sidan är det en 500:a för en gäst som
+  står vid bordet** — en stängd veckodag bort. Typen är nu `Partial`, vilket
+  omedelbart avslöjade tio ställen till i personalens öppettidsredigerare som
+  antog samma sak. `daySlots()` exporteras så att regeln finns på ett ställe.
+
 ### Byggt 2026-08-23
 
 - **Inloggningen var trasig för två av tre roller — och det syntes inte.**
