@@ -60,6 +60,7 @@ tekniken. Den delen har högst kvalitetskrav i hela produkten.
 | `docs/OPEN-QUESTIONS.md` | Beslut som blockerar |
 | `docs/DESIGN.md` | Designspråket, färgerna och varför |
 | `docs/DEPLOYMENT.md` | Miljöer och driftsättning |
+| `docs/BUSINESS.md` | Affärsmodellen, intäktsscenarier och villkoren för nytt land |
 
 ---
 

@@ -586,6 +586,23 @@ Ingenting går vidare här utan svar.
       måste ligga på en domän som är verifierad hos leverantören, och
       `BURP_OPS_EMAIL` avgör vem hos Burp som får restaurangansökningarna.
       Kräver inloggning, inte kod.
+- [ ] **Kortmandat för avgiftsdragning.** Följer av `docs/BUSINESS.md` risk 1.
+      Burp rör aldrig gästens pengar (väg A), så avgiften kan inte nettas ur en
+      utbetalning — den måste faktureras och drivas in. En faktura på 128 KM
+      till ett kafé i en kontantkultur är dyrare att driva in än den är värd.
+      Åtgärden är ett **kortmandat vid onboarding** som avräkningen drar mot,
+      och den rör inte 3,4 %-modellen: Burp tar emot betalning för sin **egen
+      tjänst**, vilket är något annat än att hålla gästens pengar och inte
+      kräver betaltjänsttillstånd. Finns inte byggt — `settlements` skriver
+      underlaget, ingenting drar det. Kräver ett beslut om leverantör innan
+      det går att bygga.
+- [ ] **Omsättningsfrågan i onboarding.** Burp ser bara sina egna order, så
+      QR-andelen — hur stor del av restaurangens bordsorder som går genom Burp
+      — går inte att räkna fram ur databasen. Det är måttet hela affären hänger
+      på (`docs/BUSINESS.md` tröskel T2) och i dag är varje uttalande om det en
+      gissning. Ett fält för uppskattad månadsomsättning i restaurangansökan,
+      uppdaterat kvartalsvis, räcker. Beslut: ska det frågas, och är det
+      rimligt att fråga en ny kund om det?
 
 ---
 
