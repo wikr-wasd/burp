@@ -565,6 +565,7 @@ export const no: Dictionary = {
       kassa: "Kasse",
       meny: "Meny",
       bord: "Bord og QR",
+      bokningar: "Bestillinger",
       erbjudanden: "Tilbud",
       omdomen: "Anmeldelser",
       statistik: "Statistikk",
@@ -746,6 +747,21 @@ export const no: Dictionary = {
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    bookings: {
+      intro: "Bord for i dag og denne uken.",
+      disabled: "Bestilling er slått av. Slå den på i innstillingene.",
+      empty: "Ingen bestillinger den kommende uken.",
+      party: "{n} gjester",
+      table: "Bord {number}",
+      released: "Ventetiden er ute — bordet kan bestilles igjen",
+      seat: "Kom",
+      noShow: "Kom ikke",
+      cancel: "Avbestill",
+      complete: "Ferdig",
+      confirm: "Er du sikker? Dette kan ikke angres.",
+      failed: "Endringen gikk ikke gjennom.",
+      bookingFailed: "Bestillingen gikk ikke gjennom.",
+    },
     settings: {
       identityTitle: "Deres merke",
       identityHint:
@@ -1163,6 +1179,7 @@ export const no: Dictionary = {
         "Verken hvit eller svart tekst kan leses på den fargen. Prøv en anelse mørkere eller lysere.",
       accentInvisible:
         "Fargen forsvinner mot bakgrunnen i lys eller mørk modus. Prøv en farge med mer dybde.",
+      bookingFailed: "Bestillingen gikk ikke gjennom.",
       itemNeedsName: "Retten trenger et navn.",
       itemNotFound: "Retten ble ikke funnet.",
       groupNeedsName: "Gruppen trenger et navn.",

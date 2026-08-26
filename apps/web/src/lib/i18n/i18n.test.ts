@@ -255,6 +255,14 @@ describe("ordböckerna", () => {
       "booking.attribute.BOOTH",
       "booking.status.NO_SHOW",
       /*
+       * Personalens bokningsvy. "Bord" och "Kom" delas rakt av.
+       *
+       * Notera vilka som INTE står här: `noShow` är "Kom ikke" mot "Kom inte"
+       * och `cancel` är "Avbestill" mot "Avboka".
+       */
+      "staff.bookings.table",
+      "staff.bookings.seat",
+      /*
        * "Avbryt" stavas likadant på norska och svenska.
        *
        * Notera vilka av tvåstegspanelens texter som INTE står här: `mfaVerify`

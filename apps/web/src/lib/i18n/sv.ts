@@ -788,6 +788,7 @@ export const sv = {
       kassa: "Kassa",
       meny: "Meny",
       bord: "Bord & QR",
+      bokningar: "Bokningar",
       erbjudanden: "Erbjudanden",
       omdomen: "Omdömen",
       statistik: "Statistik",
@@ -1052,6 +1053,21 @@ export const sv = {
      *
      * ENBART strängar — varje redigerare på sidan är klientkod.
      */
+    bookings: {
+      intro: "Dagens och veckans bord.",
+      disabled: "Bokning är avstängd. Slå på den i inställningarna.",
+      empty: "Inga bokningar den närmaste veckan.",
+      party: "{n} gäster",
+      table: "Bord {number}",
+      released: "Karensen har gått — bordet är bokningsbart igen",
+      seat: "Kom",
+      noShow: "Kom inte",
+      cancel: "Avboka",
+      complete: "Klart",
+      confirm: "Är du säker? Det går inte att ångra.",
+      failed: "Ändringen gick inte igenom.",
+      bookingFailed: "Bokningen gick inte igenom.",
+    },
     settings: {
       identityTitle: "Ert märke",
       identityHint:
@@ -1506,6 +1522,7 @@ export const sv = {
         "Varken vit eller svart text går att läsa på den färgen. Prova en aning mörkare eller ljusare.",
       accentInvisible:
         "Färgen försvinner mot bakgrunden i ljust eller mörkt läge. Prova en färg med mer djup.",
+      bookingFailed: "Bokningen gick inte igenom.",
       itemNeedsName: "Rätten behöver ett namn.",
       itemNotFound: "Rätten hittades inte.",
       groupNeedsName: "Gruppen behöver ett namn.",

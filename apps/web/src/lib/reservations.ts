@@ -219,7 +219,6 @@ export interface ReservationView {
   zone: string | null;
   attributes: string[];
   startsAt: string;
-  endsAt: string;
   partySize: number;
   guestName: string;
   status: string;
@@ -246,7 +245,7 @@ export async function reservationByToken(
   const { data } = await supabase
     .from("reservations")
     .select(
-      "id, restaurant_id, table_id, during, party_size, guest_name, status, surcharge_ore, note, restaurants!inner (name, slug, city_slug, currency, country), tables!inner (table_number, zone, attributes)",
+      "id, restaurant_id, table_id, starts_at, party_size, guest_name, status, surcharge_ore, note, restaurants!inner (name, slug, city_slug, currency, country), tables!inner (table_number, zone, attributes)",
     )
     .eq("id", id)
     .eq("cancel_token", token)
@@ -267,8 +266,6 @@ export async function reservationByToken(
     attributes: string[] | null;
   };
 
-  const range = parseRange(data.during as unknown as string);
-
   return {
     id: data.id,
     restaurantId: data.restaurant_id,
@@ -278,8 +275,7 @@ export async function reservationByToken(
     tableNumber: table.table_number,
     zone: table.zone,
     attributes: table.attributes ?? [],
-    startsAt: range.start,
-    endsAt: range.end,
+    startsAt: data.starts_at as string,
     partySize: data.party_size,
     guestName: data.guest_name,
     status: data.status,
@@ -308,21 +304,4 @@ export async function cancelReservation(id: string, token: string): Promise<bool
   });
 
   return !error && data === true;
-}
-
-/**
- * Läser `tstzrange` som PostgREST ger den: `["2026-08-26 19:00:00+00","...")`.
- *
- * Postgres serialiserar ett range som en sträng, och det finns ingen typad väg
- * runt det. Formen är stabil; det som varierar är klamrarna, och båda ändarna
- * kan vara inkluderande.
- */
-function parseRange(raw: string): { start: string; end: string } {
-  const inner = raw.replace(/^[[(]/, "").replace(/[\])]$/, "");
-  const [start, end] = inner.split(",").map((part) => part.replace(/^"|"$/g, "").trim());
-
-  return {
-    start: start ? new Date(start).toISOString() : "",
-    end: end ? new Date(end).toISOString() : "",
-  };
 }

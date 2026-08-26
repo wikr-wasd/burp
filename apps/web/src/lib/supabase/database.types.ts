@@ -1772,6 +1772,7 @@ export type Database = {
           party_size: number
           restaurant_id: string
           seated_at: string | null
+          starts_at: string | null
           status: Database["public"]["Enums"]["reservation_status"]
           surcharge_ore: number
           table_id: string
@@ -1791,6 +1792,7 @@ export type Database = {
           party_size: number
           restaurant_id: string
           seated_at?: string | null
+          starts_at?: string | null
           status?: Database["public"]["Enums"]["reservation_status"]
           surcharge_ore?: number
           table_id: string
@@ -1810,6 +1812,7 @@ export type Database = {
           party_size?: number
           restaurant_id?: string
           seated_at?: string | null
+          starts_at?: string | null
           status?: Database["public"]["Enums"]["reservation_status"]
           surcharge_ore?: number
           table_id?: string

@@ -588,6 +588,7 @@ export const bs: Dictionary = {
       kassa: "Kasa",
       meny: "Jelovnik",
       bord: "Stolovi i QR",
+      bokningar: "Rezervacije",
       erbjudanden: "Ponude",
       omdomen: "Ocjene",
       statistik: "Statistika",
@@ -781,6 +782,21 @@ export const bs: Dictionary = {
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    bookings: {
+      intro: "Stolovi za danas i ovu sedmicu.",
+      disabled: "Rezervacije su isključene. Uključite ih u postavkama.",
+      empty: "Nema rezervacija u narednih sedam dana.",
+      party: "{n} gostiju",
+      table: "Sto {number}",
+      released: "Vrijeme čekanja je isteklo — sto se ponovo može rezervisati",
+      seat: "Došli su",
+      noShow: "Nisu došli",
+      cancel: "Otkaži",
+      complete: "Završeno",
+      confirm: "Jeste li sigurni? Ovo se ne može poništiti.",
+      failed: "Izmjena nije prošla.",
+      bookingFailed: "Rezervacija nije prošla.",
+    },
     settings: {
       identityTitle: "Vaš znak",
       identityHint:
@@ -1200,6 +1216,7 @@ export const bs: Dictionary = {
         "Na toj boji se ne može čitati ni bijeli ni crni tekst. Probajte nijansu tamniju ili svjetliju.",
       accentInvisible:
         "Boja se gubi na pozadini u svijetlom ili tamnom prikazu. Probajte boju s više dubine.",
+      bookingFailed: "Rezervacija nije prošla.",
       itemNeedsName: "Jelo treba naziv.",
       itemNotFound: "Jelo nije pronađeno.",
       groupNeedsName: "Grupa treba naziv.",

@@ -569,6 +569,7 @@ export const de: Dictionary = {
       kassa: "Kasse",
       meny: "Speisekarte",
       bord: "Tische & QR",
+      bokningar: "Reservierungen",
       erbjudanden: "Angebote",
       omdomen: "Bewertungen",
       statistik: "Statistik",
@@ -754,6 +755,21 @@ export const de: Dictionary = {
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    bookings: {
+      intro: "Tische für heute und diese Woche.",
+      disabled: "Reservierungen sind ausgeschaltet. Schalten Sie sie in den Einstellungen ein.",
+      empty: "Keine Reservierungen in der kommenden Woche.",
+      party: "{n} Gäste",
+      table: "Tisch {number}",
+      released: "Die Wartezeit ist vorbei — der Tisch ist wieder buchbar",
+      seat: "Da",
+      noShow: "Nicht erschienen",
+      cancel: "Stornieren",
+      complete: "Fertig",
+      confirm: "Sind Sie sicher? Das lässt sich nicht rückgängig machen.",
+      failed: "Die Änderung ging nicht durch.",
+      bookingFailed: "Die Reservierung ging nicht durch.",
+    },
     settings: {
       identityTitle: "Ihr Zeichen",
       identityHint:
@@ -1177,6 +1193,7 @@ export const de: Dictionary = {
         "Auf dieser Farbe ist weder weiße noch schwarze Schrift lesbar. Versuchen Sie es eine Spur dunkler oder heller.",
       accentInvisible:
         "Die Farbe verschwindet im hellen oder dunklen Modus im Hintergrund. Versuchen Sie eine Farbe mit mehr Tiefe.",
+      bookingFailed: "Die Reservierung ging nicht durch.",
       itemNeedsName: "Das Gericht braucht einen Namen.",
       itemNotFound: "Das Gericht wurde nicht gefunden.",
       groupNeedsName: "Die Gruppe braucht einen Namen.",

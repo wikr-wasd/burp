@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   BookOpen,
   Banknote,
+  CalendarDays,
   ChefHat,
   LayoutGrid,
   LogOut,
@@ -49,6 +50,7 @@ export type StaffSection =
   | "kassa"
   | "meny"
   | "bord"
+  | "bokningar"
   | "erbjudanden"
   | "omdomen"
   | "statistik"
@@ -85,6 +87,14 @@ export const STAFF_NAV: readonly NavItem[] = [
   { section: "kassa", href: "/dashboard/kassa", icon: Banknote, roles: ALL_BUT_KITCHEN },
   { section: "meny", href: "/dashboard/meny", icon: BookOpen, roles: MANAGEMENT },
   { section: "bord", href: "/dashboard/bord", icon: QrCode, roles: MANAGEMENT },
+  /*
+   * Bokningarna når även servitören.
+   *
+   * Det är hen som står i lokalen när sällskapet kommer, och "kom"-knappen är
+   * det som hindrar att bordet släpps mitt under deras måltid. En vy bara för
+   * ägaren hade betytt att knappen trycks långt efter att den behövdes.
+   */
+  { section: "bokningar", href: "/dashboard/bokningar", icon: CalendarDays, roles: ALL_BUT_KITCHEN },
   { section: "erbjudanden", href: "/dashboard/erbjudanden", icon: Ticket, roles: MANAGEMENT },
   { section: "omdomen", href: "/dashboard/omdomen", icon: MessageSquare, roles: MANAGEMENT },
   { section: "statistik", href: "/dashboard/statistik", icon: TrendingUp, roles: MANAGEMENT },
