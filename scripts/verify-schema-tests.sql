@@ -4920,4 +4920,173 @@ begin
 end
 $$;
 
+
+\echo '   två bokningar kan inte överlappa på samma bord'
+
+do $$
+declare
+  v_rest   uuid;
+  v_bord   uuid;
+  v_annat  uuid;
+  v_forsta uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency,
+    reservation_policy
+  )
+  values ('Bokad Kafana', 'bokad-kafana', '4200000000141',
+          'Ferhadija 51', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM',
+          jsonb_build_object('enabled', true, 'duration_minutes', 90, 'grace_minutes', 15,
+                             'lead_minutes', 60, 'horizon_days', 30, 'max_party_size', 12))
+  returning id into v_rest;
+
+  insert into public.tables (restaurant_id, table_number, capacity, qr_public_id)
+  values (v_rest, '1', 4, 'BKA001') returning id into v_bord;
+  insert into public.tables (restaurant_id, table_number, capacity, qr_public_id)
+  values (v_rest, '2', 4, 'BKA002') returning id into v_annat;
+
+  insert into public.reservations (restaurant_id, table_id, guest_name, party_size, during)
+  values (v_rest, v_bord, 'Amina', 2,
+          tstzrange('2026-09-04 19:00+02', '2026-09-04 20:30+02'))
+  returning id into v_forsta;
+
+  /*
+   * Kapplöpningen som spärren finns för.
+   *
+   * "Är tiden ledig?" följt av "boka den" är två frågor, och mellan dem hinner
+   * en andra gäst ställa samma första fråga och få samma svar. Klockan sju en
+   * fredag är det det normala fallet, inte ett sällsynt sammanträffande.
+   */
+  begin
+    insert into public.reservations (restaurant_id, table_id, guest_name, party_size, during)
+    values (v_rest, v_bord, 'Marko', 2,
+            tstzrange('2026-09-04 19:30+02', '2026-09-04 21:00+02'));
+
+    raise exception 'FEL: två överlappande bokningar på samma bord gick att skriva';
+  exception
+    when exclusion_violation then null;
+  end;
+
+  -- Ett ANNAT bord vid samma tid är inte samma sak.
+  insert into public.reservations (restaurant_id, table_id, guest_name, party_size, during)
+  values (v_rest, v_annat, 'Marko', 2,
+          tstzrange('2026-09-04 19:30+02', '2026-09-04 21:00+02'));
+
+  -- Samma bord, men efter att den första är slut.
+  insert into public.reservations (restaurant_id, table_id, guest_name, party_size, during)
+  values (v_rest, v_bord, 'Lejla', 2,
+          tstzrange('2026-09-04 20:30+02', '2026-09-04 22:00+02'));
+
+  /*
+   * En avbokad tid blockerar ingenting.
+   *
+   * Villkoret är partiellt just därför. Utan `where` hade en avbokning gjort
+   * tiden upptagen för alltid — och restaurangen hade tappat bordet i stället
+   * för att få tillbaka det.
+   */
+  update public.reservations set status = 'CANCELLED' where id = v_forsta;
+
+  insert into public.reservations (restaurant_id, table_id, guest_name, party_size, during)
+  values (v_rest, v_bord, 'Emir', 2,
+          tstzrange('2026-09-04 19:00+02', '2026-09-04 20:30+02'));
+end
+$$;
+
+\echo '   en bokning bokas om genom en ny bokning, inte genom att skriva om den'
+
+do $$
+declare
+  v_rest uuid;
+  v_bord uuid;
+  v_res  uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Omboka Kafana', 'omboka-kafana', '4200000000142',
+          'Ferhadija 52', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into public.tables (restaurant_id, table_number, capacity, qr_public_id)
+  values (v_rest, '1', 4, 'BKA003') returning id into v_bord;
+
+  insert into public.reservations (restaurant_id, table_id, guest_name, party_size, during)
+  values (v_rest, v_bord, 'Amina', 2,
+          tstzrange('2026-09-05 19:00+02', '2026-09-05 20:30+02'))
+  returning id into v_res;
+
+  -- Tiden går inte att flytta i efterhand: gästen har fått en bekräftelse på
+  -- den, och en bokning som ändrar sig är en bokning gästen inte längre har.
+  begin
+    update public.reservations
+    set during = tstzrange('2026-09-05 21:00+02', '2026-09-05 22:30+02')
+    where id = v_res;
+
+    raise exception 'FEL: bokningens tid gick att skriva om';
+  exception
+    when raise_exception then
+      if sqlerrm not like '%bokas om%' then raise; end if;
+  end;
+
+  -- Statusen går däremot att sätta, och tidpunkten sätts av triggern.
+  update public.reservations set status = 'SEATED' where id = v_res;
+
+  if (select seated_at from public.reservations where id = v_res) is null then
+    raise exception 'FEL: seated_at sattes inte när gästen satte sig';
+  end if;
+
+  -- Nyckeln är gästens bevis och får inte gå att byta ut av personalen.
+  begin
+    update public.reservations set cancel_token = gen_random_uuid() where id = v_res;
+    raise exception 'FEL: avbokningsnyckeln gick att byta ut';
+  exception
+    when raise_exception then
+      if sqlerrm not like '%bokas om%' then raise; end if;
+  end;
+end
+$$;
+
+\echo '   avbokning kräver gästens nyckel, inte bara id:t'
+
+do $$
+declare
+  v_rest  uuid;
+  v_bord  uuid;
+  v_res   uuid;
+  v_token uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Nyckel Kafana', 'nyckel-kafana', '4200000000143',
+          'Ferhadija 53', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into public.tables (restaurant_id, table_number, capacity, qr_public_id)
+  values (v_rest, '1', 4, 'BKA004') returning id into v_bord;
+
+  insert into public.reservations (restaurant_id, table_id, guest_name, party_size, during)
+  values (v_rest, v_bord, 'Amina', 2,
+          tstzrange('2026-09-06 19:00+02', '2026-09-06 20:30+02'))
+  returning id, cancel_token into v_res, v_token;
+
+  if public.cancel_reservation(v_res, gen_random_uuid()) then
+    raise exception 'FEL: bokningen gick att avboka med fel nyckel';
+  end if;
+
+  if not public.cancel_reservation(v_res, v_token) then
+    raise exception 'FEL: gästens egen nyckel avbokade inte';
+  end if;
+
+  if (select status from public.reservations where id = v_res) <> 'CANCELLED' then
+    raise exception 'FEL: statusen blev inte CANCELLED';
+  end if;
+
+  -- En andra avbokning ska inte påstå att den gjorde något.
+  if public.cancel_reservation(v_res, v_token) then
+    raise exception 'FEL: en redan avbokad bokning avbokades igen';
+  end if;
+end
+$$;
+
 rollback;

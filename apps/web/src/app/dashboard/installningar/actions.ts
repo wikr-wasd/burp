@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import {
   checkAccentColor,
   daySlots,
+  parseReservationPolicy,
+  serializeReservationPolicy,
   normalizePostalCode,
   parseAmount,
   parseCoordinates,
@@ -455,6 +457,48 @@ export async function saveAccentColor(input: string): Promise<ActionResult> {
   const { error } = await supabase
     .from("restaurants")
     .update({ accent_hex: check.hex })
+    .eq("id", staff.restaurantId);
+
+  return error ? fail(error.message) : done();
+}
+
+/* ── Bordsbokning ────────────────────────────────────────────────────────── */
+
+/**
+ * Sparar restaurangens bokningsregler.
+ *
+ * Värdena kläms av `parseReservationPolicy()` i @burp/core innan de skrivs, så
+ * att ett skrivfel i formuläret inte blir en regel. Att klämma i stället för
+ * att neka är avsiktligt här: 500 minuters bordstid är inget någon MENAR, och
+ * ett felmeddelande om det hjälper ingen — men 5000 ska inte gå att spara.
+ *
+ * `enabled` är den enda som spelar roll för gästen. Är den falsk visas inget
+ * bokningsavsnitt på restaurangsidan, och `reservation_slots()` returnerar
+ * ingenting — kontrollen finns alltså på båda sidor om gränssnittet.
+ */
+export async function saveReservationPolicy(input: {
+  enabled: boolean;
+  durationMinutes: number;
+  graceMinutes: number;
+  leadMinutes: number;
+  horizonDays: number;
+  maxPartySize: number;
+}): Promise<ActionResult> {
+  const staff = await requireStaff(["owner", "manager"]);
+
+  const policy = parseReservationPolicy({
+    enabled: input.enabled,
+    duration_minutes: input.durationMinutes,
+    grace_minutes: input.graceMinutes,
+    lead_minutes: input.leadMinutes,
+    horizon_days: input.horizonDays,
+    max_party_size: input.maxPartySize,
+  });
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ reservation_policy: asJson(serializeReservationPolicy(policy)) })
     .eq("id", staff.restaurantId);
 
   return error ? fail(error.message) : done();

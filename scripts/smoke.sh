@@ -342,6 +342,96 @@ else
   fail "fyra portioner nekades: $(sed '$d' <<<"$ENOUGH")"
 fi
 
+
+echo "→ Bordsbokning"
+
+# Datum tre dagar fram, i UTC. Framförhållningen är en timme, så morgondagen
+# hade också gått — men ett datum längre bort undviker att testet beter sig
+# olika beroende på när på dygnet det körs.
+BOOK_DATE=$(node -e "
+  const d = new Date(Date.now() + 3 * 86400000);
+  process.stdout.write(d.toISOString().slice(0, 10));
+")
+
+SLOTS=$(curl -s "$BASE/api/reservations?restaurant=$SEED_RESTAURANT&date=$BOOK_DATE&party=2")
+
+if grep -q '"ok":true' <<<"$SLOTS" && ! grep -q '"slots":\[\]' <<<"$SLOTS"; then
+  pass "lediga tider räknas ur öppettiderna"
+else
+  fail "inga lediga tider för $BOOK_DATE: $(head -c 120 <<<"$SLOTS")"
+fi
+
+# Första tiden och första bordet ur svaret. Minsta lediga bord ligger först,
+# vilket är samma ordning gästen ser.
+BOOK_AT=$(node -e '
+  let raw = "";
+  process.stdin.on("data", (c) => (raw += c));
+  process.stdin.on("end", () => {
+    try { process.stdout.write(JSON.parse(raw).slots[0].at); } catch { process.stdout.write(""); }
+  });
+' <<<"$SLOTS")
+
+BOOK_TABLE=$(node -e '
+  let raw = "";
+  process.stdin.on("data", (c) => (raw += c));
+  process.stdin.on("end", () => {
+    try { process.stdout.write(JSON.parse(raw).slots[0].tables[0].tableId); } catch { process.stdout.write(""); }
+  });
+' <<<"$SLOTS")
+
+if [ -n "$BOOK_AT" ] && [ -n "$BOOK_TABLE" ]; then
+  book() {
+    curl -s -X POST "$BASE/api/reservations" -H "Content-Type: application/json" \
+      -d "{\"restaurant_id\":\"$SEED_RESTAURANT\",\"table_id\":\"$BOOK_TABLE\",\"at\":\"$BOOK_AT\",\"party_size\":2,\"guest_name\":\"$1\"}" \
+      -w '\n%{http_code}'
+  }
+
+  FIRST=$(book "Roktest")
+  FIRST_STATUS=$(tail -1 <<<"$FIRST")
+  FIRST_BODY=$(sed '$d' <<<"$FIRST")
+
+  if [ "$FIRST_STATUS" = "201" ]; then
+    pass "bordet gick att boka"
+  else
+    fail "bokningen gav $FIRST_STATUS: $FIRST_BODY"
+  fi
+
+  RES_ID=$(json_field reservation_id <<<"$FIRST_BODY")
+  RES_TOKEN=$(json_field cancel_token <<<"$FIRST_BODY")
+
+  # Samma bord, samma tid, en andra gäst. Det här är hela skälet att
+  # exclude-villkoret finns, och kontrollen mäter att spärren håller ända upp
+  # genom API:t och inte bara i psql.
+  SECOND_STATUS=$(book "Andra" | tail -1)
+  if [ "$SECOND_STATUS" = "409" ]; then
+    pass "samma bord på samma tid nekas med 409"
+  else
+    fail "dubbelbokningen gav $SECOND_STATUS, väntade 409"
+  fi
+
+  # Kvittot kräver nyckeln. Utan den ska sidan inte ens bekräfta att bokningen
+  # finns — den bär gästens namn och telefonnummer.
+  check_status "bokningskvitto med nyckel" "/bokning/$RES_ID?nyckel=$RES_TOKEN" 200
+  check_status "bokningskvitto utan nyckel" "/bokning/$RES_ID" 404
+  check_status "bokningskvitto med fel nyckel" \
+    "/bokning/$RES_ID?nyckel=00000000-0000-4000-8000-000000000000" 404
+
+  # Ett sällskap större än policyn tillåter bokas per telefon.
+  TOO_BIG=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/reservations" \
+    -H "Content-Type: application/json" \
+    -d "{\"restaurant_id\":\"$SEED_RESTAURANT\",\"table_id\":\"$BOOK_TABLE\",\"at\":\"$BOOK_AT\",\"party_size\":40,\"guest_name\":\"Stort\"}")
+  if [ "$TOO_BIG" = "400" ]; then
+    pass "för stort sällskap nekas"
+  else
+    fail "sällskap på 40 gav $TOO_BIG, väntade 400"
+  fi
+
+  # Städa: bokningen ska inte ligga kvar och blockera nästa körning.
+  sql "delete from public.reservations where id = '$RES_ID';" > /dev/null
+else
+  printf '  \033[33mhopp\033[0m  bordsbokning (6 kontroller) — inga tider att boka\n'
+fi
+
 echo "→ Prisvalidering"
 # Klienten påstår att ordern kostar 1 öre.
 RESPONSE=$(order_request "{

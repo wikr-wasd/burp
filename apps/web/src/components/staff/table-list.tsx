@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { archiveTable, setTableLocked } from "@/app/dashboard/bord/actions";
+import type { CurrencyCode } from "@burp/core";
+import { TableBookingFields } from "@/components/staff/table-booking-fields";
 import { fill, type Dictionary } from "@/lib/i18n";
 import type { TableWithQr } from "@/app/dashboard/bord/page";
 
@@ -16,12 +18,18 @@ import type { TableWithQr } from "@/app/dashboard/bord/page";
 export function TableList({
   tables,
   labels,
+  currency,
+  attributeLabels,
   tableLabel,
   openBillLabel,
 }: {
   tables: TableWithQr[];
   /** Bordsytans texter ur ordboken. Rena strängar — komponenten är klientkod. */
   labels: Dictionary["staff"]["tables"];
+  /** Valutan tillägget skrivs i. Bordet ärver restaurangens. */
+  currency: CurrencyCode;
+  /** Egenskapernas namn. Samma avsnitt som gästen ser, med flit. */
+  attributeLabels: Dictionary["booking"]["attribute"];
   /** Mallen "Bord {number}" ur det delade ordertypsavsnittet. */
   tableLabel: string;
   /** Samma ord som översiktens tillstånd — se ordboken. */
@@ -148,6 +156,17 @@ export function TableList({
                 </button>
               )}
             </div>
+
+            {/* Bokningsdelen ligger i samma kort som QR-koden: bordet är EN sak,
+                och den som sätter upp lokalen tänker inte i två system. */}
+            <TableBookingFields
+              tableId={table.id}
+              attributes={table.attributes}
+              surchargeOre={table.surchargeOre}
+              currency={currency}
+              labels={labels}
+              attributeLabels={attributeLabels}
+            />
           </li>
         ))}
       </ul>

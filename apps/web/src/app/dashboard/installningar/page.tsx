@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import {
   parseOpeningHours,
   parseOrderPolicy,
+  parseReservationPolicy,
   type CurrencyCode,
   type OpeningHours,
   type OrderPolicy,
@@ -15,6 +16,7 @@ import { OpeningHoursEditor } from "@/components/staff/opening-hours-editor";
 import { PresentationEditor } from "@/components/staff/presentation-editor";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
 import { IdentityEditor } from "@/components/staff/identity-editor";
+import { ReservationSettings } from "@/components/staff/reservation-settings";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { PunchCardEditor } from "@/components/staff/punch-card-editor";
 import { PushToggle } from "@/components/notifications/push-toggle";
@@ -53,13 +55,14 @@ export default async function SettingsPage() {
     // select-uttrycket, och en konkatenering ger `GenericStringError` i stället
     // för kolumnerna.
     .select(
-      "opening_hours, order_policy, description, phone, cuisines, price_tier, street_address, postal_code, city, city_slug, slug, latitude, longitude, hero_image_url, accent_hex, logo_url, banner_url, punch_card_size, punch_card_max_reward_ore",
+      "opening_hours, order_policy, reservation_policy, description, phone, cuisines, price_tier, street_address, postal_code, city, city_slug, slug, latitude, longitude, hero_image_url, accent_hex, logo_url, banner_url, punch_card_size, punch_card_max_reward_ore",
     )
     .eq("id", staff.restaurantId)
     .single();
 
   const hours: OpeningHours = parseOpeningHours(restaurant?.opening_hours);
   const policy: OrderPolicy = parseOrderPolicy(restaurant?.order_policy);
+  const reservations = parseReservationPolicy(restaurant?.reservation_policy);
 
   /*
    * Betalkontot.
@@ -147,6 +150,19 @@ export default async function SettingsPage() {
             {t.settings.hoursHint}
           </p>
           <OpeningHoursEditor initial={hours} weekdayLabels={d.weekday} labels={t.settings} />
+        </section>
+
+        <hr className="rule mt-14" />
+
+        {/*
+          Bokningen står efter öppettiderna, och det är ingen slump: lediga
+          tider räknas ur dem. En restaurang som inte satt sina tider har inga
+          tider att boka, och avsnittet vore obegripligt före dem.
+        */}
+        <section className="mt-10">
+          <h2 className="font-display text-2xl">{t.settings.reservationTitle}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t.settings.reservationHint}</p>
+          <ReservationSettings initial={reservations} labels={t.settings} />
         </section>
 
         <hr className="rule mt-14" />

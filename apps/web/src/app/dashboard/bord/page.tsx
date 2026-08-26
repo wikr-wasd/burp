@@ -36,6 +36,10 @@ export interface TableWithQr {
   url: string;
   qrSvg: string;
   hasOpenSession: boolean;
+  /** Bordets egenskaper ur den fasta listan i migration 0054. */
+  attributes: string[];
+  /** Vad bordet kostar extra att boka, i valutans minsta enhet. */
+  surchargeOre: number;
 }
 
 export default async function TablesPage() {
@@ -45,7 +49,7 @@ export default async function TablesPage() {
   const { data: rows } = await supabase
     .from("tables")
     .select(
-      "id, table_number, zone, capacity, status, qr_public_id, floor_plan_id, pos_x, pos_y, rotation, shape, width, height",
+      "id, table_number, zone, capacity, status, qr_public_id, floor_plan_id, pos_x, pos_y, rotation, shape, width, height, attributes, surcharge_ore",
     )
     .eq("restaurant_id", staff.restaurantId)
     .neq("status", "ARCHIVED")
@@ -76,6 +80,8 @@ export default async function TablesPage() {
         tableNumber: row.table_number,
         zone: row.zone,
         capacity: row.capacity,
+        attributes: row.attributes ?? [],
+        surchargeOre: row.surcharge_ore ?? 0,
         status: row.status,
         url,
         qrSvg: await QRCode.toString(url, {
@@ -114,6 +120,8 @@ export default async function TablesPage() {
         <TableList
           tables={tables}
           labels={t.tables}
+          currency={staff.currency}
+          attributeLabels={dictionary(staff.locale).booking.attribute}
           tableLabel={t.orderType.table}
           openBillLabel={t.overview.stateOPPEN_NOTA}
         />

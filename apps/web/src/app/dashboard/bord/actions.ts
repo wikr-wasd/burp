@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { generatePublicId } from "@burp/core";
+import { generatePublicId, parseAmount } from "@burp/core";
 import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { asJson } from "@/lib/supabase/types";
@@ -196,5 +196,62 @@ export async function archiveTable(tableId: string): Promise<ActionResult> {
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/dashboard/bord");
+  return { ok: true };
+}
+
+/**
+ * Bordets egenskaper och vad det kostar extra att boka.
+ *
+ * Egenskaperna kommer ur en FAST lista och inte som fritext. Skälet är att de
+ * översätts: en gäst som bokar på tyska ska se "Am Fenster", och tre
+ * restauranger som skriver "fönster", "prozor" och "Fenster" hade blivit tre
+ * olika bord. Listan speglar check-villkoret i migration 0054.
+ *
+ * Tillägget är ett belopp i valutans minsta enhet och hamnar på NOTAN i
+ * restaurangen. Burp tar aldrig emot det, och det ingår inte i
+ * avgiftsunderlaget — se regel 8 om vad som är restaurangens pengar.
+ */
+export const TABLE_ATTRIBUTES = [
+  "VIEW",
+  "WINDOW",
+  "OUTDOOR",
+  "QUIET",
+  "BOOTH",
+  "ACCESSIBLE",
+] as const;
+
+export type TableAttribute = (typeof TABLE_ATTRIBUTES)[number];
+
+export async function saveTableBooking(
+  tableId: string,
+  input: { attributes: string[]; surcharge: string },
+): Promise<ActionResult> {
+  const staff = await requireStaff(["owner", "manager"]);
+
+  // Okända värden faller bort i stället för att nekas. Databasen skulle ändå
+  // avvisa dem, och ett constraint-brott är inte ett besked någon kan agera på.
+  const attributes = [...new Set(input.attributes)].filter((value): value is TableAttribute =>
+    (TABLE_ATTRIBUTES as readonly string[]).includes(value),
+  );
+
+  const trimmed = input.surcharge.trim();
+  const surchargeOre = trimmed === "" ? 0 : parseAmount(trimmed, staff.currency);
+
+  if (surchargeOre === null || surchargeOre < 0) {
+    return { ok: false, message: staffErrors(staff).surchargeInvalid };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("tables")
+    .update({ attributes, surcharge_ore: surchargeOre })
+    .eq("id", tableId)
+    .eq("restaurant_id", staff.restaurantId);
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/dashboard/bord");
+  // Borden syns i bokningsformuläret på den publika sidan.
+  revalidatePath("/r", "layout");
   return { ok: true };
 }
