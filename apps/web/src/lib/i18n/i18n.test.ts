@@ -262,6 +262,8 @@ describe("ordböckerna", () => {
        */
       "staff.bookings.table",
       "staff.bookings.seat",
+      // "stopp" är samma ord på norska. "Ny rute" och "Endret" är det inte.
+      "routes.stopCount",
       /*
        * "Avbryt" stavas likadant på norska och svenska.
        *

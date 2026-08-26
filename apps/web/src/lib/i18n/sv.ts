@@ -516,6 +516,38 @@ export const sv = {
    * en fast lista i migration 0054 just därför: en fritext hade betytt att
    * "prozor", "Fenster" och "fönster" är tre olika bord.
    */
+  /**
+   * Gästens egna matrundor.
+   *
+   * Det här är HENNES lista, inte ett paket Burp säljer. Skillnaden är
+   * juridisk och inte teknisk — se docs/BUSINESS.md — och texterna håller sig
+   * därför till att planera, aldrig till att köpa.
+   */
+  routes: {
+    intro: "Planera kvällen: förrätt på ett ställe, huvudrätt på nästa.",
+    newRoute: "Ny rutt",
+    newRoutePlaceholder: "Lördag i Baščaršija",
+    create: "Skapa",
+    creating: "Skapar…",
+    emptyTitle: "Inga rutter än",
+    emptyBody: "Skapa en och lägg till ställen från deras sidor.",
+    stopCount: "{n} stopp",
+    changed: "Ändrad {date}",
+    noStops: "Rutten är tom. Lägg till ett ställe från dess sida.",
+    addHint: "Lägg till fler ställen från deras egna sidor.",
+    saveToRoute: "Spara i en rutt",
+    addTo: "Lägg till {name} i en rutt",
+    added: "Tillagt.",
+    fromPrevious: "{distance} fågelvägen",
+    totalDistance: "{distance} totalt, fågelvägen",
+    moveUp: "Flytta {name} uppåt",
+    moveDown: "Flytta {name} nedåt",
+    removeStop: "Ta bort {name}",
+    delete: "Ta bort rutten",
+    deleteConfirm: "Ta bort rutten? Det går inte att ångra.",
+    failed: "Det gick inte. Försök igen.",
+  },
+
   booking: {
     title: "Boka bord",
     intro: "Välj dag, tid och bord. Ni behöver inget konto.",
@@ -574,6 +606,7 @@ export const sv = {
     /* Toppradens flikar. */
     orders: "Beställningar",
     favorites: "Favoriter",
+    routes: "Mina rutter",
     addresses: "Adresser",
     details: "Mina uppgifter",
     logOut: "Logga ut",

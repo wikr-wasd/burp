@@ -66,6 +66,29 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-08-26 — gästens matrundor
+
+Punkt 5 i färdplanen. Migration `0056`.
+
+Gästen sparar en ordnad lista över ställen: förrätt på ett, huvudrätt på nästa.
+Ordningen är HENNES och räknas inte fram — kortaste vägen mellan fem ställen är
+ett problem med en lösning, men kvällen någon vill ha är det inte. Avståndet
+mellan stoppen visas som fågelväg och etiketten säger det; en gångväg kräver en
+ruttberäkningstjänst, ett avtal och en kostnad per anrop.
+
+**Det här är gästens lista, inte ett paket Burp säljer.** Skillnaden är
+juridisk: mat och upplevelse som säljs ihop av en tredje part gränsar till
+paketreselagstiftning, och Kroatien är EU. Se `docs/BUSINESS.md`.
+
+Rutten är den enda gästytan som kräver konto, och skälet är att en sparad lista
+inte har någon att sparas åt utan ett. QR-beställning och bokning kräver
+fortfarande aldrig ett.
+
+Knappen på restaurangsidan är en LÄNK till kontoytan och inte en väljare på
+plats: restaurangsidan är cachad en timme, och den första besökarens rutter
+hade blivit allas. Bevakat av fyra röktester, bland dem att en annan gästs rutt
+svarar 404.
+
 ### Byggt 2026-08-26 — bordsbokning
 
 Punkt 4 i färdplanen. Byggd i fyra steg: schemat, gästens yta, personalens vy

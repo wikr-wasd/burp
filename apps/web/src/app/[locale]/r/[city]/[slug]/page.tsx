@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   availableSlots,
@@ -335,6 +336,20 @@ export default async function RestaurantPage({ params }: PageProps) {
           att leta. Ankarlänkar i stället för flikar: allt finns i HTML:en,
           Google indexerar hela sidan, och ingenting kräver JavaScript.
         */}
+        {/*
+          Rutten sparas på kontoytan, inte här.
+
+          Den här sidan är cachad en timme, så vilka rutter EN gäst har går inte
+          att rendera på den — den första besökarens rutter hade blivit allas.
+          Länken bär restaurangens id och valet görs på en yta som ändå är
+          personlig.
+        */}
+        <p className="mt-6">
+          <Link href={`/konto/rutter?lagg=${restaurant.id}`} className="link text-sm">
+            {t.routes.saveToRoute}
+          </Link>
+        </p>
+
         <nav aria-label={t.restaurant.onThisPage} className="mt-8 flex flex-wrap gap-2">
           {[
             { href: "#meny", label: t.restaurant.menu },

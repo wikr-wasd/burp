@@ -1729,6 +1729,48 @@ fi
 #
 # En nonce som inte når Next skripten är det tysta felet: policyn ser komplett
 # ut i huvudet, och varje skript på sidan rapporteras som blockerat.
+
+echo "→ Gästens rutter"
+
+# Rutterna är den enda gästytan som KRÄVER konto. QR-beställning och bokning gör
+# det aldrig — men en sparad lista har ingen att sparas åt utan ett konto.
+check_status "rutter kräver inloggning"      "/konto/rutter"                     307
+check_status "en rutt kräver inloggning"     "/konto/rutter/$(uuid)"             307
+
+# Rutten är privat. En annan gästs rutt ska inte gå att öppna med sitt id, och
+# svaret får inte skilja sig från "finns inte" — det hade bekräftat att den
+# existerar.
+if [ -n "$GUEST_COOKIE" ]; then
+  OTHER_ROUTE=$(sql "insert into public.routes (user_id, name)
+    select id, 'Nagon annans' from auth.users where email = 'agare@burp.test' returning id;" | head -1)
+
+  if [ -n "$OTHER_ROUTE" ]; then
+    GUEST_SEES=$(curl -s -o /dev/null -w '%{http_code}' \
+      -H "Cookie: $COOKIE_NAME=$GUEST_COOKIE" "$BASE/konto/rutter/$OTHER_ROUTE")
+
+    if [ "$GUEST_SEES" = "404" ]; then
+      pass "en annan gästs rutt svarar 404"
+    else
+      fail "gästen fick $GUEST_SEES på någon annans rutt, väntade 404"
+    fi
+
+    sql "delete from public.routes where id = '$OTHER_ROUTE';" > /dev/null
+  else
+    printf '  \033[33mhopp\033[0m  annan gästs rutt — kunde inte skapa testdata\n'
+  fi
+
+  OWN=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Cookie: $COOKIE_NAME=$GUEST_COOKIE" "$BASE/konto/rutter")
+
+  if [ "$OWN" = "200" ]; then
+    pass "den egna ruttlistan öppnas"
+  else
+    fail "den egna ruttlistan gav $OWN, väntade 200"
+  fi
+else
+  printf '  \033[33mhopp\033[0m  ruttens åtkomst (2 kontroller) — ingen gästsession\n'
+fi
+
 echo "→ Content-Security-Policy"
 
 CSP_HEAD=$(curl -s -D - -o /dev/null "$BASE/sv" | tr -d '\r')

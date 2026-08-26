@@ -21,7 +21,7 @@ export function GuestHeader({
   homeLabel,
 }: {
   guest: Guest;
-  current: "bestallningar" | "favoriter" | "adresser" | "uppgifter";
+  current: "bestallningar" | "favoriter" | "rutter" | "adresser" | "uppgifter";
   texts: Dictionary["account"];
   /** `site.home` — samma etikett som vinjetten bär överallt annars. */
   homeLabel: string;
@@ -46,6 +46,11 @@ export function GuestHeader({
           </NavLink>
           <NavLink href="/konto/favoriter" active={current === "favoriter"}>
             {texts.favorites}
+          </NavLink>
+          {/* Rutterna står efter favoriterna: båda är listor över ställen,
+              men favoriten är "jag gillar det här" och rutten "vi ska hit". */}
+          <NavLink href="/konto/rutter" active={current === "rutter"}>
+            {texts.routes}
           </NavLink>
           <NavLink href="/konto/adresser" active={current === "adresser"}>
             {texts.addresses}
