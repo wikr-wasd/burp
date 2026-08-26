@@ -138,6 +138,9 @@ check_status "hr är alias, inte adress" "/hr"                     404
 check_status "hälsokontroll"         "/api/health"                200
 check_status "restaurangsida (SEO)"  "/sv/r/sarajevo/cevabdzinica-zeljo"     200
 check_status "okänd restaurang"      "/sv/r/sarajevo/finns-inte"        404
+# Adressen utan språk är den som skrivs av och länkas internt. Den svarade
+# 404 tills 2026-08-26, och backoffice "Visa publikt" pekade rakt in i den.
+check_status "restaurangsida utan språk" "/r/sarajevo/cevabdzinica-zeljo" 307
 check_status "påhittat bordstoken"   "/t/AAAAAAAAAA"              404
 
 if curl -s "$BASE/api/health" | grep -q '"database":"ok"'; then
