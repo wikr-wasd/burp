@@ -56,12 +56,18 @@ export interface EditorItem {
    */
   unavailableUntil: string | null;
   unavailableReason: string | null;
+  /** Minsta antal portioner i samma beställning. 1 = ingen begränsning. */
+  minQuantity: number;
+  /** Rätter som föreslås i kundvagnen när den här ligger i den. */
+  upsellItemIds: string[];
   optionGroups: EditorOptionGroup[];
 }
 
 export interface EditorCategory {
   id: string;
   name: string;
+  /** Avdelningen är dryck. Kundvagnen föreslår ur den när gästen inte valt någon. */
+  isDrinks: boolean;
   items: EditorItem[];
 }
 
@@ -90,7 +96,7 @@ export default async function MenuPage() {
   const { data: categories } = menuIds.length
     ? await supabase
         .from("menu_categories")
-        .select("id, menu_id, name, sort_order")
+        .select("id, menu_id, name, is_drinks, sort_order")
         .in("menu_id", menuIds)
         .order("sort_order", { ascending: true })
     : { data: [] };
@@ -101,7 +107,7 @@ export default async function MenuPage() {
     ? await supabase
         .from("menu_items")
         .select(
-          "id, category_id, name, description, price_ore, vat_rate_bps, allergens, is_available, status, sort_order, image_url",
+          "id, category_id, name, description, price_ore, vat_rate_bps, allergens, is_available, status, sort_order, image_url, min_quantity",
         )
         .in("category_id", categoryIds)
         .order("sort_order", { ascending: true })
@@ -164,6 +170,17 @@ export default async function MenuPage() {
     }
   }
 
+  // Restaurangens egna förslag i kundvagnen.
+  const { data: upsells } = itemIds.length
+    ? await supabase
+        .from("item_upsells")
+        .select("source_item_id, suggested_item_id, sort_order")
+        .in("source_item_id", itemIds)
+        .order("sort_order", { ascending: true })
+    : { data: [] };
+
+  const upsellsByItem = group(upsells ?? [], (row) => row.source_item_id);
+
   const optionsByGroup = group(options ?? [], (option) => option.option_group_id);
   const groupsByItem = group(groups ?? [], (row) => row.menu_item_id);
   const itemsByCategory = group(items ?? [], (item) => item.category_id);
@@ -179,6 +196,7 @@ export default async function MenuPage() {
     categories: (categoriesByMenu.get(menu.id) ?? []).map((category) => ({
       id: category.id,
       name: category.name,
+      isDrinks: category.is_drinks,
       items: (itemsByCategory.get(category.id) ?? []).map((item) => ({
         id: item.id,
         name: item.name,
@@ -192,6 +210,8 @@ export default async function MenuPage() {
         pendingMedia: pendingByItem.get(item.id) ?? 0,
         unavailableUntil: availabilityByItem.get(item.id)?.until ?? null,
         unavailableReason: availabilityByItem.get(item.id)?.reason ?? null,
+        minQuantity: item.min_quantity,
+        upsellItemIds: (upsellsByItem.get(item.id) ?? []).map((row) => row.suggested_item_id),
         optionGroups: (groupsByItem.get(item.id) ?? []).map((row) => ({
           id: row.id,
           name: row.name,

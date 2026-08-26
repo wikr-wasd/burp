@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginDestination } from "@/app/logga-in/actions";
+import { MFA_CHALLENGE_PATH } from "@/lib/mfa-path";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -34,6 +35,28 @@ export function LoginForm({ next }: { next?: string }) {
       // sidan användas för att ta reda på vilka e-postadresser som finns.
       setError("Fel e-postadress eller lösenord.");
       setSubmitting(false);
+      return;
+    }
+
+    /*
+     * Har kontot en andra faktor? Då är inloggningen inte klar.
+     *
+     * Kontrollen måste ligga FÖRE `loginDestination()`. Med aal1 döljer RLS
+     * både `staff` och `platform_admins`, så serveråtgärden hade svarat
+     * `/konto` — och en ägare som skrivit rätt lösenord hade landat på
+     * gästsidan utan att förstå varför.
+     *
+     * Uträkningen sker lokalt ur den nyss hämtade sessionens JWT; inget
+     * nätanrop.
+     */
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      const target = new URL(MFA_CHALLENGE_PATH, window.location.origin);
+      if (next) target.searchParams.set("next", next);
+
+      router.refresh();
+      router.replace(`${target.pathname}${target.search}`);
       return;
     }
 

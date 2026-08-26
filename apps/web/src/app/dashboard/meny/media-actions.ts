@@ -24,6 +24,11 @@ export async function registerMedia(input: {
   menuItemId: string | null;
   storagePath: string;
   altText: string | null;
+  /**
+   * Vad restaurangbilden är (migration 0053). Utelämnad = huvudbild, vilket
+   * är vad varje uppladdning betydde innan logotyp och banner fanns.
+   */
+  purpose?: "HERO" | "LOGO" | "BANNER";
 }): Promise<ActionResult> {
   const staff = await requireStaff(["owner", "manager"]);
 
@@ -40,6 +45,8 @@ export async function registerMedia(input: {
 
   const supabase = await createClient();
 
+  const purpose = input.menuItemId === null ? (input.purpose ?? "HERO") : "HERO";
+
   const { error } = await supabase.from("media").insert({
     restaurant_id: staff.restaurantId,
     menu_item_id: input.menuItemId,
@@ -47,7 +54,8 @@ export async function registerMedia(input: {
     storage_path: input.storagePath,
     alt_text: input.altText?.slice(0, 200) || null,
     // Huvudbild bara när den inte hör till en enskild rätt.
-    is_primary: input.menuItemId === null,
+    is_primary: input.menuItemId === null && purpose === "HERO",
+    purpose,
     status: "PENDING",
   });
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   availableSlots,
+  checkAccentColor,
   COUNTRY_INFO,
   parseOpeningHours,
   parseOrderPolicy,
@@ -67,6 +68,9 @@ interface RestaurantRow {
   price_tier: number | null;
   cuisines: string[] | null;
   hero_image_url: string | null;
+  accent_hex: string | null;
+  logo_url: string | null;
+  banner_url: string | null;
   rating_average: number | null;
   rating_count: number;
   opening_hours: OpeningHours | null;
@@ -80,7 +84,7 @@ async function getRestaurant(city: string, slug: string): Promise<RestaurantRow 
   const { data } = await supabase
     .from("restaurants")
     .select(
-      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, rating_average, rating_count, opening_hours, order_policy, country, currency",
+      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, accent_hex, logo_url, banner_url, rating_average, rating_count, opening_hours, order_policy, country, currency",
     )
     .eq("slug", slug)
     .eq("city_slug", city)
@@ -133,6 +137,19 @@ export default async function RestaurantPage({ params }: PageProps) {
   // upp till en timme gammalt vore värre än inget. Regeln körs i stället på
   // servern när ordern läggs — `is_restaurant_open()` i POST /api/orders.
   const hours = todaysHours(restaurant.opening_hours, timeZone);
+
+  /*
+   * Restaurangens eget märke.
+   *
+   * Färgen prövas på nytt vid VISNING och inte bara när den sparades. Raden i
+   * databasen kan vara äldre än kravet — en färg som gick igenom innan
+   * mörkt läge fanns ska inte fortsätta visas oläslig för att den råkade bli
+   * sparad en gång. `checkAccentColor()` är samma funktion som redigeraren och
+   * serveråtgärden använder; det finns bara en bedömning av vad som duger.
+   */
+  const accent = restaurant.accent_hex ? checkAccentColor(restaurant.accent_hex) : null;
+  const logoUrl = resolveMediaUrl(restaurant.logo_url);
+  const bannerUrl = resolveMediaUrl(restaurant.banner_url);
 
   /*
    * Hämttider räknas på servern, inte i klienten. Öppettiderna och
@@ -210,20 +227,57 @@ export default async function RestaurantPage({ params }: PageProps) {
       {/* Hjältebilden ligger överst och i fullbredd. Det är det första en gäst
           som kommer från en Google-träff ser, och en restaurangsida utan bild
           läser som en katalogpost snarare än ett ställe att äta på. */}
-      <FoodImage
-        src={restaurantImage(restaurant.name, restaurant.city, resolveMediaUrl(restaurant.hero_image_url))}
-        alt=""
-        ratio="aspect-[16/9] sm:aspect-[21/9]"
-        className="mt-6 overflow-hidden rounded-xl"
-        priority
-      />
+      {/* Bannern ersätter hjältebilden när restaurangen laddat upp en. Två
+          breda bilder ovanpå varandra är inte en starkare start — det är en
+          sida där man måste rulla förbi två bilder för att nå namnet. */}
+      {bannerUrl ? (
+        <img
+          src={bannerUrl}
+          alt=""
+          className="mt-6 aspect-[21/9] w-full overflow-hidden rounded-xl object-cover"
+        />
+      ) : (
+        <FoodImage
+          src={restaurantImage(restaurant.name, restaurant.city, resolveMediaUrl(restaurant.hero_image_url))}
+          alt=""
+          ratio="aspect-[16/9] sm:aspect-[21/9]"
+          className="mt-6 overflow-hidden rounded-xl"
+          priority
+        />
+      )}
 
       <header className="mt-8">
+        {/*
+          Restaurangens eget märke.
+
+          Logotypen står FÖRE namnet och inte i stället för det: en bild kan
+          inte läsas upp, och sidan indexeras på sitt namn. Bandet under
+          rubriken är enda stället accentfärgen bär något — knappar, priser och
+          betyg följer Burps palett, eftersom ingenting får konkurrera med
+          maten (docs/DESIGN.md).
+        */}
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt=""
+            className="mb-4 h-16 w-auto max-w-[12rem] object-contain"
+          />
+        ) : null}
+
         <p className="label-caps">
           {[restaurant.cuisines?.join(" · "), restaurant.city].filter(Boolean).join(" · ")}
         </p>
 
         <h1 className="font-display mt-2 text-5xl sm:text-6xl">{restaurant.name}</h1>
+
+        {accent?.ok ? (
+          <p
+            className="mt-3 inline-block rounded-[var(--radius)] px-3 py-1 text-sm font-medium"
+            style={{ backgroundColor: accent.hex!, color: accent.textOn! }}
+          >
+            {restaurant.name}
+          </p>
+        ) : null}
 
         <p className="mt-3 text-[var(--muted)]">
           {restaurant.street_address}, {restaurant.postal_code} {restaurant.city}

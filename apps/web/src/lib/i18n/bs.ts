@@ -228,6 +228,8 @@ export const bs: Dictionary = {
     searchClear: "Poništi pretragu",
     searchEmpty: "Ništa na jelovniku ne odgovara upitu „{query}”.",
     searchEmptyHint: "Probajte kraću riječ ili pregledajte dijelove jelovnika.",
+    minQuantity: "Najmanje {n} porcije",
+    suggestionsTitle: "Želite li još nešto uz to?",
     soldOut: "Rasprodano za danas",
     ongoingOrderLink: "Pogledaj status i račun",
     ongoingOrder: "Imate narudžbu u toku",
@@ -541,6 +543,7 @@ export const bs: Dictionary = {
       handelser: "Događaji",
       personal: "Osoblje",
       installningar: "Postavke",
+      sakerhet: "Vaša prijava",
     },
 
     status: {
@@ -727,6 +730,22 @@ export const bs: Dictionary = {
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
     settings: {
+      identityTitle: "Vaš znak",
+      identityHint:
+        "Logo, baner i boja koja je vaša. Dugmad i cijene prate Burpov oblik — hrana treba da se istakne, ne sučelje.",
+      accentTitle: "Boja isticanja",
+      accentHint:
+        "Boja za trake i oznake na vašoj stranici. Provjerava se i za svijetli i za tamni prikaz prije spremanja.",
+      accentColor: "Boja",
+      accentPreview: "Ovako izgleda",
+      accentContrast: "Kontrast: {text}:1 za tekst, {light}:1 na svijetloj podlozi, {dark}:1 na tamnoj.",
+      accentSaved: "Boja je spremljena.",
+      logoTitle: "Logo",
+      logoHint: "Prikazuje se na vrhu vaše stranice. Burp ga pregleda prije objave.",
+      logoUpload: "Otpremi logo",
+      bannerTitle: "Baner",
+      bannerHint: "Široka traka na vrhu stranice. Burp je pregleda prije objave.",
+      bannerUpload: "Otpremi baner",
       hoursTitle: "Radno vrijeme",
       hoursHint:
         "Gosti mogu naručiti samo dok ste otvoreni. Više smjena dnevno za ručak i večer. Ako zatvarate poslije ponoći, upišite vrijeme kakvo jeste — 22:00 do 02:00 znači da radite do dva ujutro.",
@@ -738,6 +757,26 @@ export const bs: Dictionary = {
         "Kuhinjski ekran se već oglašava kad je otvoren. Ovo je za kad nije — obavijest stiže na telefon i kad niko ne stoji pred ekranom.",
       punchTitle: "Kartica vjernosti",
       punchHint: "Deseti dolazak častite. Broji dolaske, ne iznose.",
+      mfaTitle: "Dvofaktorska prijava",
+      mfaHint:
+        "Kod iz telefona uz lozinku. Bez toga jedna procurjela lozinka otvara meni, cijene, historiju narudžbi i obračun.",
+      mfaStatusOn: "Dvofaktorska prijava je uključena",
+      mfaStatusOff: "Račun čuva samo lozinka",
+      mfaEnable: "Uključi dvofaktorsku prijavu",
+      mfaScanHint:
+        "Skenirajte kod pomoću Google Authenticatora, 1Passworda ili druge aplikacije za autentifikaciju.",
+      mfaSecretHint: "Ne možete skenirati? Upišite ključ u aplikaciju:",
+      mfaCodeLabel: "Kod iz aplikacije",
+      mfaVerify: "Potvrdi",
+      mfaCancel: "Odustani",
+      mfaDisable: "Isključi",
+      mfaDisableConfirm:
+        "Isključiti dvofaktorsku prijavu? Račun će tada čuvati samo lozinka.",
+      mfaEnabled: "Gotovo. Sljedeća prijava tražit će kod.",
+      mfaFailed: "Nije uspjelo. Pokušajte ponovo.",
+      mfaCodeFailed:
+        "Kod se ne poklapa. Provjerite da li je sat na telefonu tačan i pokušajte ponovo.",
+      mfaLoading: "Učitavanje prijave…",
       policyTitle: "Pravila narudžbi",
       policyHint: "Šta gost smije mijenjati nakon što je naručio, i koliko dugo.",
 
@@ -920,6 +959,13 @@ export const bs: Dictionary = {
       soldUntil: "Rasprodano do",
       reasonForGuest: "Razlog za gosta",
       reasonPlaceholder: "Npr. Nema do petka",
+      drinksCategory: "Piće",
+      minQuantity: "Najmanja količina",
+      minQuantityHint: "1 = bez ograničenja. Povećajte za ono što se sprema u šarži.",
+      upsell: "Predloži uz ovo",
+      upsellHint: "Vidi se u korpi kada je jelo u njoj.",
+      upsellAdd: "Dodaj prijedlog…",
+      upsellRemove: "Ukloni prijedlog {name}",
       markSoldOut: "Označi kao rasprodano",
     },
 
@@ -1097,6 +1143,11 @@ export const bs: Dictionary = {
       endAfterStart: "Vrijeme završetka mora biti poslije početka.",
       menuNoPublishedItems: "Jelovnik još nema objavljenih jela. Objavite bar jedno jelo.",
       categoryNeedsName: "Kategorija treba naziv.",
+      accentInvalid: "Upišite boju kao #rrggbb, na primjer #dc2626.",
+      accentUnreadable:
+        "Na toj boji se ne može čitati ni bijeli ni crni tekst. Probajte nijansu tamniju ili svjetliju.",
+      accentInvisible:
+        "Boja se gubi na pozadini u svijetlom ili tamnom prikazu. Probajte boju s više dubine.",
       itemNeedsName: "Jelo treba naziv.",
       itemNotFound: "Jelo nije pronađeno.",
       groupNeedsName: "Grupa treba naziv.",

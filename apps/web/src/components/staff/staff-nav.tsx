@@ -11,6 +11,7 @@ import {
   ReceiptText,
   ScrollText,
   Settings,
+  ShieldCheck,
   Ticket,
   TrendingUp,
   Users,
@@ -54,7 +55,8 @@ export type StaffSection =
   | "avrakning"
   | "handelser"
   | "personal"
-  | "installningar";
+  | "installningar"
+  | "sakerhet";
 
 /**
  * En navigeringspunkt.
@@ -96,6 +98,21 @@ const SETTINGS: NavItem = {
   href: "/dashboard/installningar",
   icon: Settings,
   roles: MANAGEMENT,
+};
+
+/**
+ * Den egna inloggningen.
+ *
+ * Står utanför både `STAFF_NAV` och `SETTINGS` av exakt samma skäl som
+ * språkväljaren: Inställningar är restaurangens och kräver ägare eller chef,
+ * men andra faktorn är personens egen — och kocken, som aldrig ser den sidan,
+ * har den inloggning som står påslagen längst av alla.
+ */
+const SECURITY: NavItem = {
+  section: "sakerhet",
+  href: "/dashboard/sakerhet",
+  icon: ShieldCheck,
+  roles: ["owner", "manager", "staff", "kitchen"],
 };
 
 function visible(items: readonly NavItem[], role: StaffRole): NavItem[] {
@@ -144,6 +161,12 @@ export function StaffSidebar({
         <NavLink key={item.section} item={item} label={t.section[item.section]} active={item.section === current} />
       ))}
 
+      <NavLink
+        item={SECURITY}
+        label={t.section.sakerhet}
+        active={current === "sakerhet"}
+      />
+
       {/* Språket står näst sist och inte under Inställningar. Inställningar
           är restaurangens och kräver ägare eller chef; det här är personens
           eget, och kocken — som inte ser den sidan alls — måste nå det. */}
@@ -173,7 +196,11 @@ export function StaffTopBar({
   current: StaffSection;
 }) {
   const t = dictionary(staff.locale).staff;
-  const items = [...visible(STAFF_NAV, staff.role), ...visible([SETTINGS], staff.role)];
+  const items = [
+    ...visible(STAFF_NAV, staff.role),
+    ...visible([SETTINGS], staff.role),
+    SECURITY,
+  ];
 
   return (
     <div className="border-b border-[var(--rule)] bg-[var(--surface)] lg:hidden">

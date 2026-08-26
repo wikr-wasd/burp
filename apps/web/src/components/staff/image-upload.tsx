@@ -25,12 +25,18 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 export function ImageUpload({
   restaurantId,
   menuItemId,
+  purpose,
   label = "Ladda upp bild",
   labels,
   currentUrl,
 }: {
   restaurantId: string;
   menuItemId?: string;
+  /**
+   * Vad restaurangbilden är: huvudbild, logotyp eller banner (migration 0053).
+   * Saknar betydelse för en bild som hör till en rätt.
+   */
+  purpose?: "HERO" | "LOGO" | "BANNER";
   label?: string;
   /** Bilduppladdningens besked ur ordboken. Rena strängar — klientkod. */
   labels: Dictionary["staff"]["image"];
@@ -83,6 +89,7 @@ export function ImageUpload({
         menuItemId: menuItemId ?? null,
         storagePath: path,
         altText: file.name.replace(/\.[^.]+$/, ""),
+        purpose,
       });
 
       if (result.ok) {

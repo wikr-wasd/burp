@@ -204,6 +204,8 @@ export const no: Dictionary = {
     searchClear: "Tøm søket",
     searchEmpty: "Ingenting på menyen passer med «{query}».",
     searchEmptyHint: "Prøv et kortere ord, eller bla gjennom delene.",
+    minQuantity: "Minst {n} porsjoner",
+    suggestionsTitle: "Vil du ha noe attåt?",
     soldOut: "Utsolgt i dag",
     ongoingOrderLink: "Se status og regning",
     ongoingOrder: "Du har en bestilling på gang",
@@ -518,6 +520,7 @@ export const no: Dictionary = {
       handelser: "Hendelser",
       personal: "Ansatte",
       installningar: "Innstillinger",
+      sakerhet: "Din innlogging",
     },
 
     status: {
@@ -692,6 +695,22 @@ export const no: Dictionary = {
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
     settings: {
+      identityTitle: "Deres merke",
+      identityHint:
+        "Logo, banner og en farge som er deres. Knapper og priser følger Burps form — det er maten som skal skille seg ut, ikke grensesnittet.",
+      accentTitle: "Aksentfarge",
+      accentHint:
+        "En farge til bånd og merker på siden deres. Den prøves mot både lys og mørk modus før den lagres.",
+      accentColor: "Farge",
+      accentPreview: "Slik ser den ut",
+      accentContrast: "Kontrast: {text}:1 for teksten, {light}:1 mot lys flate, {dark}:1 mot mørk.",
+      accentSaved: "Fargen er lagret.",
+      logoTitle: "Logo",
+      logoHint: "Vises øverst på siden deres. Burp ser over den før den publiseres.",
+      logoUpload: "Last opp logo",
+      bannerTitle: "Banner",
+      bannerHint: "Et bredt bånd øverst på siden. Burp ser over det før det publiseres.",
+      bannerUpload: "Last opp banner",
       hoursTitle: "Åpningstider",
       hoursHint:
         "Gjester kan bare bestille når dere har åpent. Flere skift per dag til lunsj og kveld. Stenger dere etter midnatt, skriver dere sluttiden som den er — 22:00 til 02:00 betyr at dere har åpent til to på natten.",
@@ -703,6 +722,26 @@ export const no: Dictionary = {
         "Kjøkkenskjermen sier allerede fra når den er åpen. Dette er for når den ikke er det — varselet når frem til telefonen selv om ingen sitter foran skjermen.",
       punchTitle: "Klippekort",
       punchHint: "Tiende besøk spanderer dere. Teller besøk, ikke beløp.",
+      mfaTitle: "Tostegsverifisering",
+      mfaHint:
+        "En kode fra telefonen i tillegg til passordet. Uten den rekker ett lekket passord til menyen, prisene, ordrehistorikken og oppgjøret.",
+      mfaStatusOn: "Tostegsverifisering er på",
+      mfaStatusOff: "Bare passordet beskytter kontoen",
+      mfaEnable: "Slå på tostegsverifisering",
+      mfaScanHint:
+        "Skann ruten med Google Authenticator, 1Password eller en annen autentiseringsapp.",
+      mfaSecretHint: "Får du ikke skannet? Skriv inn nøkkelen i appen:",
+      mfaCodeLabel: "Kode fra appen",
+      mfaVerify: "Bekreft",
+      mfaCancel: "Avbryt",
+      mfaDisable: "Slå av",
+      mfaDisableConfirm:
+        "Slå av tostegsverifiseringen? Kontoen beskyttes da bare av passordet sitt.",
+      mfaEnabled: "Ferdig. Neste innlogging spør etter en kode.",
+      mfaFailed: "Det gikk ikke. Prøv igjen.",
+      mfaCodeFailed:
+        "Koden stemmer ikke. Sjekk at klokken på telefonen går riktig, og prøv igjen.",
+      mfaLoading: "Leser innloggingen…",
       policyTitle: "Bestillingsregler",
       policyHint: "Hva gjesten får endre etter at bestillingen er lagt inn, og hvor lenge.",
 
@@ -883,6 +922,13 @@ export const no: Dictionary = {
       soldUntil: "Utsolgt til",
       reasonForGuest: "Grunn for gjesten",
       reasonPlaceholder: "F.eks. Utsolgt til fredag",
+      drinksCategory: "Drikke",
+      minQuantity: "Minste antall",
+      minQuantityHint: "1 = ingen grense. Øk den for det som lages i porsjonssats.",
+      upsell: "Foreslå til denne",
+      upsellHint: "Vises i handlekurven mens retten ligger der.",
+      upsellAdd: "Legg til et forslag…",
+      upsellRemove: "Fjern forslaget {name}",
       markSoldOut: "Merk som utsolgt",
     },
 
@@ -1060,6 +1106,11 @@ export const no: Dictionary = {
       endAfterStart: "Sluttidspunktet må ligge etter starttidspunktet.",
       menuNoPublishedItems: "Menyen har ingen publiserte retter ennå. Publiser minst én rett først.",
       categoryNeedsName: "Kategorien trenger et navn.",
+      accentInvalid: "Skriv fargen som #rrggbb, for eksempel #dc2626.",
+      accentUnreadable:
+        "Verken hvit eller svart tekst kan leses på den fargen. Prøv en anelse mørkere eller lysere.",
+      accentInvisible:
+        "Fargen forsvinner mot bakgrunnen i lys eller mørk modus. Prøv en farge med mer dybde.",
       itemNeedsName: "Retten trenger et navn.",
       itemNotFound: "Retten ble ikke funnet.",
       groupNeedsName: "Gruppen trenger et navn.",

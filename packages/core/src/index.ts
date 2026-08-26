@@ -7,6 +7,7 @@
  */
 
 export * from "./country";
+export * from "./color";
 export * from "./money";
 export * from "./types";
 export * from "./pricing";

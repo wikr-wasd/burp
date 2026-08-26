@@ -4,6 +4,10 @@ import { ChartNoAxesColumn } from "lucide-react";
 import { formatMoney, type CurrencyCode } from "@burp/core";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PlatformHeader } from "@/components/platform/platform-header";
+import { MfaReset } from "@/components/platform/mfa-reset";
+import { MfaSettings } from "@/components/staff/mfa-settings";
+import { mfaLabels } from "@/components/staff/mfa-labels";
+import { untranslatedSurface } from "@/lib/i18n";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
 import { createClient } from "@/lib/supabase/server";
@@ -224,6 +228,42 @@ export default async function BackofficePage({ searchParams }: PageProps) {
             </ul>
           ) : null}
         </section>
+
+        {/*
+          Andra faktorn för Burps egen personal.
+
+          Ligger på översikten och inte på en egen sida därför att backoffice
+          inte har några inställningar i övrigt — en sida med ett enda kort
+          hade varit ett skal. Texterna skickas in som svenska med
+          `untranslatedSurface()`: en plattformsadmin är inte personal någonstans
+          och har ingen `staff.locale` att läsa.
+        */}
+        <section className="mt-8">
+          <h2 className="font-display text-2xl">Din inloggning</h2>
+          <p className="mt-1 text-sm opacity-60">
+            Ett konto här ser varje restaurangs order, avgifter och avräkning. Andra
+            faktorn gäller i databasen och inte bara i gränssnittet — se migration 0051.
+          </p>
+          <MfaSettings labels={mfaLabels(untranslatedSurface().staff.settings)} />
+        </section>
+
+        {/*
+          Support-åtgärden, och bara för admin och ägare.
+
+          Den som kan ta bort någon annans andra faktor kan också ta bort en
+          restaurangägares. `resetMfaFactors()` kräver därför samma roller som
+          övriga skrivningar här, och prövningen sker i serveråtgärden — den
+          här flaggan avgör bara om formuläret ritas.
+        */}
+        {admin.role === "support" ? null : (
+          <section className="mt-8">
+            <h2 className="font-display text-2xl">Återställ tvåstegsverifiering</h2>
+            <p className="mt-1 text-sm opacity-60">
+              För den som bytt telefon och inte längre kommer åt sin kod.
+            </p>
+            <MfaReset />
+          </section>
+        )}
 
         <p className="mt-8 text-sm opacity-60">
           Burps intäkt räknas på avgiftsraderna som faktiskt skrevs, inte på dagens procentsats.

@@ -58,7 +58,7 @@ export async function priceRequestedItems(input: {
 
   const { data: menuItems, error: menuError } = await supabase
     .from("menu_items")
-    .select("id, restaurant_id, name, price_ore, vat_rate_bps, is_available, status")
+    .select("id, restaurant_id, name, price_ore, vat_rate_bps, is_available, status, min_quantity")
     .in("id", menuItemIds);
 
   if (menuError || !menuItems || menuItems.length !== menuItemIds.length) {
@@ -155,6 +155,15 @@ export async function priceRequestedItems(input: {
       vatRateBps: row.vat_rate_bps,
       isAvailable: row.is_available && !scheduledOut.has(row.id),
       status: row.status,
+      /*
+       * Minsta antal kontrolleras HÄR och inte bara i menyn.
+       *
+       * Samma lärdom som `item_availability` ovan: menyvyn är klientkod, och
+       * den som anropar API:t direkt har aldrig sett den. Regeln summeras över
+       * orderns alla rader i `buildPricedLines` — per rad hade den gått att gå
+       * runt genom att välja olika tillval.
+       */
+      minQuantity: row.min_quantity,
     })),
     optionGroups: optionGroups.map((row) => ({
       id: row.id,

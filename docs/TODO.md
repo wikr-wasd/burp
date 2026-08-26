@@ -11,7 +11,7 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-08-22**, branch `dev`.
+Senast uppdaterad **2026-08-26**, branch `dev`.
 
 Fas 1 är byggd i sin helhet, och **kortbetalning ingår nu**. Produkten går att
 använda rakt igenom: en gäst skannar en dekal, beställer vid bordet, betalar med
@@ -65,6 +65,62 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   upptäcktslistorna har samma tak på åtta rader med "Alla städer" som
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
+
+### Byggt 2026-08-26
+
+Första blocket ur genomgången av Williams tio punkter. Färdplanen över alla tio
+ligger i planen; det här är de tre som byggdes.
+
+- **Tvåstegsverifiering med TOTP** — Google Authenticator och likvärdiga appar,
+  för personal och plattformsadmin. SMS avfärdades: det faller för SIM-swap,
+  kräver ett leverantörsavtal och kostar per meddelande i BA och RS.
+
+  Grinden ligger i **databasen** och inte i gränssnittet. `mfa_satisfied()`
+  (migration 0051) sitter inuti `is_staff_of`, `has_role_at`,
+  `is_platform_admin` och `has_platform_role` — ett ställe, inte trettio
+  policyer, och en ny policy ärver kravet utan att någon minns det. En spärr
+  enbart i proxy:n hade gått runt genom att anropa PostgREST med samma
+  access-token, vilket är precis vad röktestet nu gör för att bevisa saken.
+
+  Kravet gäller den som HAR en verifierad faktor. Det är inte en eftergift utan
+  det som gör införandet möjligt: ett krav som gällde alla från dag ett hade
+  låst ute varenda befintlig anställd samtidigt, seed-personalen inräknad.
+
+  Ytan ligger på `/dashboard/sakerhet` och når varje roll — samma resonemang som
+  språkväljaren, eftersom Inställningar kräver ägare eller chef men köksskärmen
+  är den inloggning som står påslagen längst. Backoffice har samma panel på
+  svenska, plus en återställning för den som bytt telefon: Supabase har inga
+  reservkoder, och åtgärden loggas oföränderligt i `security_events`.
+
+- **Merförsäljning, dryck och minsta antal** *(migration 0052)*. Kundvagnen
+  visar restaurangens egna förslag — inte en algoritm — och drycken när gästen
+  inte valt någon. `menu_categories.is_drinks` sätts av restaurangen, eftersom
+  "Pića", "Getränke" och "Dryck" är samma sak för en gäst men tre strängar för
+  en jämförelse.
+
+  `min_quantity` gör punjene paprike beställbar i sats om fyra. Regeln gäller
+  **beställningen och inte raden** — två med fyllning och två utan är fyra
+  portioner för köket — och den kontrolleras i `POST /api/orders`, inte bara i
+  menyn. Samma lärdom som `item_availability`: menyvyn är klientkod.
+
+  Ett förslag kan inte peka på en annan restaurangs rätt. Det är en sammansatt
+  främmande nyckel mot `(id, restaurant_id)` och inte en kontroll i appen.
+
+- **Restaurangens egen identitet** *(migration 0053)* — logotyp, banner och en
+  accentfärg. Logotyp och banner går genom samma granskning som övriga bilder;
+  `media.purpose` avgör vilken kolumn `publish_approved_media()` skriver.
+
+  Färgen prövas av `checkAccentColor()` i `@burp/core`. **Första utkastet av
+  den kontrollen hade avvisat varje färg:** 4,5:1 mot både vitt och mörka
+  lägets yta är matematiskt omöjligt, eftersom kraven pekar åt motsatta håll.
+  Färgen prövas därför som bakgrund — textfärgen väljs automatiskt — och måste
+  dessutom synas mot båda ytorna. Samma funktion körs i redigeraren, i
+  serveråtgärden och vid visning: en färg som sparades innan mörkt läge fanns
+  ska inte fortsätta visas oläslig.
+
+Verifierat: `db:validate`, `type-check`, `lint`, `test` (527), `build`,
+`verify-schema.sh` med fem nya logiktester, och `smoke.sh` med fem nya
+kontroller — alla gröna.
 
 ### Byggt 2026-08-24
 

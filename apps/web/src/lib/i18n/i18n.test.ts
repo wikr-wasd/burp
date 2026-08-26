@@ -171,6 +171,14 @@ describe("ordböckerna", () => {
        */
       "country.HR",
       "country.RS",
+      /*
+       * "Banner" är samma lånord här som på svenska.
+       *
+       * Notera vad som INTE står här: `bannerHint` och `bannerUpload` skiljer
+       * sig, vilket är kvittot på att raden är en riktig kollision och inte en
+       * oöversatt ruta.
+       */
+      "staff.settings.bannerTitle",
     ],
 
     en: [
@@ -179,6 +187,14 @@ describe("ordböckerna", () => {
       "staff.kitchen.minutes",
       // "min" igen, och "{n} min" med den.
       "staff.kitchen.prepMinutes",
+      /*
+       * "Banner" är samma lånord här som på svenska.
+       *
+       * Notera vad som INTE står här: `bannerHint` och `bannerUpload` skiljer
+       * sig, vilket är kvittot på att raden är en riktig kollision och inte en
+       * oöversatt ruta.
+       */
+      "staff.settings.bannerTitle",
     ],
 
     /*
@@ -221,6 +237,22 @@ describe("ordböckerna", () => {
       "weekday.wed",
       "weekday.thu",
       "weekday.fri",
+      /*
+       * "Avbryt" stavas likadant på norska och svenska.
+       *
+       * Notera vilka av tvåstegspanelens texter som INTE står här: `mfaVerify`
+       * är "Bekreft" mot "Bekräfta" och `mfaDisable` är "Slå av" mot "Stäng
+       * av". Kollisionen sitter i ett enda ord, inte i avsnittet.
+       */
+      "staff.settings.mfaCancel",
+      /*
+       * "Banner" är samma lånord här som på svenska.
+       *
+       * Notera vad som INTE står här: `bannerHint` och `bannerUpload` skiljer
+       * sig, vilket är kvittot på att raden är en riktig kollision och inte en
+       * oöversatt ruta.
+       */
+      "staff.settings.bannerTitle",
       /*
        * Värvningssidan. Fyra fältetiketter som stavas likadant på båda språken.
        *

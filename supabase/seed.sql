@@ -472,3 +472,50 @@ from (values
 ) as v(nr, plan, x, y, shape, w, h, rot)
 where t.restaurant_id = '11111111-1111-1111-1111-111111111111'
   and t.table_number = v.nr;
+
+-- ── Merförsäljning, dryckesavdelning och en rätt som lagas i sats ──────────
+--
+-- Utan det här går tre funktioner inte att bedöma i seed-datan: kundvagnens
+-- förslag har inget att föreslå, dryckesgenvägen vet inte vilken avdelning som
+-- är dryck, och ingen rätt har en satsgräns att pröva mot.
+
+update public.menu_categories
+set is_drinks = true
+where id = '33333333-3333-3333-3333-333333333332';
+
+-- Punjene paprike lagas i sats om fyra. Restaurangen tar inte fram ett helt
+-- ugnsbleck för en portion, och menyn säger det i stället för att kassan gör
+-- det efteråt.
+insert into public.menu_items (
+  id, category_id, restaurant_id, name, description,
+  price_ore, vat_rate_bps, allergens, is_available, status, sort_order, min_quantity
+)
+values
+  ('44444444-4444-4444-4444-44444444aa01',
+   '33333333-3333-3333-3333-333333333331',
+   '11111111-1111-1111-1111-111111111111',
+   'Punjene paprike', 'Paprike punjene mesom i rižom, iz pećnice',
+   1400, 1700, array['gluten']::text[], true, 'PUBLISHED', 9, 4);
+
+-- Restaurangens egna förslag. Ingen algoritm: den som står vid grillen vet att
+-- ćevapi går med jogurt och att kaffet säljs efter baklavan.
+insert into public.item_upsells (restaurant_id, source_item_id, suggested_item_id, sort_order)
+values
+  -- Till ćevapi: jogurt och pommes.
+  ('11111111-1111-1111-1111-111111111111',
+   '44444444-4444-4444-4444-444444444441',
+   '44444444-4444-4444-4444-4444444444e2', 1),
+  ('11111111-1111-1111-1111-111111111111',
+   '44444444-4444-4444-4444-444444444441',
+   '44444444-4444-4444-4444-4444444444d3', 2),
+  -- Till punjene paprike: en sallad.
+  ('11111111-1111-1111-1111-111111111111',
+   '44444444-4444-4444-4444-44444444aa01',
+   '44444444-4444-4444-4444-4444444444d4', 1);
+
+-- Restaurangens egen färg. Ett dovt grönt som klarar både ljust och mörkt läge
+-- — se checkAccentColor() i @burp/core. Logotyp och banner sätts inte här:
+-- de kräver en fil i Storage och ska gå genom granskningen som allt annat.
+update public.restaurants
+set accent_hex = '#15803d'
+where id = '11111111-1111-1111-1111-111111111111';

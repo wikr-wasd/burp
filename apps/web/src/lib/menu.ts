@@ -46,13 +46,33 @@ export interface MenuItem {
    * gör det inte. Null när rätten är tillgänglig eller när inget skäl angetts.
    */
   unavailableReason: string | null;
+  /**
+   * Minsta antal portioner i samma beställning (migration 0052).
+   *
+   * 1 för nästan allt. Högre för det som lagas i sats — punjene paprike sätts
+   * inte i ugnen för en portion.
+   */
+  minQuantity: number;
   optionGroups: MenuOptionGroup[];
+  /**
+   * Restaurangens egna förslag när rätten ligger i korgen: id på andra rätter
+   * i samma meny. Bär aldrig pris — det hämtas ur menyn när ordern läggs.
+   */
+  upsellItemIds: string[];
 }
 
 export interface MenuCategory {
   id: string;
   name: string;
   description: string | null;
+  /**
+   * Avdelningen är drycker.
+   *
+   * Sätts av restaurangen och gissas aldrig ur namnet: menyn skrivs på
+   * restaurangens eget språk, och "Pića", "Getränke" och "Dryck" är samma sak
+   * för en gäst men tre strängar för en jämförelse.
+   */
+  isDrinks: boolean;
   items: MenuItem[];
 }
 
@@ -104,7 +124,7 @@ export async function getActiveMenu(
   // enklare att se vad som faktiskt hämtas.
   const { data: categories } = await supabase
     .from("menu_categories")
-    .select("id, name, description, sort_order")
+    .select("id, name, description, is_drinks, sort_order")
     .eq("menu_id", menu.id)
     .order("sort_order", { ascending: true });
 
@@ -115,7 +135,7 @@ export async function getActiveMenu(
   const { data: items } = await supabase
     .from("menu_items")
     .select(
-      "id, category_id, name, description, price_ore, vat_rate_bps, allergens, image_url, is_available, sort_order",
+      "id, category_id, name, description, price_ore, vat_rate_bps, allergens, image_url, is_available, min_quantity, sort_order",
     )
     .in(
       "category_id",
@@ -173,6 +193,28 @@ export async function getActiveMenu(
         .order("sort_order", { ascending: true })
     : { data: [] };
 
+  /*
+   * Förslagen i kundvagnen (migration 0052).
+   *
+   * Hämtas för menyns egna rätter och filtreras sedan mot dem igen: ett
+   * förslag kan peka på en rätt som ligger i en annan meny — lunchmenyns
+   * kaffe finns inte på kvällsmenyn — och ett förslag gästen inte kan lägga
+   * till är sämre än inget förslag.
+   */
+  const { data: upsells } = itemIds.length
+    ? await supabase
+        .from("item_upsells")
+        .select("source_item_id, suggested_item_id, sort_order")
+        .in("source_item_id", itemIds)
+        .order("sort_order", { ascending: true })
+    : { data: [] };
+
+  const itemIdSet = new Set(itemIds);
+  const upsellsByItem = groupBy(
+    (upsells ?? []).filter((row) => itemIdSet.has(row.suggested_item_id)),
+    (row) => row.source_item_id,
+  );
+
   const optionsByGroup = groupBy(options ?? [], (option) => option.option_group_id);
   const groupsByItem = groupBy(groups ?? [], (group) => group.menu_item_id);
   const itemsByCategory = groupBy(items ?? [], (item) => item.category_id);
@@ -185,6 +227,7 @@ export async function getActiveMenu(
         id: category.id,
         name: category.name,
         description: category.description,
+        isDrinks: category.is_drinks,
         items: (itemsByCategory.get(category.id) ?? []).map((item) => {
           const scheduled = availabilityState(
             (rulesByItem.get(item.id) ?? []) as AvailabilityRule[],
@@ -204,6 +247,7 @@ export async function getActiveMenu(
           // beslut och ska aldrig kunna kringgås av ett schema.
           isAvailable: item.is_available && scheduled.isAvailable,
           unavailableReason: scheduled.isAvailable ? null : scheduled.reason,
+          minQuantity: item.min_quantity,
           optionGroups: (groupsByItem.get(item.id) ?? []).map((group) => ({
             id: group.id,
             name: group.name,
@@ -216,6 +260,7 @@ export async function getActiveMenu(
               isAvailable: option.is_available,
             })),
           })),
+          upsellItemIds: (upsellsByItem.get(item.id) ?? []).map((row) => row.suggested_item_id),
           };
         }),
       }))

@@ -240,6 +240,8 @@ export interface MenuItemPatch {
   allergens?: string[];
   isAvailable?: boolean;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  /** Minsta antal portioner i samma beställning. 1 = ingen begränsning. */
+  minQuantity?: number;
 }
 
 export async function updateMenuItem(itemId: string, patch: MenuItemPatch): Promise<ActionResult> {
@@ -288,6 +290,20 @@ export async function updateMenuItem(itemId: string, patch: MenuItemPatch): Prom
 
   if (patch.isAvailable !== undefined) update["is_available"] = patch.isAvailable;
   if (patch.status !== undefined) update["status"] = patch.status;
+
+  if (patch.minQuantity !== undefined) {
+    /*
+     * Taket är 99 därför att orderschemat inte tar emot fler per rad. En gräns
+     * på hundra hade gjort rätten omöjlig att beställa — vilket ser ut som en
+     * bugg i beställningen och är ett datafel i menyn. Check-constraintet i
+     * migration 0052 säger samma sak; det här finns för att ge ett begripligt
+     * fel i stället för ett constraint-brott.
+     */
+    if (!Number.isInteger(patch.minQuantity) || patch.minQuantity < 1 || patch.minQuantity > 99) {
+      return fail("Minsta antal måste vara mellan 1 och 99.");
+    }
+    update["min_quantity"] = patch.minQuantity;
+  }
 
   if (Object.keys(update).length === 0) return ok;
 
@@ -516,6 +532,89 @@ export async function clearItemAvailability(itemId: string): Promise<ActionResul
     .from("item_availability")
     .delete()
     .eq("menu_item_id", itemId);
+
+  return error ? fail(error.message) : done();
+}
+
+/**
+ * Markerar en avdelning som dryck.
+ *
+ * Kundvagnen föreslår något att dricka när gästen inte redan valt det, och
+ * måste veta vilka rätter som är drycker. Det går inte att gissa ur namnet:
+ * menyn skrivs på restaurangens eget språk, och "Pića", "Getränke" och "Dryck"
+ * är samma sak för en gäst men tre strängar för en jämförelse.
+ */
+export async function setCategoryIsDrinks(
+  categoryId: string,
+  isDrinks: boolean,
+): Promise<ActionResult> {
+  await requireStaff(EDITOR_ROLES);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("menu_categories")
+    .update({ is_drinks: isDrinks })
+    .eq("id", categoryId);
+
+  return error ? fail(error.message) : done();
+}
+
+/**
+ * Lägger till ett förslag: "till den här rätten, föreslå den där".
+ *
+ * Ingen prisuppgift skickas eller sparas. Förslaget säger VAD, aldrig vad det
+ * kostar — priset hämtas ur menyn när ordern läggs (regel 2).
+ *
+ * Att båda rätterna hör till restaurangen kontrolleras av den sammansatta
+ * främmande nyckeln i migration 0052, inte här. `restaurant_id` sätts ur
+ * sessionen, så en manipulerad `suggested_item_id` från en annan restaurang
+ * faller på en nyckelöverträdelse i stället för att sparas.
+ */
+export async function addUpsell(
+  sourceItemId: string,
+  suggestedItemId: string,
+): Promise<ActionResult> {
+  const staff = await requireStaff(EDITOR_ROLES);
+
+  if (sourceItemId === suggestedItemId) {
+    return fail("En rätt kan inte föreslå sig själv.");
+  }
+
+  const supabase = await createClient();
+
+  const { data: last } = await supabase
+    .from("item_upsells")
+    .select("sort_order")
+    .eq("source_item_id", sourceItemId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase.from("item_upsells").insert({
+    restaurant_id: staff.restaurantId,
+    source_item_id: sourceItemId,
+    suggested_item_id: suggestedItemId,
+    sort_order: (last?.sort_order ?? -1) + 1,
+  });
+
+  // Samma par två gånger är inget fel värt ett larm — förslaget finns redan.
+  if (error && error.code === "23505") return done();
+
+  return error ? fail(error.message) : done();
+}
+
+export async function removeUpsell(
+  sourceItemId: string,
+  suggestedItemId: string,
+): Promise<ActionResult> {
+  await requireStaff(EDITOR_ROLES);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("item_upsells")
+    .delete()
+    .eq("source_item_id", sourceItemId)
+    .eq("suggested_item_id", suggestedItemId);
 
   return error ? fail(error.message) : done();
 }

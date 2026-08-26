@@ -9,6 +9,7 @@ import {
 } from "@/lib/restaurant-application";
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/platform";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -25,6 +26,15 @@ export interface ActionResult {
 }
 
 const WRITE_ROLES = ["admin", "owner"] as const;
+
+/*
+ * Svenska rakt i filen, som i resten av backoffice.
+ *
+ * `/backoffice` är Burps egen yta och läses av Burps eget team. En
+ * plattformsadmin är inte personal någonstans och har ingen `staff.locale` —
+ * se språkavsnittet i CLAUDE.md.
+ */
+const MFA_RESET_FAILED = "Faktorn kunde inte tas bort. Åtgärden är loggad ändå.";
 
 function done(): ActionResult {
   revalidatePath("/backoffice");
@@ -179,5 +189,86 @@ export async function createRestaurantAsAdmin(
 
   revalidatePath("/backoffice");
   revalidatePath("/backoffice/restauranger");
+  return { ok: true };
+}
+
+/**
+ * Tar bort en persons andra faktor.
+ *
+ * Behövs därför att Supabase inte har reservkoder. Den som byter telefon utan
+ * att först registrera den nya kommer inte in, och utan den här åtgärden är
+ * enda vägen tillbaka att någon redigerar `auth.mfa_factors` för hand.
+ *
+ * ── Varför service role ─────────────────────────────────────────────────────
+ *
+ * `auth.mfa_factors` ligger i Supabase eget schema och är inte läsbar för
+ * `authenticated` — ingen policy i världen ger en plattformsadmin rätt att
+ * röra en annan användares faktorer. Admin-API:t är den enda vägen.
+ *
+ * Behörigheten prövas därför FÖRE anropet, med den inloggades egen session:
+ * `requirePlatformAdmin(WRITE_ROLES)` går genom `has_platform_role()`, som
+ * sedan migration 0051 själv kräver aal2. En admin utan uppfylld andra faktor
+ * kan alltså inte ta bort någon annans — vilket vore en ganska användbar väg
+ * in för den som stulit ett adminlösenord.
+ *
+ * ── Varför en logg ──────────────────────────────────────────────────────────
+ *
+ * Åtgärden ger tillbaka full åtkomst till en restaurang. Raden i
+ * `security_events` är oföränderlig (migration 0051) och skrivs FÖRE
+ * borttagningen: en logg som skrivs efteråt saknar just den rad man letar
+ * efter den dag anropet gick igenom men svaret aldrig kom fram.
+ */
+export async function resetMfaFactors(email: string, note?: string): Promise<ActionResult> {
+  const admin = await requirePlatformAdmin(WRITE_ROLES);
+
+  const audit = createAdminClient();
+
+  /*
+   * Adressen slås upp, inte ett id.
+   *
+   * Den som ringer supporten säger sin e-postadress, inte sin UUID. Uppslaget
+   * går mot `profiles` och inte mot admin-API:ts `listUsers()`, som saknar
+   * filter på adress och alltså hade betytt att bläddra genom varenda konto
+   * för att hitta ett.
+   *
+   * service-role: en enskild adress — frågan är bunden till just den raden,
+   * och `profiles` är stängd för alla utom personen själv (regel 5).
+   */
+  const { data: person, error: lookupError } = await audit
+    .from("profiles")
+    .select("id")
+    .eq("email", email.trim().toLowerCase())
+    .maybeSingle();
+
+  if (lookupError) return fail(MFA_RESET_FAILED);
+  if (!person) return fail("Ingen användare med den adressen.");
+
+  const userId = person.id;
+
+  const { error: logError } = await audit.from("security_events").insert({
+    user_id: userId,
+    actor_id: admin.userId,
+    kind: "MFA_FACTOR_RESET",
+    note: note?.trim() || null,
+  });
+
+  if (logError) return fail(MFA_RESET_FAILED);
+
+  // service-role: en enskild användares faktorer — auth-schemat har ingen RLS
+  // att smalna av mot, och raden är redan bunden till user_id här.
+  const { data: factors, error: listError } = await audit.auth.admin.mfa.listFactors({ userId });
+
+  if (listError) return fail(MFA_RESET_FAILED);
+
+  for (const factor of factors?.factors ?? []) {
+    const { error: deleteError } = await audit.auth.admin.mfa.deleteFactor({
+      id: factor.id,
+      userId,
+    });
+
+    if (deleteError) return fail(MFA_RESET_FAILED);
+  }
+
+  revalidatePath("/backoffice");
   return { ok: true };
 }

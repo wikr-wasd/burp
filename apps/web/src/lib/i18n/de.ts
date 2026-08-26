@@ -202,6 +202,8 @@ export const de: Dictionary = {
     searchClear: "Suche zurücksetzen",
     searchEmpty: "Nichts auf der Speisekarte passt zu „{query}“.",
     searchEmptyHint: "Versuchen Sie ein kürzeres Wort oder blättern Sie durch die Bereiche.",
+    minQuantity: "Mindestens {n} Portionen",
+    suggestionsTitle: "Darf es noch etwas dazu sein?",
     soldOut: "Heute ausverkauft",
     ongoingOrderLink: "Status und Rechnung ansehen",
     ongoingOrder: "Sie haben eine laufende Bestellung",
@@ -522,6 +524,7 @@ export const de: Dictionary = {
       handelser: "Ereignisse",
       personal: "Mitarbeitende",
       installningar: "Einstellungen",
+      sakerhet: "Ihre Anmeldung",
     },
 
     status: {
@@ -700,6 +703,22 @@ export const de: Dictionary = {
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
     settings: {
+      identityTitle: "Ihr Zeichen",
+      identityHint:
+        "Logo, Banner und eine Farbe, die Ihnen gehört. Schaltflächen und Preise behalten Burps Form — hervorstechen soll das Essen, nicht die Oberfläche.",
+      accentTitle: "Akzentfarbe",
+      accentHint:
+        "Eine Farbe für Bänder und Abzeichen auf Ihrer Seite. Sie wird vor dem Speichern gegen hellen und dunklen Modus geprüft.",
+      accentColor: "Farbe",
+      accentPreview: "So sieht sie aus",
+      accentContrast: "Kontrast: {text}:1 für den Text, {light}:1 auf heller Fläche, {dark}:1 auf dunkler.",
+      accentSaved: "Die Farbe ist gespeichert.",
+      logoTitle: "Logo",
+      logoHint: "Erscheint oben auf Ihrer Seite. Burp prüft es vor der Veröffentlichung.",
+      logoUpload: "Logo hochladen",
+      bannerTitle: "Banner",
+      bannerHint: "Ein breites Band am Seitenkopf. Burp prüft es vor der Veröffentlichung.",
+      bannerUpload: "Banner hochladen",
       hoursTitle: "Öffnungszeiten",
       hoursHint:
         "Gäste können nur bestellen, solange Sie geöffnet haben. Mehrere Schichten pro Tag für Mittag und Abend. Schließen Sie nach Mitternacht, tragen Sie die Endzeit so ein, wie sie ist — 22:00 bis 02:00 heißt geöffnet bis zwei Uhr nachts.",
@@ -711,6 +730,26 @@ export const de: Dictionary = {
         "Der Küchenbildschirm gibt bereits einen Ton, solange er offen ist. Das hier ist für die Zeit, in der er es nicht ist — die Benachrichtigung erreicht das Handy auch dann, wenn niemand vor dem Bildschirm sitzt.",
       punchTitle: "Stempelkarte",
       punchHint: "Der zehnte Besuch geht aufs Haus. Zählt Besuche, keine Beträge.",
+      mfaTitle: "Zwei-Faktor-Anmeldung",
+      mfaHint:
+        "Ein Code aus Ihrem Telefon zusätzlich zum Passwort. Ohne ihn genügt ein geleaktes Passwort für Speisekarte, Preise, Bestellverlauf und Abrechnung.",
+      mfaStatusOn: "Die Zwei-Faktor-Anmeldung ist aktiv",
+      mfaStatusOff: "Nur ein Passwort schützt dieses Konto",
+      mfaEnable: "Zwei-Faktor-Anmeldung einschalten",
+      mfaScanHint:
+        "Scannen Sie das Feld mit Google Authenticator, 1Password oder einer anderen Authenticator-App.",
+      mfaSecretHint: "Sie können nicht scannen? Geben Sie den Schlüssel in der App ein:",
+      mfaCodeLabel: "Code aus der App",
+      mfaVerify: "Bestätigen",
+      mfaCancel: "Abbrechen",
+      mfaDisable: "Ausschalten",
+      mfaDisableConfirm:
+        "Zwei-Faktor-Anmeldung ausschalten? Das Konto ist dann nur durch sein Passwort geschützt.",
+      mfaEnabled: "Fertig. Die nächste Anmeldung fragt nach einem Code.",
+      mfaFailed: "Das hat nicht geklappt. Versuchen Sie es erneut.",
+      mfaCodeFailed:
+        "Der Code stimmt nicht. Prüfen Sie, ob die Uhr des Telefons richtig geht, und versuchen Sie es erneut.",
+      mfaLoading: "Anmeldung wird gelesen…",
       policyTitle: "Bestellregeln",
       policyHint: "Was der Gast nach der Bestellung noch ändern darf, und wie lange.",
 
@@ -894,6 +933,13 @@ export const de: Dictionary = {
       soldUntil: "Ausverkauft bis",
       reasonForGuest: "Grund für den Gast",
       reasonPlaceholder: "Z. B. Ausverkauft bis Freitag",
+      drinksCategory: "Getränke",
+      minQuantity: "Mindestmenge",
+      minQuantityHint: "1 = keine Grenze. Erhöhen Sie sie für Gerichte, die im Satz zubereitet werden.",
+      upsell: "Dazu vorschlagen",
+      upsellHint: "Erscheint im Warenkorb, solange das Gericht darin liegt.",
+      upsellAdd: "Vorschlag hinzufügen…",
+      upsellRemove: "Vorschlag {name} entfernen",
       markSoldOut: "Als ausverkauft markieren",
     },
 
@@ -1074,6 +1120,11 @@ export const de: Dictionary = {
       menuNoPublishedItems:
         "Die Speisekarte hat noch keine veröffentlichten Gerichte. Veröffentlichen Sie zuerst eines.",
       categoryNeedsName: "Die Kategorie braucht einen Namen.",
+      accentInvalid: "Schreiben Sie die Farbe als #rrggbb, zum Beispiel #dc2626.",
+      accentUnreadable:
+        "Auf dieser Farbe ist weder weiße noch schwarze Schrift lesbar. Versuchen Sie es eine Spur dunkler oder heller.",
+      accentInvisible:
+        "Die Farbe verschwindet im hellen oder dunklen Modus im Hintergrund. Versuchen Sie eine Farbe mit mehr Tiefe.",
       itemNeedsName: "Das Gericht braucht einen Namen.",
       itemNotFound: "Das Gericht wurde nicht gefunden.",
       groupNeedsName: "Die Gruppe braucht einen Namen.",

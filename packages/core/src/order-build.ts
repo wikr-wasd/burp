@@ -20,6 +20,13 @@ export interface MenuItemRow {
   vatRateBps: number;
   isAvailable: boolean;
   status: string;
+  /**
+   * Minsta antal portioner som måste beställas i samma order.
+   *
+   * Finns för rätter som lagas i sats — punjene paprike sätts inte i ugnen för
+   * en portion. 1 betyder ingen begränsning, och är standardvärdet i schemat.
+   */
+  minQuantity?: number;
 }
 
 export interface OptionGroupRow {
@@ -63,7 +70,8 @@ export type OrderBuildErrorCode =
   | "OPTION_UNAVAILABLE"
   | "TOO_FEW_OPTIONS"
   | "TOO_MANY_OPTIONS"
-  | "DUPLICATE_OPTION";
+  | "DUPLICATE_OPTION"
+  | "BELOW_MIN_QUANTITY";
 
 export interface OrderBuildError {
   code: OrderBuildErrorCode;
@@ -107,6 +115,15 @@ export function buildPricedLines(
 
   const lines: PricedLine[] = [];
   let restaurantId: string | null = null;
+
+  /*
+   * Antal per RÄTT, inte per rad.
+   *
+   * Minsta antal gäller beställningen och inte raden. Två portioner med paprika
+   * och två utan är fyra portioner för köket, och det är satsen som är kravet.
+   * Räknades det per rad gick regeln att gå runt genom att välja olika tillval.
+   */
+  const quantityByItem = new Map<string, { item: MenuItemRow; quantity: number }>();
 
   for (const requested of items) {
     const menuItem = menuById.get(requested.menu_item_id);
@@ -185,6 +202,10 @@ export function buildPricedLines(
       }
     }
 
+    const tally = quantityByItem.get(menuItem.id);
+    if (tally) tally.quantity += requested.quantity;
+    else quantityByItem.set(menuItem.id, { item: menuItem, quantity: requested.quantity });
+
     lines.push({
       menuItemId: menuItem.id,
       name: menuItem.name,
@@ -193,6 +214,16 @@ export function buildPricedLines(
       vatRateBps: menuItem.vatRateBps,
       options: chosenOptions,
     });
+  }
+
+  for (const { item, quantity } of quantityByItem.values()) {
+    const minimum = item.minQuantity ?? 1;
+    if (quantity < minimum) {
+      return fail(
+        "BELOW_MIN_QUANTITY",
+        `${item.name} beställs i minst ${minimum} portioner.`,
+      );
+    }
   }
 
   if (restaurantId === null) {

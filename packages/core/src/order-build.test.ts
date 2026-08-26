@@ -61,12 +61,24 @@ const catalog: OrderCatalog = {
       isAvailable: true,
       status: "PUBLISHED",
     },
+    {
+      id: "paprika",
+      restaurantId: RESTAURANT,
+      name: "Punjene paprike",
+      priceOre: 1400,
+      vatRateBps: VAT_FOOD_BPS,
+      isAvailable: true,
+      status: "PUBLISHED",
+      minQuantity: 4,
+    },
   ],
   optionGroups: [
+    { id: "grupp-paprika", menuItemId: "paprika", name: "Fyllning", minSelect: 0, maxSelect: 1 },
     { id: "grupp-tillbehor", menuItemId: "margherita", name: "Extra tillbehör", minSelect: 0, maxSelect: 3 },
     { id: "grupp-storlek", menuItemId: "diavola", name: "Välj storlek", minSelect: 1, maxSelect: 1 },
   ],
   options: [
+    { id: "utan-kott", optionGroupId: "grupp-paprika", name: "Utan kött", priceOre: 0, isAvailable: true },
     { id: "extra-ost", optionGroupId: "grupp-tillbehor", name: "Extra ost", priceOre: 1500, isAvailable: true },
     { id: "rucola", optionGroupId: "grupp-tillbehor", name: "Rucola", priceOre: 1000, isAvailable: true },
     { id: "utan-ost", optionGroupId: "grupp-tillbehor", name: "Utan ost", priceOre: -1000, isAvailable: true },
@@ -312,5 +324,68 @@ describe("buildPricedLines — raderna ligger kvar i klientens ordning", () => {
       [],
       ["extra-ost", "rucola"],
     ]);
+  });
+});
+
+describe("buildPricedLines — minsta antal portioner", () => {
+  it("nekar en beställning under gränsen", () => {
+    const result = buildPricedLines(
+      [item({ menu_item_id: "paprika", quantity: 3 })],
+      catalog,
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.error.code).toBe("BELOW_MIN_QUANTITY");
+    expect(result.error.message).toContain("Punjene paprike");
+    expect(result.error.message).toContain("4");
+  });
+
+  it("släpper igenom exakt gränsen", () => {
+    const result = buildPricedLines(
+      [item({ menu_item_id: "paprika", quantity: 4 })],
+      catalog,
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  /**
+   * Kravet gäller BESTÄLLNINGEN, inte raden.
+   *
+   * Två med fyllning och två utan är fyra portioner för köket, och det är
+   * satsen som är kravet. Räknades det per rad gick regeln att gå runt genom
+   * att välja olika tillval — vilket är exakt vad en gäst som vill ha två
+   * portioner skulle råka göra.
+   */
+  it("summerar över raderna i stället för att räkna per rad", () => {
+    const result = buildPricedLines(
+      [
+        item({ menu_item_id: "paprika", quantity: 2, options: [{ option_id: "utan-kott" }] }),
+        item({ menu_item_id: "paprika", quantity: 2 }),
+      ],
+      catalog,
+    );
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("två rader som tillsammans är för få nekas ändå", () => {
+    const result = buildPricedLines(
+      [
+        item({ menu_item_id: "paprika", quantity: 1, options: [{ option_id: "utan-kott" }] }),
+        item({ menu_item_id: "paprika", quantity: 2 }),
+      ],
+      catalog,
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("BELOW_MIN_QUANTITY");
+  });
+
+  it("rör inte rätter utan gräns", () => {
+    const result = buildPricedLines([item({ quantity: 1 })], catalog);
+    expect(result.ok).toBe(true);
   });
 });

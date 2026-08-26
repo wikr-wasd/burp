@@ -5,6 +5,7 @@ import { COUNTRY_INFO, type CountryCode, type CurrencyCode, type StaffRole } fro
 import { dictionary, type Dictionary } from "./i18n";
 import { staffLocale, type Locale } from "./i18n/config";
 import { ROLE_HOME } from "./auth-roles";
+import { MFA_CHALLENGE_PATH, needsMfaChallenge } from "./mfa";
 import { getPlatformAdmin } from "./platform";
 import { createClient } from "./supabase/server";
 
@@ -112,6 +113,17 @@ export async function requireStaff(allowed?: readonly StaffRole[]): Promise<Staf
   const staff = await getStaff();
 
   if (!staff) {
+    /*
+     * Andra faktorn prövas FÖRE "inloggad utan anställning".
+     *
+     * Ordningen är hela poängen. Med aal1 och en registrerad faktor döljer RLS
+     * `staff`-raden, och `getStaff()` svarar null — vilket ser exakt likadant
+     * ut som en gäst utan anställning. Utan den här grenen hade en ägare som
+     * bara glömt sin kod skickats till `/konto` med beskedet att hen inte
+     * arbetar någonstans.
+     */
+    if (await needsMfaChallenge()) redirect(MFA_CHALLENGE_PATH);
+
     /*
      * Inloggad utan anställning är inte samma sak som utloggad.
      *

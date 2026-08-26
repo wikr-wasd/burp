@@ -259,6 +259,8 @@ export const sv = {
     searchClear: "Rensa sökningen",
     searchEmpty: "Ingenting på menyn matchar ”{query}”.",
     searchEmptyHint: "Prova ett kortare ord, eller bläddra i avdelningarna.",
+    minQuantity: "Minst {n} portioner",
+    suggestionsTitle: "Vill du ha något till?",
     soldOut: "Slut för dagen",
     ongoingOrderLink: "Se status och nota",
     ongoingOrder: "Du har en beställning på gång",
@@ -733,6 +735,7 @@ export const sv = {
       handelser: "Händelser",
       personal: "Personal",
       installningar: "Inställningar",
+      sakerhet: "Din inloggning",
     },
 
     status: {
@@ -990,6 +993,22 @@ export const sv = {
      * ENBART strängar — varje redigerare på sidan är klientkod.
      */
     settings: {
+      identityTitle: "Ert märke",
+      identityHint:
+        "Logotyp, banner och en färg som är er. Knappar och priser följer Burps form — det är maten som ska sticka ut, inte gränssnittet.",
+      accentTitle: "Accentfärg",
+      accentHint:
+        "En färg som används till band och märken på er sida. Den prövas mot både ljust och mörkt läge innan den sparas.",
+      accentColor: "Färg",
+      accentPreview: "Så här ser den ut",
+      accentContrast: "Kontrast: {text}:1 för texten, {light}:1 mot ljus yta, {dark}:1 mot mörk.",
+      accentSaved: "Färgen är sparad.",
+      logoTitle: "Logotyp",
+      logoHint: "Visas överst på er sida. Granskas av Burp innan den publiceras.",
+      logoUpload: "Ladda upp logotyp",
+      bannerTitle: "Banner",
+      bannerHint: "Ett brett band överst på sidan. Granskas av Burp innan det publiceras.",
+      bannerUpload: "Ladda upp banner",
       hoursTitle: "Öppettider",
       hoursHint:
         "Gäster kan bara beställa när ni är öppna. Flera pass per dag för lunch och kväll. Stänger ni efter midnatt skriver ni sluttiden som den är — 22:00 till 02:00 betyder att ni har öppet till två på natten.",
@@ -1001,6 +1020,26 @@ export const sv = {
         "Köksskärmen låter redan när den är öppen. Det här är för när den inte är det — notisen kommer fram i telefonen även om ingen sitter framför skärmen.",
       punchTitle: "Klippkort",
       punchHint: "Tionde besöket bjuder ni på. Räknar besök, inte belopp.",
+      mfaTitle: "Tvåstegsverifiering",
+      mfaHint:
+        "En kod ur din telefon utöver lösenordet. Utan den räcker ett läckt lösenord för att nå menyn, priserna, orderhistoriken och avräkningen.",
+      mfaStatusOn: "Tvåstegsverifiering är på",
+      mfaStatusOff: "Bara lösenord skyddar kontot",
+      mfaEnable: "Slå på tvåstegsverifiering",
+      mfaScanHint:
+        "Skanna rutan med Google Authenticator, 1Password eller en annan autentiseringsapp.",
+      mfaSecretHint: "Kan du inte skanna? Skriv in nyckeln i appen:",
+      mfaCodeLabel: "Kod från appen",
+      mfaVerify: "Bekräfta",
+      mfaCancel: "Avbryt",
+      mfaDisable: "Stäng av",
+      mfaDisableConfirm:
+        "Stäng av tvåstegsverifieringen? Kontot skyddas då bara av sitt lösenord.",
+      mfaEnabled: "Klart. Nästa inloggning frågar efter en kod.",
+      mfaFailed: "Det gick inte. Försök igen.",
+      mfaCodeFailed:
+        "Koden stämmer inte. Kontrollera att telefonens klocka går rätt och försök igen.",
+      mfaLoading: "Läser inloggningen…",
       policyTitle: "Orderregler",
       policyHint: "Vad gästen får ändra efter att beställningen lagts, och hur länge.",
 
@@ -1187,6 +1226,13 @@ export const sv = {
       soldUntil: "Slut till",
       reasonForGuest: "Skäl för gästen",
       reasonPlaceholder: "T.ex. Slut till fredag",
+      drinksCategory: "Dryck",
+      minQuantity: "Minsta antal",
+      minQuantityHint: "1 = ingen gräns. Höj för det som lagas i sats.",
+      upsell: "Föreslå till den här",
+      upsellHint: "Syns i kundvagnen när rätten ligger i den.",
+      upsellAdd: "Lägg till ett förslag…",
+      upsellRemove: "Ta bort förslaget {name}",
       markSoldOut: "Markera slut",
     },
 
@@ -1395,6 +1441,11 @@ export const sv = {
       endAfterStart: "Sluttiden måste ligga efter starttiden.",
       menuNoPublishedItems: "Menyn har inga publicerade rätter än. Publicera minst en rätt först.",
       categoryNeedsName: "Kategorin behöver ett namn.",
+      accentInvalid: "Skriv färgen som #rrggbb, till exempel #dc2626.",
+      accentUnreadable:
+        "Varken vit eller svart text går att läsa på den färgen. Prova en aning mörkare eller ljusare.",
+      accentInvisible:
+        "Färgen försvinner mot bakgrunden i ljust eller mörkt läge. Prova en färg med mer djup.",
       itemNeedsName: "Rätten behöver ett namn.",
       itemNotFound: "Rätten hittades inte.",
       groupNeedsName: "Gruppen behöver ett namn.",

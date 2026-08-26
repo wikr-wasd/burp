@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  checkAccentColor,
   daySlots,
   normalizePostalCode,
   parseAmount,
@@ -393,6 +394,68 @@ export async function disableCardPayments(): Promise<ActionResult> {
     .from("restaurant_payment_accounts")
     .update({ status: "DISABLED" })
     .eq("restaurant_id", staff.restaurantId);
+
+  return error ? fail(error.message) : done();
+}
+
+/* ── Restaurangens egen färg ─────────────────────────────────────────────── */
+
+/**
+ * Sparar accentfärgen.
+ *
+ * EN färg, som bär identitet och aldrig funktion: band, rubrikdetaljer och
+ * märken. Handlingsrött förblir handlingsfärgen — primärknappen byter inte
+ * färg för att någon valt turkos, av samma skäl som ingenting får konkurrera
+ * med maten. Byggstenarna i `globals.css` rörs inte (docs/DESIGN.md).
+ *
+ * Läsbarheten prövas i `checkAccentColor()` (@burp/core) och inte här. Den
+ * räknar WCAG-kontrast ur hexsträngen mot BÅDA lägenas ytor: en färg som bara
+ * provats mot vitt kan vara osynlig i mörkt läge, och det upptäcker ingen
+ * förrän en gäst med mörkt läge i telefonen står vid bordet.
+ *
+ * Tom sträng tar bort färgen och återställer Burps egen palett. Det är
+ * skillnaden mot att spara något ogiltigt — "jag ångrar mig" måste gå att göra.
+ */
+export async function saveAccentColor(input: string): Promise<ActionResult> {
+  const staff = await requireStaff(["owner", "manager"]);
+  const errors = staffErrors(staff);
+
+  const trimmed = input.trim();
+  const supabase = await createClient();
+
+  if (trimmed === "") {
+    const { error } = await supabase
+      .from("restaurants")
+      .update({ accent_hex: null })
+      .eq("id", staff.restaurantId);
+
+    return error ? fail(error.message) : done();
+  }
+
+  const check = checkAccentColor(trimmed);
+
+  if (!check.ok) {
+    /*
+     * Beskedet säger VILKET krav som föll.
+     *
+     * En restaurang som bara får "gick inte" provar en helt annan färg. Den
+     * som får veta att mellantonen varken bär vit eller svart text provar en
+     * aning mörkare — vilket löser det, eftersom bandet är smalt.
+     */
+    const message =
+      check.verdict === "INVALID"
+        ? errors.accentInvalid
+        : check.verdict === "NO_READABLE_TEXT"
+          ? errors.accentUnreadable
+          : errors.accentInvisible;
+
+    return fail(message);
+  }
+
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ accent_hex: check.hex })
+    .eq("id", staff.restaurantId);
 
   return error ? fail(error.message) : done();
 }

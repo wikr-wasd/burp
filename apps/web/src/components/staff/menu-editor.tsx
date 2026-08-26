@@ -26,6 +26,9 @@ import {
   setMenuStatus,
   setOptionAvailable,
   updateMenu,
+  addUpsell,
+  removeUpsell,
+  setCategoryIsDrinks,
   setItemUnavailableUntil,
   updateMenuItem,
   type ActionResult,
@@ -298,6 +301,15 @@ function MenuCard({
           <CategoryBlock
             key={category.id}
             category={category}
+            /*
+             * Menyns alla rätter, för förslagslistan i varje rad.
+             *
+             * Räknas fram här och inte i raden: en rätt i "Mat" ska kunna
+             * föreslå en dryck i "Dryck", och raden ser bara sin egen kategori.
+             */
+            menuItems={menu.categories.flatMap((other) =>
+              other.items.map((item) => ({ id: item.id, name: item.name })),
+            )}
             restaurantId={restaurantId}
             onError={onError}
           />
@@ -313,10 +325,12 @@ function MenuCard({
 
 function CategoryBlock({
   category,
+  menuItems,
   restaurantId,
   onError,
 }: {
   category: EditorCategory;
+  menuItems: readonly { id: string; name: string }[];
   restaurantId: string;
   onError: (message: string) => void;
 }) {
@@ -333,6 +347,28 @@ function CategoryBlock({
           className="mr-auto font-semibold"
           onSave={(name) => run(() => renameCategory(category.id, name))}
         />
+
+        {/*
+          Är avdelningen dryck?
+
+          Kundvagnen föreslår något att dricka när gästen inte redan valt det,
+          och kan inte gissa ur namnet: menyn skrivs på restaurangens eget
+          språk, och "Pića", "Getränke" och "Dryck" är samma sak för en gäst
+          men tre strängar för en jämförelse.
+        */}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => setCategoryIsDrinks(category.id, !category.isDrinks))}
+          aria-pressed={category.isDrinks}
+          className={`px-3 py-1.5 text-sm disabled:opacity-50 ${
+            category.isDrinks
+              ? "border border-transparent bg-burp-600 text-white"
+              : "border border-[var(--rule)]"
+          }`}
+        >
+          {labels.drinksCategory}
+        </button>
 
         {confirmDelete ? (
           <>
@@ -368,7 +404,13 @@ function CategoryBlock({
 
       <ul className="mt-3 space-y-3">
         {category.items.map((item) => (
-          <ItemRow key={item.id} item={item} restaurantId={restaurantId} onError={onError} />
+          <ItemRow
+            key={item.id}
+            item={item}
+            menuItems={menuItems}
+            restaurantId={restaurantId}
+            onError={onError}
+          />
         ))}
       </ul>
 
@@ -448,10 +490,12 @@ function AddItemForm({ categoryId }: { categoryId: string }) {
 
 function ItemRow({
   item,
+  menuItems,
   restaurantId,
   onError,
 }: {
   item: EditorItem;
+  menuItems: readonly { id: string; name: string }[];
   restaurantId: string;
   onError: (message: string) => void;
 }) {
@@ -569,6 +613,36 @@ function ItemRow({
               ))}
             </div>
           </div>
+
+          {/*
+            Minsta antal portioner.
+
+            Ett tal och inte en växel: skillnaden mellan "lagas i sats om fyra"
+            och "om sex" är restaurangens att bestämma. Taket är 99 därför att
+            orderschemat inte tar emot fler per rad — en högre gräns hade gjort
+            rätten omöjlig att beställa.
+          */}
+          <label className="block">
+            <span className="label-caps">
+              {labels.minQuantity}{" "}
+              <span className="font-normal opacity-60">{labels.minQuantityHint}</span>
+            </span>
+            <InlineText
+              value={String(item.minQuantity)}
+              label={labels.minQuantity}
+              className="mt-1 w-24"
+              onSave={(value) => {
+                const parsed = Number.parseInt(value.trim(), 10);
+                run(() =>
+                  updateMenuItem(item.id, {
+                    minQuantity: Number.isNaN(parsed) ? 1 : parsed,
+                  }),
+                );
+              }}
+            />
+          </label>
+
+          <UpsellPicker item={item} menuItems={menuItems} onError={onError} />
 
           <label className="block">
             <span className="label-caps">
@@ -1025,6 +1099,83 @@ function UnavailableUntil({
       >
         {labels.markSoldOut}
       </button>
+    </div>
+  );
+}
+
+/* ── Förslag i kundvagnen ─────────────────────────────────────────────────── */
+
+/**
+ * "Till den här rätten, föreslå den där."
+ *
+ * Restaurangens egna förslag, inte en algoritm. Den som lagar maten vet att
+ * ćevapi går med jogurt och att baklava säljs sist; en beräkning på tio
+ * beställningar vet ingenting alls.
+ *
+ * Listan bär inget pris. Förslaget säger VAD, aldrig vad det kostar — priset
+ * hämtas ur menyn när ordern läggs (regel 2).
+ */
+function UpsellPicker({
+  item,
+  menuItems,
+  onError,
+}: {
+  item: EditorItem;
+  menuItems: readonly { id: string; name: string }[];
+  onError: (message: string) => void;
+}) {
+  const labels = useMenuLabels();
+  const [pending, run] = useAction(onError);
+
+  const chosen = new Set(item.upsellItemIds);
+  const byId = new Map(menuItems.map((row) => [row.id, row.name] as const));
+
+  // Rätten själv går bort, och det som redan valts flyttas upp i listan.
+  const selectable = menuItems.filter((row) => row.id !== item.id && !chosen.has(row.id));
+
+  return (
+    <div>
+      <span className="label-caps">
+        {labels.upsell} <span className="font-normal opacity-60">{labels.upsellHint}</span>
+      </span>
+
+      {item.upsellItemIds.length > 0 ? (
+        <ul className="mt-2 flex flex-wrap gap-2">
+          {item.upsellItemIds.map((id) => (
+            <li key={id}>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => run(() => removeUpsell(item.id, id))}
+                aria-label={fill(labels.upsellRemove, { name: byId.get(id) ?? "" })}
+                className="border border-[var(--rule)] px-3 py-1.5 text-sm disabled:opacity-50"
+              >
+                {byId.get(id) ?? id} ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {selectable.length > 0 ? (
+        <select
+          value=""
+          disabled={pending}
+          onChange={(event) => {
+            const suggested = event.target.value;
+            if (suggested) run(() => addUpsell(item.id, suggested));
+          }}
+          className="field mt-2"
+          aria-label={labels.upsell}
+        >
+          <option value="">{labels.upsellAdd}</option>
+          {selectable.map((row) => (
+            <option key={row.id} value={row.id}>
+              {row.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
     </div>
   );
 }

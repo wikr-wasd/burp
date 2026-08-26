@@ -448,6 +448,55 @@ export type Database = {
           },
         ]
       }
+      item_upsells: {
+        Row: {
+          created_at: string
+          id: string
+          restaurant_id: string
+          sort_order: number
+          source_item_id: string
+          suggested_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          restaurant_id: string
+          sort_order?: number
+          source_item_id: string
+          suggested_item_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          restaurant_id?: string
+          sort_order?: number
+          source_item_id?: string
+          suggested_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_upsells_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_upsells_source_fk"
+            columns: ["source_item_id", "restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id", "restaurant_id"]
+          },
+          {
+            foreignKeyName: "item_upsells_suggested_fk"
+            columns: ["suggested_item_id", "restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id", "restaurant_id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           city: string
@@ -601,6 +650,7 @@ export type Database = {
           poster_url: string | null
           provider: string | null
           provider_asset_id: string | null
+          purpose: Database["public"]["Enums"]["media_purpose"]
           rejection_reason: string | null
           restaurant_id: string
           reviewed_at: string | null
@@ -625,6 +675,7 @@ export type Database = {
           poster_url?: string | null
           provider?: string | null
           provider_asset_id?: string | null
+          purpose?: Database["public"]["Enums"]["media_purpose"]
           rejection_reason?: string | null
           restaurant_id: string
           reviewed_at?: string | null
@@ -649,6 +700,7 @@ export type Database = {
           poster_url?: string | null
           provider?: string | null
           provider_asset_id?: string | null
+          purpose?: Database["public"]["Enums"]["media_purpose"]
           rejection_reason?: string | null
           restaurant_id?: string
           reviewed_at?: string | null
@@ -682,6 +734,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_drinks: boolean
           menu_id: string
           name: string
           restaurant_id: string
@@ -692,6 +745,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_drinks?: boolean
           menu_id: string
           name: string
           restaurant_id: string
@@ -702,6 +756,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_drinks?: boolean
           menu_id?: string
           name?: string
           restaurant_id?: string
@@ -734,6 +789,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_available: boolean
+          min_quantity: number
           name: string
           price_ore: number
           restaurant_id: string
@@ -750,6 +806,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean
+          min_quantity?: number
           name: string
           price_ore: number
           restaurant_id: string
@@ -766,6 +823,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean
+          min_quantity?: number
           name?: string
           price_ore?: number
           restaurant_id?: string
@@ -1745,6 +1803,8 @@ export type Database = {
       }
       restaurants: {
         Row: {
+          accent_hex: string | null
+          banner_url: string | null
           city: string
           city_slug: string | null
           country: Database["public"]["Enums"]["country_code"]
@@ -1759,6 +1819,7 @@ export type Database = {
           id: string
           latitude: number | null
           location: unknown
+          logo_url: string | null
           longitude: number | null
           loyalty_points_per_krona: number
           name: string
@@ -1778,6 +1839,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accent_hex?: string | null
+          banner_url?: string | null
           city: string
           city_slug?: string | null
           country?: Database["public"]["Enums"]["country_code"]
@@ -1792,6 +1855,7 @@ export type Database = {
           id?: string
           latitude?: number | null
           location?: unknown
+          logo_url?: string | null
           longitude?: number | null
           loyalty_points_per_krona?: number
           name: string
@@ -1811,6 +1875,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accent_hex?: string | null
+          banner_url?: string | null
           city?: string
           city_slug?: string | null
           country?: Database["public"]["Enums"]["country_code"]
@@ -1825,6 +1891,7 @@ export type Database = {
           id?: string
           latitude?: number | null
           location?: unknown
+          logo_url?: string | null
           longitude?: number | null
           loyalty_points_per_krona?: number
           name?: string
@@ -1926,6 +1993,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          note: string | null
+          user_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          note?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       settlements: {
         Row: {
@@ -2736,6 +2830,7 @@ export type Database = {
         Args: { p_error?: string; p_id: string }
         Returns: undefined
       }
+      mfa_satisfied: { Args: never; Returns: boolean }
       my_role_at: {
         Args: { p_restaurant_id: string }
         Returns: Database["public"]["Enums"]["staff_role"]
@@ -3667,6 +3762,7 @@ export type Database = {
         | "BIRTHDAY"
         | "ADJUSTMENT"
       media_kind: "IMAGE" | "VIDEO"
+      media_purpose: "HERO" | "LOGO" | "BANNER"
       media_status: "PENDING" | "APPROVED" | "REJECTED"
       notification_kind: "ORDER_ACCEPTED" | "ORDER_READY"
       order_status:
@@ -3847,6 +3943,7 @@ export const Constants = {
         "ADJUSTMENT",
       ],
       media_kind: ["IMAGE", "VIDEO"],
+      media_purpose: ["HERO", "LOGO", "BANNER"],
       media_status: ["PENDING", "APPROVED", "REJECTED"],
       notification_kind: ["ORDER_ACCEPTED", "ORDER_READY"],
       order_status: [

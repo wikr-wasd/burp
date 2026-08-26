@@ -204,6 +204,8 @@ export const en: Dictionary = {
     searchClear: "Clear the search",
     searchEmpty: "Nothing on the menu matches “{query}”.",
     searchEmptyHint: "Try a shorter word, or browse the sections.",
+    minQuantity: "At least {n} portions",
+    suggestionsTitle: "Anything with that?",
     soldOut: "Sold out today",
     ongoingOrderLink: "See status and bill",
     ongoingOrder: "You have an order in progress",
@@ -514,6 +516,7 @@ export const en: Dictionary = {
       handelser: "Events",
       personal: "Staff",
       installningar: "Settings",
+      sakerhet: "Your login",
     },
 
     status: {
@@ -689,6 +692,22 @@ export const en: Dictionary = {
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
     settings: {
+      identityTitle: "Your mark",
+      identityHint:
+        "A logo, a banner and a colour that is yours. Buttons and prices keep Burp's shape — the food is what should stand out, not the interface.",
+      accentTitle: "Accent colour",
+      accentHint:
+        "A colour for bands and badges on your page. It is checked against both light and dark mode before it is saved.",
+      accentColor: "Colour",
+      accentPreview: "This is how it looks",
+      accentContrast: "Contrast: {text}:1 for the text, {light}:1 on a light surface, {dark}:1 on a dark one.",
+      accentSaved: "The colour is saved.",
+      logoTitle: "Logo",
+      logoHint: "Shown at the top of your page. Reviewed by Burp before it goes live.",
+      logoUpload: "Upload a logo",
+      bannerTitle: "Banner",
+      bannerHint: "A wide band at the top of the page. Reviewed by Burp before it goes live.",
+      bannerUpload: "Upload a banner",
       hoursTitle: "Opening hours",
       hoursHint:
         "Guests can only order while you are open. Several shifts a day for lunch and evening. If you close after midnight, write the closing time as it is — 22:00 to 02:00 means you are open until two in the morning.",
@@ -700,6 +719,26 @@ export const en: Dictionary = {
         "The kitchen screen already chimes while it is open. This is for when it is not — the notification reaches the phone even if nobody is at the screen.",
       punchTitle: "Punch card",
       punchHint: "The tenth visit is on you. Counts visits, not amounts.",
+      mfaTitle: "Two-step verification",
+      mfaHint:
+        "A code from your phone on top of the password. Without it, one leaked password reaches the menu, the prices, the order history and the settlement.",
+      mfaStatusOn: "Two-step verification is on",
+      mfaStatusOff: "Only a password protects this account",
+      mfaEnable: "Turn on two-step verification",
+      mfaScanHint:
+        "Scan the square with Google Authenticator, 1Password or another authenticator app.",
+      mfaSecretHint: "Cannot scan? Type the key into the app:",
+      mfaCodeLabel: "Code from the app",
+      mfaVerify: "Confirm",
+      mfaCancel: "Cancel",
+      mfaDisable: "Turn off",
+      mfaDisableConfirm:
+        "Turn off two-step verification? The account will then be protected by its password alone.",
+      mfaEnabled: "Done. The next sign-in will ask for a code.",
+      mfaFailed: "That did not work. Try again.",
+      mfaCodeFailed:
+        "The code does not match. Check that the phone clock is correct and try again.",
+      mfaLoading: "Reading your login…",
       policyTitle: "Order rules",
       policyHint: "What the guest may change after ordering, and for how long.",
 
@@ -880,6 +919,13 @@ export const en: Dictionary = {
       soldUntil: "Sold out until",
       reasonForGuest: "Reason for the guest",
       reasonPlaceholder: "E.g. Sold out until Friday",
+      drinksCategory: "Drinks",
+      minQuantity: "Minimum quantity",
+      minQuantityHint: "1 = no limit. Raise it for what is cooked in a batch.",
+      upsell: "Suggest with this",
+      upsellHint: "Shown in the cart while the dish is in it.",
+      upsellAdd: "Add a suggestion…",
+      upsellRemove: "Remove the suggestion {name}",
       markSoldOut: "Mark as sold out",
     },
 
@@ -1057,6 +1103,11 @@ export const en: Dictionary = {
       endAfterStart: "The end time has to be after the start time.",
       menuNoPublishedItems: "The menu has no published dishes yet. Publish at least one first.",
       categoryNeedsName: "The category needs a name.",
+      accentInvalid: "Write the colour as #rrggbb, for example #dc2626.",
+      accentUnreadable:
+        "Neither white nor black text can be read on that colour. Try a shade darker or lighter.",
+      accentInvisible:
+        "The colour disappears against the background in light or dark mode. Try a colour with more depth.",
       itemNeedsName: "The dish needs a name.",
       itemNotFound: "The dish was not found.",
       groupNeedsName: "The group needs a name.",

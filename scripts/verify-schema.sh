@@ -71,6 +71,36 @@ as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
 $$;
 
+-- Andra faktorn (migration 0051). Två stubbar behövs.
+--
+-- `auth.jwt()` bär `aal` — aal1 för lösenord ensamt, aal2 när engångskoden
+-- lämnats. Supabase läser hela JSON:en ur `request.jwt.claims`; testerna här
+-- sätter i stället en claim i taget, och båda vägarna måste fungera. Utan
+-- fallbacken hade `set_config('request.jwt.claim.sub', …)` slutat räcka och
+-- trettiofem befintliga kontroller fallit.
+create or replace function auth.jwt()
+returns jsonb
+language sql
+stable
+as $$
+  select coalesce(
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb,
+    jsonb_strip_nulls(jsonb_build_object(
+      'sub', nullif(current_setting('request.jwt.claim.sub', true), ''),
+      'aal', nullif(current_setting('request.jwt.claim.aal', true), '')
+    ))
+  );
+$$;
+
+-- Registrerade faktorer. Supabase har fler kolumner; de här tre är de enda
+-- `mfa_satisfied()` frågar efter, och en stub som är mer tillåtande än
+-- verkligheten ger falskt grönt.
+create table if not exists auth.mfa_factors (
+  id       uuid primary key default gen_random_uuid(),
+  user_id  uuid not null references auth.users(id) on delete cascade,
+  status   text not null
+);
+
 -- Minimal Storage. Migration 0017 skapar en bucket och policies på objects;
 -- stubbarna finns för att den ska gå att köra, inte för att härma Storage.
 create table if not exists storage.buckets (

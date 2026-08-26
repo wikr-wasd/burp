@@ -292,6 +292,53 @@ if [ -n "$ORDER_ID" ]; then
   fi
 fi
 
+# ── Minsta antal portioner (migration 0052) ─────────────────────────────────
+#
+# Kontrollen ligger i @burp/core och anropas av POST /api/orders. Att den
+# fungerar i menyn bevisar ingenting: menyvyn är klientkod, och den som anropar
+# API:t direkt har aldrig sett den. Exakt samma lärdom som item_availability.
+PAPRIKA="44444444-4444-4444-4444-44444444aa01"
+
+TOO_FEW=$(order_request "{
+  \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"idempotency_key\": \"$(uuid)\",
+  \"items\": [{\"menu_item_id\": \"$PAPRIKA\", \"quantity\": 3, \"options\": []}]
+}")
+TOO_FEW_STATUS=$(tail -1 <<<"$TOO_FEW")
+TOO_FEW_BODY=$(sed '$d' <<<"$TOO_FEW")
+
+if [ "$TOO_FEW_STATUS" = "400" ] && grep -q "BELOW_MIN_QUANTITY" <<<"$TOO_FEW_BODY"; then
+  pass "API:t nekar tre portioner av en rätt som lagas i sats om fyra"
+else
+  fail "tre portioner gav $TOO_FEW_STATUS: $TOO_FEW_BODY"
+fi
+
+# Två rader som TILLSAMMANS är för få ska nekas lika hårt. Räknades gränsen per
+# rad gick den att gå runt genom att välja olika tillval.
+SPLIT=$(order_request "{
+  \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"idempotency_key\": \"$(uuid)\",
+  \"items\": [
+    {\"menu_item_id\": \"$PAPRIKA\", \"quantity\": 2, \"options\": [], \"note\": \"utan lok\"},
+    {\"menu_item_id\": \"$PAPRIKA\", \"quantity\": 1, \"options\": []}
+  ]
+}")
+if [ "$(tail -1 <<<"$SPLIT")" = "400" ]; then
+  pass "två rader som tillsammans är för få nekas också"
+else
+  fail "uppdelade rader kom runt gränsen ($(tail -1 <<<"$SPLIT"))"
+fi
+
+# Och hela satsen går igenom. 4 x 14,00 KM = 56,00 KM.
+ENOUGH=$(order_request "{
+  \"type\": \"TABLE\", \"table_token\": \"$TOKEN\", \"client_total_ore\": 5600,
+  \"idempotency_key\": \"$(uuid)\",
+  \"items\": [{\"menu_item_id\": \"$PAPRIKA\", \"quantity\": 4, \"options\": []}]
+}")
+if [ "$(tail -1 <<<"$ENOUGH")" = "201" ]; then
+  pass "hela satsen om fyra går igenom"
+else
+  fail "fyra portioner nekades: $(sed '$d' <<<"$ENOUGH")"
+fi
+
 echo "→ Prisvalidering"
 # Klienten påstår att ordern kostar 1 öre.
 RESPONSE=$(order_request "{
@@ -640,6 +687,51 @@ if [ "$(post_menu "$OWNER_TOKEN")" = "201" ]; then
   pass "ägaren kan skapa en meny"
 else
   fail "ägaren kunde inte skapa en meny (fick $(post_menu "$OWNER_TOKEN"))"
+fi
+
+# ── Andra faktorn gäller i databasen (migration 0051) ───────────────────────
+#
+# Det här är kontrollen som betyder något. Proxy:n omdirigerar och
+# `requireStaff()` frågar, men båda går runt genom att anropa PostgREST med
+# samma access-token — vilket är precis vad som görs här.
+#
+# Token:en kommer från lösenordsinloggning och bär därför aal1. Med en
+# verifierad faktor i auth.mfa_factors ska `has_role_at()` säga nej.
+MFA_OWNER=$(sql "select id from auth.users where email = 'agare@burp.test';" | head -1)
+
+if [ -n "$MFA_OWNER" ] && [ -n "$OWNER_TOKEN" ]; then
+  draft_count() {
+    curl -s -D - -o /dev/null \
+      "$SUPABASE_URL/rest/v1/menus?select=id&status=eq.DRAFT" \
+      -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+      -H "Prefer: count=exact" -H "Range: 0-0" \
+      | tr -d '\r' | sed -n 's|^content-range: [0-9*-]*/||Ip'
+  }
+
+  BEFORE=$(draft_count)
+
+  sql "insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
+       values (gen_random_uuid(), '$MFA_OWNER', 'smoke', 'totp', 'verified', now(), now());" > /dev/null
+
+  DURING=$(draft_count)
+
+  sql "delete from auth.mfa_factors where user_id = '$MFA_OWNER' and friendly_name = 'smoke';" > /dev/null
+
+  AFTER=$(draft_count)
+
+  if [ "${DURING:-x}" = "0" ]; then
+    pass "aal1 med registrerad faktor ser inga rader ens genom PostgREST"
+  else
+    fail "andra faktorn kringgicks: aal1 såg $DURING utkastmenyer"
+  fi
+
+  if [ -n "$BEFORE" ] && [ "$AFTER" = "$BEFORE" ]; then
+    pass "utan registrerad faktor arbetar personalen vidare som förut ($AFTER)"
+  else
+    fail "åtkomsten kom inte tillbaka när faktorn togs bort ($BEFORE -> $AFTER)"
+  fi
+else
+  printf '  \033[33mhopp\033[0m  andra faktorn i RLS (2 kontroller) — saknade ägare eller token\n'
 fi
 
 # Kocken har bara köksskärmen. Kan han skriva i menyn är rollmodellen trasig.

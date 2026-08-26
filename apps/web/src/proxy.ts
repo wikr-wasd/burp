@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { buildCsp, isCachedRoute } from "@/lib/csp";
+import { MFA_CHALLENGE_PATH } from "@/lib/mfa-path";
 
 /**
  * Rapportläge. Byt till "Content-Security-Policy" för att slå på på riktigt —
@@ -88,12 +89,40 @@ export default async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  if (!user && STAFF_PATHS.some((prefix) => path.startsWith(prefix))) {
+  const wantsStaffArea = STAFF_PATHS.some((prefix) => path.startsWith(prefix));
+
+  if (!user && wantsStaffArea) {
     const loginUrl = new URL("/logga-in", request.url);
     loginUrl.searchParams.set("next", path);
     const redirect = NextResponse.redirect(loginUrl);
     redirect.headers.set(CSP_HEADER, csp);
     return redirect;
+  }
+
+  /*
+   * Andra faktorn (migration 0051).
+   *
+   * `getAuthenticatorAssuranceLevel()` räknas ur den redan hämtade sessionens
+   * JWT och kostar inget nätanrop — den här funktionen körs på varje request
+   * och har inte råd med ett till.
+   *
+   * `nextLevel === "aal2"` betyder att personen HAR en verifierad faktor. Den
+   * som inte registrerat någon påverkas inte alls, vilket är det som gör
+   * införandet möjligt utan att låsa ute alla samtidigt.
+   *
+   * Spärren som håller ligger ändå i databasen. Det här är omdirigeringen som
+   * gör att en ägare möter ett kodfält i stället för en tom dashboard.
+   */
+  if (user && wantsStaffArea && !path.startsWith(MFA_CHALLENGE_PATH)) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      const challengeUrl = new URL(MFA_CHALLENGE_PATH, request.url);
+      challengeUrl.searchParams.set("next", path);
+      const redirect = NextResponse.redirect(challengeUrl);
+      redirect.headers.set(CSP_HEADER, csp);
+      return redirect;
+    }
   }
 
   /*

@@ -47,6 +47,14 @@ import { dishImage } from "@/lib/placeholder";
  */
 const SEARCH_THRESHOLD = 10;
 
+/**
+ * Så många förslag visas i kundvagnen.
+ *
+ * Fyra ryms på en telefonskärm utan att raden måste rullas. En lista som
+ * rullar läses inte — den blir en andra meny ovanpå den gästen redan valt ur.
+ */
+const SUGGESTION_LIMIT = 4;
+
 interface CartLine {
   /** Lokalt id — samma rätt kan ligga flera gånger med olika tillval. */
   key: string;
@@ -454,9 +462,19 @@ export function MenuOrder({
         );
       }
 
+      /*
+       * En rätt som lagas i sats läggs till i hel sats.
+       *
+       * Alternativet — lägga till en och låta gästen räkna upp till fyra — ger
+       * ett felmeddelande vid kassan för något gästen aldrig fick veta i
+       * förväg. Kortet säger redan "minst 4 portioner"; knappen ska göra det
+       * den säger.
+       */
+      const first = Math.max(1, item.minQuantity);
+
       return [
         ...current,
-        { key: `${item.id}:${signature}:${crypto.randomUUID()}`, item, quantity: 1, optionIds, note },
+        { key: `${item.id}:${signature}:${crypto.randomUUID()}`, item, quantity: first, optionIds, note },
       ];
     });
     setOpenItemId(null);
@@ -464,16 +482,38 @@ export function MenuOrder({
     // Antalet räknas ur den nuvarande varukorgen plus den här raden. Att läsa
     // upp det gör dels beskedet användbart, dels unikt: två likadana
     // meddelanden i rad läses inte upp en andra gång.
-    const nextCount = cart.reduce((sum, line) => sum + line.quantity, 0) + 1;
+    const alreadyInCart = cart.some(
+      (line) =>
+        line.item.id === item.id &&
+        [...line.optionIds].sort().join(",") === [...optionIds].sort().join(",") &&
+        line.note === note,
+    );
+    const added = alreadyInCart ? 1 : Math.max(1, item.minQuantity);
+    const nextCount = cart.reduce((sum, line) => sum + line.quantity, 0) + added;
     setAnnouncement(`${item.name}: ${labels.added}. ${fill(labels.itemCount, { n: nextCount })}`);
   }
 
   function changeQuantity(key: string, delta: number) {
-    setCart((current) =>
-      current
-        .map((line) => (line.key === key ? { ...line, quantity: line.quantity + delta } : line))
-        .filter((line) => line.quantity > 0),
-    );
+    setCart((current) => {
+      const line = current.find((row) => row.key === key);
+      if (!line) return current;
+
+      const next = line.quantity + delta;
+      const minimum = Math.max(1, line.item.minQuantity);
+
+      /*
+       * Under satsen finns bara noll.
+       *
+       * Att låta gästen stå kvar på tre portioner av något som kräver fyra
+       * hade betytt att minusknappen ser ut att fungera medan beställningen
+       * sedan nekas. Antingen tar man satsen eller så tar man den inte.
+       */
+      if (next < minimum) {
+        return current.filter((row) => row.key !== key);
+      }
+
+      return current.map((row) => (row.key === key ? { ...row, quantity: next } : row));
+    });
   }
 
   /**
@@ -717,6 +757,86 @@ export function MenuOrder({
 
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
 
+  const itemsById = useMemo(
+    () =>
+      new Map(
+        menu.categories.flatMap((category) => category.items.map((item) => [item.id, item] as const)),
+      ),
+    [menu],
+  );
+
+  /** Id:n i de avdelningar restaurangen märkt som dryck. */
+  const drinkIds = useMemo(
+    () =>
+      new Set(
+        menu.categories
+          .filter((category) => category.isDrinks)
+          .flatMap((category) => category.items.map((item) => item.id)),
+      ),
+    [menu],
+  );
+
+  /*
+   * "Vill du ha något till?"
+   *
+   * Två källor, i den ordningen: restaurangens EGNA förslag för det som ligger
+   * i korgen, och därefter drycken — men bara om gästen inte redan valt något
+   * att dricka. Den som lagar maten vet att ćevapi går med jogurt; en algoritm
+   * gör det inte, och därför finns ingen här.
+   *
+   * Förslagen bär inget pris in i beställningen. Priset hämtas ur menyn på
+   * servern som alltid (regel 2) — det som visas här är samma tal som på
+   * kortet ovanför.
+   */
+  const suggestions = useMemo(() => {
+    if (cart.length === 0) return [];
+
+    const inCart = new Set(cart.map((line) => line.item.id));
+    const picked: MenuItem[] = [];
+
+    const consider = (id: string) => {
+      if (inCart.has(id) || picked.some((item) => item.id === id)) return;
+      const item = itemsById.get(id);
+      if (item?.isAvailable) picked.push(item);
+    };
+
+    for (const line of cart) {
+      for (const id of line.item.upsellItemIds) consider(id);
+    }
+
+    if (![...inCart].some((id) => drinkIds.has(id))) {
+      for (const id of drinkIds) {
+        if (picked.length >= SUGGESTION_LIMIT) break;
+        consider(id);
+      }
+    }
+
+    return picked.slice(0, SUGGESTION_LIMIT);
+  }, [cart, itemsById, drinkIds]);
+
+  /**
+   * Ett förslag som kräver ett val öppnar rätten i stället för att läggas till.
+   *
+   * En pizza med obligatorisk storlek kan inte läggas i korgen osedd — servern
+   * hade nekat ordern med "välj minst 1 i Storlek", och gästen hade inte
+   * förstått var det valet fanns.
+   */
+  function addSuggestion(item: MenuItem) {
+    const needsChoice =
+      item.optionGroups.some((group) => group.minSelect > 0) || item.minQuantity > 1;
+
+    if (needsChoice) {
+      setOpenItemId(item.id);
+      document.getElementById(`ratt-${item.id}`)?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "center",
+      });
+      return;
+    }
+
+    addToCart(item, [], "");
+  }
+
   return (
     // Plats för den fasta varukorgsraden — men bara när den finns. Annars
     // slutar sidan med en skärmhög lucka som ser ut som att något saknas.
@@ -880,6 +1000,8 @@ export function MenuOrder({
           scheduledFor={scheduledFor}
           onScheduleChange={setScheduledFor}
           onQuantityChange={changeQuantity}
+          suggestions={suggestions}
+          onAddSuggestion={addSuggestion}
           onSubmit={placeOrder}
           submitting={submitting}
           error={error}
@@ -1034,7 +1156,9 @@ function MenuItemCard({
   }
 
   return (
-    <li className="flex flex-col">
+    // Ankaret finns för förslagen i kundvagnen: ett förslag som kräver ett val
+    // öppnar rätten här nere i stället för att läggas till osett.
+    <li id={`ratt-${item.id}`} className="flex flex-col scroll-mt-20">
       <button
         type="button"
         onClick={hasOptions ? onToggle : () => addAndConfirm([], "")}
@@ -1066,6 +1190,15 @@ function MenuItemCard({
         {item.allergens.length > 0 ? (
           <span className="label-caps mt-2 block">
             {labels.allergens}: {item.allergens.join(", ")}
+          </span>
+        ) : null}
+
+        {/* Satsen står på kortet och inte först i kassan. En gäst som får veta
+            om gränsen efter att ha tryckt "Lägg till" upplever den som ett
+            fel; den som får veta innan upplever den som en egenskap hos rätten. */}
+        {item.minQuantity > 1 ? (
+          <span className="label-caps mt-2 block text-burp-600">
+            {fill(labels.minQuantity, { n: item.minQuantity })}
           </span>
         ) : null}
 
@@ -1194,6 +1327,8 @@ function CartBar({
   tipOre,
   onTipChange,
   onQuantityChange,
+  suggestions,
+  onAddSuggestion,
   onSubmit,
   submitting,
   error,
@@ -1225,6 +1360,9 @@ function CartBar({
   tipOre: Ore;
   onTipChange: (value: number) => void;
   onQuantityChange: (key: string, delta: number) => void;
+  /** Restaurangens egna förslag, plus drycken när ingen valts. Kan vara tom. */
+  suggestions: readonly MenuItem[];
+  onAddSuggestion: (item: MenuItem) => void;
   onSubmit: () => void;
   submitting: boolean;
   error: string | null;
@@ -1309,6 +1447,33 @@ function CartBar({
                 </li>
               ))}
             </ul>
+
+            {/*
+              Förslagen ligger i den UTFÄLLDA kundvagnen och inte över menyn.
+
+              Det är stunden gästen redan bestämt sig och tittar på sin lista —
+              samma plats som "vill du ha pommes till det" ställs på en disk.
+              Över menyn hade det varit en andra meny ovanpå den man valde ur.
+            */}
+            {suggestions.length > 0 ? (
+              <div className="mt-5 border-t border-[var(--rule)] pt-4">
+                <p className="label-caps">{labels.suggestionsTitle}</p>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {suggestions.map((item) => (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onClick={() => onAddSuggestion(item)}
+                        aria-label={fill(labels.addOne, { name: item.name })}
+                        className="chip"
+                      >
+                        + {item.name} · {money(item.priceOre)}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             {pickupSlots.length > 0 ? (
               <label className="mt-5 block">

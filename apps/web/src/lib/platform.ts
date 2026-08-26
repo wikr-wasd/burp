@@ -1,6 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { MFA_CHALLENGE_PATH, needsMfaChallenge } from "./mfa";
 import { createClient } from "./supabase/server";
 
 /**
@@ -60,6 +61,17 @@ export async function requirePlatformAdmin(
   const admin = await getPlatformAdmin();
 
   if (!admin) {
+    /*
+     * Andra faktorn först, av samma skäl som i `requireStaff()`.
+     *
+     * `is_platform_admin()` bär MFA-kravet sedan migration 0051, så en admin
+     * med aal1 och en registrerad faktor får ingen rad ur `platform_admins` —
+     * och hade utan den här grenen skickats till startsidan som vore hen
+     * någon annan. Ytan ska inte bekräftas för den som saknar behörighet, men
+     * den som HAR den ska inte behöva gissa varför den plötsligt är borta.
+     */
+    if (await needsMfaChallenge()) redirect(MFA_CHALLENGE_PATH);
+
     const supabase = await createClient();
     const {
       data: { user },

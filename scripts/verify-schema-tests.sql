@@ -4625,4 +4625,299 @@ begin
 end
 $$;
 
+
+\echo '   andra faktorn gäller i databasen, inte bara i gränssnittet'
+
+do $$
+declare
+  v_rest    uuid;
+  v_owner   uuid;
+  v_utan    uuid;
+  v_seen    integer;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Tvåstegs Kafana', 'tvastegs-kafana', '4200000000131',
+          'Ferhadija 41', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-mfa@example.com')
+  returning id into v_owner;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'chef-mfa@example.com')
+  returning id into v_utan;
+
+  insert into public.staff (restaurant_id, user_id, role, is_active)
+  values (v_rest, v_owner, 'owner', true), (v_rest, v_utan, 'manager', true);
+
+  /*
+   * En DRAFT-meny syns bara för personalen.
+   *
+   * `menus_select_public` kräver PUBLISHED, så det enda som kan visa raden är
+   * `menus_all_staff` — alltså `has_role_at()`, som är en av de fyra grindar
+   * migration 0051 la kravet i. Testet mäter därför precis den vägen och
+   * ingenting annat.
+   */
+  insert into public.menus (restaurant_id, name, status)
+  values (v_rest, 'Utkast', 'DRAFT');
+
+  -- Ägaren har registrerat en andra faktor.
+  insert into auth.mfa_factors (user_id, status) values (v_owner, 'verified');
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_owner::text, true);
+  perform set_config('request.jwt.claim.aal', 'aal1', true);
+
+  select count(*) into v_seen from public.menus where restaurant_id = v_rest;
+
+  if v_seen <> 0 then
+    raise exception 'FEL: lösenordet ensamt räckte trots registrerad faktor';
+  end if;
+
+  -- Samma person, samma lösenord, men koden inlämnad.
+  perform set_config('request.jwt.claim.aal', 'aal2', true);
+
+  select count(*) into v_seen from public.menus where restaurant_id = v_rest;
+
+  if v_seen <> 1 then
+    raise exception 'FEL: aal2 släpptes inte igenom';
+  end if;
+
+  /*
+   * Den som INTE registrerat någon faktor arbetar vidare som förut.
+   *
+   * Det är inte en eftergift utan det som gör införandet möjligt: ett krav som
+   * gällde alla från dag ett hade låst ute varenda befintlig anställd
+   * samtidigt — inklusive seed-personalen som röktestet loggar in som.
+   */
+  perform set_config('request.jwt.claim.sub', v_utan::text, true);
+  perform set_config('request.jwt.claim.aal', 'aal1', true);
+
+  select count(*) into v_seen from public.menus where restaurant_id = v_rest;
+
+  if v_seen <> 1 then
+    raise exception 'FEL: den utan andra faktor stängdes ute';
+  end if;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('request.jwt.claim.aal', '', true);
+end
+$$;
+
+\echo '   ett förslag i kundvagnen kan inte peka på en annan restaurangs rätt'
+
+do $$
+declare
+  v_rest_a  uuid;
+  v_rest_b  uuid;
+  v_meny_a  uuid;
+  v_meny_b  uuid;
+  v_kat_a   uuid;
+  v_kat_b   uuid;
+  v_ratt_a  uuid;
+  v_ratt_b  uuid;
+  v_kafa_a  uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Förslag A', 'forslag-a', '4200000000132',
+          'Ferhadija 42', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest_a;
+
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Förslag B', 'forslag-b', '4200000000133',
+          'Ferhadija 43', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest_b;
+
+  insert into public.menus (restaurant_id, name, status)
+  values (v_rest_a, 'Meny A', 'PUBLISHED') returning id into v_meny_a;
+  insert into public.menus (restaurant_id, name, status)
+  values (v_rest_b, 'Meny B', 'PUBLISHED') returning id into v_meny_b;
+
+  insert into public.menu_categories (menu_id, restaurant_id, name)
+  values (v_meny_a, v_rest_a, 'Mat') returning id into v_kat_a;
+  insert into public.menu_categories (menu_id, restaurant_id, name)
+  values (v_meny_b, v_rest_b, 'Mat') returning id into v_kat_b;
+
+  insert into public.menu_items (category_id, restaurant_id, name, price_ore, vat_rate_bps, status)
+  values (v_kat_a, v_rest_a, 'Ćevapi', 1200, 1700, 'PUBLISHED') returning id into v_ratt_a;
+  insert into public.menu_items (category_id, restaurant_id, name, price_ore, vat_rate_bps, status)
+  values (v_kat_b, v_rest_b, 'Jogurt', 300, 1700, 'PUBLISHED') returning id into v_ratt_b;
+
+  begin
+    insert into public.item_upsells (restaurant_id, source_item_id, suggested_item_id)
+    values (v_rest_a, v_ratt_a, v_ratt_a);
+
+    raise exception 'FEL: en rätt kunde föreslå sig själv';
+  exception
+    when check_violation then null;
+  end;
+
+  /*
+   * Grannens rätt är det som verkligen måste stoppas.
+   *
+   * En vanlig FK mot menu_items(id) hade sagt ja: rätten finns ju. Den
+   * sammansatta nyckeln (id, restaurant_id) är det som binder förslaget till
+   * restaurangen på raden — annars visar kundvagnen en rätt gästen inte kan
+   * beställa, från ett kök som aldrig får biljetten.
+   */
+  begin
+    insert into public.item_upsells (restaurant_id, source_item_id, suggested_item_id)
+    values (v_rest_a, v_ratt_a, v_ratt_b);
+
+    raise exception 'FEL: förslaget pekade på en annan restaurangs rätt';
+  exception
+    when foreign_key_violation then null;
+  end;
+
+  -- Den egna restaurangens rätt går förstås igenom.
+  insert into public.menu_items (category_id, restaurant_id, name, price_ore, vat_rate_bps, status)
+  values (v_kat_a, v_rest_a, 'Kafa', 200, 1700, 'PUBLISHED') returning id into v_kafa_a;
+
+  insert into public.item_upsells (restaurant_id, source_item_id, suggested_item_id)
+  values (v_rest_a, v_ratt_a, v_kafa_a);
+end
+$$;
+
+\echo '   minsta antal är en egenskap hos rätten och kan inte sättas ovanför orderns tak'
+
+do $$
+declare
+  v_rest  uuid;
+  v_meny  uuid;
+  v_kat   uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Paprika Kafana', 'paprika-kafana', '4200000000134',
+          'Ferhadija 44', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into public.menus (restaurant_id, name, status)
+  values (v_rest, 'Meny', 'PUBLISHED') returning id into v_meny;
+  insert into public.menu_categories (menu_id, restaurant_id, name)
+  values (v_meny, v_rest, 'Mat') returning id into v_kat;
+
+  -- Standardvärdet är 1: en befintlig rätt påverkas inte av migrationen.
+  insert into public.menu_items (category_id, restaurant_id, name, price_ore, vat_rate_bps, status)
+  values (v_kat, v_rest, 'Burek', 800, 1700, 'PUBLISHED');
+
+  if not exists (
+    select 1 from public.menu_items
+    where restaurant_id = v_rest and min_quantity = 1
+  ) then
+    raise exception 'FEL: befintliga rätter fick inte minsta antal 1';
+  end if;
+
+  /*
+   * Taket är 99 därför att orderschemat inte tar emot fler per rad. En gräns
+   * på 100 hade gjort rätten omöjlig att beställa — vilket ser ut som en bugg
+   * i beställningen och är ett datafel i menyn.
+   */
+  begin
+    insert into public.menu_items (category_id, restaurant_id, name, price_ore, vat_rate_bps, status, min_quantity)
+    values (v_kat, v_rest, 'Omöjlig sats', 1400, 1700, 'PUBLISHED', 100);
+
+    raise exception 'FEL: en obeställbar gräns gick att spara';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
+\echo '   logotypen publiceras först när den godkänts, och på sin egen kolumn'
+
+do $$
+declare
+  v_rest   uuid;
+  v_agare  uuid;
+  v_media  uuid;
+  v_url    text;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Märket', 'market', '4200000000135',
+          'Ferhadija 45', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-logo@example.com')
+  returning id into v_agare;
+
+  insert into public.media (restaurant_id, kind, storage_path, purpose, status, uploaded_by)
+  values (v_rest, 'IMAGE', v_rest || '/logo.png', 'LOGO', 'PENDING', v_agare)
+  returning id into v_media;
+
+  select logo_url into v_url from public.restaurants where id = v_rest;
+  if v_url is not null then
+    raise exception 'FEL: en ogranskad logotyp publicerades';
+  end if;
+
+  update public.media set status = 'APPROVED' where id = v_media;
+
+  select logo_url into v_url from public.restaurants where id = v_rest;
+  if v_url is null then
+    raise exception 'FEL: den godkända logotypen publicerades aldrig';
+  end if;
+
+  -- Huvudbilden ska inte ha rörts. Fallen hålls isär med flit: en logotyp är
+  -- inte en huvudbild som råkar vara liten.
+  if (select hero_image_url from public.restaurants where id = v_rest) is not null then
+    raise exception 'FEL: logotypen skrev över huvudbilden';
+  end if;
+
+  update public.media set status = 'REJECTED' where id = v_media;
+
+  select logo_url into v_url from public.restaurants where id = v_rest;
+  if v_url is not null then
+    raise exception 'FEL: en tillbakadragen logotyp låg kvar';
+  end if;
+end
+$$;
+
+\echo '   återställningen av en andra faktor går inte att sudda'
+
+do $$
+declare
+  v_agare  uuid;
+  v_admin  uuid;
+  v_rad    uuid;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-reset@example.com')
+  returning id into v_agare;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'burp-admin@example.com')
+  returning id into v_admin;
+
+  insert into public.security_events (user_id, actor_id, kind, note)
+  values (v_agare, v_admin, 'MFA_FACTOR_RESET', 'Telefonen byttes')
+  returning id into v_rad;
+
+  /*
+   * Att ta bort någons andra faktor ger tillbaka full åtkomst till en
+   * restaurang. Den åtgärden får aldrig gå att göra spårlöst — och en logg som
+   * går att rätta i efterhand är ingen logg (regel 6).
+   */
+  begin
+    update public.security_events set note = 'Något annat' where id = v_rad;
+    raise exception 'FEL: säkerhetsloggen gick att skriva om';
+  exception
+    when raise_exception then
+      if sqlerrm not like '%oföränderlig%' then raise; end if;
+  end;
+
+  begin
+    delete from public.security_events where id = v_rad;
+    raise exception 'FEL: säkerhetsloggen gick att radera';
+  exception
+    when raise_exception then
+      if sqlerrm not like '%oföränderlig%' then raise; end if;
+  end;
+end
+$$;
+
 rollback;
