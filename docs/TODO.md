@@ -66,6 +66,50 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-08-26 — bordsbokning
+
+Punkt 4 i färdplanen. Byggd i fyra steg: schemat, gästens yta, personalens vy
+och inställningarna.
+
+**Dubbelbokningen är löst i datan.** Ett `exclude`-villkor över `tstzrange`
+gör två överlappande bokningar på samma bord omöjliga att skriva, oavsett vem
+som försöker och genom vilken väg. Villkoret är partiellt — en avbokad tid
+blockerar ingenting, annars hade en avbokning gjort tiden upptagen för alltid.
+
+**Lediga tider räknas av `reservation_slots()` och ingen annanstans.** Både
+bokningssidan och `create_reservation()` går genom den, av samma skäl som
+`open_restaurant_ids` en gång infördes.
+
+**Karensen är räknad, inte satt av ett jobb.** Ett bord som bokats till 19:00
+och står tomt 19:15 går att sätta någon annan vid, men raden står kvar som
+BOOKED tills personalen säger något annat. Regeln finns i SQL **och** i
+`holdsTable()` och måste hållas i takt — samma krav som `loyalty_balance()`
+och `calculateBalance()`.
+
+**Ingen automatisk NO_SHOW.** Att bordet släpps är en fråga om kapacitet just
+nu; att någon UTEBLEV är ett påstående om en gäst, och det ska en människa
+göra.
+
+Bokningen kräver inget konto, som QR-beställningen. Avbokning bevisas med en
+nyckel i länken — id:t ensamt hade låtit vem som helst avboka någon annans
+bord. Tillägget för fönsterbordet fryses på bokningen och hamnar på notan i
+restaurangen; Burp tar aldrig emot beloppet, och det ingår inte i
+avgiftsunderlaget.
+
+Migrationer `0054` och `0055`. Bevakat av tre schematester och sju röktester.
+
+**Kvar på området:** ingen notis går till restaurangen när en bokning kommer
+in. Personalen ser den i listan, vilket räcker för en restaurang som tittar —
+men en bokning som läggs 18:40 för 19:00 vill man veta om.
+
+### Restaurangsidan utan språk i adressen svarade 404 — rättat 2026-08-26
+
+Backoffice "Visa publikt" pekade på `/r/{stad}/{restaurang}`, men sidan bor
+under `/{språk}/r/…` och rutten utan språk fanns inte. En ACTIVE restaurang såg
+ut att inte finnas. Adressen utan språk är dessutom den naturliga att skriva av
+och klistra in, så lösningen blev att låta den fungera: 307 mot webbläsarens
+språk, som roten. Röktestet bevakar den nu.
+
 ### Byggt 2026-08-26
 
 Första blocket ur genomgången av Williams tio punkter. Färdplanen över alla tio
@@ -814,7 +858,16 @@ Det som går att göra i dag, utan 123Connect:
 - `scripts/verify-schema.sh` kontrollerar redan RLS **och** GRANT, vilket är
   den kontroll som en gång saknades.
 
-### 5. Bordsbokning online — **bra idé, riktig funktion, och en fälla i mitten**
+### 5. Bordsbokning online — **byggd 2026-08-26**
+
+> **Utfall:** byggd, med fällan löst som beskrivs nedan. Se avsnittet *Byggt
+> 2026-08-26 — bordsbokning*. Texten står kvar därför att invändningen var rätt
+> och blev till kravet: spärren ligger i ett `exclude`-villkor och lediga tider
+> räknas på ett enda ställe.
+>
+> De två frågor som stod obesvarade här fick sina svar 2026-08-26: bokningen
+> håller ett **bestämt bord**, och ett bord som står tomt släpps efter **15
+> minuters karens**.
 
 Passar produkten: restaurangsidan har redan öppettider, borden har zon,
 platsantal och koordinater i planritningen, och `country_time_zone()` finns
@@ -1041,23 +1094,16 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
 
 ### Fas 2 och framåt
 
-- [ ] **Bordsbokning online.** Beställd 2026-08-21. Kalender, tider, och en
-      tagen tid som försvinner för nästa gäst. Grunden finns: öppettider,
-      bord med zon och platsantal, planritning och `country_time_zone()`.
+- [x] **Bordsbokning online.** Beställd 2026-08-21, **byggd 2026-08-26**.
+      Migrationer `0054` och `0055`; se avsnittet högst upp.
 
-      **Dubbelbokningen får inte lösas i applikationskoden.** "Är tiden ledig?"
-      och "boka den" är två frågor, och mellan dem hinner nästa gäst få samma
-      svar på den första. Ett `exclude`-villkor över `tstzrange` med
-      `btree_gist` gör två överlappande bokningar på samma bord omöjliga att
-      skriva — regeln hör till datan, som triggern på `order_events`.
+      Kraven som stod här visade sig vara de rätta och blev bygget:
+      `exclude`-villkoret över `tstzrange` är spärren, och
+      `reservation_slots()` är det enda stället lediga tider räknas.
 
-      **Lediga tider räknas på ett enda ställe**, av samma skäl som priset.
-      `open_restaurant_ids` (migration 0025) finns just därför att listan och
-      beställningen inte fick svara olika på om restaurangen var öppen.
-
-      Att bestämma före bygget: hur ett bokat bord samspelar med en gäst som
-      kommer in från gatan och sätter sig där, och vad som händer vid utebliven
-      gäst.
+      De två frågorna som skulle bestämmas före bygget fick sina svar:
+      bokningen håller ett **bestämt bord**, och ett bord som står tomt
+      släpps efter **15 minuters karens** — räknad, inte satt av ett jobb.
 
 - [ ] **Surfplatta vid bordet.** Beslutad. Delar mycket med QR-flödet.
 - [ ] **Mobilapp (React Native).** Beslutad. `@burp/core` är byggt för att
@@ -1528,9 +1574,11 @@ vilka mekanismer som går att ta, inte om att likna dem.
       de har redan en app installerad. Ta upp igen först om pollningen visar
       sig otillräcklig i verklig drift.
 
-- [ ] **Bordsbokning.** Pinchos har det som primär CTA. **Avrått nu.** Det är
-      ett eget produktområde — kalender, kapacitet, avbokning, no-shows — och
-      inte en del av ett beställningssystem. Konkurrerar med lansering.
+- [x] **Bordsbokning.** Pinchos har det som primär CTA. Avrådd 2026-08-20 som
+      konkurrent till lanseringen, byggd 2026-08-26 när William bad om den. Det
+      ÄR ett eget produktområde — kalender, kapacitet, avbokning, no-shows —
+      och det syns i att den krävde två migrationer, fyra ytor och tio nya
+      kontroller.
 
 Avfört utan åtgärd: quiz i appen.
 
