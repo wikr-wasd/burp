@@ -140,6 +140,9 @@ describe("ordböckerna", () => {
       "staff.settings.phone",
       "staff.reports.code",
       "join.phone",
+      // "Datum" är samma ord på bosniska. "Vrijeme" och "Sto" är det inte,
+      // vilket är kvittot på att bokningsavsnittet faktiskt är översatt.
+      "booking.date",
     ],
 
     de: [
@@ -179,6 +182,8 @@ describe("ordböckerna", () => {
        * oöversatt ruta.
        */
       "staff.settings.bannerTitle",
+      // "Datum" delas rakt av. "Tisch" och "Uhrzeit" gör det inte.
+      "booking.date",
     ],
 
     en: [
@@ -237,6 +242,18 @@ describe("ordböckerna", () => {
       "weekday.wed",
       "weekday.thu",
       "weekday.fri",
+      /*
+       * Bokningen. Fyra uttryck som stavas likadant på norska och svenska.
+       *
+       * Notera vilka som INTE står här: `booking.date` är "Dato" mot "Datum",
+       * `booking.submit` är "Reserver" mot "Boka" och `booking.cancel` är
+       * "Avbestill" mot "Avboka". Kollisionerna sitter i de ord där språken
+       * faktiskt sammanfaller, inte i avsnittet.
+       */
+      "booking.tableLabel",
+      "booking.attribute.OUTDOOR",
+      "booking.attribute.BOOTH",
+      "booking.status.NO_SHOW",
       /*
        * "Avbryt" stavas likadant på norska och svenska.
        *

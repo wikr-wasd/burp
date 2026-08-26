@@ -4,6 +4,7 @@ import {
   availableSlots,
   checkAccentColor,
   COUNTRY_INFO,
+  parseReservationPolicy,
   parseOpeningHours,
   parseOrderPolicy,
   type CountryCode,
@@ -11,6 +12,7 @@ import {
 } from "@burp/core";
 import { FoodImage } from "@/components/media/food-image";
 import { MenuOrder } from "@/components/order/menu-order";
+import { BookingForm } from "@/components/site/booking-form";
 import { cardOptionFor } from "@/lib/payments";
 import { getPunchCard } from "@/lib/punch-cards";
 import { SiteFooter } from "@/components/site/site-footer";
@@ -21,7 +23,7 @@ import {
   toSchemaOpeningHours,
 } from "@/components/site/opening-hours-week";
 import { SiteHeader } from "@/components/site/site-header";
-import { dictionary, isLocale, localePath, type Locale } from "@/lib/i18n";
+import { dictionary, isLocale, localePath, LOCALE_TAGS, type Locale } from "@/lib/i18n";
 import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
 import { resolveMediaUrl } from "@/lib/media-url";
@@ -71,6 +73,7 @@ interface RestaurantRow {
   accent_hex: string | null;
   logo_url: string | null;
   banner_url: string | null;
+  reservation_policy: unknown;
   rating_average: number | null;
   rating_count: number;
   opening_hours: OpeningHours | null;
@@ -84,7 +87,7 @@ async function getRestaurant(city: string, slug: string): Promise<RestaurantRow 
   const { data } = await supabase
     .from("restaurants")
     .select(
-      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, accent_hex, logo_url, banner_url, rating_average, rating_count, opening_hours, order_policy, country, currency",
+      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, accent_hex, logo_url, banner_url, rating_average, rating_count, opening_hours, order_policy, reservation_policy, country, currency",
     )
     .eq("slug", slug)
     .eq("city_slug", city)
@@ -147,6 +150,16 @@ export default async function RestaurantPage({ params }: PageProps) {
    * sparad en gång. `checkAccentColor()` är samma funktion som redigeraren och
    * serveråtgärden använder; det finns bara en bedömning av vad som duger.
    */
+  /*
+   * Bokningsreglerna, och dagens datum i RESTAURANGENS tidszon.
+   *
+   * Datumet räknas här och inte i webbläsaren. En gäst i Stockholm som tittar
+   * på en restaurang i Sarajevo ska se restaurangens dag — och en gäst strax
+   * efter midnatt någon annanstans ska inte erbjudas gårdagen.
+   */
+  const reservationPolicy = parseReservationPolicy(restaurant.reservation_policy);
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone }).format(new Date());
+
   const accent = restaurant.accent_hex ? checkAccentColor(restaurant.accent_hex) : null;
   const logoUrl = resolveMediaUrl(restaurant.logo_url);
   const bannerUrl = resolveMediaUrl(restaurant.banner_url);
@@ -339,7 +352,33 @@ export default async function RestaurantPage({ params }: PageProps) {
         </nav>
       </header>
 
-      {menu && menu.categories.length > 0 ? (
+      {/*
+        Bokningen står FÖRE menyn.
+
+        Den som letar efter ett bord på fredag har inte kommit hit för att
+        läsa vad ćevapi kostar, och en bokningsruta under trettio rätter är
+        en ruta ingen hittar. Avsnittet finns bara när restaurangen slagit på
+        bokning — standardläget är av.
+      */}
+      {reservationPolicy.enabled ? (
+        <section id="boka" className="mt-14 scroll-mt-8">
+          <h2 className="font-display text-3xl">{t.booking.title}</h2>
+          <p className="mt-2 text-[var(--muted)]">{t.booking.intro}</p>
+
+          <BookingForm
+            restaurantId={restaurant.id}
+            currency={restaurant.currency as CurrencyCode}
+            timeZone={timeZone}
+            localeTag={LOCALE_TAGS[locale as Locale]}
+            initialDate={today}
+            maxPartySize={reservationPolicy.maxPartySize}
+            horizonDays={reservationPolicy.horizonDays}
+            labels={t.booking}
+          />
+        </section>
+      ) : null}
+
+        {menu && menu.categories.length > 0 ? (
         <section id="meny" className="mt-16">
           <p className="label-caps">{t.restaurant.orderForPickup} · {menu.name}</p>
           <div className="mt-6">

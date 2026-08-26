@@ -508,6 +508,66 @@ export const sv = {
    *
    * Skickas till klientkomponenter och måste vara rena strängar rakt igenom.
    */
+  /**
+   * Bordsbokning.
+   *
+   * Bordens egenskaper är GRÄNSSNITT och översätts — till skillnad från
+   * restaurangens egna texter, som står kvar som de skrivits. Nyckeln kommer ur
+   * en fast lista i migration 0054 just därför: en fritext hade betytt att
+   * "prozor", "Fenster" och "fönster" är tre olika bord.
+   */
+  booking: {
+    title: "Boka bord",
+    intro: "Välj dag, tid och bord. Ni behöver inget konto.",
+    date: "Datum",
+    partySize: "Antal gäster",
+    chooseTime: "Välj tid",
+    searching: "Söker lediga tider…",
+    noTimes: "Inga lediga tider den dagen. Prova en annan.",
+    chooseTable: "Välj bord",
+    tableLabel: "Bord {number}",
+    standardTable: "Vanligt bord",
+    surchargeHint: "Tillägget läggs på notan i restaurangen.",
+    name: "Namn",
+    phone: "Telefon",
+    email: "E-post",
+    note: "Något vi bör veta?",
+    notePlaceholder: "Barnstol, allergi, födelsedag",
+    submit: "Boka",
+    submitting: "Bokar…",
+    attribute: {
+      VIEW: "Utsikt",
+      WINDOW: "Vid fönstret",
+      OUTDOOR: "Uteservering",
+      QUIET: "Lugnt hörn",
+      BOOTH: "Bås",
+      ACCESSIBLE: "Tillgängligt",
+    },
+    errorTaken: "Någon hann före. Välj en annan tid.",
+    errorPartyTooLarge: "Så stora sällskap bokas per telefon.",
+    errorTooSoon: "Tiden ligger för nära. Välj en senare.",
+    errorTooFar: "Så långt fram går det inte att boka än.",
+    errorNoName: "Skriv namnet bordet ska stå på.",
+    errorDisabled: "Restaurangen tar inte emot bokningar just nu.",
+    errorUnknown: "Bokningen gick inte igenom. Försök igen.",
+    confirmedTitle: "Bordet är bokat",
+    confirmedBody: "Vi har inget att skicka er — spara sidan, den är kvittot.",
+    yourBooking: "Din bokning",
+    partyLabel: "{n} gäster",
+    cancel: "Avboka",
+    cancelConfirm: "Avboka bordet?",
+    cancelled: "Bokningen är avbokad.",
+    cancelFailed: "Bokningen kunde inte avbokas.",
+    backToRestaurant: "Till restaurangens sida",
+    status: {
+      BOOKED: "Bokad",
+      SEATED: "Ni sitter vid bordet",
+      COMPLETED: "Besöket är avslutat",
+      CANCELLED: "Avbokad",
+      NO_SHOW: "Ingen kom",
+    },
+  },
+
   account: {
     label: "Mitt konto",
 

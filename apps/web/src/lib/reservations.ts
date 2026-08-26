@@ -1,9 +1,11 @@
 import "server-only";
 
 import {
+  COUNTRY_INFO,
   parseReservationPolicy,
   validateReservationRequest,
   type ReservationPolicy,
+  type CountryCode,
   type ReservationProblem,
 } from "@burp/core";
 import { createAdminClient } from "./supabase/admin";
@@ -223,6 +225,8 @@ export interface ReservationView {
   status: string;
   surchargeOre: number;
   currency: string;
+  /** Restaurangens tidszon. Bokningen visas i den, inte i gästens. */
+  timeZone: string;
   note: string | null;
 }
 
@@ -242,7 +246,7 @@ export async function reservationByToken(
   const { data } = await supabase
     .from("reservations")
     .select(
-      "id, restaurant_id, table_id, during, party_size, guest_name, status, surcharge_ore, note, restaurants!inner (name, slug, city_slug, currency), tables!inner (table_number, zone, attributes)",
+      "id, restaurant_id, table_id, during, party_size, guest_name, status, surcharge_ore, note, restaurants!inner (name, slug, city_slug, currency, country), tables!inner (table_number, zone, attributes)",
     )
     .eq("id", id)
     .eq("cancel_token", token)
@@ -255,6 +259,7 @@ export async function reservationByToken(
     slug: string;
     city_slug: string;
     currency: string;
+    country: CountryCode;
   };
   const table = data.tables as unknown as {
     table_number: string;
@@ -280,6 +285,13 @@ export async function reservationByToken(
     status: data.status,
     surchargeOre: data.surcharge_ore,
     currency: restaurant.currency,
+    /*
+     * Tiden visas i RESTAURANGENS tidszon.
+     *
+     * En gäst som bokar från Stockholm ska se 19:00 om det är 19:00 i Sarajevo.
+     * Klockslaget hör till bordet, inte till telefonen som tittar på det.
+     */
+    timeZone: COUNTRY_INFO[restaurant.country].timeZone,
     note: data.note,
   };
 }
