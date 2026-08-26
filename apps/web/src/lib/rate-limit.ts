@@ -61,6 +61,17 @@ export const RATE_LIMITS = {
    * kostar ingenting och gör frågan omöjlig att ställa i skala.
    */
   giftCardPreview: { limit: 10, windowSeconds: 60 },
+  /**
+   * Bordsbokning.
+   *
+   * Snävare än orderskapandet. En order kostar gästen pengar och begränsar sig
+   * själv; en bokning kostar ingenting och kan därför användas för att lägga
+   * beslag på en hel kväll. Fem i minuten räcker för den som bokar åt en
+   * familj och provar två tider.
+   */
+  reservationCreate: { limit: 5, windowSeconds: 60 },
+  /** Lediga tider. Generöst — sidan frågar om nytt datum vid varje klick. */
+  reservationSlots: { limit: 60, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitOptions>;
 
 /**

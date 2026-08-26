@@ -17,6 +17,7 @@ export * from "./coupon";
 export * from "./gift-card";
 export * from "./punch-card";
 export * from "./order-policy";
+export * from "./reservation-policy";
 export * from "./order-build";
 export * from "./availability";
 export * from "./geo";

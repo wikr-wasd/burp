@@ -1757,6 +1757,81 @@ export type Database = {
           },
         ]
       }
+      reservations: {
+        Row: {
+          cancel_token: string
+          cancelled_at: string | null
+          created_at: string
+          during: unknown
+          guest_email: string | null
+          guest_id: string | null
+          guest_name: string
+          guest_phone: string | null
+          id: string
+          note: string | null
+          party_size: number
+          restaurant_id: string
+          seated_at: string | null
+          status: Database["public"]["Enums"]["reservation_status"]
+          surcharge_ore: number
+          table_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancel_token?: string
+          cancelled_at?: string | null
+          created_at?: string
+          during: unknown
+          guest_email?: string | null
+          guest_id?: string | null
+          guest_name: string
+          guest_phone?: string | null
+          id?: string
+          note?: string | null
+          party_size: number
+          restaurant_id: string
+          seated_at?: string | null
+          status?: Database["public"]["Enums"]["reservation_status"]
+          surcharge_ore?: number
+          table_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancel_token?: string
+          cancelled_at?: string | null
+          created_at?: string
+          during?: unknown
+          guest_email?: string | null
+          guest_id?: string | null
+          guest_name?: string
+          guest_phone?: string | null
+          id?: string
+          note?: string | null
+          party_size?: number
+          restaurant_id?: string
+          seated_at?: string | null
+          status?: Database["public"]["Enums"]["reservation_status"]
+          surcharge_ore?: number
+          table_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_table_fk"
+            columns: ["table_id", "restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
+            referencedColumns: ["id", "restaurant_id"]
+          },
+        ]
+      }
       restaurant_payment_accounts: {
         Row: {
           capabilities: Json
@@ -1833,6 +1908,7 @@ export type Database = {
           punch_card_size: number | null
           rating_average: number | null
           rating_count: number
+          reservation_policy: Json
           slug: string
           status: Database["public"]["Enums"]["restaurant_status"]
           street_address: string
@@ -1869,6 +1945,7 @@ export type Database = {
           punch_card_size?: number | null
           rating_average?: number | null
           rating_count?: number
+          reservation_policy?: Json
           slug: string
           status?: Database["public"]["Enums"]["restaurant_status"]
           street_address: string
@@ -1905,6 +1982,7 @@ export type Database = {
           punch_card_size?: number | null
           rating_average?: number | null
           rating_count?: number
+          reservation_policy?: Json
           slug?: string
           status?: Database["public"]["Enums"]["restaurant_status"]
           street_address?: string
@@ -2275,6 +2353,7 @@ export type Database = {
       }
       tables: {
         Row: {
+          attributes: string[]
           capacity: number | null
           created_at: string
           floor_plan_id: string | null
@@ -2288,12 +2367,14 @@ export type Database = {
           rotation: number
           shape: Database["public"]["Enums"]["table_shape"]
           status: Database["public"]["Enums"]["table_status"]
+          surcharge_ore: number
           table_number: string
           updated_at: string
           width: number
           zone: string | null
         }
         Insert: {
+          attributes?: string[]
           capacity?: number | null
           created_at?: string
           floor_plan_id?: string | null
@@ -2307,12 +2388,14 @@ export type Database = {
           rotation?: number
           shape?: Database["public"]["Enums"]["table_shape"]
           status?: Database["public"]["Enums"]["table_status"]
+          surcharge_ore?: number
           table_number: string
           updated_at?: string
           width?: number
           zone?: string | null
         }
         Update: {
+          attributes?: string[]
           capacity?: number | null
           created_at?: string
           floor_plan_id?: string | null
@@ -2326,6 +2409,7 @@ export type Database = {
           rotation?: number
           shape?: Database["public"]["Enums"]["table_shape"]
           status?: Database["public"]["Enums"]["table_status"]
+          surcharge_ore?: number
           table_number?: string
           updated_at?: string
           width?: number
@@ -2607,6 +2691,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      cancel_reservation: {
+        Args: { p_id: string; p_token: string }
+        Returns: boolean
+      }
       close_settlement_period: {
         Args: {
           p_period_end: string
@@ -2627,6 +2715,7 @@ export type Database = {
         Args: { p_country: Database["public"]["Enums"]["country_code"] }
         Returns: string
       }
+      create_reservation: { Args: { p_payload: Json }; Returns: Json }
       currency_for_country: {
         Args: { p_country: Database["public"]["Enums"]["country_code"] }
         Returns: Database["public"]["Enums"]["currency_code"]
@@ -2986,6 +3075,18 @@ export type Database = {
           p_reason: string
         }
         Returns: string
+      }
+      reservation_slots: {
+        Args: { p_date: string; p_party_size: number; p_restaurant_id: string }
+        Returns: {
+          attributes: string[]
+          capacity: number
+          slot_at: string
+          surcharge_ore: number
+          table_id: string
+          table_number: string
+          zone: string
+        }[]
       }
       restaurant_money_events: {
         Args: { p_from: string; p_restaurant_id: string; p_to: string }
@@ -3785,6 +3886,12 @@ export type Database = {
         | "PARTIALLY_REFUNDED"
       platform_role: "support" | "admin" | "owner"
       refund_status: "PENDING" | "SUCCEEDED" | "FAILED"
+      reservation_status:
+        | "BOOKED"
+        | "SEATED"
+        | "COMPLETED"
+        | "CANCELLED"
+        | "NO_SHOW"
       restaurant_status: "PENDING" | "ACTIVE" | "PAUSED" | "SUSPENDED"
       reward_funder: "BURP" | "RESTAURANT"
       settlement_status: "DRAFT" | "INVOICED" | "PAID" | "VOID"
@@ -3968,6 +4075,13 @@ export const Constants = {
       ],
       platform_role: ["support", "admin", "owner"],
       refund_status: ["PENDING", "SUCCEEDED", "FAILED"],
+      reservation_status: [
+        "BOOKED",
+        "SEATED",
+        "COMPLETED",
+        "CANCELLED",
+        "NO_SHOW",
+      ],
       restaurant_status: ["PENDING", "ACTIVE", "PAUSED", "SUSPENDED"],
       reward_funder: ["BURP", "RESTAURANT"],
       settlement_status: ["DRAFT", "INVOICED", "PAID", "VOID"],

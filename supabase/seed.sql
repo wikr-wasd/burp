@@ -519,3 +519,29 @@ values
 update public.restaurants
 set accent_hex = '#15803d'
 where id = '11111111-1111-1111-1111-111111111111';
+
+-- ── Bordsbokning (migration 0054) ──────────────────────────────────────────
+--
+-- Utan det här går bokningen inte att bedöma: policyn är avstängd som standard,
+-- och utan ett bord med egenskaper syns aldrig skillnaden mellan ett vanligt
+-- bord och ett vid fönstret.
+update public.restaurants
+set reservation_policy = jsonb_build_object(
+  'enabled', true,
+  'duration_minutes', 90,
+  'grace_minutes', 15,
+  'lead_minutes', 60,
+  'horizon_days', 30,
+  'max_party_size', 12
+)
+where id = '11111111-1111-1111-1111-111111111111';
+
+-- Två bord som är värda att välja, och ett tillägg som hamnar på notan i
+-- restaurangen — Burp tar aldrig emot beloppet.
+update public.tables
+set attributes = array['WINDOW', 'VIEW']::text[], surcharge_ore = 1000
+where restaurant_id = '11111111-1111-1111-1111-111111111111' and table_number = '6';
+
+update public.tables
+set attributes = array['QUIET']::text[]
+where restaurant_id = '11111111-1111-1111-1111-111111111111' and table_number = '11';
