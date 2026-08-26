@@ -6,6 +6,7 @@ import {
   escapeHtml,
   invitationEmail,
   orderEmail,
+  reservationEmail,
   type OrderNotice,
 } from "./messages";
 
@@ -220,6 +221,69 @@ describe("invitationEmail", () => {
     const brev = bjudIn("BA");
     expect(brev.text).toContain("https://burp.se/personal/inbjudan/abc");
     expect(brev.html).toContain("https://burp.se/personal/inbjudan/abc");
+  });
+});
+
+describe("reservationEmail", () => {
+  const BOOKING = {
+    restaurantName: "Ćevabdžinica Željo",
+    guestName: "Amina Hodžić",
+    guestPhone: "+387 61 000 000",
+    partySize: 4,
+    // 19:00 i Sarajevo är 17:00 i UTC.
+    startsAt: new Date("2026-09-04T17:00:00Z"),
+    timeZone: "Europe/Sarajevo",
+    tableLabel: "6 · Bašta",
+    note: null,
+    dashboardUrl: "https://burp.example/dashboard/bokningar",
+  };
+
+  it("skriver klockslaget i restaurangens tidszon, inte serverns", () => {
+    const message = reservationEmail(BOOKING);
+    expect(message.subject).toContain("19:00");
+    expect(message.text).not.toContain("17:00");
+  });
+
+  /*
+   * Datumet måste stå med.
+   *
+   * En bokning kan ligga veckor fram, till skillnad från en order. "19:00"
+   * ensamt ser ut att gälla i kväll, och det är just den notisen som får
+   * någon att titta efter ett sällskap som inte kommer förrän på fredag.
+   */
+  it("tar med dagen och inte bara klockslaget", () => {
+    const message = reservationEmail(BOOKING);
+    expect(message.subject).toMatch(/fre/i);
+    expect(message.subject).toContain("4 pers");
+  });
+
+  it("tar med gästens namn och telefonnummer", () => {
+    const message = reservationEmail(BOOKING);
+    expect(message.text).toContain("Amina Hodžić");
+    expect(message.text).toContain("+387 61 000 000");
+  });
+
+  it("utelämnar telefonraden när numret saknas", () => {
+    const message = reservationEmail({ ...BOOKING, guestPhone: null });
+    expect(message.text).toContain("Amina Hodžić");
+    expect(message.text).not.toContain(" · null");
+  });
+
+  /*
+   * Gästens meddelande är text någon annan skrivit. Ett namn som råkar
+   * innehålla ett element får inte kunna stänga brevets markup — vad en
+   * mailklient gör med brustet HTML är oförutsägbart.
+   */
+  it("escapar gästens egen text", () => {
+    const message = reservationEmail({
+      ...BOOKING,
+      guestName: "Amina <script>",
+      note: "Allergi: <nötter>",
+    });
+
+    expect(message.html).not.toContain("<script>");
+    expect(message.html).toContain("&lt;script&gt;");
+    expect(message.html).toContain("&lt;nötter&gt;");
   });
 });
 

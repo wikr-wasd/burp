@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
+import { notifyNewReservation } from "@/lib/notify";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createReservation, reservationSlots } from "@/lib/reservations";
 import { createClient } from "@/lib/supabase/server";
@@ -147,6 +148,15 @@ export async function POST(request: Request) {
       },
     );
   }
+
+  /*
+   * Notisen går EFTER svaret.
+   *
+   * `after()` kör den när svaret redan lämnat servern, precis som för en ny
+   * order. Gästen ska inte vänta på att ett brev skickas, och ett brev som
+   * fastnar ska inte kunna fälla en bokning som redan står i databasen.
+   */
+  after(() => notifyNewReservation(result.reservationId));
 
   return NextResponse.json(
     {

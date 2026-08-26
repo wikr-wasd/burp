@@ -10,6 +10,7 @@ import {
   applicationEmail,
   guestOrderEmail,
   orderEmail,
+  reservationEmail,
   type OrderNoticeLine,
 } from "./messages";
 import { sendGuestPush, sendPush } from "./push";
@@ -199,6 +200,108 @@ async function orderRecipients(
     restaurantEmail,
     ...(profiles ?? []).map((profile) => profile.email as string | null),
   ].filter((address): address is string => Boolean(address));
+}
+
+/**
+ * Restaurangen får veta att ett bord bokats.
+ *
+ * ── Varför den här behövs trots att bokningen syns i listan ─────────────────
+ *
+ * Personalens vy visar veckans bord, vilket räcker för den som tittar. En
+ * bokning som läggs 18:40 för 19:00 hinner ingen titta på — och till skillnad
+ * från en order finns det ingen köksskärm som larmar om den.
+ *
+ * ── Varför inte utkorgen ────────────────────────────────────────────────────
+ *
+ * `notification_outbox` (migration 0049) finns för notiser till GÄSTEN, som
+ * utlöses av en statusändring köksskärmen gör direkt mot Supabase — där ingen
+ * server ser händelsen. En bokning skapas däremot av vår egen route handler,
+ * som kan skicka direkt. Att lägga den i kön hade betytt att ett brev om ett
+ * bord om tjugo minuter väntar på att jobbet nästa gång kör.
+ *
+ * Brev OCH push, av samma skäl som för en order: brevet ligger kvar i en
+ * inkorg, pushen når fram i samma minut.
+ */
+export async function notifyNewReservation(reservationId: string): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+
+    // service-role: en enskild bokning, och restaurangen läses ur den raden.
+    const { data: reservation, error } = await supabase
+      .from("reservations")
+      .select(
+        "id, restaurant_id, starts_at, party_size, guest_name, guest_phone, note, tables!inner (table_number, zone)",
+      )
+      .eq("id", reservationId)
+      .maybeSingle();
+
+    if (error || !reservation) {
+      console.error(`[notis] Bokningen ${reservationId} kunde inte läsas: ${error?.message ?? "saknas"}`);
+      return;
+    }
+
+    const restaurantId = reservation.restaurant_id as string;
+
+    const { data: restaurant } = await supabase
+      .from("restaurants")
+      .select("name, email, country")
+      .eq("id", restaurantId)
+      .maybeSingle();
+
+    if (!restaurant) {
+      console.error(`[notis] Restaurangen till bokning ${reservationId} kunde inte läsas.`);
+      return;
+    }
+
+    const table = reservation.tables as unknown as {
+      table_number: string;
+      zone: string | null;
+    };
+
+    const startsAt = new Date(reservation.starts_at as string);
+    const timeZone = COUNTRY_INFO[(restaurant.country as CountryCode) ?? "BA"].timeZone;
+    const tableLabel = [table.table_number, table.zone].filter(Boolean).join(" · ");
+
+    const message = reservationEmail({
+      restaurantName: restaurant.name as string,
+      guestName: reservation.guest_name as string,
+      guestPhone: (reservation.guest_phone as string | null) ?? null,
+      partySize: reservation.party_size as number,
+      startsAt,
+      timeZone,
+      tableLabel,
+      note: (reservation.note as string | null) ?? null,
+      dashboardUrl: `${publicEnv.NEXT_PUBLIC_SITE_URL}/dashboard/bokningar`,
+    });
+
+    const recipients = await orderRecipients(restaurantId, restaurant.email as string | null);
+
+    const clock = new Intl.DateTimeFormat("sv-SE", {
+      timeZone,
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(startsAt);
+
+    const [emailOutcome] = await Promise.all([
+      sendEmail(recipients, message),
+      sendPush(restaurantId, {
+        title: `Ny bokning · ${clock}`,
+        body: `${reservation.party_size as number} gäster · bord ${table.table_number}`,
+        url: `${publicEnv.NEXT_PUBLIC_SITE_URL}/dashboard/bokningar`,
+        // Bokningens id som tagg: två bokningar larmar var för sig, men ett
+        // omskick av samma ersätter den gamla notisen i stället för att lägga
+        // en till.
+        tag: reservationId,
+      }),
+    ]);
+
+    report(emailOutcome, `bokning ${reservationId}`);
+  } catch (cause) {
+    // En notis som inte gick fram får aldrig fälla bokningen. Gästen har fått
+    // sitt bord; restaurangen ser den i listan även utan brevet.
+    console.error(`[notis] Bokningen ${reservationId} kunde inte aviseras:`, cause);
+  }
 }
 
 export interface ApplicationDetails {

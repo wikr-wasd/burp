@@ -121,9 +121,12 @@ avgiftsunderlaget.
 
 Migrationer `0054` och `0055`. Bevakat av tre schematester och sju röktester.
 
-**Kvar på området:** ingen notis går till restaurangen när en bokning kommer
-in. Personalen ser den i listan, vilket räcker för en restaurang som tittar —
-men en bokning som läggs 18:40 för 19:00 vill man veta om.
+**Notis till restaurangen:** byggd samma dag. Brev och push när en bokning
+kommer in, som för en ny order. Den går INTE genom `notification_outbox` —
+den kön finns för notiser till gästen, som utlöses av en statusändring
+köksskärmen gör direkt mot Supabase där ingen server ser händelsen. En bokning
+skapas av vår egen route handler och kan skickas direkt; att köa den hade
+betytt att ett brev om ett bord om tjugo minuter väntar på nästa jobbkörning.
 
 ### Restaurangsidan utan språk i adressen svarade 404 — rättat 2026-08-26
 

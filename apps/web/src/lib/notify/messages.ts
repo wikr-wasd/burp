@@ -79,6 +79,22 @@ function clockAt(date: Date, timeZone: string): string {
 }
 
 /**
+ * Dagen i restaurangens tidszon.
+ *
+ * Bokningen kan ligga veckor fram, till skillnad från en order. Utan datum
+ * säger "19:00" ingenting — och `clockAt` ensam hade gett en notis som ser ut
+ * att gälla i kväll.
+ */
+function dayAt(date: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone,
+  }).format(date);
+}
+
+/**
  * Escapar text som ska in i HTML.
  *
  * Rättnamn, bordsnamn och gästens meddelande är text någon annan skrivit. En
@@ -343,4 +359,67 @@ export function guestOrderEmail(notice: GuestOrderNotice): EmailMessage {
 </div>`;
 
   return { subject, text, html };
+}
+
+/* ── Bordsbokning ────────────────────────────────────────────────────────── */
+
+export interface ReservationNotice {
+  restaurantName: string;
+  guestName: string;
+  guestPhone: string | null;
+  partySize: number;
+  /** När sällskapet kommer. */
+  startsAt: Date;
+  timeZone: string;
+  tableLabel: string;
+  note: string | null;
+  /** Vart personalen ska för att se den. */
+  dashboardUrl: string;
+}
+
+/**
+ * Brevet om en ny bokning.
+ *
+ * Svenskt som de andra breven hit: mottagaren är restaurangens inkorg, och
+ * texterna i `notify/` är personalens ytor på Burps eget språk tills
+ * `staff.locale` går att läsa utan en session — brevet skrivs av ett jobb som
+ * inte har någon.
+ *
+ * Rubriken bär TID och ANTAL. Det är de två talen som avgör om raden behöver
+ * läsas nu eller i morgon, och de ska synas i en notisrad på en låst skärm.
+ */
+export function reservationEmail(notice: ReservationNotice): EmailMessage {
+  const time = clockAt(notice.startsAt, notice.timeZone);
+  const day = dayAt(notice.startsAt, notice.timeZone);
+
+  const subject = `Ny bokning · ${day} ${time} · ${notice.partySize} pers`;
+
+  const textParts = [
+    `${notice.restaurantName} — ny bordsbokning`,
+    "",
+    `${day} ${time}`,
+    `${notice.partySize} gäster · ${notice.tableLabel}`,
+    `${notice.guestName}${notice.guestPhone ? ` · ${notice.guestPhone}` : ""}`,
+    notice.note ? `
+Meddelande från gästen: ${notice.note}` : null,
+    "",
+    notice.dashboardUrl,
+  ].filter((part): part is string => part !== null);
+
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;max-width:520px">
+  <p style="font-size:13px;color:#6b7280;margin:0 0 4px">${escapeHtml(notice.restaurantName)}</p>
+  <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 2px">Ny bokning ${escapeHtml(day)} ${escapeHtml(time)}</h1>
+  <p style="font-size:14px;color:#4b5563;margin:0 0 16px">${escapeHtml(String(notice.partySize))} gäster · ${escapeHtml(notice.tableLabel)}</p>
+  <p style="font-size:15px;margin:0 0 16px">${escapeHtml(notice.guestName)}${
+    notice.guestPhone ? ` · ${escapeHtml(notice.guestPhone)}` : ""
+  }</p>${
+    notice.note
+      ? `
+  <p style="font-size:14px;color:#4b5563;margin:0 0 16px"><em>${escapeHtml(notice.note)}</em></p>`
+      : ""
+  }
+  <p style="margin:0"><a href="${escapeHtml(notice.dashboardUrl)}" style="color:#dc2626;font-weight:600">Se bokningarna</a></p>
+</div>`;
+
+  return { subject, text: textParts.join("\n"), html };
 }
