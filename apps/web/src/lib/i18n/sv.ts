@@ -56,6 +56,8 @@ export const sv = {
      * heter meter på alla fem språken — men ORDNINGEN mellan tal och enhet,
      * och ordet efter, gör det.
      */
+    mapSearchArea: "Sök i det här området",
+    mapClearArea: "Visa alla igen",
     mapLocate: "Visa var jag är",
     mapLocating: "Letar…",
     mapLocateFailed: "Platsen är inte tillgänglig",

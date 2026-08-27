@@ -65,6 +65,15 @@ export interface DiscoveryFilters {
    * "inga träffar" är ett svar, "alla" är ett fel.
    */
   ids?: readonly string[];
+  /**
+   * Kartans nuvarande ruta.
+   *
+   * Svarar på "vad finns här jag tittar", vilket är den fråga en karta
+   * faktiskt ställs. Uppslaget görs i PostGIS (`restaurant_ids_in_bounds`,
+   * migration 0060) — longitud 179 och −179 ligger bredvid varandra, och den
+   * sortens jämförelse hör inte hemma i en komponent.
+   */
+  bounds?: { minLat: number; minLng: number; maxLat: number; maxLng: number };
 }
 
 const COLUMNS =
@@ -159,6 +168,23 @@ export async function searchRestaurants(
   if (filters.ids) {
     if (filters.ids.length === 0) return [];
     request = request.in("id", [...filters.ids]);
+  }
+
+  if (filters.bounds) {
+    const { data: inBounds } = await supabase.rpc("restaurant_ids_in_bounds", {
+      p_min_lat: filters.bounds.minLat,
+      p_min_lng: filters.bounds.minLng,
+      p_max_lat: filters.bounds.maxLat,
+      p_max_lng: filters.bounds.maxLng,
+    });
+
+    const boundsIds = (inBounds ?? []).map((row) => row.restaurant_id as string);
+
+    // Tom ruta ger tomt svar och inte allt. "Inget här" är ett besked; "allt"
+    // är ett fel som ser ut som att filtret inte gick igenom.
+    if (boundsIds.length === 0) return [];
+
+    request = request.in("id", boundsIds);
   }
 
   // Högst betyg först. Restauranger utan omdömen hamnar sist i stället för

@@ -54,6 +54,8 @@ export const no: Dictionary = {
     mapFailed: "Kartet kunne ikke lastes. Listen ved siden av viser de samme stedene.",
     mapClosed: "Ingenting er åpent akkurat nå. Kartet viser det som har åpent.",
 
+    mapSearchArea: "Søk i dette området",
+    mapClearArea: "Vis alle igjen",
     mapLocate: "Vis hvor jeg er",
     mapLocating: "Leter…",
     mapLocateFailed: "Posisjonen er ikke tilgjengelig",

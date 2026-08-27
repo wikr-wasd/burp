@@ -74,6 +74,8 @@ export const bs: Dictionary = {
     mapFailed: "Mapa se nije učitala. Lista pored prikazuje ista mjesta.",
     mapClosed: "Ništa nije otvoreno trenutno. Mapa prikazuje ono što je otvoreno.",
 
+    mapSearchArea: "Pretraži ovo područje",
+    mapClearArea: "Prikaži ponovo sve",
     mapLocate: "Prikaži gdje sam",
     mapLocating: "Tražim…",
     mapLocateFailed: "Lokacija nije dostupna",

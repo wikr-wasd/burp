@@ -1436,6 +1436,26 @@ if [ "$EMPTY_SUGGEST" = "200" ]; then
 else
   fail "tom sökfråga gav $EMPTY_SUGGEST"
 fi
+
+# "Sök i det här området". Rutan ligger i adressen så att sökningen går att
+# dela och överleva en omladdning — och den filtrerar i PostGIS, inte i
+# webbläsaren.
+AREA=$(curl -s "$BASE/sv?omrade=43.85,18.41,43.87,18.44")
+
+if grep -q "cevabdzinica-zeljo" <<<"$AREA" && ! grep -q "kafana-tri-sesira" <<<"$AREA"; then
+  pass "kartans ruta filtrerar bort restauranger utanför den"
+else
+  fail "omradesfiltret slapp igenom fel restauranger"
+fi
+
+# En manipulerad ruta ska ge hela listan, inte ett fel och inte en tom sida.
+# Rutan är ett filter gästen valde, inte en identitet någon bevisar.
+BAD_AREA=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/sv?omrade=nej,tack,0,0")
+if [ "$BAD_AREA" = "200" ]; then
+  pass "en trasig ruta ger hela listan och inte ett fel"
+else
+  fail "trasig ruta gav $BAD_AREA"
+fi
 check_status "sitemap"            "/sitemap.xml"      200
 check_status "robots"             "/robots.txt"       200
 

@@ -564,12 +564,22 @@ body {
  */
 .map-pin {
   display: block;
-  width: 22px;
-  height: 22px;
-  border: 2px solid #fff;
+  /*
+   * 26 och inte 22.
+   *
+   * Nålen är kartans enda handling, och på en dämpad kartbild tål den att ta
+   * plats. Den vita kanten är samtidigt tjockare: det är den som skiljer
+   * nålen från underlaget när två ligger nära varandra.
+   */
+  width: 26px;
+  height: 26px;
+  border: 3px solid #fff;
   border-radius: 50% 50% 50% 0;
   background: var(--color-burp-600);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+  /* Två skuggor: en tät som ger form, en vid som lyfter nålen från kartan. */
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.28),
+    0 4px 10px rgb(0 0 0 / 0.22);
   transform: rotate(-45deg);
 }
 
@@ -657,7 +667,19 @@ body {
  * ska fortfarande gå att skilja från kvarteren.
  */
 .leaflet-tile-pane {
-  filter: saturate(0.72) contrast(1.04) brightness(1.02);
+  /*
+   * Dämpat längre än förut, och skälet är nålarna.
+   *
+   * OpenStreetMaps rutor är ritade för att läsas ensamma: mättat grönt,
+   * gult och blått, med ungefär samma styrka som Burps röda nål. Resultatet
+   * var en karta där nålarna tävlade med motorvägarna. Sänkt mättnad och
+   * höjd ljusstyrka lägger kartbilden ett steg bakåt, och då är rött det
+   * enda som ropar — vilket är regeln i docs/DESIGN.md.
+   *
+   * Fortfarande måttligt. Går man längre blir kartan grå och obegriplig, och
+   * gatorna ska gå att skilja från kvarteren.
+   */
+  filter: saturate(0.55) contrast(1.05) brightness(1.06);
 }
 
 /*

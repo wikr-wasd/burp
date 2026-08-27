@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { Clock, Star } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
@@ -61,13 +62,20 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string; kok?: string; stad?: string; oppet?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    kok?: string;
+    stad?: string;
+    oppet?: string;
+    /** Kartans ruta: "syd,väst,nord,öst". Sätts av "Sök i det här området". */
+    omrade?: string;
+  }>;
 }
 
 /** Bygger en URL med ett filter satt eller borttaget, och behåller resten. */
 function filterHref(
   locale: Locale,
-  current: { q?: string; kok?: string; stad?: string; oppet?: string },
+  current: { q?: string; kok?: string; stad?: string; oppet?: string; omrade?: string },
   change: Partial<{ kok: string | null; stad: string | null; oppet: string | null }>,
 ): string {
   const params = new URLSearchParams();
@@ -95,8 +103,36 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
   const city = params.stad?.trim() || undefined;
   const onlyOpen = params.oppet === "1";
 
+  /*
+   * Området gästen sökte i, om hon tryckte "Sök i det här området".
+   *
+   * Ligger i ADRESSEN och inte i ett tillstånd, av samma skäl som stad och kök
+   * gör det: sökningen ska gå att dela, gå att backa ur, och överleva en
+   * omladdning. `parseBounds` returnerar undefined för allt som inte är fyra
+   * tal — en manipulerad parameter ska ge hela listan, inte ett fel.
+   */
+  const bounds = parseBounds(params.omrade);
+
+  /*
+   * Var gästen ungefär befinner sig, läst ur IP-adressen.
+   *
+   * Vercel skickar `x-vercel-ip-latitude` och `-longitude` på varje request.
+   * Grovt — stadsnivå, ibland fel stad — men gratis och UTAN att fråga, och det
+   * sista är hela poängen: en sajt som ber om platsen i samma sekund den öppnas
+   * får nej av de flesta, och webbläsaren tystar sedan frågan för hela
+   * domänen. Då kan den som VILLE dela sin plats inte längre göra det.
+   *
+   * Används bara för att välja var kartan öppnar. Aldrig till avstånd, aldrig
+   * till filter: ett avstånd byggt på en IP-gissning vore en siffra som ser
+   * exakt ut utan att vara det.
+   *
+   * Saknas huvudena — lokalt, och hos varje annan värd — väljer kartan i
+   * stället den tätaste klungan.
+   */
+  const origin = ipOrigin(await headers());
+
   const [matched, cuisines, cities, openIds, dishes] = await Promise.all([
-    searchRestaurants({ query, cuisine, city }),
+    searchRestaurants({ query, cuisine, city, bounds }),
     listCuisines(city),
     listCities(),
     openRestaurantIds(),
@@ -196,22 +232,22 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
     <div className="min-h-screen">
       <SiteHeader locale={locale} path="/" />
 
-      <main>
-      {/*
-        Karta och lista bredvid varandra — och de pratar med varandra.
+      <main className="mx-auto max-w-6xl px-4 sm:px-6">
+        {/*
+          Kartan högst upp, före rubriken.
 
-        Kartan låg tidigare full bredd över allt annat. Den ordningen var rätt
-        i sitt skäl: den som kommer till burp.se utan att ha skannat en dekal
-        frågar "vad finns nära mig", och svaret är en karta, inte en ingress.
-        Men den försvann så fort man rullade till listan, och en nål som lyser
-        upp när man pekar på ett kort är värdelös om kartan är utanför skärmen.
+          Den som kommer till burp.se utan att ha skannat en QR-kod frågar "vad
+          finns nära mig". Svaret är en karta, inte en ingress.
 
-        På en bred skärm står den därför i en egen kolumn som följer med. På en
-        smal ligger den kvar först — `order-first` — där den svarar på samma
-        fråga som förut, i samma ordning som förut.
-      */}
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-10">
-        <aside className="order-first mt-6 h-[20rem] sm:h-[24rem] lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-3rem)]">
+          Den stod en kort stund i en egen kolumn vid sidan av listan, så att
+          nålen som tänds när man pekar på ett kort skulle synas. Den ordningen
+          är återtagen: kartan hör hemma överst, och synken får vara det den är
+          — en detalj för den som råkar ha båda i bild.
+
+          Höjden är satt och inte proportionell: en karta som växer med skärmen
+          skjuter listan under vikningen på en bred skärm.
+        */}
+        <section className="mt-6 h-[20rem] sm:h-[24rem]">
           <RestaurantMap
             pins={pins}
             label={t.discover.mapLabel}
@@ -224,10 +260,15 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
               youAreHere: t.discover.mapYouAreHere,
               distanceAway: t.discover.mapDistanceAway,
             }}
+            area={{
+              searchLabel: t.discover.mapSearchArea,
+              clearLabel: t.discover.mapClearArea,
+              param: "omrade",
+            }}
+            origin={origin}
           />
-        </aside>
+        </section>
 
-        <div className="lg:order-1">
         <Hero
           t={t}
           locale={locale}
@@ -387,8 +428,6 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
             ))}
           </ul>
         )}
-        </div>
-      </div>
       </main>
 
       <SiteFooter locale={locale} path="/" />
@@ -710,4 +749,47 @@ function EmptyState({
       ) : null}
     </div>
   );
+}
+
+/**
+ * Läser kartans ruta ur adressen: "syd,väst,nord,öst".
+ *
+ * Returnerar undefined för allt som inte är fyra tal inom giltiga gradtal. En
+ * manipulerad parameter ska ge hela listan — inte ett fel, och inte en tom
+ * sida. Rutan är ett filter gästen valde, inte en identitet någon bevisar.
+ */
+function parseBounds(
+  raw: string | undefined,
+): { minLat: number; minLng: number; maxLat: number; maxLng: number } | undefined {
+  if (!raw) return undefined;
+
+  const parts = raw.split(",").map((part) => Number.parseFloat(part));
+  if (parts.length !== 4 || parts.some((value) => !Number.isFinite(value))) return undefined;
+
+  const [minLat, minLng, maxLat, maxLng] = parts as [number, number, number, number];
+
+  if (minLat < -90 || maxLat > 90 || minLng < -180 || maxLng > 180) return undefined;
+  if (minLat >= maxLat || minLng >= maxLng) return undefined;
+
+  return { minLat, minLng, maxLat, maxLng };
+}
+
+/**
+ * Gästens ungefärliga plats ur begärans huvuden.
+ *
+ * Bara Vercels egna. Att läsa `x-forwarded-for` och slå upp den mot en
+ * geodatabas hade varit ett beroende till, en kostnad per uppslag och en
+ * personuppgift att motivera — för att välja var en karta öppnar.
+ *
+ * Returnerar undefined så fort något inte stämmer. En trasig gissning ska
+ * falla tillbaka på tätaste klungan, inte flytta kartan till Atlanten.
+ */
+function ipOrigin(head: Headers): { latitude: number; longitude: number } | undefined {
+  const latitude = Number.parseFloat(head.get("x-vercel-ip-latitude") ?? "");
+  const longitude = Number.parseFloat(head.get("x-vercel-ip-longitude") ?? "");
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return undefined;
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return undefined;
+
+  return { latitude, longitude };
 }

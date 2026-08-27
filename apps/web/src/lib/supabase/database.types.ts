@@ -3181,6 +3181,17 @@ export type Database = {
           zone: string
         }[]
       }
+      restaurant_ids_in_bounds: {
+        Args: {
+          p_max_lat: number
+          p_max_lng: number
+          p_min_lat: number
+          p_min_lng: number
+        }
+        Returns: {
+          restaurant_id: string
+        }[]
+      }
       restaurant_ids_matching_dish: {
         Args: { p_query: string }
         Returns: {

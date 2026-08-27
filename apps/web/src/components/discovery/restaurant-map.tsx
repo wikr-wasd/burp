@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Circle, Map as LeafletMap, Marker } from "leaflet";
 import { distanceMeters, roundDistance } from "@burp/core";
 import { publicEnv } from "@/lib/env";
@@ -99,6 +100,8 @@ export function RestaurantMap({
   emptyLabel,
   failedLabel,
   texts,
+  area,
+  origin,
 }: {
   pins: readonly MapPin[];
   /** Tillgängligt namn på kartan. */
@@ -108,6 +111,27 @@ export function RestaurantMap({
   /** Visas om kartan inte gick att ladda. */
   failedLabel: string;
   texts: MapTexts;
+  /**
+   * "Sök i det här området".
+   *
+   * Rena strängar och ett parameternamn — inga funktioner, eftersom en
+   * funktion inte går över server/klient-gränsen. Kartan bygger adressen själv
+   * ur webbläsarens nuvarande sökparametrar, så att stad, kök och fritext
+   * följer med in i områdessökningen.
+   */
+  area?: { searchLabel: string; clearLabel: string; param: string };
+  /**
+   * Var gästen ungefär befinner sig, läst ur IP-adressen på servern.
+   *
+   * Grovt — stadsnivå, ibland fel stad — men gratis och utan att fråga. Den
+   * används bara för att välja VAR kartan öppnar, aldrig för att räkna avstånd
+   * eller filtrera: ett avstånd byggt på en IP-gissning vore en siffra som ser
+   * exakt ut och inte är det.
+   *
+   * Undefined lokalt och hos varje värd som inte skickar huvudena. Då väljer
+   * kartan tätaste klungan i stället.
+   */
+  origin?: { latitude: number; longitude: number };
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
@@ -124,6 +148,19 @@ export function RestaurantMap({
    */
   const markersById = useRef<Map<string, Marker>>(new Map());
   const focused = useFocusedRestaurant();
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  /*
+   * Har gästen flyttat kartan sedan sidan laddades?
+   *
+   * Knappen ska INTE stå framme från början. En karta som redan visar
+   * träffarna behöver ingen "sök här" — den visar dem ju. Först när gästen
+   * panorerat eller zoomat finns det ett annat område att fråga om.
+   */
+  const [moved, setMoved] = useState(false);
 
   const [failed, setFailed] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
@@ -191,7 +228,7 @@ export function RestaurantMap({
         // kvar och gästen får trycka på den — vilket är hela reservvägen.
       });
 
-    return () => {
+  return () => {
       cancelled = true;
     };
   }, [locate]);
@@ -243,6 +280,15 @@ export function RestaurantMap({
           // Zoomknapparna ritas om i eget hörn, se nedan.
           zoomControl: false,
         }).setView(FALLBACK_CENTER, 12);
+
+        /*
+         * Gästen flyttade kartan.
+         *
+         * `moveend` täcker både panorering och zoom. Flaggan styr bara om
+         * knappen syns — sökningen sker först när någon trycker på den, för en
+         * karta som söker om vid varje ryck är en karta man inte vågar röra.
+         */
+        mapRef.current.on("moveend", () => setMoved(true));
 
         // Uppe till höger, inte uppe till vänster. Vänsterkanten är där
         // popuperna fälls ut och där platsknappen står.
@@ -299,19 +345,29 @@ export function RestaurantMap({
 
       if (pins.length > 0 && !position) {
         /*
-         * Vyn ska rymma träffarna, inte stå kvar på förra sökningen.
+         * Kartan öppnar på ETT område, aldrig på hela regionen.
          *
-         * Med en enda träff blir gränserna en punkt, och `fitBounds` zoomar då
-         * in i gatunivå — därför ett tak. Taket ligger på 16 och inte 15: en
-         * sökning som ger ett enda ställe ska visa kvarteret det ligger i,
-         * inte stadsdelen.
+         * Att rymma varje träff lät rimligt och såg fel ut: med restauranger i
+         * Sarajevo, Zagreb och Beograd blev startvyn halva Balkan, tre nålar
+         * och ingenting att känna igen. En karta som visar allt visar inget.
          *
-         * Hoppas över helt när vi vet var gästen står. Då bestämmer effekten
+         * Området väljs i den här ordningen:
+         *   1. Klungan närmast gästen, när IP-positionen finns.
+         *   2. Annars den största klungan — den stad som har flest ställen.
+         *
+         * Hoppas över helt när GPS-positionen är känd. Då bestämmer effekten
          * nedan vyn, och två flyttar efter varandra ger ett ryck.
          */
+        const openOn = pickArea(pins, origin);
+
         map.fitBounds(
-          pins.map((pin) => [pin.latitude, pin.longitude] as [number, number]),
-          { padding: [40, 40], maxZoom: 16 },
+          openOn.map((pin) => [pin.latitude, pin.longitude] as [number, number]),
+          {
+            padding: [40, 40],
+            // Ett tak, av samma skäl som förut: en enda träff ska visa
+            // kvarteret den ligger i, inte husväggen.
+            maxZoom: 16,
+          },
         );
       }
     };
@@ -332,7 +388,7 @@ export function RestaurantMap({
     return () => {
       cancelled = true;
     };
-  }, [pins, position, texts]);
+  }, [pins, position, texts, origin]);
 
   /*
    * Gästens egen punkt, och vyn som flyttar sig dit.
@@ -429,6 +485,49 @@ export function RestaurantMap({
     );
   }
 
+  /** Sant när listan redan är filtrerad på ett område. */
+  const searching = Boolean(area && searchParams.get(area.param));
+
+  /** Söker om på rutan gästen ser just nu. */
+  const searchThisArea = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !area) return;
+
+    const bounds = map.getBounds();
+    const params = new URLSearchParams(searchParams.toString());
+
+    /*
+     * Sex decimaler räcker till drygt en decimeter.
+     *
+     * Fler gör adressen svårläst utan att göra rutan rättare — och adressen
+     * ska gå att dela, vilket är hela skälet att området ligger i URL:en och
+     * inte i ett tillstånd som försvinner vid omladdning.
+     */
+    params.set(
+      area.param,
+      [
+        bounds.getSouth().toFixed(6),
+        bounds.getWest().toFixed(6),
+        bounds.getNorth().toFixed(6),
+        bounds.getEast().toFixed(6),
+      ].join(","),
+    );
+
+    setMoved(false);
+    router.push(`${pathname}?${params.toString()}`);
+  }, [area, pathname, router, searchParams]);
+
+  const clearArea = useCallback(() => {
+    if (!area) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete(area.param);
+
+    setMoved(false);
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  }, [area, pathname, router, searchParams]);
+
   return (
     <div className="relative h-full min-h-64 w-full">
       <div
@@ -449,6 +548,33 @@ export function RestaurantMap({
         Den försvinner när platsen är känd: en knapp som inte gör något nytt står
         i vägen, och punkten på kartan säger redan att den fungerade.
       */}
+      {/*
+        "Sök i det här området".
+
+        Står mitt upptill och inte i ett hörn: den svarar på vad man ser, och
+        det är mitten man tittar på. Den finns bara när gästen faktiskt flyttat
+        kartan — en karta som redan visar träffarna behöver ingen sådan knapp.
+      */}
+      {area && moved && !searching ? (
+        <button
+          type="button"
+          onClick={searchThisArea}
+          className="btn btn-primary absolute top-3 left-1/2 z-[500] -translate-x-1/2 shadow-lg"
+        >
+          {area.searchLabel}
+        </button>
+      ) : null}
+
+      {area && searching ? (
+        <button
+          type="button"
+          onClick={clearArea}
+          className="btn btn-secondary absolute top-3 left-1/2 z-[500] -translate-x-1/2 shadow-lg"
+        >
+          {area.clearLabel}
+        </button>
+      ) : null}
+
       {position ? null : (
         <button
           type="button"
@@ -531,4 +657,59 @@ function escapeHtml(value: string): string {
 
 function escapeAttribute(value: string): string {
   return escapeHtml(value).replace(/'/g, "&#39;");
+}
+
+/**
+ * Hur nära två nålar måste ligga för att räknas till samma område.
+ *
+ * Femton kilometer rymmer en stad med förorter och skiljer ändå Sarajevo från
+ * Zagreb. Talet är trubbigt med flit: alternativet är riktig klustring per
+ * zoomnivå, och det löser ett problem Burp inte har förrän en stad har hundra
+ * restauranger.
+ */
+const AREA_RADIUS_METERS = 15_000;
+
+/**
+ * Väljer det område kartan ska öppna på.
+ *
+ * Nålarna grupperas girigt: varje nål hamnar i första gruppen den ligger nära
+ * nog, annars startar den en egen. Ordningen spelar ingen roll för resultatet
+ * så länge grupperna är väl åtskilda — och är de inte det är de i praktiken
+ * samma stad ändå.
+ */
+function pickArea(
+  pins: readonly MapPin[],
+  origin?: { latitude: number; longitude: number },
+): MapPin[] {
+  const groups: MapPin[][] = [];
+
+  for (const pin of pins) {
+    const group = groups.find(
+      (candidate) => distanceMeters(candidate[0]!, pin) <= AREA_RADIUS_METERS,
+    );
+
+    if (group) group.push(pin);
+    else groups.push([pin]);
+  }
+
+  if (groups.length === 0) return [...pins];
+
+  // Vet vi var gästen är vinner närheten över storleken. Frågan hon kom med är
+  // "vad finns nära mig", inte "var finns flest".
+  if (origin) {
+    let closest = groups[0]!;
+    let best = Number.POSITIVE_INFINITY;
+
+    for (const group of groups) {
+      const meters = Math.min(...group.map((pin) => distanceMeters(origin, pin)));
+      if (meters < best) {
+        best = meters;
+        closest = group;
+      }
+    }
+
+    return closest;
+  }
+
+  return groups.reduce((largest, group) => (group.length > largest.length ? group : largest));
 }
