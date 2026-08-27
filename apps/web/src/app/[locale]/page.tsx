@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Clock, Search, Star } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
 import { RestaurantMap, type MapPin } from "@/components/discovery/restaurant-map";
+import { findDishes } from "@/lib/dishes";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import {
@@ -92,11 +93,19 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
   const city = params.stad?.trim() || undefined;
   const onlyOpen = params.oppet === "1";
 
-  const [matched, cuisines, cities, openIds] = await Promise.all([
+  const [matched, cuisines, cities, openIds, dishes] = await Promise.all([
     searchRestaurants({ query, cuisine, city }),
     listCuisines(city),
     listCities(),
     openRestaurantIds(),
+    /*
+     * Rätterna: träffar när något söks, annars de vanligaste.
+     *
+     * Samma funktion åt båda hållen (migration 0059). Chipsen under sökrutan
+     * och sökträffarna är samma fråga med och utan filter — och varje rad har
+     * en sida, eftersom tröskeln på två restauranger är densamma där.
+     */
+    findDishes({ query, citySlug: city, limit: query ? 6 : 8 }),
   ]);
 
   const restaurants = onlyOpen
@@ -293,6 +302,34 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
               </>
             ) : null}
           </p>
+        ) : null}
+
+        {/*
+          Rätterna står FÖRE restauranglistan när något söks.
+
+          Den som skriver "punjene paprike" letar efter rätten, inte efter ett
+          namn — och rättsidan svarar på frågan "var får jag den, och vad
+          kostar den" bättre än en lista över ställen gör.
+        */}
+        {dishes.length > 0 ? (
+          <nav aria-label={t.home.dishHits} className="mt-6">
+            <p className="label-caps">{query ? t.home.dishHits : t.home.popularDishes}</p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {dishes.map((dish) => (
+                <li key={`${dish.citySlug}-${dish.slug}`}>
+                  <Link
+                    href={localePath(locale, `/${dish.citySlug}/ratt/${dish.slug}`)}
+                    className="chip"
+                  >
+                    {dish.name}
+                    <span className="ml-1.5 opacity-60">
+                      {dish.city} · {dish.restaurants}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
         ) : null}
 
         {restaurants.length === 0 ? (

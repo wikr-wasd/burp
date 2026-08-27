@@ -122,7 +122,29 @@ export async function searchRestaurants(
 
   const query = filters.query ? sanitizeQuery(filters.query) : "";
   if (query) {
-    request = request.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+    /*
+     * Sökningen ser MENYN, inte bara skylten.
+     *
+     * Fältet lovade "restaurang, rätt eller kök" och letade i namn och
+     * beskrivning. Den som skrev "punjene paprike" fick noll träffar fastän
+     * två restauranger har rätten — och det är den sökningen produkten finns
+     * för att kunna svara på.
+     *
+     * Menyuppslaget görs i databasen (`restaurant_ids_matching_dish`, migration
+     * 0059), som viker bort diakriterna med samma `slugify()` som adresserna
+     * använder. En egen jämförelse här hade kunnat säga något annat än
+     * rättsidan gör.
+     */
+    const { data: byDish } = await supabase.rpc("restaurant_ids_matching_dish", {
+      p_query: filters.query ?? "",
+    });
+
+    const dishIds = (byDish ?? []).map((row) => row.restaurant_id as string);
+
+    const clauses = [`name.ilike.%${query}%`, `description.ilike.%${query}%`];
+    if (dishIds.length > 0) clauses.push(`id.in.(${dishIds.join(",")})`);
+
+    request = request.or(clauses.join(","));
   }
 
   if (filters.cuisine) {

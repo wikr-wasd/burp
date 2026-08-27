@@ -1,5 +1,6 @@
 import "server-only";
 
+import { nullableArg } from "./supabase/types";
 import { createClient } from "./supabase/server";
 
 /**
@@ -76,5 +77,45 @@ export async function restaurantsWithDish(
     dishName: row.dish_name as string,
     priceOre: row.price_ore as number,
     currency: row.currency as string,
+  }));
+}
+
+export interface DishHit extends DishSummary {
+  citySlug: string;
+  city: string;
+}
+
+/**
+ * Rätter som matchar en söksträng — eller de vanligaste, när den är tom.
+ *
+ * Samma funktion åt båda hållen, därför att chipsen under sökrutan och
+ * sökträffarna är samma fråga med och utan filter. Två uppslag hade betytt två
+ * trösklar att hålla i takt, och den dagen de skiljer sig hittar sökningen en
+ * rätt vars sida svarar 404.
+ */
+export async function findDishes(options: {
+  query?: string;
+  citySlug?: string;
+  limit?: number;
+}): Promise<DishHit[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("find_dishes", {
+    // Generatorn typar valfria argument som `string | undefined`, men SQL vill
+    // ha NULL för "inget filter". `nullableArg` är samma brygga som resten av
+    // koden använder.
+    p_query: nullableArg(options.query ?? null),
+    p_city_slug: nullableArg(options.citySlug ?? null),
+    p_limit: options.limit ?? 8,
+  });
+
+  if (error || !data) return [];
+
+  return data.map((row) => ({
+    slug: row.dish_slug as string,
+    name: row.dish_name as string,
+    citySlug: row.city_slug as string,
+    city: row.city as string,
+    restaurants: Number(row.restaurants),
   }));
 }

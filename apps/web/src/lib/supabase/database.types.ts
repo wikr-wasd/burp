@@ -2853,6 +2853,16 @@ export type Database = {
         Args: { p_reason?: string; p_refund_id: string }
         Returns: undefined
       }
+      find_dishes: {
+        Args: { p_city_slug?: string; p_limit?: number; p_query?: string }
+        Returns: {
+          city: string
+          city_slug: string
+          dish_name: string
+          dish_slug: string
+          restaurants: number
+        }[]
+      }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -3169,6 +3179,12 @@ export type Database = {
           table_id: string
           table_number: string
           zone: string
+        }[]
+      }
+      restaurant_ids_matching_dish: {
+        Args: { p_query: string }
+        Returns: {
+          restaurant_id: string
         }[]
       }
       restaurant_money_events: {

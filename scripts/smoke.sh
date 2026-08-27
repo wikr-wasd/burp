@@ -1392,6 +1392,25 @@ check_status "rättsida"           "/sv/sarajevo/ratt/punjene-paprike" 200
 check_status "rättsida på bosniska" "/bs/sarajevo/ratt/cevapi-10-kom"  200
 check_status "okänd rätt 404:ar"  "/sv/sarajevo/ratt/rymdmat"         404
 check_status "rätt hos EN restaurang får ingen sida" "/sv/sarajevo/ratt/tufahija" 404
+
+# Sökrutan lovade "restaurang, rätt eller kök" och letade bara i namn och
+# beskrivningar. "paprike" gav noll träffar fastän två restauranger har
+# rätten på menyn — migration 0059 lät sökningen se menyerna.
+DISH_SEARCH=$(curl -s "$BASE/sv?q=paprike")
+# Mönstren är ren ASCII med flit: Git Bash skickar å/ä/ö och č/ž i fel
+# teckenkodning, och ett grep på "Aščinica" faller på något som syns korrekt i
+# svaret. Adresserna är slugifierade och därmed alltid ASCII.
+if grep -q "ascinica-stari-grad" <<<"$DISH_SEARCH" && grep -q "cevabdzinica-zeljo" <<<"$DISH_SEARCH"; then
+  pass "sökningen hittar restauranger genom deras meny"
+else
+  fail "sökning på en rätt hittade inte restaurangerna som har den"
+fi
+
+if grep -q "/sarajevo/ratt/punjene-paprike" <<<"$DISH_SEARCH"; then
+  pass "sökträffen leder till rättsidan"
+else
+  fail "sökningen visade ingen väg till rättsidan"
+fi
 check_status "sitemap"            "/sitemap.xml"      200
 check_status "robots"             "/robots.txt"       200
 
