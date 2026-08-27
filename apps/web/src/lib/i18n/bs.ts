@@ -374,6 +374,19 @@ export const bs: Dictionary = {
     },
   },
 
+  marketing: {
+    posterEyebrow: "Naručite za stolom",
+    posterHeadline: "Skenirajte. Naručite. Jedite.",
+    posterBody: "Bez aplikacije. Bez računa. Meni je u telefonu, narudžba odmah.",
+    storyHeadline: "Nalazimo se na Burpu",
+    storyBody: "Skenirajte i pogledajte cijeli meni.",
+    whatsapp: "Sada smo na Burpu — pogledajte meni i naručite s telefona: {url}",
+    instagram:
+      "Cijeli meni je sada u telefonu. Skenirajte kod nas ili pronađite {name} na Burpu. #{city}",
+    google:
+      "{name} je sada na Burpu: meni, radno vrijeme, put do nas i narudžba za stolom bez aplikacije. {url}",
+  },
+
   routes: {
     intro: "Isplanirajte veče: predjelo na jednom mjestu, glavno na drugom.",
     newRoute: "Nova ruta",
@@ -616,6 +629,7 @@ export const bs: Dictionary = {
       bord: "Stolovi i QR",
       bokningar: "Rezervacije",
       erbjudanden: "Ponude",
+      marknadsforing: "Promocija",
       omdomen: "Ocjene",
       statistik: "Statistika",
       avrakning: "Obračun",
@@ -808,6 +822,24 @@ export const bs: Dictionary = {
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    marketing: {
+      intro: "Gotov materijal koji sami objavljujete.",
+      languageNote: "Tekstovi ispod su na jeziku: {language} — jeziku koji vaši gosti čitaju.",
+      posterTitle: "Plakat",
+      posterHint: "A5. Odštampajte i stavite na izlog ili kod kase.",
+      print: "Štampaj",
+      storyTitle: "Slika za story",
+      storyHint: "Fotografišite ekran telefonom s kojeg objavljujete.",
+      textsTitle: "Tekstovi",
+      textsHint: "Zalijepite ovako ili ih prepišite da zvuče kao vi.",
+      whatsapp: "WhatsApp i Viber",
+      instagram: "Instagram i TikTok",
+      google: "Google profil",
+      googleHint:
+        "Google profil je vaš. Burp tamo ne može objaviti — niko ne može — ali tekst je napisan.",
+      copy: "Kopiraj",
+      copied: "Kopirano",
+    },
     bookings: {
       intro: "Stolovi za danas i ovu sedmicu.",
       disabled: "Rezervacije su isključene. Uključite ih u postavkama.",

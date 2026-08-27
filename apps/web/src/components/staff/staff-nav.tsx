@@ -6,6 +6,7 @@ import {
   ChefHat,
   LayoutGrid,
   LogOut,
+  Megaphone,
   MessageSquare,
   QrCode,
   Receipt,
@@ -52,6 +53,7 @@ export type StaffSection =
   | "bord"
   | "bokningar"
   | "erbjudanden"
+  | "marknadsforing"
   | "omdomen"
   | "statistik"
   | "avrakning"
@@ -96,6 +98,7 @@ export const STAFF_NAV: readonly NavItem[] = [
    */
   { section: "bokningar", href: "/dashboard/bokningar", icon: CalendarDays, roles: ALL_BUT_KITCHEN },
   { section: "erbjudanden", href: "/dashboard/erbjudanden", icon: Ticket, roles: MANAGEMENT },
+  { section: "marknadsforing", href: "/dashboard/marknadsforing", icon: Megaphone, roles: MANAGEMENT },
   { section: "omdomen", href: "/dashboard/omdomen", icon: MessageSquare, roles: MANAGEMENT },
   { section: "statistik", href: "/dashboard/statistik", icon: TrendingUp, roles: MANAGEMENT },
   { section: "avrakning", href: "/dashboard/avrakning", icon: ReceiptText, roles: MANAGEMENT },

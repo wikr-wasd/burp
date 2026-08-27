@@ -351,6 +351,19 @@ export const de: Dictionary = {
     },
   },
 
+  marketing: {
+    posterEyebrow: "Am Tisch bestellen",
+    posterHeadline: "Scannen. Bestellen. Essen.",
+    posterBody: "Keine App. Kein Konto. Die Karte im Telefon, die Bestellung sofort.",
+    storyHeadline: "Sie finden uns auf Burp",
+    storyBody: "Scannen und die ganze Karte sehen.",
+    whatsapp: "Wir sind jetzt auf Burp — Karte ansehen und direkt vom Telefon bestellen: {url}",
+    instagram:
+      "Die ganze Karte ist jetzt im Telefon. Bei uns scannen oder {name} auf Burp finden. #{city}",
+    google:
+      "{name} ist jetzt auf Burp: Karte, Öffnungszeiten, Anfahrt und Bestellen am Tisch ohne App. {url}",
+  },
+
   routes: {
     intro: "Planen Sie den Abend: Vorspeise hier, Hauptgang dort.",
     newRoute: "Neue Route",
@@ -597,6 +610,7 @@ export const de: Dictionary = {
       bord: "Tische & QR",
       bokningar: "Reservierungen",
       erbjudanden: "Angebote",
+      marknadsforing: "Werbung",
       omdomen: "Bewertungen",
       statistik: "Statistik",
       avrakning: "Abrechnung",
@@ -781,6 +795,24 @@ export const de: Dictionary = {
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    marketing: {
+      intro: "Fertiges Material, das Sie selbst veröffentlichen.",
+      languageNote: "Die Texte unten sind auf {language} — der Sprache, die Ihre Gäste lesen.",
+      posterTitle: "Plakat",
+      posterHint: "A5. Ausdrucken und ins Fenster oder an die Kasse hängen.",
+      print: "Drucken",
+      storyTitle: "Story-Kachel",
+      storyHint: "Fotografieren Sie den Bildschirm mit dem Telefon, das postet.",
+      textsTitle: "Texte",
+      textsHint: "Einfügen wie sie sind, oder umschreiben, damit sie nach Ihnen klingen.",
+      whatsapp: "WhatsApp und Viber",
+      instagram: "Instagram und TikTok",
+      google: "Das Google-Profil",
+      googleHint:
+        "Das Google-Profil gehört Ihnen. Burp kann dort nicht posten — niemand kann das — aber der Text steht.",
+      copy: "Kopieren",
+      copied: "Kopiert",
+    },
     bookings: {
       intro: "Tische für heute und diese Woche.",
       disabled: "Reservierungen sind ausgeschaltet. Schalten Sie sie in den Einstellungen ein.",

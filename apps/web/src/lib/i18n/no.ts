@@ -351,6 +351,19 @@ export const no: Dictionary = {
     },
   },
 
+  marketing: {
+    posterEyebrow: "Bestill ved bordet",
+    posterHeadline: "Skann. Bestill. Spis.",
+    posterBody: "Ingen app. Ingen konto. Menyen i telefonen, bestillingen med en gang.",
+    storyHeadline: "Du finner oss på Burp",
+    storyBody: "Skann og se hele menyen.",
+    whatsapp: "Nå er vi på Burp — se menyen og bestill rett fra telefonen: {url}",
+    instagram:
+      "Hele menyen ligger i telefonen nå. Skann hos oss, eller finn {name} på Burp. #{city}",
+    google:
+      "{name} er nå på Burp: meny, åpningstider, veien hit og bestilling ved bordet uten app. {url}",
+  },
+
   routes: {
     intro: "Planlegg kvelden: forrett ett sted, hovedrett på neste.",
     newRoute: "Ny rute",
@@ -593,6 +606,7 @@ export const no: Dictionary = {
       bord: "Bord og QR",
       bokningar: "Bestillinger",
       erbjudanden: "Tilbud",
+      marknadsforing: "Markedsføring",
       omdomen: "Anmeldelser",
       statistik: "Statistikk",
       avrakning: "Oppgjør",
@@ -773,6 +787,24 @@ export const no: Dictionary = {
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    marketing: {
+      intro: "Ferdig materiell dere publiserer selv.",
+      languageNote: "Tekstene under er på {language} — språket gjestene deres leser.",
+      posterTitle: "Plakat",
+      posterHint: "A5. Skriv ut og heng den i vinduet eller ved kassen.",
+      print: "Skriv ut",
+      storyTitle: "Rute til story",
+      storyHint: "Fotografer skjermen med telefonen som skal publisere.",
+      textsTitle: "Tekster",
+      textsHint: "Lim dem inn som de er, eller skriv dem om så de høres ut som dere.",
+      whatsapp: "WhatsApp og Viber",
+      instagram: "Instagram og TikTok",
+      google: "Google-profilen",
+      googleHint:
+        "Google-profilen er deres egen. Burp kan ikke publisere der — ingen kan — men teksten er skrevet.",
+      copy: "Kopier",
+      copied: "Kopiert",
+    },
     bookings: {
       intro: "Bord for i dag og denne uken.",
       disabled: "Bestilling er slått av. Slå den på i innstillingene.",

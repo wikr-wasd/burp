@@ -1560,6 +1560,7 @@ check_status "/backoffice/avrakning kräver inloggning" "/backoffice/avrakning" 
 check_status "/konto/uppgifter kräver inloggning"      "/konto/uppgifter"      307
 check_status "/dashboard/handelser kräver inloggning"  "/dashboard/handelser"  307
 check_status "/dashboard/personal kräver inloggning"   "/dashboard/personal"   307
+check_status "/dashboard/marknadsforing kräver inloggning" "/dashboard/marknadsforing" 307
 
 # Inbjudningslänken ligger utanför /dashboard — den som klickar är ännu inte
 # personal. Utan inloggning ska den skicka till inloggningen, inte till en 404

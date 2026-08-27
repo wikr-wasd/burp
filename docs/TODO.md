@@ -66,6 +66,28 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-08-27 — marknadsföringsmaterial
+
+Punkt 7 i färdplanen, och den ärliga versionen av "vi marknadsför er via
+Google, TikTok, Instagram och WhatsApp".
+
+**Det är ett verktyg, inte en tjänst.** En byråtjänst kräver annonskonton,
+kreativproduktion, budgethantering och rapportering per kund — arbete som inte
+går att leverera vid sidan av utvecklingen, och som skadar förtroendet hos de
+första restaurangerna om det säljs och inte levereras. Det som ger merparten
+av värdet är i stället att göra materialet färdigt: en A5-affisch att skriva
+ut, en 9:16-ruta att fotografera, och texter till WhatsApp, Instagram och
+Google-profilen som går att klistra in.
+
+**Texterna är på gästernas språk, inte personalens.** Resten av personalytan
+följer `staff.locale` så att den som arbetar förstår. Ett inlägg skrivs
+däremot till gästerna, och en tysk chef i Sarajevo ska inte råka publicera
+tyska till bosniska följare — ytan läser därför restaurangens LAND och skriver
+ut vilket språk texterna är på.
+
+Google-profilen är restaurangens egen och ligger utanför Burp. Sidan säger
+rakt ut att vi inte kan publicera där — ingen kan — men texten är skriven.
+
 ### Byggt 2026-08-26 — gästens matrundor
 
 Punkt 5 i färdplanen. Migration `0056`.

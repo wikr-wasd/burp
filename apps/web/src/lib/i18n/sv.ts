@@ -523,6 +523,27 @@ export const sv = {
    * juridisk och inte teknisk — se docs/BUSINESS.md — och texterna håller sig
    * därför till att planera, aldrig till att köpa.
    */
+  /**
+   * Materialet restaurangen publicerar, skrivet till GÄSTERNA.
+   *
+   * Ligger utanför `staff` med flit. Resten av personalytan följer den
+   * inloggades språk, men ett inlägg skrivs till gästerna — och en tysk chef i
+   * Sarajevo ska inte råka publicera tyska till bosniska följare. Ytan läser
+   * därför restaurangens land, inte `staff.locale`.
+   */
+  marketing: {
+    posterEyebrow: "Beställ vid bordet",
+    posterHeadline: "Skanna. Beställ. Ät.",
+    posterBody: "Ingen app. Inget konto. Se menyn i telefonen och beställ direkt.",
+    storyHeadline: "Vi finns på Burp",
+    storyBody: "Skanna och se hela menyn.",
+    whatsapp: "Vi finns nu på Burp — se menyn och beställ direkt i telefonen: {url}",
+    instagram:
+      "Hela menyn finns nu i telefonen. Skanna koden hos oss eller hitta {name} på Burp. #{city}",
+    google:
+      "{name} finns nu på Burp: se menyn, öppettiderna och vägen hit, och beställ vid bordet utan app. {url}",
+  },
+
   routes: {
     intro: "Planera kvällen: förrätt på ett ställe, huvudrätt på nästa.",
     newRoute: "Ny rutt",
@@ -823,6 +844,7 @@ export const sv = {
       bord: "Bord & QR",
       bokningar: "Bokningar",
       erbjudanden: "Erbjudanden",
+      marknadsforing: "Marknadsföring",
       omdomen: "Omdömen",
       statistik: "Statistik",
       avrakning: "Avräkning",
@@ -1086,6 +1108,24 @@ export const sv = {
      *
      * ENBART strängar — varje redigerare på sidan är klientkod.
      */
+    marketing: {
+      intro: "Färdigt material att publicera själv.",
+      languageNote: "Texterna nedan är på {language} — språket era gäster läser.",
+      posterTitle: "Affisch",
+      posterHint: "A5. Skriv ut och sätt i fönstret eller vid kassan.",
+      print: "Skriv ut",
+      storyTitle: "Ruta för story",
+      storyHint: "Fotografera skärmen med telefonen som ska publicera den.",
+      textsTitle: "Texter",
+      textsHint: "Klistra in som de är, eller skriv om dem så att de låter som ni.",
+      whatsapp: "WhatsApp och Viber",
+      instagram: "Instagram och TikTok",
+      google: "Google-profilen",
+      googleHint:
+        "Google-profilen är er egen. Burp kan inte publicera där — ingen får det — men texten är skriven.",
+      copy: "Kopiera",
+      copied: "Kopierat",
+    },
     bookings: {
       intro: "Dagens och veckans bord.",
       disabled: "Bokning är avstängd. Slå på den i inställningarna.",

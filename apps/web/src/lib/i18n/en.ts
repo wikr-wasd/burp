@@ -349,6 +349,19 @@ export const en: Dictionary = {
     },
   },
 
+  marketing: {
+    posterEyebrow: "Order at the table",
+    posterHeadline: "Scan. Order. Eat.",
+    posterBody: "No app. No account. The menu is on your phone and the order goes straight in.",
+    storyHeadline: "Find us on Burp",
+    storyBody: "Scan and see the whole menu.",
+    whatsapp: "We are on Burp now — see the menu and order from your phone: {url}",
+    instagram:
+      "The whole menu is on your phone now. Scan at our place or find {name} on Burp. #{city}",
+    google:
+      "{name} is now on Burp: the menu, the opening hours, the way here, and ordering at the table without an app. {url}",
+  },
+
   routes: {
     intro: "Plan the evening: starters one place, mains the next.",
     newRoute: "New route",
@@ -589,6 +602,7 @@ export const en: Dictionary = {
       bord: "Tables & QR",
       bokningar: "Bookings",
       erbjudanden: "Offers",
+      marknadsforing: "Marketing",
       omdomen: "Reviews",
       statistik: "Statistics",
       avrakning: "Settlement",
@@ -770,6 +784,24 @@ export const en: Dictionary = {
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
+    marketing: {
+      intro: "Ready-made material you publish yourself.",
+      languageNote: "The texts below are in {language} — the language your guests read.",
+      posterTitle: "Poster",
+      posterHint: "A5. Print it and put it in the window or by the till.",
+      print: "Print",
+      storyTitle: "Story card",
+      storyHint: "Photograph the screen with the phone that will post it.",
+      textsTitle: "Texts",
+      textsHint: "Paste them as they are, or rewrite them so they sound like you.",
+      whatsapp: "WhatsApp and Viber",
+      instagram: "Instagram and TikTok",
+      google: "The Google profile",
+      googleHint:
+        "The Google profile is yours. Burp cannot post there — nobody can — but the text is written.",
+      copy: "Copy",
+      copied: "Copied",
+    },
     bookings: {
       intro: "Tables for today and this week.",
       disabled: "Bookings are switched off. Turn them on in the settings.",

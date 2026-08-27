@@ -265,6 +265,14 @@ describe("ordböckerna", () => {
       // "stopp" är samma ord på norska. "Ny rute" och "Endret" är det inte.
       "routes.stopCount",
       /*
+       * Marknadsföringsytan. "Skriv ut" och "Google-profilen" delas rakt av.
+       *
+       * Notera vilka som INTE står här: `posterTitle` är "Plakat" mot
+       * "Affisch" och `copied` är "Kopiert" mot "Kopierat".
+       */
+      "staff.marketing.print",
+      "staff.marketing.google",
+      /*
        * "Avbryt" stavas likadant på norska och svenska.
        *
        * Notera vilka av tvåstegspanelens texter som INTE står här: `mfaVerify`
