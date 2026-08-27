@@ -1456,6 +1456,25 @@ if [ "$BAD_AREA" = "200" ]; then
 else
   fail "trasig ruta gav $BAD_AREA"
 fi
+
+# Korten bär rätter ur menyn med pris. Bilden skulle ha svarat på "vad äter
+# man här" och gör det inte — seed-datan ritar en bokstav i en färgruta.
+CARDS=$(curl -s "$BASE/sv?stad=sarajevo")
+
+if grep -q "13,00" <<<"$CARDS" && grep -q "2,50" <<<"$CARDS"; then
+  pass "korten visar rätter ur menyn med pris"
+else
+  fail "korten visade inga priser ur menyn"
+fi
+
+# Priset följer restaurangens EGEN valuta. Ett kort i Novi Sad som visar KM
+# är värre än inget pris alls.
+NS_CARDS=$(curl -s "$BASE/sv?stad=novi-sad")
+if grep -q "650" <<<"$NS_CARDS" && ! grep -qE "65[0-9,. ]*KM" <<<"$NS_CARDS"; then
+  pass "priset står i restaurangens egen valuta"
+else
+  fail "fel valuta på ett kort i Novi Sad"
+fi
 check_status "sitemap"            "/sitemap.xml"      200
 check_status "robots"             "/robots.txt"       200
 

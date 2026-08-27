@@ -255,3 +255,47 @@ export async function listCities(): Promise<{ name: string; slug: string }[]> {
     .map(([slug, name]) => ({ slug, name }))
     .sort((a, b) => a.name.localeCompare(b.name, "sv"));
 }
+
+export interface DishHighlight {
+  name: string;
+  priceOre: number;
+}
+
+/**
+ * Några rätter per restaurang, i menyns egen ordning.
+ *
+ * Svarar på det korten inte kunde svara på: vad äter man där, och vad kostar
+ * det. Bilden skulle ha gjort det — men en genererad bokstav i en färgruta gör
+ * det inte, och riktiga matbilder kräver fotografier med rättigheter som ingen
+ * ordnat än. Menyn finns redan.
+ *
+ * En fråga för hela listan, inte en per kort. Topp-N-per-grupp är en
+ * fönsterfunktion och hör hemma i databasen (migration 0061).
+ */
+export async function restaurantHighlights(
+  restaurantIds: readonly string[],
+  perRestaurant = 3,
+): Promise<Map<string, DishHighlight[]>> {
+  const byRestaurant = new Map<string, DishHighlight[]>();
+  if (restaurantIds.length === 0) return byRestaurant;
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("restaurant_highlights", {
+    p_restaurant_ids: [...restaurantIds],
+    p_per_restaurant: perRestaurant,
+  });
+
+  if (error || !data) return byRestaurant;
+
+  for (const row of data) {
+    const id = row.restaurant_id as string;
+    const existing = byRestaurant.get(id);
+    const dish = { name: row.name as string, priceOre: row.price_ore as number };
+
+    if (existing) existing.push(dish);
+    else byRestaurant.set(id, [dish]);
+  }
+
+  return byRestaurant;
+}

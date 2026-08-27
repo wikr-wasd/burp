@@ -5,6 +5,7 @@ import { Clock, Star } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
 import { RestaurantMap, type MapPin } from "@/components/discovery/restaurant-map";
 import { FocusOnHover } from "@/components/discovery/focus-on-hover";
+import { formatMoney } from "@burp/core";
 import { SearchCommand } from "@/components/discovery/search-command";
 import { findDishes } from "@/lib/dishes";
 import { SiteFooter } from "@/components/site/site-footer";
@@ -14,15 +15,18 @@ import {
   listCuisines,
   openRestaurantIds,
   priceTierLabel,
+  restaurantHighlights,
   searchRestaurants,
   todaysHours,
   type DiscoveryRestaurant,
+  type DishHighlight,
 } from "@/lib/discovery";
 import {
   dictionary,
   fill,
   isLocale,
   localePath,
+  LOCALE_TAGS,
   type Dictionary,
   type Locale,
 } from "@/lib/i18n";
@@ -161,6 +165,17 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
    */
   const closedOnly = onlyOpen && matched.length > 0 && restaurants.length === 0;
 
+  /*
+   * Vad man äter på varje ställe.
+   *
+   * Hämtas EFTER filtret, för de restauranger som faktiskt visas — en fråga
+   * för hela listan, inte en per kort. Korten bar tidigare namn, kök, betyg
+   * och en beskrivning; allt det säger vad stället är, ingenting vad man äter
+   * där. Bilden skulle ha svarat på det och gör det inte, eftersom seed-datan
+   * ritar en bokstav i en färgruta.
+   */
+  const highlights = await restaurantHighlights(restaurants.map((entry) => entry.id));
+
   // Vad öppnar först? Räknas bara när svaret ska visas — annars är det sju
   // dagars slingor per träff i onödan.
   const soonest = closedOnly
@@ -276,6 +291,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
           city={city}
           cuisine={cuisine}
           query={query}
+          dishes={dishes}
           cityName={activeCity?.name}
         />
 
@@ -352,34 +368,6 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
           </p>
         ) : null}
 
-        {/*
-          Rätterna står FÖRE restauranglistan när något söks.
-
-          Den som skriver "punjene paprike" letar efter rätten, inte efter ett
-          namn — och rättsidan svarar på frågan "var får jag den, och vad
-          kostar den" bättre än en lista över ställen gör.
-        */}
-        {dishes.length > 0 ? (
-          <nav aria-label={t.home.dishHits} className="mt-6">
-            <p className="label-caps">{query ? t.home.dishHits : t.home.popularDishes}</p>
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {dishes.map((dish) => (
-                <li key={`${dish.citySlug}-${dish.slug}`}>
-                  <Link
-                    href={localePath(locale, `/${dish.citySlug}/ratt/${dish.slug}`)}
-                    className="chip"
-                  >
-                    {dish.name}
-                    <span className="ml-1.5 opacity-60">
-                      {dish.city} · {dish.restaurants}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        ) : null}
-
         {restaurants.length === 0 ? (
           <EmptyState
             t={t}
@@ -411,7 +399,12 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
                     {/* Skalet kopplar kortet till kartan. Kortet självt
                         renderas fortfarande på servern — se FocusOnHover. */}
                     <FocusOnHover id={restaurant.id}>
-                      <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
+                      <RestaurantCard
+                        t={t}
+                        locale={locale}
+                        restaurant={restaurant}
+                        dishes={highlights.get(restaurant.id) ?? []}
+                      />
                     </FocusOnHover>
                   </li>
                 ))}
@@ -423,7 +416,12 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
             {restaurants.map((restaurant) => (
               <li key={restaurant.id}>
                 <FocusOnHover id={restaurant.id}>
-                  <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
+                  <RestaurantCard
+                  t={t}
+                  locale={locale}
+                  restaurant={restaurant}
+                  dishes={highlights.get(restaurant.id) ?? []}
+                />
                 </FocusOnHover>
               </li>
             ))}
@@ -452,6 +450,7 @@ function Hero({
   city,
   cuisine,
   query,
+  dishes,
   cityName,
 }: {
   t: Dictionary;
@@ -459,6 +458,8 @@ function Hero({
   city?: string;
   cuisine?: string;
   query?: string;
+  /** Rätter att äta i stället för en ingress om tjänsten. */
+  dishes: readonly { slug: string; name: string; citySlug: string; city: string; restaurants: number }[];
   cityName?: string;
 }) {
   return (
@@ -517,6 +518,39 @@ function Hero({
           {/* Ligger kvar även när formuläret är tomt — utan den ser fältet ut
               att söka i något odefinierat. */}
           <p className="mt-2 max-w-xl text-xs text-[var(--muted)]">{t.home.searchHint}</p>
+
+          {/*
+            Mat direkt under sökrutan.
+
+            Hjälten säger vad Burp ÄR. Det är rätt en gång, för den som aldrig
+            varit här — men det svarar inte på varför man skulle stanna. Raden
+            under gör det: riktiga rätter som verkligen finns i närheten, med
+            väg till sidan som säger var man får dem och vad de kostar.
+
+            Samma rad bär sökträffarna när något söks. Chipsen låg tidigare
+            längre ner, ovanför listan; där hittade de bara den som redan
+            rullat förbi hjälten.
+          */}
+          {dishes.length > 0 ? (
+            <nav aria-label={t.home.dishHits} className="mt-6">
+              <p className="label-caps">{query ? t.home.dishHits : t.home.popularDishes}</p>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {dishes.map((dish) => (
+                  <li key={`${dish.citySlug}-${dish.slug}`}>
+                    <Link
+                      href={localePath(locale, `/${dish.citySlug}/ratt/${dish.slug}`)}
+                      className="chip"
+                    >
+                      {dish.name}
+                      <span className="ml-1.5 opacity-60">
+                        {dish.city} · {dish.restaurants}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ) : null}
       </div>
     </section>
   );
@@ -597,10 +631,13 @@ function RestaurantCard({
   t,
   locale,
   restaurant,
+  dishes,
 }: {
   t: Dictionary;
   locale: Locale;
   restaurant: DiscoveryRestaurant;
+  /** Några rätter ur menyn, i restaurangens egen ordning. Kan vara tom. */
+  dishes: readonly DishHighlight[];
 }) {
   const hours = todaysHours(restaurant.openingHours, restaurant.timeZone);
   const open = Boolean(hours);
@@ -649,6 +686,33 @@ function RestaurantCard({
           <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
             {restaurant.description}
           </p>
+        ) : null}
+
+        {/*
+          Menyn, inte bilden.
+
+          Tre rader ur menyn med pris svarar på "vad äter man här och vad
+          kostar det" — den fråga kortet inte kunde svara på. De ligger nederst
+          och pressas ner av `mt-auto`, så att korten radar upp sina priser i
+          linje även när beskrivningarna är olika långa.
+
+          Priset formateras med restaurangens EGEN valuta. Ett kort i Novi Sad
+          som visar KM är värre än inget pris alls.
+        */}
+        {dishes.length > 0 ? (
+          <ul className="mt-auto space-y-1 pt-3">
+            {dishes.map((dish) => (
+              <li
+                key={dish.name}
+                className="flex items-baseline justify-between gap-3 text-sm"
+              >
+                <span className="min-w-0 truncate text-[var(--muted)]">{dish.name}</span>
+                <span className="shrink-0 tabular-nums">
+                  {formatMoney(dish.priceOre, restaurant.currency, LOCALE_TAGS[locale])}
+                </span>
+              </li>
+            ))}
+          </ul>
         ) : null}
       </div>
     </Link>
