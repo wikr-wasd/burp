@@ -5,6 +5,7 @@ import type { Circle, Map as LeafletMap, Marker } from "leaflet";
 import { distanceMeters, roundDistance } from "@burp/core";
 import { publicEnv } from "@/lib/env";
 import { fill } from "@/lib/i18n";
+import { focusRestaurant, useFocusedRestaurant } from "@/lib/map-focus";
 
 import "leaflet/dist/leaflet.css";
 
@@ -114,6 +115,16 @@ export function RestaurantMap({
   const meRef = useRef<{ marker: Marker; halo: Circle } | null>(null);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
 
+  /*
+   * Nålarna per restaurang-id.
+   *
+   * `markersRef` är listan som ska städas bort; den här är uppslaget som
+   * behövs när listan pekar hit. Två strukturer över samma markörer, med olika
+   * uppgift — och båda töms på samma ställe.
+   */
+  const markersById = useRef<Map<string, Marker>>(new Map());
+  const focused = useFocusedRestaurant();
+
   const [failed, setFailed] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
   const [locating, setLocating] = useState(false);
@@ -185,6 +196,22 @@ export function RestaurantMap({
     };
   }, [locate]);
 
+  /*
+   * Listan pekar på ett kort — nålen lyser upp.
+   *
+   * Vyn flyttas INTE. Att panorera kartan för varje kort musen sveper över
+   * hade gjort den till en karusell, och den som letar tappar var hon var.
+   * Zoomen och mitten är gästens; markeringen är vår.
+   */
+  useEffect(() => {
+    for (const [id, marker] of markersById.current) {
+      const element = marker.getElement();
+      if (!element) continue;
+
+      element.classList.toggle("map-pin-focused", id === focused);
+    }
+  }, [focused, pins]);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -233,6 +260,7 @@ export function RestaurantMap({
       // ligger en bortfiltrerad restaurang kvar på kartan.
       for (const marker of markersRef.current) marker.remove();
       markersRef.current = [];
+      markersById.current.clear();
 
       for (const pin of pins) {
         const icon = L.divIcon({
@@ -254,7 +282,19 @@ export function RestaurantMap({
           .addTo(map)
           .bindPopup(popupHtml(pin, position, texts));
 
+        /*
+         * Nålen säger till listan vilken restaurang den är.
+         *
+         * `mouseover` och inte bara `click`: den som drar musen över kartan
+         * letar, och kortet nedanför ska hinna lysa upp innan hon bestämt sig.
+         * Klicket öppnar popupen som förut — det här ersätter ingenting.
+         */
+        marker.on("mouseover", () => focusRestaurant(pin.id));
+        marker.on("mouseout", () => focusRestaurant(null));
+        marker.on("click", () => focusRestaurant(pin.id));
+
         markersRef.current.push(marker);
+        markersById.current.set(pin.id, marker);
       }
 
       if (pins.length > 0 && !position) {

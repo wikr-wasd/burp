@@ -675,9 +675,23 @@ body {
 }
 
 .leaflet-marker-icon:hover .map-pin,
-.leaflet-marker-icon:focus-visible .map-pin {
+.leaflet-marker-icon:focus-visible .map-pin,
+.leaflet-marker-icon.map-pin-focused .map-pin {
   transform: translateY(-3px) rotate(-45deg);
   box-shadow: 0 5px 12px rgb(0 0 0 / 0.35);
+}
+
+/*
+ * Nålen som listan pekar på.
+ *
+ * Samma lyft som vid hover, plus en ring — lyftet ensamt syns inte i en klunga
+ * där grannen redan står högre. Ringen ritas med `outline` och inte `border`:
+ * en kant hade ändrat nålens storlek och därmed var spetsen pekar, vilket
+ * flyttar restaurangen någon meter varje gång musen sveper förbi.
+ */
+.leaflet-marker-icon.map-pin-focused .map-pin {
+  outline: 3px solid var(--surface);
+  outline-offset: 1px;
 }
 
 /*

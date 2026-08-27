@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Clock, Search, Star } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
 import { RestaurantMap, type MapPin } from "@/components/discovery/restaurant-map";
+import { FocusOnHover } from "@/components/discovery/focus-on-hover";
 import { findDishes } from "@/lib/dishes";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
@@ -194,19 +195,22 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
     <div className="min-h-screen">
       <SiteHeader locale={locale} path="/" />
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-6">
-        {/*
-          Kartan högst upp, före rubriken.
+      <main>
+      {/*
+        Karta och lista bredvid varandra — och de pratar med varandra.
 
-          Den som kommer till burp.se utan att ha skannat en QR-kod frågar "vad
-          finns nära mig". Svaret är en karta, inte en ingress. Här låg ett
-          collage av tre restaurangbilder; det sålde mat men svarade på fel
-          fråga, och rutnätet under bär bilderna ändå.
+        Kartan låg tidigare full bredd över allt annat. Den ordningen var rätt
+        i sitt skäl: den som kommer till burp.se utan att ha skannat en dekal
+        frågar "vad finns nära mig", och svaret är en karta, inte en ingress.
+        Men den försvann så fort man rullade till listan, och en nål som lyser
+        upp när man pekar på ett kort är värdelös om kartan är utanför skärmen.
 
-          Höjden är satt och inte proportionell: en karta som växer med skärmen
-          skjuter listan under vikningen på en bred skärm.
-        */}
-        <section className="mt-6 h-[20rem] sm:h-[24rem]">
+        På en bred skärm står den därför i en egen kolumn som följer med. På en
+        smal ligger den kvar först — `order-first` — där den svarar på samma
+        fråga som förut, i samma ordning som förut.
+      */}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-10">
+        <aside className="order-first mt-6 h-[20rem] sm:h-[24rem] lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-3rem)]">
           <RestaurantMap
             pins={pins}
             label={t.discover.mapLabel}
@@ -220,8 +224,9 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
               distanceAway: t.discover.mapDistanceAway,
             }}
           />
-        </section>
+        </aside>
 
+        <div className="lg:order-1">
         <Hero
           t={t}
           locale={locale}
@@ -360,7 +365,11 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
               <ul className="mt-5 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
                 {group.restaurants.map((restaurant) => (
                   <li key={restaurant.id}>
-                    <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
+                    {/* Skalet kopplar kortet till kartan. Kortet självt
+                        renderas fortfarande på servern — se FocusOnHover. */}
+                    <FocusOnHover id={restaurant.id}>
+                      <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
+                    </FocusOnHover>
                   </li>
                 ))}
               </ul>
@@ -370,11 +379,15 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
           <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {restaurants.map((restaurant) => (
               <li key={restaurant.id}>
-                <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
+                <FocusOnHover id={restaurant.id}>
+                  <RestaurantCard t={t} locale={locale} restaurant={restaurant} />
+                </FocusOnHover>
               </li>
             ))}
           </ul>
         )}
+        </div>
+      </div>
       </main>
 
       <SiteFooter locale={locale} path="/" />
