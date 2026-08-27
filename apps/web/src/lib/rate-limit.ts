@@ -72,6 +72,15 @@ export const RATE_LIMITS = {
   reservationCreate: { limit: 5, windowSeconds: 60 },
   /** Lediga tider. Generöst — sidan frågar om nytt datum vid varje klick. */
   reservationSlots: { limit: 60, windowSeconds: 60 },
+  /**
+   * Sökförslag medan man skriver.
+   *
+   * Generöst med flit: en gäst som skriver "punjene paprike" hinner utlösa
+   * flera anrop även med fördröjning i fältet, och en gräns som slår till mitt
+   * i ett ord ser ut som att sökningen hänger sig. Endpointen läser bara det
+   * som redan står publikt på sidorna.
+   */
+  searchSuggest: { limit: 90, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitOptions>;
 
 /**

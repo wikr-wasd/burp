@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Clock, Search, Star } from "lucide-react";
+import { Clock, Star } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
 import { RestaurantMap, type MapPin } from "@/components/discovery/restaurant-map";
 import { FocusOnHover } from "@/components/discovery/focus-on-hover";
+import { SearchCommand } from "@/components/discovery/search-command";
 import { findDishes } from "@/lib/dishes";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
@@ -449,42 +450,29 @@ function Hero({
             — är en rundad ruta. Ett fält som ser unikt ut på startsidan lär
             gästen fel form.
           */}
-          <form
-            action={localePath(locale, "/")}
-            method="get"
-            role="search"
-            className="mt-8 flex max-w-xl gap-2"
-          >
-            {/* Sökningen ska inte tappa vald stad eller kökstyp. */}
-            {city ? <input type="hidden" name="stad" value={city} /> : null}
-            {cuisine ? <input type="hidden" name="kok" value={cuisine} /> : null}
+          {/*
+            Sökrutan svarar medan man skriver.
 
-            <label htmlFor="q" className="sr-only">
-              {t.home.searchLabel}
-            </label>
-            <div className="relative flex-1">
-              <Search
-                size={18}
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--muted)]"
-              />
-              {/* `.field-search` bär indraget för ikonen. En Tailwind-klass för
-                  samma sak hade slagits ut tyst — olagrad CSS vinner över
-                  lagrad, oavsett ordning. Se kommentaren i globals.css. */}
-              <input
-                id="q"
-                name="q"
-                type="search"
-                defaultValue={query ?? ""}
-                placeholder={t.home.searchPlaceholder}
-                autoComplete="off"
-                className="field field-search"
-              />
-            </div>
-            <button type="submit" className="btn btn-primary shrink-0">
-              {t.home.searchButton}
-            </button>
-          </form>
+            Formuläret ligger kvar inuti komponenten: den vägen fungerar utan
+            JavaScript, ger en adress som går att dela, och är vad Google
+            följer. Förslagen ligger ovanpå — de ersätter ingenting.
+          */}
+          <SearchCommand
+            locale={locale}
+            city={city}
+            cuisine={cuisine}
+            initialQuery={query}
+            labels={{
+              placeholder: t.home.searchPlaceholder,
+              label: t.home.searchLabel,
+              button: t.home.searchButton,
+              searching: t.home.searching,
+              empty: t.home.suggestEmpty,
+              dishes: t.home.dishHits,
+              restaurants: t.home.restaurantHits,
+              cities: t.home.cityHits,
+            }}
+          />
 
           {/* Ligger kvar även när formuläret är tomt — utan den ser fältet ut
               att söka i något odefinierat. */}

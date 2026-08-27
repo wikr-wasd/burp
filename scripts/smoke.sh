@@ -1411,6 +1411,31 @@ if grep -q "/sarajevo/ratt/punjene-paprike" <<<"$DISH_SEARCH"; then
 else
   fail "sökningen visade ingen väg till rättsidan"
 fi
+
+# Förslagen medan man skriver. Fältet lovar tre sorters träffar — rätter,
+# restauranger och städer — och rutten ska svara på alla tre.
+SUGGEST=$(curl -s "$BASE/api/search?q=paprik")
+
+if grep -q '"ok":true' <<<"$SUGGEST" && grep -q "punjene-paprike" <<<"$SUGGEST"; then
+  pass "sökförslagen hittar rätten"
+else
+  fail "sökförslagen gav ingen rätt: $(head -c 120 <<<"$SUGGEST")"
+fi
+
+if grep -q "ascinica-stari-grad" <<<"$SUGGEST"; then
+  pass "sökförslagen hittar restaurangen genom menyn"
+else
+  fail "sökförslagen hittade ingen restaurang"
+fi
+
+# En tom fråga ska inte kosta ett uppslag. Rutten svarar tomt, inte 400 —
+# ett fel i loggen varje gång någon rensar fältet är brus.
+EMPTY_SUGGEST=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/search?q=")
+if [ "$EMPTY_SUGGEST" = "200" ]; then
+  pass "tom sökfråga svarar tomt och inte med ett fel"
+else
+  fail "tom sökfråga gav $EMPTY_SUGGEST"
+fi
 check_status "sitemap"            "/sitemap.xml"      200
 check_status "robots"             "/robots.txt"       200
 
