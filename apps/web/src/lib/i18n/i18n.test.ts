@@ -272,6 +272,9 @@ describe("ordböckerna", () => {
        */
       "staff.marketing.print",
       "staff.marketing.google",
+      // "{dish} i {city}" är samma mall på norska. `fromPrice` är "Fra" mot
+      // "Från" och `priceTitle` "Hva" mot "Vad".
+      "dish.title",
       /*
        * "Avbryt" stavas likadant på norska och svenska.
        *

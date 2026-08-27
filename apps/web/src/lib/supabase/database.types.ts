@@ -1893,6 +1893,7 @@ export type Database = {
           email: string | null
           fee_base: Database["public"]["Enums"]["fee_base"]
           fee_override_bps: number | null
+          google_review_url: string | null
           hero_image_url: string | null
           id: string
           latitude: number | null
@@ -1930,6 +1931,7 @@ export type Database = {
           email?: string | null
           fee_base?: Database["public"]["Enums"]["fee_base"]
           fee_override_bps?: number | null
+          google_review_url?: string | null
           hero_image_url?: string | null
           id?: string
           latitude?: number | null
@@ -1967,6 +1969,7 @@ export type Database = {
           email?: string | null
           fee_base?: Database["public"]["Enums"]["fee_base"]
           fee_override_bps?: number | null
+          google_review_url?: string | null
           hero_image_url?: string | null
           id?: string
           latitude?: number | null
@@ -2793,6 +2796,14 @@ export type Database = {
         Returns: Database["public"]["Enums"]["currency_code"]
       }
       disablelongtransactions: { Args: never; Returns: string }
+      dishes_in_city: {
+        Args: { p_city_slug: string }
+        Returns: {
+          dish_name: string
+          dish_slug: string
+          restaurants: number
+        }[]
+      }
       dropgeometrycolumn:
         | {
             Args: {
@@ -3256,6 +3267,23 @@ export type Database = {
         Returns: {
           vat_ore: number
           vat_rate_bps: number
+        }[]
+      }
+      restaurants_with_dish: {
+        Args: { p_city_slug: string; p_dish_slug: string }
+        Returns: {
+          cuisines: string[]
+          currency: string
+          description: string
+          dish_name: string
+          hero_image_url: string
+          name: string
+          price_ore: number
+          price_tier: number
+          rating_average: number
+          rating_count: number
+          restaurant_id: string
+          slug: string
         }[]
       }
       revoke_staff_invitation: {

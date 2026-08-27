@@ -1385,6 +1385,13 @@ check_status "stadssida"          "/sv/sarajevo"            200
 check_status "kökssida"           "/sv/sarajevo/grill"      200
 check_status "okänd stad 404:ar"  "/finns-inte-alls"  404
 check_status "okänt kök 404:ar"   "/sv/sarajevo/rymdmat"    404
+# Rättsidorna. Long-tail är den enda sökning Burp realistiskt kan vinna, och
+# tröskeln på två restauranger är ett innehållsbeslut: "tufahija" finns bara
+# hos en och ska därför INTE ha en egen sida.
+check_status "rättsida"           "/sv/sarajevo/ratt/punjene-paprike" 200
+check_status "rättsida på bosniska" "/bs/sarajevo/ratt/cevapi-10-kom"  200
+check_status "okänd rätt 404:ar"  "/sv/sarajevo/ratt/rymdmat"         404
+check_status "rätt hos EN restaurang får ingen sida" "/sv/sarajevo/ratt/tufahija" 404
 check_status "sitemap"            "/sitemap.xml"      200
 check_status "robots"             "/robots.txt"       200
 

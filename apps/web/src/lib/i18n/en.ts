@@ -316,6 +316,7 @@ export const en: Dictionary = {
     reviewSubmit: "Send",
     reviewSending: "Sending…",
     reviewCancel: "Cancel",
+    reviewGoogle: "Tell others on Google too",
     reviewThanks: "Thank you. Your review helps the next guest.",
     reviewAlready: "You have already reviewed this order.",
     reviewFailed: "The review could not be saved. Please try again.",
@@ -347,6 +348,15 @@ export const en: Dictionary = {
       CANCELLED: "Cancelled",
       REFUNDED: "Refunded",
     },
+  },
+
+  dish: {
+    title: "{dish} in {city}",
+    meta: "Where do you get {dish} in {city}? See the restaurants, the prices and the menus.",
+    intro: "{n} restaurants in {city} have {dish} on the menu.",
+    fromPrice: "From {price}.",
+    priceTitle: "What {dish} costs",
+    otherDishes: "Other things to eat in {city}",
   },
 
   marketing: {
@@ -834,6 +844,12 @@ export const en: Dictionary = {
       bannerTitle: "Banner",
       bannerHint: "A wide band at the top of the page. Reviewed by Burp before it goes live.",
       bannerUpload: "Upload a banner",
+      googleTitle: "Reviews on Google",
+      googleHint:
+        "A guest who leaves a review here is asked whether they want to say the same on Google. Burp never sends reviews there — Google does not accept them.",
+      googleUrl: "Link to your review form",
+      googleUrlHint:
+        "Found in your Google profile under Ask for reviews. Leave it empty to not ask at all.",
       reservationTitle: "Table booking",
       reservationHint:
         "Guests book a table on your page. Free times come from your opening hours — set those first.",
@@ -1255,6 +1271,7 @@ export const en: Dictionary = {
         "The colour disappears against the background in light or dark mode. Try a colour with more depth.",
       bookingFailed: "The booking did not go through.",
       surchargeInvalid: "The extra is not a valid amount.",
+      googleUrlInvalid: "The link must point to Google. Copy it from your Google profile.",
       itemNeedsName: "The dish needs a name.",
       itemNotFound: "The dish was not found.",
       groupNeedsName: "The group needs a name.",

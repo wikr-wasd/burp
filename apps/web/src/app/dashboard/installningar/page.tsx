@@ -17,6 +17,7 @@ import { PresentationEditor } from "@/components/staff/presentation-editor";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
 import { IdentityEditor } from "@/components/staff/identity-editor";
 import { ReservationSettings } from "@/components/staff/reservation-settings";
+import { GoogleReviewLink } from "@/components/staff/google-review-link";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { PunchCardEditor } from "@/components/staff/punch-card-editor";
 import { PushToggle } from "@/components/notifications/push-toggle";
@@ -55,7 +56,7 @@ export default async function SettingsPage() {
     // select-uttrycket, och en konkatenering ger `GenericStringError` i stället
     // för kolumnerna.
     .select(
-      "opening_hours, order_policy, reservation_policy, description, phone, cuisines, price_tier, street_address, postal_code, city, city_slug, slug, latitude, longitude, hero_image_url, accent_hex, logo_url, banner_url, punch_card_size, punch_card_max_reward_ore",
+      "opening_hours, order_policy, reservation_policy, google_review_url, description, phone, cuisines, price_tier, street_address, postal_code, city, city_slug, slug, latitude, longitude, hero_image_url, accent_hex, logo_url, banner_url, punch_card_size, punch_card_max_reward_ore",
     )
     .eq("id", staff.restaurantId)
     .single();
@@ -163,6 +164,23 @@ export default async function SettingsPage() {
           <h2 className="font-display text-2xl">{t.settings.reservationTitle}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">{t.settings.reservationHint}</p>
           <ReservationSettings initial={reservations} labels={t.settings} />
+        </section>
+
+        <hr className="rule mt-14" />
+
+        {/*
+          Google-länken hör till omdömena och inte till betalningen, men den
+          står här därför att den är en INSTÄLLNING och inte en yta. Burp
+          skickar aldrig omdömen dit — Google tar inte emot dem.
+        */}
+        <section className="mt-10">
+          <h2 className="font-display text-2xl">{t.settings.googleTitle}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t.settings.googleHint}</p>
+          <GoogleReviewLink
+            initial={restaurant?.google_review_url ?? null}
+            labels={t.settings}
+            errorLabels={t.errors}
+          />
         </section>
 
         <hr className="rule mt-14" />

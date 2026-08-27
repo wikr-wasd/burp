@@ -56,6 +56,15 @@ export interface DiscoveryFilters {
   cuisine?: string;
   /** `city_slug`, inte stadens visningsnamn. */
   city?: string;
+  /**
+   * Bara de här restaurangerna.
+   *
+   * Används av rättsidorna, som först frågar `restaurants_with_dish()` vilka
+   * som har rätten och sedan hämtar dem HÄR — så att kortet ser likadant ut
+   * som på stads- och kökssidorna. Tom lista ger tomt svar och inte allt:
+   * "inga träffar" är ett svar, "alla" är ett fel.
+   */
+  ids?: readonly string[];
 }
 
 const COLUMNS =
@@ -123,6 +132,11 @@ export async function searchRestaurants(
 
   if (filters.city) {
     request = request.eq("city_slug", filters.city);
+  }
+
+  if (filters.ids) {
+    if (filters.ids.length === 0) return [];
+    request = request.in("id", [...filters.ids]);
   }
 
   // Högst betyg först. Restauranger utan omdömen hamnar sist i stället för

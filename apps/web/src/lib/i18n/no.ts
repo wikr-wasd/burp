@@ -318,6 +318,7 @@ export const no: Dictionary = {
     reviewSubmit: "Send",
     reviewSending: "Sender…",
     reviewCancel: "Avbryt",
+    reviewGoogle: "Fortell det gjerne på Google også",
     reviewThanks: "Takk. Anmeldelsen hjelper neste gjest.",
     reviewAlready: "Du har allerede anmeldt denne bestillingen.",
     reviewFailed: "Anmeldelsen kunne ikke lagres. Prøv igjen.",
@@ -349,6 +350,15 @@ export const no: Dictionary = {
       CANCELLED: "Avbestilt",
       REFUNDED: "Refundert",
     },
+  },
+
+  dish: {
+    title: "{dish} i {city}",
+    meta: "Hvor får man {dish} i {city}? Se restaurantene, prisene og menyene.",
+    intro: "{n} restauranter i {city} har {dish} på menyen.",
+    fromPrice: "Fra {price}.",
+    priceTitle: "Hva {dish} koster",
+    otherDishes: "Annet å spise i {city}",
   },
 
   marketing: {
@@ -837,6 +847,12 @@ export const no: Dictionary = {
       bannerTitle: "Banner",
       bannerHint: "Et bredt bånd øverst på siden. Burp ser over det før det publiseres.",
       bannerUpload: "Last opp banner",
+      googleTitle: "Omtaler på Google",
+      googleHint:
+        "Gjesten som legger igjen en omtale her, blir spurt om hun vil si det samme på Google. Burp sender aldri omtaler dit — Google tar ikke imot dem.",
+      googleUrl: "Lenke til omtaleskjemaet deres",
+      googleUrlHint:
+        "Finnes i Google-profilen under Be om omtaler. La stå tomt for ikke å spørre.",
       reservationTitle: "Bordbestilling",
       reservationHint:
         "Gjester bestiller bord på siden deres. Ledige tider regnes ut fra åpningstidene — sett dem først.",
@@ -1258,6 +1274,7 @@ export const no: Dictionary = {
         "Fargen forsvinner mot bakgrunnen i lys eller mørk modus. Prøv en farge med mer dybde.",
       bookingFailed: "Bestillingen gikk ikke gjennom.",
       surchargeInvalid: "Tillegget er ikke et gyldig beløp.",
+      googleUrlInvalid: "Lenken må peke til Google. Kopier den fra Google-profilen.",
       itemNeedsName: "Retten trenger et navn.",
       itemNotFound: "Retten ble ikke funnet.",
       groupNeedsName: "Gruppen trenger et navn.",

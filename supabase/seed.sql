@@ -545,3 +545,75 @@ where restaurant_id = '11111111-1111-1111-1111-111111111111' and table_number = 
 update public.tables
 set attributes = array['QUIET']::text[]
 where restaurant_id = '11111111-1111-1111-1111-111111111111' and table_number = '11';
+
+-- ── Aščinica Stari Grad får en meny ────────────────────────────────────────
+--
+-- Fram till nu hade EN restaurang meny i seeden, och marknadsplatsen såg
+-- därför ut som en katalog med ett ställe. Rättsidorna (migration 0058) kräver
+-- dessutom att minst två restauranger har samma rätt — tröskeln finns för att
+-- en sida som listar ett enda ställe är en sämre kopia av det ställets egen
+-- sida — och utan den här menyn fanns ingen sådan rätt alls att bedöma.
+--
+-- Överlappet är avsiktligt: ćevapi, burek och kaffe finns hos båda, precis som
+-- i Baščaršija. Resten skiljer sig, för en aščinica lagar grytor och en
+-- ćevabdžinica gör inte det.
+
+insert into public.menus (id, restaurant_id, name, status)
+values (
+  '22222222-2222-2222-2222-222222222227',
+  '11111111-1111-1111-1111-111111111117',
+  'Meni',
+  'PUBLISHED'
+);
+
+insert into public.menu_categories (id, menu_id, restaurant_id, name, description, sort_order)
+values
+  ('33333333-3333-3333-3333-333333333371',
+   '22222222-2222-2222-2222-222222222227',
+   '11111111-1111-1111-1111-111111111117', 'Iz lonca', 'Kuhano od jutra', 1),
+  ('33333333-3333-3333-3333-333333333372',
+   '22222222-2222-2222-2222-222222222227',
+   '11111111-1111-1111-1111-111111111117', 'Pića', 'Za uz jelo', 2);
+
+insert into public.menu_items (
+  id, category_id, restaurant_id, name, description,
+  price_ore, vat_rate_bps, allergens, is_available, status, sort_order, min_quantity
+)
+values
+  -- Delas med Željo. Det är de här raderna som ger rättsidorna något att lista.
+  ('44444444-4444-4444-4444-44444444bb01', '33333333-3333-3333-3333-333333333371',
+   '11111111-1111-1111-1111-111111111117',
+   'Ćevapi 10 kom', 'Sa domaćom lepinjom',
+   1300, 1700, array['gluten', 'mlijeko']::text[], true, 'PUBLISHED', 1, 1),
+  ('44444444-4444-4444-4444-44444444bb02', '33333333-3333-3333-3333-333333333371',
+   '11111111-1111-1111-1111-111111111117',
+   'Punjene paprike', 'Kuhane u loncu, sa pavlakom',
+   1250, 1700, array['mlijeko']::text[], true, 'PUBLISHED', 2, 1),
+
+  -- Aščinicans eget.
+  ('44444444-4444-4444-4444-44444444bb03', '33333333-3333-3333-3333-333333333371',
+   '11111111-1111-1111-1111-111111111117',
+   'Bosanski lonac', 'Meso i povrće, kuhano sporo',
+   1600, 1700, array[]::text[], true, 'PUBLISHED', 3, 1),
+  ('44444444-4444-4444-4444-44444444bb04', '33333333-3333-3333-3333-333333333371',
+   '11111111-1111-1111-1111-111111111117',
+   'Grah sa suhim mesom', 'Sa domaćim hljebom',
+   1100, 1700, array['gluten']::text[], true, 'PUBLISHED', 4, 1),
+  ('44444444-4444-4444-4444-44444444bb05', '33333333-3333-3333-3333-333333333371',
+   '11111111-1111-1111-1111-111111111117',
+   'Sarma', 'Iz kiselog kupusa',
+   1200, 1700, array[]::text[], true, 'PUBLISHED', 5, 1),
+
+  -- Också delad, och den vanligaste rätten av alla i en aščinica.
+  ('44444444-4444-4444-4444-44444444bb06', '33333333-3333-3333-3333-333333333372',
+   '11111111-1111-1111-1111-111111111117',
+   'Kiseljak 0,5 l', 'Sarajevska mineralna voda',
+   250, 1700, array[]::text[], true, 'PUBLISHED', 1, 1),
+  ('44444444-4444-4444-4444-44444444bb07', '33333333-3333-3333-3333-333333333372',
+   '11111111-1111-1111-1111-111111111117',
+   'Bosanska kafa', 'U džezvi, sa rahat lokumom',
+   300, 1700, array[]::text[], true, 'PUBLISHED', 2, 1);
+
+update public.menu_categories
+set is_drinks = true
+where id = '33333333-3333-3333-3333-333333333372';

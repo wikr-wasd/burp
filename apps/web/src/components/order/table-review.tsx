@@ -22,10 +22,20 @@ import { fill, type Dictionary } from "@/lib/i18n";
 export function TableReview({
   token,
   orderId,
+  googleReviewUrl,
   labels,
 }: {
   token: string;
   orderId: string;
+  /**
+   * Restaurangens länk till Googles recensionsformulär, om den satt en.
+   *
+   * Visas för ALLA som lämnat ett omdöme, oavsett betyg. Att bara visa den för
+   * nöjda gäster kallas review gating och är förbjudet av både Google och EU:s
+   * konsumentregler — därför finns här ingen tröskel att sätta, bara en adress
+   * som finns eller inte.
+   */
+  googleReviewUrl: string | null;
   labels: Dictionary["receipt"];
 }) {
   const [open, setOpen] = useState(false);
@@ -38,9 +48,29 @@ export function TableReview({
 
   if (done) {
     return (
-      <p role="status" className="mt-8 text-sm text-green-700 dark:text-green-400">
-        {labels.reviewThanks}
-      </p>
+      <div className="mt-8">
+        <p role="status" className="text-sm text-green-700 dark:text-green-400">
+          {labels.reviewThanks}
+        </p>
+
+        {googleReviewUrl ? (
+          <p className="mt-3 text-sm">
+            {/*
+              Frågan ställs EFTER att omdömet lämnats hos oss, inte i stället
+              för det. Burps omdöme är knutet till en riktig order — starkare
+              än vad Google kan kräva — och det är det som ska skrivas först.
+            */}
+            <a
+              href={googleReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link"
+            >
+              {labels.reviewGoogle}
+            </a>
+          </p>
+        ) : null}
+      </div>
     );
   }
 

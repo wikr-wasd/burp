@@ -66,6 +66,32 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-08-27 — rättsidor och Google-recensioner
+
+Punkt 8 i färdplanen, i två delar. Migrationer `0057` och `0058`.
+
+**Rättsidan: `/sv/sarajevo/ratt/punjene-paprike`.** Det som saknades var inte
+schema-märkning utan YTOR — Google indexerar en URL, och Burp hade ingen adress
+som svarade på "punjene paprike Sarajevo". Det är också den enda sökningen som
+realistiskt går att vinna: på en stad ensam står Googles egen karta först, på en
+rätt i en stad finns oftast ingen sida alls.
+
+Tröskeln är **två restauranger**. En sida som listar ett enda ställe är en sämre
+kopia av det ställets egen sida — dubblerat innehåll för Google och en
+återvändsgränd för den som klickar. Samma funktion avgör både sidan och
+sitemapen; två uträkningar hade gett en sitemap som pekar på 404:or.
+
+Seeden fick därför en meny till: Aščinica Stari Grad. Fram till nu hade EN
+restaurang meny, och marknadsplatsen såg ut som en katalog med ett ställe.
+
+**Google-recensioner: länken, inte omdömena.** Att skicka Burps omdömen till
+Google GÅR INTE — de har ingen skriv-endpoint för recensioner, och att posta
+gästens text som restaurangens egen bryter mot både deras policy och GDPR. Det
+som går är att fråga den som just skrivit ett omdöme här om hon vill säga samma
+sak där, och länken visas för **alla oavsett betyg**: att bara visa den för
+nöjda gäster är review gating, förbjudet av Google och av EU:s
+konsumentregler. Därför finns ingen tröskel att ställa in.
+
 ### Byggt 2026-08-27 — marknadsföringsmaterial
 
 Punkt 7 i färdplanen, och den ärliga versionen av "vi marknadsför er via

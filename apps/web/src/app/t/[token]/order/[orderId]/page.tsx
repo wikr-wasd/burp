@@ -87,7 +87,7 @@ export default async function OrderPage({ params }: PageProps) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("name, order_policy")
+    .select("name, order_policy, google_review_url")
     .eq("id", order.restaurant_id)
     .single();
 
@@ -223,7 +223,12 @@ export default async function OrderPage({ params }: PageProps) {
         Har gästen redan svarat visas ingenting alls.
       */}
       {order.status === "COMPLETED" && !hasReview ? (
-        <TableReview token={token} orderId={order.id} labels={t.receipt} />
+        <TableReview
+          token={token}
+          orderId={order.id}
+          googleReviewUrl={restaurant?.google_review_url ?? null}
+          labels={t.receipt}
+        />
       ) : null}
 
       {/* Vad som hänt med pengarna, och att det här inte är ett fiskalt

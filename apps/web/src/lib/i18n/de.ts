@@ -318,6 +318,7 @@ export const de: Dictionary = {
     reviewSubmit: "Senden",
     reviewSending: "Wird gesendet…",
     reviewCancel: "Abbrechen",
+    reviewGoogle: "Erzählen Sie es auch bei Google",
     reviewThanks: "Danke. Ihre Bewertung hilft dem nächsten Gast.",
     reviewAlready: "Sie haben diese Bestellung bereits bewertet.",
     reviewFailed: "Die Bewertung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
@@ -349,6 +350,15 @@ export const de: Dictionary = {
       CANCELLED: "Storniert",
       REFUNDED: "Erstattet",
     },
+  },
+
+  dish: {
+    title: "{dish} in {city}",
+    meta: "Wo gibt es {dish} in {city}? Die Restaurants, die Preise und die Karten.",
+    intro: "{n} Restaurants in {city} haben {dish} auf der Karte.",
+    fromPrice: "Ab {price}.",
+    priceTitle: "Was {dish} kostet",
+    otherDishes: "Was man in {city} sonst isst",
   },
 
   marketing: {
@@ -845,6 +855,12 @@ export const de: Dictionary = {
       bannerTitle: "Banner",
       bannerHint: "Ein breites Band am Seitenkopf. Burp prüft es vor der Veröffentlichung.",
       bannerUpload: "Banner hochladen",
+      googleTitle: "Bewertungen bei Google",
+      googleHint:
+        "Wer hier eine Bewertung abgibt, wird gefragt, ob er dasselbe bei Google sagen möchte. Burp schickt niemals Bewertungen dorthin — Google nimmt sie nicht an.",
+      googleUrl: "Link zu Ihrem Bewertungsformular",
+      googleUrlHint:
+        "Zu finden in Ihrem Google-Profil unter Um Bewertungen bitten. Leer lassen, um nicht zu fragen.",
       reservationTitle: "Tischreservierung",
       reservationHint:
         "Gäste reservieren auf Ihrer Seite. Freie Zeiten ergeben sich aus Ihren Öffnungszeiten — setzen Sie die zuerst.",
@@ -1272,6 +1288,7 @@ export const de: Dictionary = {
         "Die Farbe verschwindet im hellen oder dunklen Modus im Hintergrund. Versuchen Sie eine Farbe mit mehr Tiefe.",
       bookingFailed: "Die Reservierung ging nicht durch.",
       surchargeInvalid: "Der Aufschlag ist kein gültiger Betrag.",
+      googleUrlInvalid: "Der Link muss zu Google führen. Kopieren Sie ihn aus Ihrem Google-Profil.",
       itemNeedsName: "Das Gericht braucht einen Namen.",
       itemNotFound: "Das Gericht wurde nicht gefunden.",
       groupNeedsName: "Die Gruppe braucht einen Namen.",

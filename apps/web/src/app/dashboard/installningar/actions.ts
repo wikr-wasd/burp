@@ -503,3 +503,43 @@ export async function saveReservationPolicy(input: {
 
   return error ? fail(error.message) : done();
 }
+
+/**
+ * Länken till restaurangens Google-recensioner.
+ *
+ * Burp skickar ALDRIG omdömen dit — Google tar inte emot dem, och gästens text
+ * är hennes personuppgift och inte restaurangens innehåll. Det som går är att
+ * fråga den som just skrivit ett omdöme hos oss om hon vill säga samma sak där.
+ *
+ * Länken visas för varje gäst som lämnat ett omdöme, oavsett betyg. Att bara
+ * visa den för nöjda gäster är review gating, förbjudet av Google och av EU:s
+ * konsumentregler — och därför finns här ingen tröskel att ställa in.
+ */
+export async function saveGoogleReviewUrl(input: string): Promise<ActionResult> {
+  const staff = await requireStaff(["owner", "manager"]);
+
+  const trimmed = input.trim();
+  const supabase = await createClient();
+
+  if (trimmed === "") {
+    const { error } = await supabase
+      .from("restaurants")
+      .update({ google_review_url: null })
+      .eq("id", staff.restaurantId);
+
+    return error ? fail(error.message) : done();
+  }
+
+  // Samma villkor som i migration 0057. Kontrollen här finns för att ge ett
+  // begripligt fel i stället för ett constraint-brott.
+  if (!/^https:\/\/(www\.)?(google\.[a-z.]+|g\.page|search\.google\.com|maps\.app\.goo\.gl)\//.test(trimmed)) {
+    return fail(staffErrors(staff).googleUrlInvalid);
+  }
+
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ google_review_url: trimmed })
+    .eq("id", staff.restaurantId);
+
+  return error ? fail(error.message) : done();
+}

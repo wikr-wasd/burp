@@ -341,6 +341,7 @@ export const bs: Dictionary = {
     reviewSubmit: "Pošalji",
     reviewSending: "Šaljem…",
     reviewCancel: "Odustani",
+    reviewGoogle: "Recite to i drugima na Googleu",
     reviewThanks: "Hvala. Vaša recenzija pomaže sljedećem gostu.",
     reviewAlready: "Već ste ostavili recenziju za ovu narudžbu.",
     reviewFailed: "Recenzija nije sačuvana. Pokušajte ponovo.",
@@ -372,6 +373,15 @@ export const bs: Dictionary = {
       CANCELLED: "Otkazana",
       REFUNDED: "Refundirana",
     },
+  },
+
+  dish: {
+    title: "{dish} u gradu {city}",
+    meta: "Gdje se jede {dish} u gradu {city}? Pogledajte restorane, cijene i menije.",
+    intro: "{n} restorana u gradu {city} ima {dish} na meniju.",
+    fromPrice: "Od {price}.",
+    priceTitle: "Koliko košta {dish}",
+    otherDishes: "Šta se još jede u gradu {city}",
   },
 
   marketing: {
@@ -872,6 +882,12 @@ export const bs: Dictionary = {
       bannerTitle: "Baner",
       bannerHint: "Široka traka na vrhu stranice. Burp je pregleda prije objave.",
       bannerUpload: "Otpremi baner",
+      googleTitle: "Recenzije na Googleu",
+      googleHint:
+        "Gost koji ostavi recenziju ovdje dobije pitanje želi li isto reći i na Googleu. Burp nikada ne šalje recenzije tamo — Google ih ne prima.",
+      googleUrl: "Link na vaš obrazac za recenzije",
+      googleUrlHint:
+        "Nalazi se u vašem Google profilu pod Zatražite recenzije. Ostavite prazno da se ne pita.",
       reservationTitle: "Rezervacija stola",
       reservationHint:
         "Gosti rezervišu sto na vašoj stranici. Slobodni termini se računaju iz radnog vremena — prvo ga postavite.",
@@ -1295,6 +1311,7 @@ export const bs: Dictionary = {
         "Boja se gubi na pozadini u svijetlom ili tamnom prikazu. Probajte boju s više dubine.",
       bookingFailed: "Rezervacija nije prošla.",
       surchargeInvalid: "Doplata nije ispravan iznos.",
+      googleUrlInvalid: "Link mora voditi na Google. Kopirajte ga iz svog Google profila.",
       itemNeedsName: "Jelo treba naziv.",
       itemNotFound: "Jelo nije pronađeno.",
       groupNeedsName: "Grupa treba naziv.",

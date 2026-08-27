@@ -455,6 +455,7 @@ export const sv = {
     reviewSubmit: "Skicka",
     reviewSending: "Skickar…",
     reviewCancel: "Avbryt",
+    reviewGoogle: "Berätta gärna för fler på Google",
     reviewThanks: "Tack. Omdömet hjälper nästa gäst.",
     reviewAlready: "Du har redan lämnat ett omdöme på den här beställningen.",
     reviewFailed: "Omdömet kunde inte sparas. Försök igen.",
@@ -531,6 +532,21 @@ export const sv = {
    * Sarajevo ska inte råka publicera tyska till bosniska följare. Ytan läser
    * därför restaurangens land, inte `staff.locale`.
    */
+  /**
+   * Rättsidorna — "punjene paprike Sarajevo".
+   *
+   * Den enda sökning Burp realistiskt kan vinna: på en stad ensam står Googles
+   * karta först, på en rätt i en stad finns oftast ingen sida alls.
+   */
+  dish: {
+    title: "{dish} i {city}",
+    meta: "Var får man {dish} i {city}? Se restaurangerna, priserna och menyerna.",
+    intro: "{n} restauranger i {city} har {dish} på menyn.",
+    fromPrice: "Från {price}.",
+    priceTitle: "Vad {dish} kostar",
+    otherDishes: "Annat att äta i {city}",
+  },
+
   marketing: {
     posterEyebrow: "Beställ vid bordet",
     posterHeadline: "Skanna. Beställ. Ät.",
@@ -1158,6 +1174,12 @@ export const sv = {
       bannerTitle: "Banner",
       bannerHint: "Ett brett band överst på sidan. Granskas av Burp innan det publiceras.",
       bannerUpload: "Ladda upp banner",
+      googleTitle: "Omdömen på Google",
+      googleHint:
+        "Gästen som lämnat ett omdöme här får frågan om hon vill säga samma sak på Google. Burp skickar aldrig omdömen dit — Google tar inte emot dem.",
+      googleUrl: "Länk till ert recensionsformulär",
+      googleUrlHint:
+        "Hämtas i er Google-profil under Be om recensioner. Lämna tomt för att inte fråga alls.",
       reservationTitle: "Bordsbokning",
       reservationHint:
         "Gäster bokar bord på er sida. Lediga tider räknas ur era öppettider — sätt dem först.",
@@ -1616,6 +1638,7 @@ export const sv = {
         "Färgen försvinner mot bakgrunden i ljust eller mörkt läge. Prova en färg med mer djup.",
       bookingFailed: "Bokningen gick inte igenom.",
       surchargeInvalid: "Tillägget är inte ett giltigt belopp.",
+      googleUrlInvalid: "Länken måste peka på Google. Kopiera den ur er Google-profil.",
       itemNeedsName: "Rätten behöver ett namn.",
       itemNotFound: "Rätten hittades inte.",
       groupNeedsName: "Gruppen behöver ett namn.",

@@ -2,6 +2,7 @@ import { localePath, LOCALES, LOCALE_ALTERNATE_TAGS } from "@/lib/i18n";
 import type { MetadataRoute } from "next";
 import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
+import { dishesInCity } from "@/lib/dishes";
 
 /**
  * Sitemap (avsnitt 9).
@@ -28,8 +29,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const rows = restaurants ?? [];
 
-  const cities = [...new Set(rows.map((row) => row.city_slug))];
+  // `city_slug` är en genererad kolumn och kan i teorin vara null. Filtret
+  // finns för att en tom stad i sitemapen ger `/sv//ratt/…` — en adress som
+  // ser ut som en bugg för både Google och den som felsöker.
+  const cities = [...new Set(rows.map((row) => row.city_slug).filter((slug): slug is string => Boolean(slug)))];
   const cuisines = [...new Set(rows.flatMap((row) => row.cuisines ?? []))];
+
+  const dishesByCity = await Promise.all(
+    cities.map(async (city) => ({ city, dishes: await dishesInCity(city) })),
+  );
 
   /*
    * Varje sida en gång per språk, med `alternates` som knyter ihop dem.
@@ -105,6 +113,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...cities.flatMap((city) =>
       cuisines.flatMap((cuisine) =>
         forEachLocale(`/${city}/${slugifyCuisine(cuisine)}`, {
+          lastModified: new Date(),
+          changeFrequency: "weekly" as const,
+          priority: 0.7,
+        }),
+      ),
+    ),
+
+    /*
+     * Rättsidorna.
+     *
+     * Hämtas per stad ur `dishes_in_city()`, som är samma funktion sidan
+     * själv slår upp mot — och som kräver minst två restauranger. Två
+     * uträkningar av "vilka rätter finns" hade gett en sitemap som pekar på
+     * 404:or, vilket är sämre än att inte lista dem alls.
+     */
+    ...dishesByCity.flatMap(({ city, dishes }) =>
+      dishes.flatMap((dish) =>
+        forEachLocale(`/${city}/ratt/${dish.slug}`, {
           lastModified: new Date(),
           changeFrequency: "weekly" as const,
           priority: 0.7,
