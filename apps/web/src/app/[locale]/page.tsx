@@ -259,6 +259,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
               locateFailed: t.discover.mapLocateFailed,
               youAreHere: t.discover.mapYouAreHere,
               distanceAway: t.discover.mapDistanceAway,
+              clusterLabel: t.discover.mapCluster,
             }}
             area={{
               searchLabel: t.discover.mapSearchArea,

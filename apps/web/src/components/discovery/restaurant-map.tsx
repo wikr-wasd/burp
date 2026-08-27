@@ -65,6 +65,13 @@ export interface MapTexts {
   youAreHere: string;
   /** "{value} {unit} härifrån" */
   distanceAway: string;
+  /**
+   * Klungans etikett. Bär `{count}`.
+   *
+   * Siffran syns i nålen, men en skärmläsare läser inte en siffra som
+   * "fyra restauranger här" — den läser "4".
+   */
+  clusterLabel: string;
 }
 
 /** Sarajevo. Används bara om ingen restaurang har koordinater. */
@@ -161,6 +168,22 @@ export function RestaurantMap({
    * panorerat eller zoomat finns det ett annat område att fråga om.
    */
   const [moved, setMoved] = useState(false);
+
+  /*
+   * Sant medan KARTAN flyttar sig själv.
+   *
+   * `fitBounds` och `flyToBounds` utlöser samma `moveend` som en panorering,
+   * och utan den här flaggan stod "Sök i det här området" framme direkt när
+   * sidan laddats — en knapp som erbjuder gästen att söka i exakt det område
+   * hon redan tittar på.
+   *
+   * En ref och inte ett tillstånd: den läses inuti en händelselyssnare som
+   * registreras en gång, och ett tillstånd hade frusit på sitt första värde.
+   */
+  const selfMove = useRef(false);
+
+  /** Senaste ritningen av nålarna. Se `zoomend` ovan. */
+  const redrawRef = useRef<(() => void) | null>(null);
 
   const [failed, setFailed] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
@@ -288,7 +311,25 @@ export function RestaurantMap({
          * knappen syns — sökningen sker först när någon trycker på den, för en
          * karta som söker om vid varje ryck är en karta man inte vågar röra.
          */
-        mapRef.current.on("moveend", () => setMoved(true));
+        /*
+         * Klungorna räknas om vid varje zoom.
+         *
+         * De bygger på pixelavstånd, och pixelavståndet gäller bara det
+         * zoomläge det räknades i. Utan den här raden står klungan kvar som
+         * "3" medan de tre nålarna ligger en halv skärm isär.
+         *
+         * `redrawRef` pekar på den senaste ritningen; effekten nedan sätter
+         * den. En direktkoppling hade fångat en gammal `pins` i sitt hölje.
+         */
+        mapRef.current.on("zoomend", () => redrawRef.current?.());
+
+        mapRef.current.on("moveend", () => {
+          if (selfMove.current) {
+            selfMove.current = false;
+            return;
+          }
+          setMoved(true);
+        });
 
         // Uppe till höger, inte uppe till vänster. Vänsterkanten är där
         // popuperna fälls ut och där platsknappen står.
@@ -302,46 +343,155 @@ export function RestaurantMap({
 
       const map = mapRef.current;
 
-      // Nålarna ritas om när filtret ändras. Gamla måste bort först — annars
-      // ligger en bortfiltrerad restaurang kvar på kartan.
-      for (const marker of markersRef.current) marker.remove();
-      markersRef.current = [];
-      markersById.current.clear();
-
-      for (const pin of pins) {
-        const icon = L.divIcon({
-          className: "",
-          html: `<span class="map-pin${pin.isOpen ? "" : " map-pin-closed"}"></span>`,
-          iconSize: [28, 28],
-          iconAnchor: [14, 28],
-          popupAnchor: [0, -26],
-        });
-
-        const marker = L.marker([pin.latitude, pin.longitude], {
-          icon,
-          title: pin.name,
-          alt: pin.name,
-          // Nålen man pekar på lägger sig överst. I en klunga går det annars
-          // inte att se vilken av dem som svarar.
-          riseOnHover: true,
-        })
-          .addTo(map)
-          .bindPopup(popupHtml(pin, position, texts));
+      /*
+       * Ritningen ligger i en funktion, inte rakt ut.
+       *
+       * Klungorna bygger på pixelavstånd och måste räknas om vid varje
+       * zoom. `redrawRef` pekar hit, så att lyssnaren på `zoomend` alltid
+       * kör den SENASTE ritningen — en direktkoppling hade fångat en gammal
+       * `pins` i sitt hölje och ritat ut restauranger filtret tagit bort.
+       */
+      const draw = () => {
+        // Nålarna ritas om när filtret ändras. Gamla måste bort först — annars
+        // ligger en bortfiltrerad restaurang kvar på kartan.
+        for (const marker of markersRef.current) marker.remove();
+        markersRef.current = [];
+        markersById.current.clear();
 
         /*
-         * Nålen säger till listan vilken restaurang den är.
+         * Nålar som ligger på varandra slås ihop.
          *
-         * `mouseover` och inte bara `click`: den som drar musen över kartan
-         * letar, och kortet nedanför ska hinna lysa upp innan hon bestämt sig.
-         * Klicket öppnar popupen som förut — det här ersätter ingenting.
+         * I en stadskärna ligger tjugo restauranger på samma kvarter, och vid
+         * det zoomläge kartan öppnar på blir de en enda röd klump där ingen nål
+         * går att peka på. Klungan säger i stället hur många de är, och ett
+         * klick zoomar in tills de går isär.
+         *
+         * ── Varför pixlar och inte grader ──────────────────────────────────
+         *
+         * Två restauranger 200 meter isär är en klump i regionvy och två tydliga
+         * nålar i gatuvy. Avståndet som spelar roll är det på SKÄRMEN, och
+         * `latLngToLayerPoint` är det som räknar om till just det — inklusive
+         * projektionen, som gör en grad longitud kortare ju längre norrut man
+         * kommer.
+         *
+         * ── Varför ingen klustringsmodul ───────────────────────────────────
+         *
+         * Den vanliga är leaflet.markercluster: ett paket till, med egen CSS och
+         * egna animationer att klä om. Girig gruppering på pixelavstånd är
+         * fyrtio rader, gör exakt det som behövs här, och lämnar utseendet i
+         * globals.css där resten av byggstenarna bor.
          */
-        marker.on("mouseover", () => focusRestaurant(pin.id));
-        marker.on("mouseout", () => focusRestaurant(null));
-        marker.on("click", () => focusRestaurant(pin.id));
+        const RADIUS_PX = 44;
 
-        markersRef.current.push(marker);
-        markersById.current.set(pin.id, marker);
-      }
+        const placed = pins.map((pin) => ({
+          pin,
+          point: map.latLngToLayerPoint([pin.latitude, pin.longitude]),
+          taken: false,
+        }));
+
+        const clusters: (typeof placed)[] = [];
+
+        for (const candidate of placed) {
+          if (candidate.taken) continue;
+
+          candidate.taken = true;
+          const group = [candidate];
+
+          for (const other of placed) {
+            if (other.taken) continue;
+            if (candidate.point.distanceTo(other.point) > RADIUS_PX) continue;
+
+            other.taken = true;
+            group.push(other);
+          }
+
+          clusters.push(group);
+        }
+
+        for (const group of clusters) {
+          if (group.length === 1) {
+            const pin = group[0]!.pin;
+
+            const icon = L.divIcon({
+              className: "",
+              html: `<span class="map-pin${pin.isOpen ? "" : " map-pin-closed"}"></span>`,
+              // Följer .map-pin i globals.css: 26 px plus 3 px kant på två sidor.
+              // Går de isär pekar nålen bredvid sin restaurang, och felet syns
+              // först som att kartan är ungefär rätt.
+              iconSize: [32, 32],
+              iconAnchor: [16, 32],
+              popupAnchor: [0, -30],
+            });
+
+            const marker = L.marker([pin.latitude, pin.longitude], {
+              icon,
+              title: pin.name,
+              alt: pin.name,
+              // Nålen man pekar på lägger sig överst. I en klunga går det annars
+              // inte att se vilken av dem som svarar.
+              riseOnHover: true,
+            })
+              .addTo(map)
+              .bindPopup(popupHtml(pin, position, texts));
+
+            /*
+             * Nålen säger till listan vilken restaurang den är.
+             *
+             * `mouseover` och inte bara `click`: den som drar musen över kartan
+             * letar, och kortet nedanför ska hinna lysa upp innan hon bestämt
+             * sig. Klicket öppnar popupen som förut — det här ersätter ingenting.
+             */
+            marker.on("mouseover", () => focusRestaurant(pin.id));
+            marker.on("mouseout", () => focusRestaurant(null));
+            marker.on("click", () => focusRestaurant(pin.id));
+
+            markersRef.current.push(marker);
+            markersById.current.set(pin.id, marker);
+            continue;
+          }
+
+          // Klungans mitt räknas på koordinaterna och inte på pixlarna: pixeln
+          // gäller bara det zoomläge den räknades i, och kartan ritas om.
+          const latitude =
+            group.reduce((sum, entry) => sum + entry.pin.latitude, 0) / group.length;
+          const longitude =
+            group.reduce((sum, entry) => sum + entry.pin.longitude, 0) / group.length;
+
+          const anyOpen = group.some((entry) => entry.pin.isOpen);
+
+          const marker = L.marker([latitude, longitude], {
+            icon: L.divIcon({
+              className: "",
+              html: `<span class="map-cluster${anyOpen ? "" : " map-cluster-closed"}">${group.length}</span>`,
+              iconSize: [38, 38],
+              iconAnchor: [19, 19],
+            }),
+            title: fill(texts.clusterLabel, { count: String(group.length) }),
+            alt: fill(texts.clusterLabel, { count: String(group.length) }),
+            riseOnHover: true,
+          }).addTo(map);
+
+          /*
+           * Klick zoomar in på klungan i stället för att öppna en popup.
+           *
+           * En popup med tjugo namn är en lista i fel format. Zoomen delar upp
+           * klungan i nålar som går att peka på, vilket är vad gästen ville när
+           * hon klickade på siffran.
+           */
+          marker.on("click", () => {
+            selfMove.current = true;
+            map.fitBounds(
+              group.map((entry) => [entry.pin.latitude, entry.pin.longitude] as [number, number]),
+              { padding: [60, 60], maxZoom: 17 },
+            );
+          });
+
+          markersRef.current.push(marker);
+        }
+      };
+
+      redrawRef.current = draw;
+      draw();
 
       if (pins.length > 0 && !position) {
         /*
@@ -360,6 +510,7 @@ export function RestaurantMap({
          */
         const openOn = pickArea(pins, origin);
 
+        selfMove.current = true;
         map.fitBounds(
           openOn.map((pin) => [pin.latitude, pin.longitude] as [number, number]),
           {
@@ -455,6 +606,9 @@ export function RestaurantMap({
      */
     const nearest = nearestPin(pins, position);
 
+    // Kartans egen flytt, inte gästens. Se `selfMove` ovan.
+    selfMove.current = true;
+
     if (nearest && nearest.meters <= MAX_CONTEXT_METERS) {
       map.flyToBounds([here, [nearest.pin.latitude, nearest.pin.longitude]], {
         padding: [56, 56],
@@ -476,14 +630,6 @@ export function RestaurantMap({
     },
     [],
   );
-
-  if (pins.length === 0 || failed) {
-    return (
-      <div className="card grid h-full min-h-64 place-items-center p-8 text-center text-[var(--muted)]">
-        {failed ? failedLabel : emptyLabel}
-      </div>
-    );
-  }
 
   /** Sant när listan redan är filtrerad på ett område. */
   const searching = Boolean(area && searchParams.get(area.param));
@@ -527,6 +673,14 @@ export function RestaurantMap({
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   }, [area, pathname, router, searchParams]);
+
+  if (pins.length === 0 || failed) {
+    return (
+      <div className="card grid h-full min-h-64 place-items-center p-8 text-center text-[var(--muted)]">
+        {failed ? failedLabel : emptyLabel}
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-full min-h-64 w-full">

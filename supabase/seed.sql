@@ -617,3 +617,196 @@ values
 update public.menu_categories
 set is_drinks = true
 where id = '33333333-3333-3333-3333-333333333372';
+
+-- ── Fler städer ────────────────────────────────────────────────────────────
+--
+-- Marknadsplatsen såg ut som en katalog med tre städer: Sarajevo, Zagreb och
+-- Beograd. Startsidans stadsrad hade tre knappar, kartan tre klungor, och en
+-- gäst som inte råkade bo i någon av dem fick svaret "ingenting här".
+--
+-- Sex städer till, valda för att de faktiskt bär den marknad Burp siktar på:
+-- Mostar och Tuzla i Bosnien, Split och Rijeka i Kroatien, Novi Sad och Niš i
+-- Serbien. Mostar och Novi Sad får menyer — utan minst två restauranger med
+-- samma rätt finns ingen rättsida att bedöma utanför Sarajevo.
+--
+-- Org.numren följer respektive lands format (regel 9): JIB 13 siffror i
+-- Bosnien, OIB 11 i Kroatien, PIB 9 i Serbien. Ett nummer i fel format stoppas
+-- av check-villkoret i migration 0019 — vilket är hela poängen med att det
+-- finns.
+
+insert into public.restaurants (
+  id, name, slug, description, org_number,
+  street_address, postal_code, city, location,
+  phone, cuisines, price_tier, status, country, currency,
+  rating_average, rating_count, opening_hours
+)
+values
+  -- ── Mostar ───────────────────────────────────────────────────────────────
+  ('11111111-1111-1111-1111-11111111a001',
+   'Šadrvan', 'sadrvan',
+   'Under vinrankan vid Gamla bron. Samma gård sedan 1988.',
+   '4227000000011', 'Jusovina 11', '88000', 'Mostar',
+   st_point(17.8146, 43.3372)::geography, '+38736578000',
+   array['Bosniskt', 'Husmanskost'], 2, 'ACTIVE', 'BA', 'BAM', 4.6, 412,
+   '{"mon": [{"opens": "09:00", "closes": "23:00"}],
+     "tue": [{"opens": "09:00", "closes": "23:00"}],
+     "wed": [{"opens": "09:00", "closes": "23:00"}],
+     "thu": [{"opens": "09:00", "closes": "23:00"}],
+     "fri": [{"opens": "09:00", "closes": "23:00"}],
+     "sat": [{"opens": "09:00", "closes": "23:00"}],
+     "sun": [{"opens": "09:00", "closes": "23:00"}]}'::jsonb),
+
+  ('11111111-1111-1111-1111-11111111a002',
+   'Ćevabdžinica Tima-Irma', 'cevabdzinica-tima-irma',
+   'Ćevapi över kol, portioner ingen gör slut på.',
+   '4227000000012', 'Onešćukova 26', '88000', 'Mostar',
+   st_point(17.8153, 43.3378)::geography, '+38736555000',
+   array['Bosniskt', 'Grill'], 2, 'ACTIVE', 'BA', 'BAM', 4.4, 288,
+   '{"mon": [{"opens": "08:00", "closes": "22:00"}],
+     "tue": [{"opens": "08:00", "closes": "22:00"}],
+     "wed": [{"opens": "08:00", "closes": "22:00"}],
+     "thu": [{"opens": "08:00", "closes": "22:00"}],
+     "fri": [{"opens": "08:00", "closes": "22:00"}],
+     "sat": [{"opens": "08:00", "closes": "22:00"}],
+     "sun": [{"opens": "09:00", "closes": "21:00"}]}'::jsonb),
+
+  -- ── Tuzla ────────────────────────────────────────────────────────────────
+  ('11111111-1111-1111-1111-11111111a003',
+   'Aščinica Behar', 'ascinica-behar',
+   'Grytor från morgonen. Det som är slut är slut.',
+   '4209000000013', 'Turalibegova 18', '75000', 'Tuzla',
+   st_point(18.6739, 44.5382)::geography, '+38735252000',
+   array['Bosniskt', 'Husmanskost'], 1, 'ACTIVE', 'BA', 'BAM', 4.3, 96,
+   '{"mon": [{"opens": "07:00", "closes": "16:00"}],
+     "tue": [{"opens": "07:00", "closes": "16:00"}],
+     "wed": [{"opens": "07:00", "closes": "16:00"}],
+     "thu": [{"opens": "07:00", "closes": "16:00"}],
+     "fri": [{"opens": "07:00", "closes": "16:00"}],
+     "sat": [{"opens": "07:00", "closes": "14:00"}]}'::jsonb),
+
+  -- ── Split ────────────────────────────────────────────────────────────────
+  ('11111111-1111-1111-1111-11111111a004',
+   'Konoba Matejuška', 'konoba-matejuska',
+   'Fisk från morgonens fångst, grillad hel. Menyn beror på båtarna.',
+   '12345678904', 'Tomića stine 3', '21000', 'Split',
+   st_point(16.4353, 43.5069)::geography, '+38521355000',
+   array['Kroatiskt', 'Fisk'], 3, 'ACTIVE', 'HR', 'EUR', 4.7, 331,
+   '{"mon": [{"opens": "12:00", "closes": "23:00"}],
+     "tue": [{"opens": "12:00", "closes": "23:00"}],
+     "wed": [{"opens": "12:00", "closes": "23:00"}],
+     "thu": [{"opens": "12:00", "closes": "23:00"}],
+     "fri": [{"opens": "12:00", "closes": "00:00"}],
+     "sat": [{"opens": "12:00", "closes": "00:00"}],
+     "sun": [{"opens": "12:00", "closes": "22:00"}]}'::jsonb),
+
+  -- ── Rijeka ───────────────────────────────────────────────────────────────
+  ('11111111-1111-1111-1111-11111111a005',
+   'Bistro Korzo', 'bistro-korzo',
+   'Kaffe på morgonen, marenda vid tolv. Samma bord sedan farfar.',
+   '12345678903', 'Korzo 14', '51000', 'Rijeka',
+   st_point(14.4422, 45.3271)::geography, '+38551335000',
+   array['Kroatiskt', 'Café'], 2, 'ACTIVE', 'HR', 'EUR', 4.1, 74,
+   '{"mon": [{"opens": "07:00", "closes": "20:00"}],
+     "tue": [{"opens": "07:00", "closes": "20:00"}],
+     "wed": [{"opens": "07:00", "closes": "20:00"}],
+     "thu": [{"opens": "07:00", "closes": "20:00"}],
+     "fri": [{"opens": "07:00", "closes": "22:00"}],
+     "sat": [{"opens": "08:00", "closes": "22:00"}]}'::jsonb),
+
+  -- ── Novi Sad ─────────────────────────────────────────────────────────────
+  ('11111111-1111-1111-1111-11111111a006',
+   'Kafana Dva Štapa', 'kafana-dva-stapa',
+   'Roštilj och levande musik. Kvällar som blir längre än man tänkt.',
+   '123456791', 'Zmaj Jovina 12', '21000', 'Novi Sad',
+   st_point(19.8451, 45.2551)::geography, '+38121420000',
+   array['Serbiskt', 'Grill'], 2, 'ACTIVE', 'RS', 'RSD', 4.5, 203,
+   '{"mon": [{"opens": "10:00", "closes": "00:00"}],
+     "tue": [{"opens": "10:00", "closes": "00:00"}],
+     "wed": [{"opens": "10:00", "closes": "00:00"}],
+     "thu": [{"opens": "10:00", "closes": "00:00"}],
+     "fri": [{"opens": "10:00", "closes": "02:00"}],
+     "sat": [{"opens": "10:00", "closes": "02:00"}],
+     "sun": [{"opens": "11:00", "closes": "23:00"}]}'::jsonb),
+
+  ('11111111-1111-1111-1111-11111111a007',
+   'Pekara Trandafilović', 'pekara-trandafilovic',
+   'Burek från fem på morgonen. Slut vid elva, varje dag.',
+   '123456792', 'Dunavska 5', '21000', 'Novi Sad',
+   st_point(19.8478, 45.2553)::geography, '+38121421000',
+   array['Serbiskt', 'Bageri'], 1, 'ACTIVE', 'RS', 'RSD', 4.4, 158,
+   '{"mon": [{"opens": "05:00", "closes": "15:00"}],
+     "tue": [{"opens": "05:00", "closes": "15:00"}],
+     "wed": [{"opens": "05:00", "closes": "15:00"}],
+     "thu": [{"opens": "05:00", "closes": "15:00"}],
+     "fri": [{"opens": "05:00", "closes": "15:00"}],
+     "sat": [{"opens": "05:00", "closes": "13:00"}],
+     "sun": [{"opens": "06:00", "closes": "12:00"}]}'::jsonb),
+
+  -- ── Niš ──────────────────────────────────────────────────────────────────
+  ('11111111-1111-1111-1111-11111111a008',
+   'Kafana Stara Srbija', 'kafana-stara-srbija',
+   'Burek, roštilj och rakija. Ingenting har ändrats sedan sjuttiotalet.',
+   '123456793', 'Kopitareva 6', '18000', 'Niš',
+   st_point(21.8958, 43.3209)::geography, '+38118520000',
+   array['Serbiskt', 'Husmanskost'], 1, 'ACTIVE', 'RS', 'RSD', 4.2, 89,
+   '{"mon": [{"opens": "08:00", "closes": "23:00"}],
+     "tue": [{"opens": "08:00", "closes": "23:00"}],
+     "wed": [{"opens": "08:00", "closes": "23:00"}],
+     "thu": [{"opens": "08:00", "closes": "23:00"}],
+     "fri": [{"opens": "08:00", "closes": "01:00"}],
+     "sat": [{"opens": "08:00", "closes": "01:00"}],
+     "sun": [{"opens": "09:00", "closes": "22:00"}]}'::jsonb);
+
+-- ── Menyer i Mostar och Novi Sad ───────────────────────────────────────────
+--
+-- Två restauranger per stad delar minst en rätt, vilket är vad rättsidorna
+-- kräver (migration 0058). Utan det fanns "punjene paprike Sarajevo" men
+-- ingenting motsvarande för någon annan stad — och en funktion som bara går
+-- att bedöma på ett ställe är en funktion som är bedömd till hälften.
+
+insert into public.menus (id, restaurant_id, name, status)
+values
+  ('22222222-2222-2222-2222-2222222a0001', '11111111-1111-1111-1111-11111111a001', 'Meni', 'PUBLISHED'),
+  ('22222222-2222-2222-2222-2222222a0002', '11111111-1111-1111-1111-11111111a002', 'Meni', 'PUBLISHED'),
+  ('22222222-2222-2222-2222-2222222a0006', '11111111-1111-1111-1111-11111111a006', 'Meni', 'PUBLISHED'),
+  ('22222222-2222-2222-2222-2222222a0007', '11111111-1111-1111-1111-11111111a007', 'Meni', 'PUBLISHED');
+
+insert into public.menu_categories (id, menu_id, restaurant_id, name, sort_order, is_drinks)
+values
+  ('33333333-3333-3333-3333-3333333a0001', '22222222-2222-2222-2222-2222222a0001', '11111111-1111-1111-1111-11111111a001', 'Jela', 1, false),
+  ('33333333-3333-3333-3333-3333333a0002', '22222222-2222-2222-2222-2222222a0002', '11111111-1111-1111-1111-11111111a002', 'Sa roštilja', 1, false),
+  ('33333333-3333-3333-3333-3333333a0006', '22222222-2222-2222-2222-2222222a0006', '11111111-1111-1111-1111-11111111a006', 'Sa roštilja', 1, false),
+  ('33333333-3333-3333-3333-3333333a0007', '22222222-2222-2222-2222-2222222a0007', '11111111-1111-1111-1111-11111111a007', 'Iz peći', 1, false);
+
+insert into public.menu_items (
+  id, category_id, restaurant_id, name, description,
+  price_ore, vat_rate_bps, allergens, is_available, status, sort_order
+)
+values
+  -- Mostar: båda har ćevapi, och Šadrvan har dolma.
+  ('44444444-4444-4444-4444-44444444a001', '33333333-3333-3333-3333-3333333a0001',
+   '11111111-1111-1111-1111-11111111a001', 'Ćevapi 10 kom', 'Sa lepinjom i lukom',
+   1300, 1700, array['gluten']::text[], true, 'PUBLISHED', 1),
+  ('44444444-4444-4444-4444-44444444a002', '33333333-3333-3333-3333-3333333a0001',
+   '11111111-1111-1111-1111-11111111a001', 'Japrak', 'Vinblad fyllda med kött och ris',
+   1400, 1700, array[]::text[], true, 'PUBLISHED', 2),
+  ('44444444-4444-4444-4444-44444444a003', '33333333-3333-3333-3333-3333333a0002',
+   '11111111-1111-1111-1111-11111111a002', 'Ćevapi 10 kom', 'Sa kajmakom',
+   1200, 1700, array['gluten', 'mlijeko']::text[], true, 'PUBLISHED', 1),
+  ('44444444-4444-4444-4444-44444444a004', '33333333-3333-3333-3333-3333333a0002',
+   '11111111-1111-1111-1111-11111111a002', 'Pljeskavica', 'Punjena sirom',
+   1400, 1700, array['gluten', 'mlijeko']::text[], true, 'PUBLISHED', 2),
+
+  -- Novi Sad: båda har burek.
+  ('44444444-4444-4444-4444-44444444a006', '33333333-3333-3333-3333-3333333a0006',
+   '11111111-1111-1111-1111-11111111a006', 'Pljeskavica', 'Sa kajmakom i ajvarom',
+   65000, 2000, array['mleko']::text[], true, 'PUBLISHED', 1),
+  ('44444444-4444-4444-4444-44444444a007', '33333333-3333-3333-3333-3333333a0006',
+   '11111111-1111-1111-1111-11111111a006', 'Burek sa mesom', 'Iz peći, po komadu',
+   28000, 2000, array['gluten']::text[], true, 'PUBLISHED', 2),
+  ('44444444-4444-4444-4444-44444444a008', '33333333-3333-3333-3333-3333333a0007',
+   '11111111-1111-1111-1111-11111111a007', 'Burek sa mesom', 'Od pet ujutru',
+   25000, 2000, array['gluten']::text[], true, 'PUBLISHED', 1),
+  ('44444444-4444-4444-4444-44444444a009', '33333333-3333-3333-3333-3333333a0007',
+   '11111111-1111-1111-1111-11111111a007', 'Burek sa sirom', 'Sa mladim sirom',
+   25000, 2000, array['gluten', 'mleko']::text[], true, 'PUBLISHED', 2);

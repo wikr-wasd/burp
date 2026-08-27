@@ -53,6 +53,7 @@ export const en: Dictionary = {
     mapFailed: "The map could not be loaded. The list beside it shows the same places.",
     mapClosed: "Nothing is open right now. The map shows what is open.",
 
+    mapCluster: "{count} restaurants here",
     mapSearchArea: "Search this area",
     mapClearArea: "Show everything again",
     mapLocate: "Show where I am",

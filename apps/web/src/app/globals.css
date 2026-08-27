@@ -905,3 +905,40 @@ body {
 .suggest-item[data-selected="true"] {
   background: var(--surface-muted);
 }
+
+/*
+ * Klungan: nålar som ligger på varandra, sammanslagna till en siffra.
+ *
+ * Rund och inte droppformad, med flit. Nålen pekar på EN plats; klungan gör
+ * det inte — den säger "här omkring finns fyra", och en spets hade lovat en
+ * precision som inte finns.
+ */
+.map-cluster {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
+  background: var(--color-burp-600);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 3px solid var(--surface);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.28);
+  transition: transform 120ms ease-out;
+}
+
+.leaflet-marker-icon:hover .map-cluster {
+  transform: scale(1.08);
+}
+
+/*
+ * Ingen i klungan är öppen just nu.
+ *
+ * Samma dämpning som en stängd nål får. Att visa en stängd klunga i full
+ * handlingsröd färg är att bjuda in till ett klick som slutar i "stängt idag".
+ */
+.map-cluster-closed {
+  background: var(--muted);
+}

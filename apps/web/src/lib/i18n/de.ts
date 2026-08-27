@@ -52,6 +52,7 @@ export const de: Dictionary = {
     mapFailed: "Die Karte konnte nicht geladen werden. Die Liste daneben zeigt dieselben Lokale.",
     mapClosed: "Gerade ist nichts geöffnet. Die Karte zeigt, was offen hat.",
 
+    mapCluster: "{count} Restaurants hier",
     mapSearchArea: "In diesem Bereich suchen",
     mapClearArea: "Wieder alle anzeigen",
     mapLocate: "Meinen Standort zeigen",
