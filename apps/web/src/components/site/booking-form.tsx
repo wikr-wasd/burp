@@ -143,6 +143,41 @@ export function BookingForm({
 
   const tablesForTime = times?.find((option) => option.at === selectedAt)?.tables ?? [];
 
+  /*
+   * Ett val, inte en tabell.
+   *
+   * En restaurang med femton bord gav femton radioknappar där tolv sa exakt
+   * samma sak: "vanligt bord". Gästen bryr sig inte om att det är bord 5 och
+   * inte bord 9 — hon bryr sig om det är vid fönstret och om det kostar något.
+   *
+   * Därför: ETT vanligt bord — det minsta lediga, som redan ligger först — och
+   * därutöver varje bord som faktiskt är något annat. Resten hör hemma hos
+   * personalen, som kan flytta ett sällskap ändå.
+   */
+  const tableChoices = useMemo(() => {
+    const special = tablesForTime.filter(
+      (table) => table.attributes.length > 0 || table.surchargeOre > 0,
+    );
+
+    const ordinary = tablesForTime.find(
+      (table) => table.attributes.length === 0 && table.surchargeOre === 0,
+    );
+
+    /*
+     * Två bord med samma egenskaper och samma pris är samma erbjudande.
+     * Fönsterbord nummer sex och nummer sju ska inte båda stå i listan.
+     */
+    const seen = new Set<string>();
+    const distinct = special.filter((table) => {
+      const key = `${[...table.attributes].sort().join(",")}:${table.surchargeOre}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return [...(ordinary ? [ordinary] : []), ...distinct];
+  }, [tablesForTime]);
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!selectedAt || !selectedTable) return;
@@ -249,6 +284,14 @@ export function BookingForm({
       <div className="mt-6">
         <span className="label-caps">{labels.chooseTime}</span>
 
+          {/*
+            En rad per timme.
+
+            Ett kök som har öppet elva timmar ger fyrtiofyra kvartar, och som en
+            enda svepande lista är de en vägg man ögnar förbi. Grupperade per
+            timme hittar man 19 först och :00 eller :30 sedan — vilket är hur
+            man tänker på en tid.
+          */}
         {loading ? (
           <p className="mt-2 flex items-center gap-2 text-sm text-[var(--muted)]">
             <Loader2 size={16} aria-hidden="true" className="animate-spin" />
@@ -257,34 +300,41 @@ export function BookingForm({
         ) : times && times.length === 0 ? (
           <p className="mt-2 text-sm text-[var(--muted)]">{labels.noTimes}</p>
         ) : (
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {(times ?? []).map((option) => (
-              <li key={option.at}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedAt(option.at);
-                    // Minsta lediga bord är först i listan och är rätt val för
-                    // de allra flesta. Den som vill ha fönsterbordet byter.
-                    setSelectedTable(option.tables[0]?.tableId ?? null);
-                  }}
-                  aria-pressed={option.at === selectedAt}
-                  className={`chip ${option.at === selectedAt ? "chip-active" : ""}`}
-                >
-                  {clock.format(new Date(option.at))}
-                </button>
-              </li>
+          <div className="mt-2 space-y-2">
+            {groupByHour(times ?? [], clock).map((group) => (
+              <div key={group.hour} className="flex flex-wrap items-center gap-2">
+                <span className="w-8 shrink-0 text-sm font-medium tabular-nums text-[var(--muted)]">
+                  {group.hour}
+                </span>
+
+                {group.options.map((option) => (
+                  <button
+                    key={option.at}
+                    type="button"
+                    onClick={() => {
+                      setSelectedAt(option.at);
+                      // Minsta lediga bord är först i listan och är rätt val för
+                      // de allra flesta. Den som vill ha fönsterbordet byter.
+                      setSelectedTable(option.tables[0]?.tableId ?? null);
+                    }}
+                    aria-pressed={option.at === selectedAt}
+                    className={`chip ${option.at === selectedAt ? "chip-active" : ""}`}
+                  >
+                    {clock.format(new Date(option.at))}
+                  </button>
+                ))}
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
-      {selectedAt && tablesForTime.length > 0 ? (
+      {selectedAt && tableChoices.length > 0 ? (
         <fieldset className="mt-6">
           <legend className="label-caps">{labels.chooseTable}</legend>
 
           <ul className="mt-2 space-y-2">
-            {tablesForTime.map((table) => (
+            {tableChoices.map((table) => (
               <li key={table.tableId}>
                 <label className="flex cursor-pointer items-center gap-3 border border-[var(--rule)] p-3 has-[:checked]:border-burp-600">
                   <input
@@ -319,7 +369,7 @@ export function BookingForm({
             ))}
           </ul>
 
-          {tablesForTime.some((table) => table.surchargeOre > 0) ? (
+          {tableChoices.some((table) => table.surchargeOre > 0) ? (
             <p className="mt-2 text-sm text-[var(--muted)]">{labels.surchargeHint}</p>
           ) : null}
         </fieldset>
@@ -429,4 +479,29 @@ function problemText(problem: unknown, labels: Dictionary["booking"]): string {
     default:
       return labels.errorUnknown;
   }
+}
+
+/**
+ * Delar tiderna i en grupp per timme, i ordning.
+ *
+ * Timmen läses ur samma formaterare som chipsen, alltså i RESTAURANGENS
+ * tidszon. Att räkna den ur `Date.getHours()` hade gett serverns eller
+ * webbläsarens timme — och en gäst i Stockholm som bokar i Sarajevo hade sett
+ * raden "18" ovanför chipsen 19:00 och 19:15.
+ */
+function groupByHour(
+  options: readonly TimeOption[],
+  clock: Intl.DateTimeFormat,
+): { hour: string; options: TimeOption[] }[] {
+  const groups: { hour: string; options: TimeOption[] }[] = [];
+
+  for (const option of options) {
+    const hour = clock.format(new Date(option.at)).slice(0, 2);
+    const last = groups[groups.length - 1];
+
+    if (last && last.hour === hour) last.options.push(option);
+    else groups.push({ hour, options: [option] });
+  }
+
+  return groups;
 }

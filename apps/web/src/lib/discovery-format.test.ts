@@ -104,10 +104,10 @@ describe("sanitizeQuery — söksträngen får inte bli filtersyntax", () => {
 });
 
 describe("priceTierLabel", () => {
-  it("ger en valutasymbol per nivå", () => {
-    expect(priceTierLabel(1, "BAM")).toBe("KM");
-    expect(priceTierLabel(2, "BAM")).toBe("KM KM");
-    expect(priceTierLabel(3, "BAM")).toBe("KM KM KM");
+  it("visar nivån som en skala av fyra", () => {
+    expect(priceTierLabel(1, "BAM")).toBe("KM ●○○○");
+    expect(priceTierLabel(2, "BAM")).toBe("KM ●●○○");
+    expect(priceTierLabel(3, "BAM")).toBe("KM ●●●○");
   });
 
   it("ger null när prisklass saknas", () => {
@@ -115,14 +115,30 @@ describe("priceTierLabel", () => {
     expect(priceTierLabel(0, "BAM")).toBeNull();
   });
 
-  it("följer restaurangens valuta, inte kodens", () => {
-    expect(priceTierLabel(2, "EUR")).toBe("€ €");
-    expect(priceTierLabel(2, "RSD")).toBe("дин. дин.");
-    expect(priceTierLabel(2, "SEK")).toBe("kr kr");
+  /**
+   * Symbolen är restaurangens, inte kodens.
+   *
+   * En restaurang i Sarajevo visade "kr kr" en gång. Det ser inte bara fel ut
+   * — det antyder att notan kommer i kronor.
+   */
+  it("följer restaurangens valuta", () => {
+    expect(priceTierLabel(2, "EUR")).toBe("€ ●●○○");
+    expect(priceTierLabel(2, "RSD")).toBe("дин. ●●○○");
+    expect(priceTierLabel(2, "SEK")).toBe("kr ●●○○");
+  });
+
+  /**
+   * Den gamla formen upprepade symbolen, och den fungerade bara för symboler
+   * på ett tecken. "дин. дин. дин." i versaler på ett kort läser som ett
+   * renderingsfel — vilket var precis vad det såg ut som i webbläsaren
+   * 2026-08-27.
+   */
+  it("upprepar aldrig en flerteckenssymbol", () => {
+    expect(priceTierLabel(3, "RSD")).not.toContain("дин. дин.");
   });
 
   it("tar inte emot skräp som skulle rita en oändlig rad", () => {
-    expect(priceTierLabel(999, "BAM")).toBe("KM KM KM KM");
+    expect(priceTierLabel(999, "BAM")).toBe("KM ●●●●");
     expect(priceTierLabel(Number.NaN, "BAM")).toBeNull();
     expect(priceTierLabel(Number.POSITIVE_INFINITY, "BAM")).toBeNull();
   });

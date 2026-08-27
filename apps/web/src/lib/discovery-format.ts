@@ -54,12 +54,25 @@ export function todaysHours(
   return spans.map((span) => `${span.opens}–${span.closes}`).join(", ");
 }
 
+/** Prisklassens skala. Fyra steg, som i resten av branschen. */
+const PRICE_TIERS = 4;
+
 /**
- * Prisklass som upprepad valutasymbol: 2 i Sarajevo → "KM KM".
+ * Prisklass som valutasymbol plus en skala: 2 i Sarajevo → "KM ●●○○".
  *
  * Symbolen kommer från restaurangens valuta, inte från koden. En restaurang i
- * Sarajevo visade "kr kr" innan — vilket ser ut som ett fel för gästen och ÄR
- * ett fel, eftersom det antyder att notan kommer i kronor.
+ * Sarajevo visade "kr kr" en gång — vilket ser ut som ett fel för gästen och
+ * ÄR ett fel, eftersom det antyder att notan kommer i kronor.
+ *
+ * ── Varför inte upprepad symbol ─────────────────────────────────────────────
+ *
+ * Det var den första formen, och den fungerar bara för symboler på ett tecken.
+ * Serbiska dinarens symbol är "дин." — fyra tecken — och prisklass tre blev
+ * "дин. дин. дин.", som i versaler på ett kort läser som ett renderingsfel.
+ * Bosniska "KM KM" var inte mycket bättre.
+ *
+ * Skalan säger dessutom något upprepningen inte gör: att tre är tre AV FYRA.
+ * Två fyllda cirklar utan tomma bredvid sig kan lika gärna vara toppklassen.
  *
  * Null när restaurangen saknar prisklass. Då visas ingenting alls, hellre än
  * en gissad klass.
@@ -67,6 +80,8 @@ export function todaysHours(
 export function priceTierLabel(tier: number | null, currency: CurrencyCode): string | null {
   if (tier === null || !Number.isFinite(tier) || tier < 1) return null;
 
+  const level = Math.min(Math.floor(tier), PRICE_TIERS);
   const { symbol } = CURRENCY_INFO[currency];
-  return Array.from({ length: Math.min(Math.floor(tier), 4) }, () => symbol).join(" ");
+
+  return `${symbol} ${"●".repeat(level)}${"○".repeat(PRICE_TIERS - level)}`;
 }

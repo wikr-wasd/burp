@@ -279,17 +279,28 @@ export default async function RestaurantPage({ params }: PageProps) {
         ) : null}
 
         <p className="label-caps">
-          {[restaurant.cuisines?.join(" · "), restaurant.city].filter(Boolean).join(" · ")}
+          {accent?.ok && (restaurant.cuisines?.length ?? 0) > 0
+            ? restaurant.city
+            : [restaurant.cuisines?.join(" · "), restaurant.city].filter(Boolean).join(" · ")}
         </p>
 
         <h1 className="font-display mt-2 text-5xl sm:text-6xl">{restaurant.name}</h1>
 
-        {accent?.ok ? (
+        {/*
+          Accentfärgen bär restaurangens KÖK, inte dess namn.
+
+          Första utkastet upprepade namnet direkt under rubriken. Det såg ut som
+          ett renderingsfel — samma ord två gånger med tre raders mellanrum —
+          och bandet sa ingenting som inte redan stod där. Köket och staden är
+          det gästen faktiskt läser efter namnet, och färgen ger dem en plats
+          att sitta på.
+        */}
+        {accent?.ok && (restaurant.cuisines?.length ?? 0) > 0 ? (
           <p
-            className="mt-3 inline-block rounded-[var(--radius)] px-3 py-1 text-sm font-medium"
+            className="label-caps mt-3 inline-block rounded-[var(--radius)] px-3 py-1"
             style={{ backgroundColor: accent.hex!, color: accent.textOn! }}
           >
-            {restaurant.name}
+            {restaurant.cuisines!.join(" · ")}
           </p>
         ) : null}
 
