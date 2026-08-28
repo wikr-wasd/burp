@@ -27,11 +27,22 @@
  *
  * De fyra får därför en policy utan nonce. Den är svagare, och det är värt att
  * säga rakt ut: `'unsafe-inline'` betyder att ett injicerat inline-skript får
- * köra. Att just de sidorna bär mest text från restaurangerna gör avvägningen
- * obekväm, och den ska lösas innan policyn slås på på riktigt — antingen
- * genom att sidorna blir dynamiska eller genom hashade skript.
+ * köra.
  *
- * Se docs/TODO.md.
+ * **Beslutat 2026-08-28: så förblir det.** Alternativet var att göra de fyra
+ * dynamiska, alltså full nonce-policy överallt — men det är just de sidorna
+ * Google hämtar oftast, och priset hade varit en databasfråga per besök i
+ * stället för en cacheträff. Hashning var aldrig en tredje väg: Next
+ * inline-skript på de sidorna är `self.__next_f.push(...)`-bitar som bär
+ * sidans RSC-nyttolast, olika per sida och per bygge.
+ *
+ * Det som gör avvägningen försvarbar är att ytan inte är obevakad. Den enda
+ * råa HTML de fyra sidorna skriver är JSON-LD, och `serializeJsonLd()` escapar
+ * `<` till `\u003c`; all annan restaurangtext går genom Reacts vanliga
+ * escapning. `'unsafe-inline'` tar bort skadebegränsningen om den escapningen
+ * någon gång brister — inte skyddet självt.
+ *
+ * Kvar innan policyn slås på: två oprövade ursprung. Se docs/TODO.md.
  */
 
 /**

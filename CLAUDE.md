@@ -327,7 +327,14 @@ får konkurrera med maten.
 `dev` är standardarbetsbranchen. `main` är produktion.
 
 1. **Allt arbete sker på `dev`.** Committa och pusha löpande.
-2. Varje push till `dev` ger en **Vercel preview-deploy**. Ge William URL:en.
+2. ⚠️ **Det finns ingen preview-deploy att ge, och det har aldrig funnits en.**
+   Kontrollerat 2026-08-28: inget Vercel-projekt bygger det här repot.
+   `burp-web-admin` är satt till ramverk `vite` och rotkatalog `web-admin` — en
+   katalog som inte finns — och dess senaste bygge är från 2025-07-02.
+   Lova alltså aldrig en URL; säg vad som gäller. Se `docs/DEPLOYMENT.md`.
+
+   Steget här nedanför gäller den dag ett projekt finns: varje push till `dev`
+   ger då en preview-deploy, och William får URL:en.
 3. **Först när William uttryckligen godkänt** preview:n:
    ```bash
    git checkout main && git merge dev --ff-only && git push origin main && git checkout dev

@@ -11,7 +11,7 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-08-26**, branch `dev`.
+Senast uppdaterad **2026-08-28**, branch `dev`.
 
 Fas 1 är byggd i sin helhet, och **kortbetalning ingår nu**. Produkten går att
 använda rakt igenom: en gäst skannar en dekal, beställer vid bordet, betalar med
@@ -1030,32 +1030,53 @@ Värt att veta inför punkt 8: avhämtning **plus** betala på plats betyder att
 maten lagas innan någon betalat. Det är en risk restaurangen tar, inte Burp,
 men den bör vara ett val restaurangen kan stänga av.
 
-### 8. Avhämtning med tid och notis — **den mest värdefulla av de nya, och halva grunden finns**
+### 8. Avhämtning med tid och notis — **byggd i sin helhet 2026-08-22 till 08-23**
 
-Kontrollerat, och det här var överraskningen: **avhämtning fungerar redan.**
-`PICKUP` finns i `order_type` sedan migration 0001, restaurangsidan renderar
-`MenuOrder` med `context={{ kind: "PICKUP" }}`, och `pickupSlots` erbjuder
-hämttider ur öppettiderna när restaurangen tillåter schemalagda order.
+Texten nedan stod kvar som "halva grunden finns" till 2026-08-28. Den var
+inaktuell: hela punkten byggdes veckan efter att den skrevs, och att låta den
+stå kvar hade betytt att nästa läsare byggde om det som redan finns.
 
-Det som saknas är precis det William pekar på:
+**Utgångsläget stämde.** `PICKUP` finns i `order_type` sedan migration 0001,
+restaurangsidan renderar `MenuOrder` med `context={{ kind: "PICKUP" }}`, och
+`pickupSlots` erbjuder hämttider ur öppettiderna när restaurangen tillåter
+schemalagda order.
 
-- **Gästen får ingen notis alls.** `notifyNewOrder()` skriver till restaurangen
-  och `notifyRestaurantApplication()` till Burp. Det finns ingen tredje
-  funktion. Gästen får veta att ordern gick igenom på skärmen, och sedan
-  ingenting.
-- ~~**Push är personalens.**~~ **Byggt 2026-08-23.** Migration 0050 gör
-  `restaurant_id` nullbar; NULL betyder gästens egen enhet. Gästen slår på det
-  på `/konto/uppgifter`, och utkorgen skickar push före brevet. Kvar är bara
-  VAPID-nycklarna.
-- **Ingen uppskattad tid från personalen.** `pickupSlots` är tider gästen väljer
-  i förväg ur öppettiderna. Den som går in och beställer på stående fot väljer
-  ingen tid alls, och personalen har inget fält att fylla i.
-
-Williams förslag — att personalen väljer 10/15/20/30 eller övrigt när ordern
+Williams förslag var att personalen väljer 10/15/20/30 eller övrigt när ordern
 tas emot, och att gästen får den siffran och sedan ett andra meddelande när
-maten står klar — är det som saknas, och det är billigt i förhållande till vad
-det ger. `prep_time_minutes` finns redan som restauranginställning och är
-rimlig som förvalt värde i den knappraden.
+maten står klar. Så är det byggt, i tre delar:
+
+- **Kökets uppskattning per order** — migration `0048`, kolumnen
+  `orders.prep_minutes`. NULL betyder "ingen har sagt något" och kvittot
+  faller då tillbaka på `order_policy.prep_time_minutes`; ett default i
+  schemat hade gjort de två fallen omöjliga att skilja åt.
+
+  Knappraden "Klart om" står i `kitchen-board.tsx` ovanför mottagningsknappen
+  och visas bara i steget till `ACCEPTED`. `prepChoices()` ger
+  `[10, 15, 20, 30, restaurangens eget]` — det sista bara när det inte redan
+  står i raden. Inget fritextfält: knappen trycks med en tumme i ett kök, och
+  ett sifferfält kräver att man tittar ned, siktar och stänger ett tangentbord.
+
+- **Två meddelanden, inte ett** — migration `0049`, `notification_kind` är
+  `ORDER_ACCEPTED` och `ORDER_READY`. Raderna skrivs av en trigger i samma
+  transaktion som statusändringen, så kön kan aldrig missa en notis. Det
+  första meddelandet **bär siffran**: `buildNotice()` fyller `acceptedBody`
+  med `prepMinutes`, och faller tillbaka på en formulering utan tid när ingen
+  satt någon.
+
+- **Gästens egen enhet** — migration `0050` gör `push_subscriptions
+  .restaurant_id` nullbar; NULL betyder "mina order" i stället för en
+  restaurangs ordning. Gästen slår på det på `/konto/uppgifter`, och utkorgen
+  skickar push **före** brevet.
+
+**Kvar är bara nycklar, och de är dina:** `VAPID_*` för push och
+`RESEND_API_KEY` för brev. Båda står som egna rader under *Näst på tur*. Utan
+dem är push `NOT_CONFIGURED` och gästen får sitt besked som brev — eller, utan
+den andra nyckeln, inte alls.
+
+**Läs också raden om cron-takten** under *Näst på tur*. Kön töms av
+`/api/jobs/send-notices`, som sedan 2026-08-28 är dygnsvis på Vercels
+Hobby-plan. Det tar inte bort funktionen ur koden, men det tar bort den ur
+produktionen: ett besked om mat som står klar nu är värdelöst i morgon bitti.
 
 **En invändning om kanalen.** "Via appen" finns inte än; mobilappen är Fas 3.
 Fram till dess är kanalerna webbpush (kräver VAPID-nycklar, som redan står som
@@ -1090,27 +1111,33 @@ fråga 15.
 Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
 det utskrivet — och ligger kvar tills beslutet är fattat.
 
-- [ ] **Deployen finns inte — och faller på en cron-rad när den skapas.**
-      Två fynd 2026-08-28, båda kontrollerade mot kontot och mot Vercels egen
-      dokumentation. Se `docs/DEPLOYMENT.md`.
+- [ ] **Ställ tillbaka notisjobbet till `* * * * *` när kontot blir Pro.**
+      En rad i `vercel.json`, ingenting annat.
 
-      1. **`* * * * *` går inte på Hobby.** `/api/jobs/send-notices` är satt
-         till varje minut. Hobby tillåter **en gång per dygn**, och ett tätare
-         uttryck *"will fail during deployment"*. Repot går alltså inte att
-         deploya till kontot som det står. Tre vägar: Pro (20 USD/mån),
-         dygnsvist notisjobb (vilket tar bort funktionen snarare än saktar ner
-         den), eller `pg_cron` i Supabase som ringer endpointen.
-         **Kräver ett beslut av dig.**
+      Jobbet stod på varje minut och hade fällt deployen: Hobby tillåter **en
+      gång per dygn** och avvisar ett tätare uttryck redan vid deploy. Beslutat
+      2026-08-28 att köra dygnsvist (`0 5 * * *`) i stället för att uppgradera.
 
-      2. **Inget Vercel-projekt bygger repot.** `burp-web-admin` är satt till
-         ramverk `vite` och rotkatalog `web-admin` — en katalog som inte finns.
-         Senaste bygget är från 2025-07-02 och föll vid klonsteget. Det finns
-         alltså ingen deploy alls, på någon branch: **preview-flödet i
-         `CLAUDE.md` har aldrig körts.** Skapa ett nytt projekt enligt steg 2.
-         **Kräver dig** — projektinställningar rör jag inte.
+      Följden står i `docs/DEPLOYMENT.md` och i ruttens docstring: kön töms en
+      gång i dygnet, ingen annan kodväg tömmer den, och brevet ligger i samma
+      jobb. `sendPendingNotices()` är därmed i praktiken av i produktion tills
+      raden ändras tillbaka. Lokalt gäller det inte — `smoke.sh` anropar jobbet
+      direkt.
 
-      `"regions": ["arn1"]` är däremot i sin ordning: en region, och Hobby
-      tillåter en.
+- [ ] **Inget Vercel-projekt bygger repot.** `burp-web-admin` är satt till
+      ramverk `vite` och rotkatalog `web-admin` — en katalog som inte finns.
+      Senaste bygget är från 2025-07-02 och föll vid klonsteget. Det finns
+      alltså ingen deploy alls, på någon branch: **preview-flödet i `CLAUDE.md`
+      har aldrig körts.**
+
+      Ligger stilla tills databasen finns: beslutet 2026-08-28 är att köra
+      Supabase lokalt tills vidare, och en deploy utan databas är ett skal.
+      Skapa sedan ett NYTT projekt enligt steg 2 i `docs/DEPLOYMENT.md` —
+      projektet som finns har bytt ramverk, rotkatalog och repo och är enklare
+      att göra om än att justera. **Kräver dig** — projektinställningar rör jag
+      inte.
+
+      `"regions": ["arn1"]` är i sin ordning: en region, och Hobby tillåter en.
 
 - [ ] **Slå på CSP:n på riktigt.** Den går i rapportläge sedan 2026-08-22 och
       har noll överträdelser på de ytor som gick att pröva.
@@ -1126,37 +1153,27 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
       `revalidate` som funktionen inte känner igen — nästa cachade rutt kommer
       inte heller att komma ihåg att uppdatera en regex.
 
-      Två saker återstår, och den första är **din**:
+      **ISR-frågan är besvarad 2026-08-28: de fyra cachade sidorna behåller
+      `'unsafe-inline'`.** Alternativet var att göra stad, stad + kök, rätt och
+      restaurang dynamiska, alltså full nonce-policy överallt — men det är
+      precis de fyra som är sajtens SEO-yta, och priset hade varit en
+      databasfråga per besök i stället för en cacheträff.
 
-      1. **ISR-frågan — ett beslut, inte kod.** Fyra sidor cachas i en timme
-         och kan inte bära en nonce: stad, stad + kök, rätt och restaurang. De
-         får `'unsafe-inline'`, vilket är svagast just där texten från
-         restaurangerna är som mest.
+      Hashning var aldrig en tredje väg: Next inline-skript på de sidorna är
+      `self.__next_f.push(...)`-bitar som bär sidans RSC-nyttolast, olika per
+      sida och per bygge, och en hash i ett statiskt huvud kan inte täcka dem.
 
-         Det finns två vägar och båda kostar något:
+      Det som gör avvägningen försvarbar är att ytan inte är obevakad. Den enda
+      råa HTML de fyra sidorna skriver är JSON-LD, och `serializeJsonLd()`
+      escapar `<` till `\u003c`; all annan restaurangtext går genom Reacts
+      vanliga escapning. `'unsafe-inline'` tar bort **skadebegränsningen** om
+      den escapningen någon gång brister — inte skyddet självt.
 
-         - **Gör dem dynamiska.** Full nonce-policy överallt. Priset är att
-           precis de fyra sidorna är sajtens SEO-yta, och att varje besök då
-           blir en databasfråga i stället för en cacheträff.
-         - **Behåll `'unsafe-inline'` på dem.** Priset är att ett injicerat
-           inline-skript får köra just där.
-
-         **Hashning är ingen tredje väg.** Next inline-skript på de sidorna är
-         `self.__next_f.push(...)`-bitar som bär sidans RSC-nyttolast; de är
-         olika per sida och per bygge, och en hash i ett statiskt huvud kan
-         inte täcka dem.
-
-         Värt att väga in: den enda råa HTML de fyra sidorna skriver är
-         JSON-LD, och `serializeJsonLd()` escapar `<` till `\u003c`. All annan
-         restaurangtext går genom Reacts vanliga escapning. Ytan är alltså inte
-         obevakad — men `'unsafe-inline'` tar bort skadebegränsningen om den
-         någon gång brister.
-
-      2. **Två oprövade ursprung.** Stripes betalfält kräver nycklar och
-         köksskärmens websocket kräver inloggning. Båda står i `connect-src`
-         respektive `frame-src`, men ingen har sett dem svara. **Kräver dig** —
-         en påslagen policy som blockerar kortfältet ger ingen felruta, bara en
-         betalning som aldrig öppnar.
+      **En sak återstår, och den kräver dig: två oprövade ursprung.** Stripes
+      betalfält kräver nycklar och köksskärmens websocket kräver inloggning.
+      Båda står i `connect-src` respektive `frame-src`, men ingen har sett dem
+      svara. En påslagen policy som blockerar kortfältet ger ingen felruta,
+      bara en betalning som aldrig öppnar.
 
       Byt sedan `CSP_HEADER` i `proxy.ts` till `Content-Security-Policy`.
       Kontrollera samtidigt att HSTS sätts på apex-domänen — Vercel brukar göra

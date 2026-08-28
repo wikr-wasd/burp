@@ -10,6 +10,26 @@ import { sendPendingNotices } from "@/lib/notify";
  * avvägning som valdes 2026-08-22: köksskärmen skriver direkt mot Supabase, och
  * en rutt framför den hade upprepat RLS-kontroller som redan finns.
  *
+ * ── Takten: en gång per dygn, och vad det betyder ───────────────────────────
+ *
+ * `vercel.json` schemalade det här jobbet varje minut fram till 2026-08-28.
+ * Vercels Hobby-plan tillåter **en gång per dygn** och avvisar ett tätare
+ * uttryck redan vid deploy, så schemat är `0 5 * * *`. Beslutat av William
+ * 2026-08-28 efter att alternativen lagts fram.
+ *
+ * Säg vad det innebär rakt ut: **kön töms en gång i dygnet.** Kön är det enda
+ * som tömmer den — ingen annan kodväg anropar `sendPendingNotices()` — så en
+ * gäst vars order blir klar 12:00 får sitt besked runt 05:00 dagen efter.
+ * Både notisen och brevet ligger i samma jobb, alltså gäller det båda.
+ *
+ * "Sen med den" är i den här takten inte skilt från "missar den": beskedet
+ * handlar om mat som står färdig nu. Funktionen är alltså i praktiken av i
+ * produktion tills planen tillåter en tätare takt, och raden ska ställas
+ * tillbaka till `* * * * *` samma dag kontot blir Pro. Se docs/TODO.md.
+ *
+ * Lokalt gäller ingenting av detta — jobbet triggas för hand och av
+ * `smoke.sh`, som kör det direkt och mäter utfallet.
+ *
  * ── Åtkomst ─────────────────────────────────────────────────────────────────
  *
  * `CRON_SECRET` i en Bearer-header, som poängjobbet. Saknas hemligheten svarar

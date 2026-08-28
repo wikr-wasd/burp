@@ -6,14 +6,15 @@ göras av dig — stegen nedan är det som återstår.
 | | Status |
 |---|---|
 | GitHub | ✅ `github.com/wikr-wasd/burp`, brancher `main` och `dev` |
-| Supabase | ⏳ blockerad av free tier-taket, se steg 1 |
-| Vercel | ⛔ **inget projekt bygger repot.** Se steg 2 och spärren nedan |
+| Supabase | ⏸ **kör lokalt tills vidare** (beslut 2026-08-28). Se steg 1 |
+| Vercel | ⏸ **inget projekt bygger repot** — väntar på databasen. Se steg 2 |
 
 ---
 
-## Spärren: cron var minut går inte på Hobby
+## Cron: en gång per dygn, för att Hobby inte tillåter mer
 
-**Kontrollerat 2026-08-28 mot Vercels egen dokumentation och mot kontot.**
+**Kontrollerat 2026-08-28 mot Vercels egen dokumentation och mot kontot.
+Beslutat samma dag.**
 
 Kontot `wikr-wasd's projects` ligger på **Hobby**. `vercel.json` innehåller två
 cron-jobb:
@@ -21,7 +22,10 @@ cron-jobb:
 | Sökväg | Schema | Hobby |
 |---|---|---|
 | `/api/jobs/expire-loyalty` | `0 4 * * *` | ✅ en gång per dygn |
-| `/api/jobs/send-notices` | `* * * * *` | ⛔ **faller vid deploy** |
+| `/api/jobs/send-notices` | `0 5 * * *` | ✅ sedan 2026-08-28 |
+
+Notisjobbet stod på `* * * * *` och hade fällt deployen innan bygget ens
+började.
 
 Vercels dokumentation (`/docs/cron-jobs/usage-and-pricing`, uppdaterad
 2026-07-15) är otvetydig: på Hobby är minsta intervall **en gång per dygn**, och
@@ -32,24 +36,27 @@ med felet *"Hobby accounts are limited to daily cron jobs."*
 faller innan bygget ens börjar, och felet handlar om en cron-rad — inte om
 koden — vilket är precis den sortens fel man letar på fel ställe i en timme.
 
-### Tre vägar, och de kostar olika saker
+### Beslutet, och vad det kostar
 
-**A. Pro, 20 USD/månad.** Cron per minut, fem funktionsregioner. Notiserna
-behåller sin takt och ingenting i koden ändras. Supabase behöver troligen Pro
-ändå (se steg 1), så det är två uppgraderingar som hänger ihop.
+**Valt: dygnsvist notisjobb.** Ingen månadskostnad och ingen ny infrastruktur.
+De två alternativen var Vercel Pro (20 USD/mån, cron per minut) och `pg_cron` i
+Supabase som ringer endpointen med `CRON_SECRET` ur Vault.
 
-**B. Dygnsvis notisjobb.** En rad i `vercel.json`. Men `sendPendingNotices()`
-finns för att nå gästen **medan hon väntar på sin mat** — ett dygnsvist
-notisjobb är inte en långsammare version av den funktionen, det är ingen
-funktion alls. Brevet skickas i samma jobb, så det försvinner med.
+Säg följden rakt ut, för den är inte liten: **notiskön töms en gång i dygnet,
+och ingen annan kodväg tömmer den.** En gäst vars order blir klar 12:00 får sitt
+besked runt 05:00 dagen efter — och eftersom brevet ligger i samma jobb gäller
+det brevet också. I den takten är "sen med beskedet" inte skilt från "missade
+beskedet": det handlar om mat som står färdig nu.
 
-**C. Supabase `pg_cron` + `pg_net` ringer endpointen.** Takten flyttar till
-databasen och Vercel-planen slutar spela roll. Endpointen kräver redan
-`CRON_SECRET`, så det som behövs är ett schemalagt anrop med rätt huvud —
-och nyckeln måste då ligga i **Supabase Vault**, aldrig i en migration.
-Mer att bygga och ett beroende till, men ingen månadskostnad.
+`sendPendingNotices()` är alltså **i praktiken av i produktion** tills planen
+tillåter tätare. Raden ska ställas tillbaka till `* * * * *` samma dag kontot
+blir Pro; det är en rad i `vercel.json` och ingenting annat.
 
-`expire-loyalty` klarar sig på alla tre: den är dygnsvis redan.
+Lokalt gäller inget av detta. `smoke.sh` anropar jobbet direkt och mäter
+utfallet, så täckningen är oförändrad.
+
+`expire-loyalty` berörs inte: den är dygnsvis redan, och det är rätt takt för
+den.
 
 ### Regionen är däremot inget problem
 
@@ -113,8 +120,9 @@ Frigör en plats direkt. 123Connects preview-deployer slutar då fungera mot
 databasen tills den återaktiveras. Ditt val — jag pausar den inte utan att du
 säger till.
 
-**C. Kör lokalt tills vidare**
-Fungerar för allt utom att dela en preview med någon annan:
+**C. Kör lokalt tills vidare — VALT 2026-08-28**
+Fungerar för allt utom att dela en preview med någon annan. Så länge det här
+gäller finns ingen deploy att skapa, och steg 2 väntar på steg 1:
 
 ```bash
 npx supabase start
