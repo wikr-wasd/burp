@@ -327,7 +327,7 @@ och ingen omräkning.
 
 ## 8. Vem levererar kartrutorna?
 
-**Status:** obesvarad · **Blockerar:** lansering av `/upptack`
+**Status:** obesvarad · **Blockerar:** lansering av startsidan OCH restaurangsidorna
 
 Kartsidan är byggd och fungerar. Det som saknas är ett konto hos någon som får
 leverera rutorna.
@@ -443,16 +443,31 @@ rundat geometriskt snitt, medan produkten kör Geist 800.
 
 ## 11. Startsidan och QR-gästens val
 
-**Status:** BESVARAD 2026-08-17 · **Blockerar:** ingenting
+**Status:** BESVARAD 2026-08-17, **kartans placering reviderad 2026-08-28**
+· **Blockerar:** ingenting
 
 > **Williams svar:** "förstasidan kan vara upptäck men jag vill gärna ha kartor
 > som listar samtliga restauranger redan i toppen av sidan. qr-gäst skall inte
 > kunna ta med då qr-koden skall vara kopplad till ett bord."
 
-**Startsidan.** Kart- och listvyn ligger nu på `/`. Kartan är det första på
-sidan, före rubriken — den som kommer till burp.se utan att ha skannat en
-QR-kod frågar "vad finns nära mig", och det svaret är en karta, inte en
-ingress. Bildcollaget som låg där är borta; rutnätet under bär bilderna ändå.
+**Startsidan.** Kart- och listvyn ligger på `/`. Bildcollaget som låg där är
+borta; rutnätet under bär bilderna ändå.
+
+**Kartans placering ändrades 2026-08-28, och svaret ovan säger något annat.**
+Ordet i svaret är "i toppen av sidan", och kartan låg först — före rubriken —
+från 2026-08-17. Frågan den svarar på är fortfarande den rätta, men svaret
+levererades som en dämpad grå ruta utan rubrik, före ett enda ord om vad Burp
+är. En karta är ett verktyg, inte en hälsning.
+
+Efter att alternativen lagts fram valde William **hjälte först, karta direkt
+under som eget avsnitt med rubrik**. Kartan är oförändrad i övrigt: samma
+nålar, samma "sök i det här området", samma koppling till korten, och den
+listar fortfarande samtliga restauranger som matchar filtret. Den ligger inte
+längre överst.
+
+Raden står kvar här och inte bara i `docs/TODO.md` därför att svaret ovan är
+Williams eget. Nästa läsare som jämför sidan med citatet ska hitta skälet här,
+inte tro att någon glömt bort det och flytta tillbaka kartan.
 
 `/upptack` svarar 308 mot `/` och behåller frågesträngen. Två sidor med samma
 innehåll är dubblerat innehåll för Google och två ställen att underhålla.
