@@ -160,6 +160,19 @@ export const no: Dictionary = {
     closedNowUnknown: "Ingen av treffene har lagt inn åpningstider.",
     showClosedToo: "Vis stengte også",
     showAll: "Vis alle restauranter",
+
+    openNowCount: "{n} åpne nå",
+    showcaseLabel: "Populært akkurat nå",
+    mapHeading: "Hvor de ligger",
+    mapHint: "Dra i kartet og søk på nytt i området du ser på.",
+    howLabel: "Ved bordet",
+    howTitle: "Skann, bestill, spis.",
+    howStep1: "Skann klistremerket",
+    howStep1Body: "Kameraet holder. Ingen app å laste ned, ingen konto å opprette.",
+    howStep2: "Bestill i ditt eget tempo",
+    howStep2Body: "Hele menyen med bilder og allergener. Legg til en runde til når du vil.",
+    howStep3: "Betal når du er ferdig",
+    howStep3Body: "Kort, Apple Pay eller kontant i kassen. Regningen blir liggende i telefonen.",
   },
 
   city: {

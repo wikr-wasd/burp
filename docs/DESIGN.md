@@ -81,6 +81,12 @@ eller en egen kantlinje i en komponent.
 | `.btn-pill` | Sidhuvudets värvningsknapp. Enda pillerknappen |
 | `.burp-mark` + `.burp-wordmark` | Vinjetten. Se nedan |
 | `.map-pin`, `.map-popup` | Kartnålen och dess bubbla på `/upptack` |
+| `.hero-band` | Startsidans förstaskärm. Varm tvättning, inte en gradient man ser |
+| `.filter-bar` | Filterraden som följer med nedåt |
+| `.media-scrim` | Mörkningen under text som ligger PÅ en bild |
+| `.dot-live` | Grön puls framför en siffra som räknas nu |
+| `.step-mark` | Ikonens cirkel i "Vid bordet". Tonad röd, aldrig fylld |
+| `.reveal` | Kortet stiger in när det kommer i bild. Ren CSS |
 
 `.badge` och `.chip` ser lika ut men gör olika saker: ett märke rapporterar ett
 tillstånd, en chip ändrar det. Skillnaden syns i träffytan — ett märke får vara
@@ -100,6 +106,16 @@ ett steg till.
 **Höjden är 44 px och inte mockupens 30.** Det är den enda punkt där mockupen
 medvetet inte följs: den är ritad för en muspekare, filtret trycks av en tumme
 på en gata.
+
+### Rörelse är en förstärkning, aldrig ett villkor
+
+`.reveal` ligger innanför `@supports (animation-timeline: view())`. Skrevs
+`opacity: 0` som utgångsläge utanför den, skulle varje webbläsare utan stöd —
+Firefox idag — visa en tom restauranglista. **Ett effektfel får aldrig bli ett
+innehållsfel.** Samma regel gäller `.dot-live`: pulsen är en `::after` ovanpå en
+punkt som finns ändå.
+
+Allt som rör sig stannar under `prefers-reduced-motion: reduce`.
 
 Kartans två klasser ligger i `globals.css` trots att de bara används på ett
 ställe. Leaflet skriver in nålen och bubblan som HTML-strängar, så det finns

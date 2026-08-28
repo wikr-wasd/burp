@@ -180,6 +180,19 @@ export const bs: Dictionary = {
     closedNowUnknown: "Nijedan od rezultata nije unio radno vrijeme.",
     showClosedToo: "Prikaži i zatvorene",
     showAll: "Prikaži sve restorane",
+
+    openNowCount: "{n} otvoreno sada",
+    showcaseLabel: "Popularno ovih dana",
+    mapHeading: "Gdje se nalaze",
+    mapHint: "Pomjerite kartu i ponovo pretražite područje koje gledate.",
+    howLabel: "Za stolom",
+    howTitle: "Skenirajte, naručite, jedite.",
+    howStep1: "Skenirajte naljepnicu",
+    howStep1Body: "Dovoljna je kamera. Bez aplikacije, bez naloga.",
+    howStep2: "Naručujte svojim tempom",
+    howStep2Body: "Cijeli meni sa slikama i alergenima. Dodajte još jednu turu kad god poželite.",
+    howStep3: "Platite kada završite",
+    howStep3Body: "Karticom, Apple Payom ili gotovinom na kasi. Račun ostaje u telefonu.",
   },
 
   city: {

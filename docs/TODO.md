@@ -66,6 +66,42 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-08-28 — startsidan är en förstaskärm, inte en karta
+
+Ingen migration. Bara `[locale]/page.tsx`, `globals.css` och fem ordböcker.
+
+**Kartan låg överst från 2026-08-17 till 2026-08-28.** Frågan den svarar på är
+fortfarande den rätta — den som kommer utan att ha skannat frågar "vad finns
+nära mig" — men svaret levererades som en dämpad grå ruta utan rubrik, före ett
+enda ord om vad Burp är. En karta är ett verktyg, inte en hälsning. Den ligger
+nu direkt under hjälten som ett eget avsnitt med rubrik, oförändrad i övrigt.
+
+- **Hjälten är förstaskärmen.** Rubrik, sökruta och rättchips till vänster,
+  fyra ställen som bild till höger — bilderna går att klicka på och bär namn,
+  rätt och pris. Under `lg` blir bildspalten en snap-rulle UNDER chipsen: på en
+  telefon ska sökrutan ligga ovanför vikningen, inte fyra bilder.
+
+- **"{n} öppna just nu"** med grön puls står i etiketten över rubriken. Siffran
+  var redan uträknad — `openIds` hämtas ändå för filtret.
+
+- **Filterraden följer med nedåt** (`.filter-bar`). "Öppet nu" och stadsraden
+  delar rad, etiketterna "Stad" och "Kök" lämnade bilden och stannade i
+  `aria-label`: raderna börjar med "Alla städer" respektive "Alla kök" och
+  namnger sig själva.
+
+- **"Vid bordet"** sist på sidan. QR-beställningen — hela produktens
+  särart — stod som en bisats i ingressen. Nu tre steg med ikoner. Inga
+  knappar, med flit: man kan inte skanna en dekal härifrån.
+
+- **Korten stiger in när de kommer i bild.** `animation-timeline: view()`,
+  innanför `@supports`. Ingen observatör, ingen klientkomponent, och en
+  webbläsare utan stöd får listan rakt av.
+
+Byggt för fotografier. Där restaurangen inte laddat upp något ritar
+`/bild/[namn]` en tallrik i en varm ton, och texten ovanpå bär ändå namnet,
+rätten och priset — ytan är hel idag och blir vacker den dagen bilderna kommer.
+Bildspalten sorterar riktiga foton först, av precis det skälet.
+
 ### Byggt 2026-08-27 — rättsidor och Google-recensioner
 
 Punkt 8 i färdplanen, i två delar. Migrationer `0057` och `0058`.

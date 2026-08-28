@@ -199,6 +199,30 @@ export const sv = {
     closedNowUnknown: "Ingen av träffarna har lagt in några öppettider.",
     showClosedToo: "Visa stängda också",
     showAll: "Visa alla restauranger",
+
+    /* ── Förstaskärmen ──────────────────────────────────────────────────
+       Räknaren står i etiketten över rubriken. En marknadsplats som inte
+       säger hur mycket som är öppet just nu ser ut att vara tom. */
+    openNowCount: "{n} öppna just nu",
+    showcaseLabel: "Populärt just nu",
+
+    /* Kartan är ett eget avsnitt sedan hjälten flyttade överst. Den behöver
+       därför en rubrik — ett kartfönster utan överskrift läser som en
+       annons. */
+    mapHeading: "Var de ligger",
+    mapHint: "Dra i kartan och sök om i området du tittar på.",
+
+    /* ── Vid bordet ─────────────────────────────────────────────────────
+       Det enda på startsidan som förklarar vad Burp gör som ingen annan.
+       Tre steg, inga knappar: gästen kan inte skanna en dekal härifrån. */
+    howLabel: "Vid bordet",
+    howTitle: "Skanna, beställ, ät.",
+    howStep1: "Skanna dekalen",
+    howStep1Body: "Kameran räcker. Ingen app att ladda ner, inget konto att skapa.",
+    howStep2: "Beställ i din egen takt",
+    howStep2Body: "Hela menyn med bilder och allergener. Lägg till en omgång till när du vill.",
+    howStep3: "Betala när du är klar",
+    howStep3Body: "Kort, Apple Pay eller kontant i kassan. Notan ligger kvar i telefonen.",
   },
 
   city: {

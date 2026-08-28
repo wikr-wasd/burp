@@ -942,3 +942,163 @@ body {
 .map-cluster-closed {
   background: var(--muted);
 }
+
+/* ── Startsidans förstaskärm ──────────────────────────────────────────── */
+
+/*
+ * Hjältens band.
+ *
+ * Kartan låg överst från 2026-08-17 till 2026-08-28. Den svarade på rätt fråga
+ * — "vad finns nära mig" — men gjorde det med en dämpad grå ruta, och det är
+ * en dålig hälsning. Hjälten ligger nu först och kartan direkt under, som ett
+ * eget avsnitt med rubrik.
+ *
+ * Bandet är en mycket svag varm tvättning, inte en gradient man ser. Två skäl
+ * att hålla den så låg: designsystemets lila och rosa säljgradienter används
+ * inte här, och ingenting får konkurrera med maten. Tonerna räknas ur samma
+ * tokens som resten, så mörkt läge följer med utan en egen regel.
+ */
+.hero-band {
+  background:
+    radial-gradient(
+      58rem 26rem at 12% -12%,
+      color-mix(in srgb, var(--color-burp-600) 8%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      44rem 22rem at 94% 6%,
+      color-mix(in srgb, var(--color-gold-600) 7%, transparent),
+      transparent 70%
+    );
+  border-bottom: 1px solid var(--rule);
+}
+
+/*
+ * Pulsen framför "öppna just nu".
+ *
+ * Grön, som allt annat som bekräftar. Punkten säger att siffran är räknad nu
+ * och inte skriven en gång — det är hela skillnaden mellan en marknadsplats
+ * som lever och en katalog. Stannar för den som bett om mindre rörelse.
+ */
+.dot-live {
+  position: relative;
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--color-green-500);
+}
+
+.dot-live::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  animation: burp-pulse 2s var(--ease) infinite;
+}
+
+@keyframes burp-pulse {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+/*
+ * Mörkningen under text som ligger PÅ en bild.
+ *
+ * Ligger här och inte i komponenten av samma skäl som knappen gör det: så fort
+ * två ytor ritar sin egen blir de två olika. Toppen är helt genomskinlig och
+ * botten nästan svart — en jämn platta över hela bilden hade dämpat maten,
+ * vilket är precis vad den inte får göra.
+ */
+.media-scrim {
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.78) 0%,
+    rgb(0 0 0 / 0.45) 38%,
+    rgb(0 0 0 / 0) 78%
+  );
+}
+
+/*
+ * Filterraden som följer med.
+ *
+ * Listan under den är lång, och filtret som bara finns högst upp tvingar en
+ * gäst att scrolla tillbaka för att byta stad. Raden klistras därför fast
+ * överst. Sidhuvudet är `relative` och inte sticky, så den får hela kanten
+ * för sig själv när det rullat förbi.
+ *
+ * Genomskinligheten kräver `backdrop-filter`: utan den skulle korten synas
+ * rakt igenom raden. Webbläsare utan stöd får den ogenomskinliga bakgrunden,
+ * vilket är fullt läsbart — bara mindre lätt.
+ */
+.filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(1.4);
+}
+
+/*
+ * Stegmarkören i "Vid bordet".
+ *
+ * En tonad röd cirkel bakom ikonen, inte en fylld — en fylld röd yta läser som
+ * en knapp, och avsnittet har inga knappar att trycka på.
+ */
+.step-mark {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-burp-600) 12%, var(--surface));
+  color: var(--color-burp-600);
+}
+
+/*
+ * Korten stiger in när de kommer i bild.
+ *
+ * Ren CSS med `animation-timeline: view()` — ingen observatör, ingen
+ * klientkomponent, ingenting som körs när fliken ligger i bakgrunden. Sidan
+ * renderas på servern och ska fortsätta göra det.
+ *
+ * Regeln ligger INNANFÖR `@supports`. Skrevs `opacity: 0` som utgångsläge
+ * utanför den, skulle varje webbläsare utan stöd — Firefox idag — visa en tom
+ * lista. Ett effektfel får aldrig bli ett innehållsfel.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: burp-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+}
+
+@keyframes burp-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot-live::after {
+    animation: none;
+  }
+}

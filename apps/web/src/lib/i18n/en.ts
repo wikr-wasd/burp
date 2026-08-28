@@ -159,6 +159,19 @@ export const en: Dictionary = {
     closedNowUnknown: "None of the matches have entered any opening hours.",
     showClosedToo: "Show closed ones too",
     showAll: "Show all restaurants",
+
+    openNowCount: "{n} open right now",
+    showcaseLabel: "Popular right now",
+    mapHeading: "Where they are",
+    mapHint: "Drag the map and search again in the area you are looking at.",
+    howLabel: "At the table",
+    howTitle: "Scan, order, eat.",
+    howStep1: "Scan the sticker",
+    howStep1Body: "Your camera is enough. No app to download, no account to create.",
+    howStep2: "Order at your own pace",
+    howStep2Body: "The whole menu with photos and allergens. Add another round whenever you like.",
+    howStep3: "Pay when you are done",
+    howStep3Body: "Card, Apple Pay or cash at the counter. The bill stays in your phone.",
   },
 
   city: {

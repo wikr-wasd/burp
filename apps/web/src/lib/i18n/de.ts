@@ -158,6 +158,19 @@ export const de: Dictionary = {
     closedNowUnknown: "Keines der Lokale hat Öffnungszeiten hinterlegt.",
     showClosedToo: "Auch geschlossene anzeigen",
     showAll: "Alle Restaurants anzeigen",
+
+    openNowCount: "{n} jetzt geöffnet",
+    showcaseLabel: "Gerade beliebt",
+    mapHeading: "Wo sie liegen",
+    mapHint: "Verschieben Sie die Karte und suchen Sie im sichtbaren Bereich erneut.",
+    howLabel: "Am Tisch",
+    howTitle: "Scannen, bestellen, essen.",
+    howStep1: "Aufkleber scannen",
+    howStep1Body: "Die Kamera genügt. Keine App, kein Konto.",
+    howStep2: "In Ruhe bestellen",
+    howStep2Body: "Die ganze Speisekarte mit Bildern und Allergenen. Jederzeit eine Runde nachlegen.",
+    howStep3: "Zahlen, wenn Sie fertig sind",
+    howStep3Body: "Karte, Apple Pay oder bar an der Kasse. Die Rechnung bleibt im Telefon.",
   },
 
   city: {
