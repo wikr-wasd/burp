@@ -102,6 +102,12 @@ Byggt för fotografier. Där restaurangen inte laddat upp något ritar
 rätten och priset — ytan är hel idag och blir vacker den dagen bilderna kommer.
 Bildspalten sorterar riktiga foton först, av precis det skälet.
 
+**Dessutom: rättsidan saknades i `isCachedRoute()`.** Den byggdes 2026-08-27
+med `revalidate = 3600` men räknades som icke-cachad av CSP-modulen, alltså
+fick den en nonce i HTML som återanvänds i en timme. Rättat, och testet läser
+numera app-katalogen i stället för att lita på en lista i huvudet. Se raden om
+CSP under **Näst på tur**.
+
 ### Byggt 2026-08-27 — rättsidor och Google-recensioner
 
 Punkt 8 i färdplanen, i två delar. Migrationer `0057` och `0058`.
@@ -1085,15 +1091,50 @@ Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
 det utskrivet — och ligger kvar tills beslutet är fattat.
 
 - [ ] **Slå på CSP:n på riktigt.** Den går i rapportläge sedan 2026-08-22 och
-      har noll överträdelser på de ytor som gick att pröva. Två saker återstår:
+      har noll överträdelser på de ytor som gick att pröva.
 
-      1. **ISR-frågan.** Stadssidan, kökssidan och restaurangsidan cachas i en
-         timme och kan inte bära en nonce. De får `'unsafe-inline'`, vilket är
-         svagast just där texten från restaurangerna är som mest. Antingen blir
-         de dynamiska, eller så hashas Next skript.
+      **En tredje sak fanns och är rättad 2026-08-28:** `isCachedRoute()`
+      kände bara till tre ISR-sidor. Rättsidan `/[locale]/[stad]/ratt/[ratt]`
+      byggdes 2026-08-27 med `revalidate = 3600` och föll igenom som "inte
+      cachad" — den fick alltså en nonce instämplad i HTML som sedan
+      återanvändes i en timme. I rapportläge syns inget. Med policyn påslagen
+      hade sidan **renderats men aldrig hydrerat**: status 200, komplett
+      innehåll, ingenting klickbart. Funktionen känner nu igen fyra former, och
+      `csp.test.ts` läser app-katalogen och faller på varje sida med
+      `revalidate` som funktionen inte känner igen — nästa cachade rutt kommer
+      inte heller att komma ihåg att uppdatera en regex.
+
+      Två saker återstår, och den första är **din**:
+
+      1. **ISR-frågan — ett beslut, inte kod.** Fyra sidor cachas i en timme
+         och kan inte bära en nonce: stad, stad + kök, rätt och restaurang. De
+         får `'unsafe-inline'`, vilket är svagast just där texten från
+         restaurangerna är som mest.
+
+         Det finns två vägar och båda kostar något:
+
+         - **Gör dem dynamiska.** Full nonce-policy överallt. Priset är att
+           precis de fyra sidorna är sajtens SEO-yta, och att varje besök då
+           blir en databasfråga i stället för en cacheträff.
+         - **Behåll `'unsafe-inline'` på dem.** Priset är att ett injicerat
+           inline-skript får köra just där.
+
+         **Hashning är ingen tredje väg.** Next inline-skript på de sidorna är
+         `self.__next_f.push(...)`-bitar som bär sidans RSC-nyttolast; de är
+         olika per sida och per bygge, och en hash i ett statiskt huvud kan
+         inte täcka dem.
+
+         Värt att väga in: den enda råa HTML de fyra sidorna skriver är
+         JSON-LD, och `serializeJsonLd()` escapar `<` till `\u003c`. All annan
+         restaurangtext går genom Reacts vanliga escapning. Ytan är alltså inte
+         obevakad — men `'unsafe-inline'` tar bort skadebegränsningen om den
+         någon gång brister.
+
       2. **Två oprövade ursprung.** Stripes betalfält kräver nycklar och
          köksskärmens websocket kräver inloggning. Båda står i `connect-src`
-         respektive `frame-src`, men ingen har sett dem svara.
+         respektive `frame-src`, men ingen har sett dem svara. **Kräver dig** —
+         en påslagen policy som blockerar kortfältet ger ingen felruta, bara en
+         betalning som aldrig öppnar.
 
       Byt sedan `CSP_HEADER` i `proxy.ts` till `Content-Security-Policy`.
       Kontrollera samtidigt att HSTS sätts på apex-domänen — Vercel brukar göra

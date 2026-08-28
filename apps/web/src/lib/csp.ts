@@ -20,12 +20,12 @@
  *
  * ── Varför två policyer ────────────────────────────────────────────────────
  *
- * En nonce måste vara ny för varje request. Tre rutter är ISR-cachade med
- * `revalidate = 3600` — stadssidan, kökssidan och restaurangsidan — och deras
- * HTML återanvänds i en timme. En nonce i den HTML:en är gammal från andra
- * besökaren och framåt, och skulle blockera Next egna skript.
+ * En nonce måste vara ny för varje request. Fyra rutter är ISR-cachade med
+ * `revalidate = 3600` — stadssidan, kökssidan, rättsidan och restaurangsidan —
+ * och deras HTML återanvänds i en timme. En nonce i den HTML:en är gammal från
+ * andra besökaren och framåt, och skulle blockera Next egna skript.
  *
- * De tre får därför en policy utan nonce. Den är svagare, och det är värt att
+ * De fyra får därför en policy utan nonce. Den är svagare, och det är värt att
  * säga rakt ut: `'unsafe-inline'` betyder att ett injicerat inline-skript får
  * köra. Att just de sidorna bär mest text från restaurangerna gör avvägningen
  * obekväm, och den ska lösas innan policyn slås på på riktigt — antingen
@@ -41,20 +41,48 @@
 const DYNAMIC_LOCALE_ROUTES = new Set(["anslut", "upptack"]);
 
 /**
- * Är sökvägen en av de tre ISR-cachade sidorna?
+ * Katalognamnet i `/[locale]/[stad]/ratt/[ratt]`.
  *
- * Matchas på FORM och inte mot en lista, eftersom städerna, köken och
- * restaurangerna kommer ur databasen och tillkommer efter hand:
+ * Ett riktigt segment i adressen och inte en översättning — katalogen heter
+ * `ratt` på alla fem språken, eftersom rutten är en katalog och inte en text.
+ */
+const DISH_SEGMENT = "ratt";
+
+/**
+ * Är sökvägen en av de ISR-cachade sidorna?
  *
- *   /sv/sarajevo              stadssidan          revalidate 3600
- *   /sv/sarajevo/grill        stad + kök          revalidate 3600
- *   /sv/r/sarajevo/zeljo      restaurangsidan     revalidate 3600
+ * Matchas på FORM och inte mot en lista, eftersom städerna, köken, rätterna
+ * och restaurangerna kommer ur databasen och tillkommer efter hand:
+ *
+ *   /sv/sarajevo                    stadssidan       revalidate 3600
+ *   /sv/sarajevo/grill              stad + kök       revalidate 3600
+ *   /sv/sarajevo/ratt/cevapi        rättsidan        revalidate 3600
+ *   /sv/r/sarajevo/zeljo            restaurangsidan  revalidate 3600
  *
  * Allt annat renderas per request och kan bära en nonce.
+ *
+ * ── Rättsidan saknades här till 2026-08-28 ─────────────────────────────────
+ *
+ * `/[locale]/[stad]/ratt/[ratt]` byggdes 2026-08-27 med `revalidate = 3600`,
+ * men den här funktionen kände bara till tre former. Fyra segment där det
+ * andra inte var `r` föll igenom till sista raden och svarade `false`, alltså
+ * "inte cachad" — och sidan fick en nonce instämplad i HTML som sedan
+ * återanvändes i en timme.
+ *
+ * I rapportläge syns det inte. Med policyn PÅSLAGEN hade följden blivit den
+ * som står i CLAUDE.md: nonce:n i HTML:en är den första besökarens, huvudet
+ * bär en ny för varje request, ingen av Next skript matchar, och sidan
+ * **renderas men hydrerar aldrig**. Statusen är 200 och innehållet komplett;
+ * ingenting på sidan går att klicka på.
+ *
+ * Testet `csp.test.ts` läser numera app-katalogen och faller på varje sida
+ * med `revalidate` som den här funktionen inte känner igen. Det är den delen
+ * som är värd något — nästa cachade rutt kommer inte heller att komma ihåg
+ * att uppdatera en regex.
  */
 export function isCachedRoute(pathname: string): boolean {
   const segments = pathname.split("/").filter(Boolean);
-  const [locale, second] = segments;
+  const [locale, second, third] = segments;
 
   // Språksegmentet är alltid två bokstäver. `/dashboard` och `/t/…` faller här.
   if (!locale || !/^[a-z]{2}$/.test(locale)) return false;
@@ -62,6 +90,9 @@ export function isCachedRoute(pathname: string): boolean {
 
   if (second === "r") return segments.length === 4;
   if (DYNAMIC_LOCALE_ROUTES.has(second)) return false;
+
+  // Fyra segment under en stad är rättsidan — och ingenting annat.
+  if (segments.length === 4) return third === DISH_SEGMENT;
 
   return segments.length === 2 || segments.length === 3;
 }

@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildCsp, isCachedRoute } from "./csp";
 
 const OPTIONS = {
@@ -16,10 +19,20 @@ const OPTIONS = {
  * utom den första besökaren. Båda felen är tysta, och därför testade.
  */
 describe("isCachedRoute", () => {
-  it("känner igen de tre ISR-sidorna", () => {
+  it("känner igen de fyra ISR-sidorna", () => {
     expect(isCachedRoute("/sv/sarajevo")).toBe(true);
     expect(isCachedRoute("/bs/sarajevo/grill")).toBe(true);
+    expect(isCachedRoute("/sv/sarajevo/ratt/punjene-paprike")).toBe(true);
     expect(isCachedRoute("/de/r/sarajevo/cevabdzinica-zeljo")).toBe(true);
+  });
+
+  it("fyra segment under en stad är rättsidan och ingenting annat", () => {
+    // Rättsidan byggdes 2026-08-27 och saknades här till 2026-08-28. Den föll
+    // igenom som "inte cachad" och fick därför en nonce instämplad i HTML som
+    // sedan återanvändes i en timme — vilket med policyn påslagen hade gett en
+    // sida som renderas men aldrig hydrerar.
+    expect(isCachedRoute("/sv/sarajevo/ratt/punjene-paprike")).toBe(true);
+    expect(isCachedRoute("/sv/sarajevo/grill/nagot")).toBe(false);
   });
 
   it("släpper igenom en avslutande snedstreck", () => {
@@ -140,5 +153,91 @@ describe("buildCsp", () => {
     // Miljövariabeln kan vara felskriven. En CSP som kastar hade tagit ner
     // varje request; en med ett tomt ursprung blockerar bara mer än den ska.
     expect(() => buildCsp({ ...OPTIONS, nonce: "n", supabaseUrl: "inte-en-url" })).not.toThrow();
+  });
+});
+
+/**
+ * Listan över cachade rutter läses ur app-katalogen, inte ur minnet.
+ *
+ * `isCachedRoute()` matchar på formen hos en adress. En ny sida med
+ * `revalidate` ändrar inte den funktionen, och den som lägger till sidan har
+ * ingen anledning att misstänka att en CSP-modul behöver veta om den. Precis
+ * det hände rättsidan: byggd 2026-08-27 med `revalidate = 3600`, upptäckt
+ * 2026-08-28.
+ *
+ * Testet går därför till källan. Varje `page.tsx` under `src/app` klassas som
+ * cachad eller dynamisk utifrån vad filen själv exporterar, och funktionen
+ * måste svara likadant. Faller det här testet är svaret nästan aldrig att
+ * ändra testet.
+ */
+describe("isCachedRoute mot app-katalogen", () => {
+  const APP_DIR = fileURLToPath(new URL("../app", import.meta.url));
+
+  /** Alla `page.tsx` under `src/app`, som sökvägar relativa till app-roten. */
+  function pageFiles(dir: string, prefix = ""): string[] {
+    const found: string[] = [];
+
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const next = join(dir, entry.name);
+
+      if (entry.isDirectory()) found.push(...pageFiles(next, `${prefix}/${entry.name}`));
+      else if (entry.name === "page.tsx") found.push(prefix || "/");
+    }
+
+    return found;
+  }
+
+  /**
+   * Ruttmallen till en konkret adress.
+   *
+   * `[locale]` blir alltid `sv` — funktionen kräver två bokstäver där. Övriga
+   * parametrar blir en slug som inte kan förväxlas med ett riktigt segment:
+   * hade `[kok]` fyllts i med "ratt" hade testet mätt fel sak.
+   */
+  function samplePath(route: string): string {
+    return (
+      route
+        .split("/")
+        .filter(Boolean)
+        // Ruttgrupper `(namn)` finns inte i adressen.
+        .filter((segment) => !segment.startsWith("("))
+        .map((segment) => {
+          if (segment === "[locale]") return "sv";
+          return segment.startsWith("[") ? "provvarde" : segment;
+        })
+        .join("/")
+        .replace(/^/, "/")
+    );
+  }
+
+  /** Exporterar filen `revalidate`, alltså ISR-cachad HTML? */
+  function isCachedFile(route: string): boolean {
+    const file = join(APP_DIR, route === "/" ? "" : route, "page.tsx");
+    return /export const revalidate\s*=/.test(readFileSync(file, "utf8"));
+  }
+
+  const routes = pageFiles(APP_DIR);
+
+  it("hittar sidorna över huvud taget", () => {
+    // Utan den här skulle en trasig sökväg ge noll rutter och ett grönt test
+    // som inte kontrollerar någonting alls.
+    expect(routes.length).toBeGreaterThan(20);
+  });
+
+  it("varje sida med revalidate känns igen som cachad", () => {
+    const cached = routes.filter(isCachedFile);
+
+    // Fyra i dag: stad, stad+kök, rätt och restaurang.
+    expect(cached.length).toBeGreaterThanOrEqual(4);
+
+    for (const route of cached) {
+      expect(isCachedRoute(samplePath(route)), route).toBe(true);
+    }
+  });
+
+  it("ingen sida utan revalidate klassas som cachad", () => {
+    for (const route of routes.filter((entry) => !isCachedFile(entry))) {
+      expect(isCachedRoute(samplePath(route)), route).toBe(false);
+    }
   });
 });
