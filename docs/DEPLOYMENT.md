@@ -224,5 +224,17 @@ Utöver de öppna frågorna i `OPEN-QUESTIONS.md`:
 - [ ] Slå på e-postbekräftelse i Supabase Auth (avstängt lokalt)
 - [ ] Sätt `NEXT_PUBLIC_SITE_URL` och Supabase `Site URL` till riktiga domänen
 - [ ] Aktivera daglig backup (kräver Pro)
-- [ ] Kör `npx supabase db lint` och gå igenom Security Advisor i dashboarden
+- [ ] Kör `npm run db:lint` och gå igenom Security Advisor i dashboarden
+
+      Punkten sa `npx supabase db lint` rakt av fram till 2026-08-28. Kört så
+      ger den sjutton träffar, varav **noll** i Burps kod: allt kommer ur
+      PostGIS egna plpgsql-funktioner, och flera av dem står som `error` —
+      `lockrow` refererar en tabell som bara finns med långa transaktioner
+      påslagna, `postgis_full_version` anropar en funktion ur raster-tillägget.
+      Normalt i varje PostGIS-installation, och ingenting vi kan rätta.
+
+      En kontroll som alltid larmar lärs bort första gången någon har bråttom.
+      `npm run db:lint` kör samma lint men rapporterar bara funktioner som
+      skapas i `supabase/migrations/`, och faller bara på `error`-nivå. Senast
+      kört 2026-08-28: 104 egna funktioner, inga anmärkningar.
 - [ ] Personuppgiftsbiträdesavtal med varje restaurang

@@ -20,6 +20,7 @@
     "type-check": "npm run type-check --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "db:validate": "node scripts/validate-migrations.mjs",
+    "db:lint": "node scripts/lint-schema.mjs",
     "db:verify": "bash scripts/verify-schema.sh",
     "db:env": "node scripts/write-local-env.mjs",
     "db:types": "node scripts/generate-types.mjs",

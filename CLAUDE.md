@@ -95,6 +95,7 @@ npm run type-check
 npm run lint
 
 npm run db:validate        # migrations genom PG17:s parser — inget Docker
+npm run db:lint            # plpgsql_check på VÅRA funktioner — PostGIS egna filtreras bort
 npx supabase start         # lokal stack i Docker
 npx supabase db reset      # migrations + seed + personalkonton
 npm run db:demo            # 75 dagars orderhistorik — utan den står pengaytorna tomma
@@ -161,7 +162,7 @@ Varje sådant anrop måste själv begränsa sin fråga.
 Begränsningen behöver inte stå som `restaurant_id` i just den raden — den ärvs
 ofta: `menu_categories` filtreras på ett `menu_id` som redan hörde till
 restaurangen. Det som ALDRIG får förekomma är en fråga utan filter alls.
-`npm run check:service-role` kontrollerar precis det över alla 76 anropen, och
+`npm run check:service-role` kontrollerar precis det över alla 92 anropen, och
 en fråga som verkligen ska gå över hela plattformen märks ut:
 
 ```ts
