@@ -153,6 +153,8 @@ export const bs: Dictionary = {
     cityHits: "Gradovi",
     dishHits: "Jela koja odgovaraju",
     popularDishes: "Najčešće ovih dana",
+    whereDish: "Gdje želite jesti {dish}?",
+    inCities: "{n} grada",
     city: "Grad",
     cuisine: "Kuhinja",
     allCities: "Svi gradovi",

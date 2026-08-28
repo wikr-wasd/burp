@@ -131,6 +131,8 @@ export const de: Dictionary = {
     cityHits: "Städte",
     dishHits: "Passende Gerichte",
     popularDishes: "Zurzeit am häufigsten",
+    whereDish: "Wo möchten Sie {dish} essen?",
+    inCities: "{n} Städte",
     city: "Stadt",
     cuisine: "Küche",
     allCities: "Alle Städte",

@@ -133,6 +133,8 @@ export const no: Dictionary = {
     cityHits: "Byer",
     dishHits: "Retter som passer",
     popularDishes: "Vanligst akkurat nå",
+    whereDish: "Hvor vil du spise {dish}?",
+    inCities: "{n} byer",
     city: "By",
     cuisine: "Kjøkken",
     allCities: "Alle byer",

@@ -161,6 +161,8 @@ export const sv = {
     cityHits: "Städer",
     dishHits: "Rätter som matchar",
     popularDishes: "Vanligast just nu",
+    whereDish: "Var vill du äta {dish}?",
+    inCities: "{n} städer",
     city: "Stad",
     cuisine: "Kök",
     allCities: "Alla städer",

@@ -132,6 +132,8 @@ export const en: Dictionary = {
     cityHits: "Cities",
     dishHits: "Matching dishes",
     popularDishes: "Most common right now",
+    whereDish: "Where do you want {dish}?",
+    inCities: "{n} cities",
     city: "City",
     cuisine: "Cuisine",
     allCities: "All cities",

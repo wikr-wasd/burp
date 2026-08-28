@@ -1412,6 +1412,32 @@ else
   fail "sökningen visade ingen väg till rättsidan"
 fi
 
+# "Vad är du sugen på" — rättchipsen i hjälten. En rätt som bara finns i en
+# stad går direkt dit; en som finns i flera frågar först vilken.
+HOME=$(curl -s "$BASE/sv")
+
+if grep -q "/sv/sarajevo/ratt/punjene-paprike" <<<"$HOME"; then
+  pass "en rätt i en enda stad länkar direkt till rättsidan"
+else
+  fail "hjältens rättchips saknade den direkta länken"
+fi
+
+# Ćevapi finns i Sarajevo och Mostar. Båda ska ligga i svaret — städerna
+# hämtas inte vid klicket, för då hade valet fått en väntan mitt i sig.
+if grep -q "/sv/sarajevo/ratt/cevapi-10-kom" <<<"$HOME"   && grep -q "/sv/mostar/ratt/cevapi-10-kom" <<<"$HOME"; then
+  pass "en rätt i flera städer bär alla städerna"
+else
+  fail "rätten i flera städer saknade en av sina städer"
+fi
+
+# Utfällningen är en <details> och inte en knapp. Startsidan renderas utan
+# klientkod, och en <button> med en useState bakom sig hade varit död där.
+if grep -q "<summary class=\"chip" <<<"$HOME" && ! grep -q "<button[^>]*class=\"chip" <<<"$HOME"; then
+  pass "valet mellan städer fungerar utan klientkod"
+else
+  fail "rättchipsen låg bakom en knapp som kräver JavaScript"
+fi
+
 # Förslagen medan man skriver. Fältet lovar tre sorters träffar — rätter,
 # restauranger och städer — och rutten ska svara på alla tre.
 SUGGEST=$(curl -s "$BASE/api/search?q=paprik")

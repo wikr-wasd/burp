@@ -7,6 +7,7 @@ import { RestaurantMap, type MapPin } from "@/components/discovery/restaurant-ma
 import { FocusOnHover } from "@/components/discovery/focus-on-hover";
 import { formatMoney } from "@burp/core";
 import { SearchCommand } from "@/components/discovery/search-command";
+import { DishPicker, type PickableDish } from "@/components/discovery/dish-picker";
 import { findDishes } from "@/lib/dishes";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
@@ -176,6 +177,16 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
    */
   const highlights = await restaurantHighlights(restaurants.map((entry) => entry.id));
 
+  /*
+   * Rätterna grupperade per RÄTT, inte per stad.
+   *
+   * `find_dishes` svarar per stad, eftersom det är så en rättsida ser ut. För
+   * chipsen är det fel form: "Ćevapi 10 kom · Sarajevo" och "Ćevapi 10 kom ·
+   * Mostar" bredvid varandra läses som två rätter. Grupperingen gör dem till
+   * ETT val som frågar "var?" när man pekar på det.
+   */
+  const pickable = groupDishesBySlug(dishes);
+
   // Vad öppnar först? Räknas bara när svaret ska visas — annars är det sju
   // dagars slingor per träff i onödan.
   const soonest = closedOnly
@@ -291,7 +302,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
           city={city}
           cuisine={cuisine}
           query={query}
-          dishes={dishes}
+          dishes={pickable}
           cityName={activeCity?.name}
         />
 
@@ -459,7 +470,7 @@ function Hero({
   cuisine?: string;
   query?: string;
   /** Rätter att äta i stället för en ingress om tjänsten. */
-  dishes: readonly { slug: string; name: string; citySlug: string; city: string; restaurants: number }[];
+  dishes: readonly PickableDish[];
   cityName?: string;
 }) {
   return (
@@ -524,33 +535,21 @@ function Hero({
 
             Hjälten säger vad Burp ÄR. Det är rätt en gång, för den som aldrig
             varit här — men det svarar inte på varför man skulle stanna. Raden
-            under gör det: riktiga rätter som verkligen finns i närheten, med
-            väg till sidan som säger var man får dem och vad de kostar.
+            under gör det: riktiga rätter som verkligen finns i närheten.
 
-            Samma rad bär sökträffarna när något söks. Chipsen låg tidigare
-            längre ner, ovanför listan; där hittade de bara den som redan
-            rullat förbi hjälten.
+            Väljaren är också hela "vad är du sugen på"-flödet. Ett eget guidat
+            block bredvid den hade ställt samma fråga två gånger med olika
+            utseende, och den sortens dubblett är hur en startsida blir en
+            samling avdelningar i stället för en sida.
           */}
-          {dishes.length > 0 ? (
-            <nav aria-label={t.home.dishHits} className="mt-6">
-              <p className="label-caps">{query ? t.home.dishHits : t.home.popularDishes}</p>
-              <ul className="mt-2 flex flex-wrap gap-2">
-                {dishes.map((dish) => (
-                  <li key={`${dish.citySlug}-${dish.slug}`}>
-                    <Link
-                      href={localePath(locale, `/${dish.citySlug}/ratt/${dish.slug}`)}
-                      className="chip"
-                    >
-                      {dish.name}
-                      <span className="ml-1.5 opacity-60">
-                        {dish.city} · {dish.restaurants}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          ) : null}
+          <DishPicker
+            locale={locale}
+            dishes={dishes}
+            heading={query ? t.home.dishHits : t.home.popularDishes}
+            whereHeading={t.home.whereDish}
+            citiesLabel={t.home.inCities}
+          />
+
       </div>
     </section>
   );
@@ -857,4 +856,28 @@ function ipOrigin(head: Headers): { latitude: number; longitude: number } | unde
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return undefined;
 
   return { latitude, longitude };
+}
+
+/**
+ * Slår ihop `find_dishes` per rätt.
+ *
+ * Funktionen svarar per stad, för det är formen en rättsida har. Chipsen
+ * behöver den andra formen: ett val per rätt, med städerna som ett andra steg.
+ * Ordningen behålls — den är antal ställen fallande, satt i SQL — och
+ * städerna inom varje rätt ärver den.
+ */
+function groupDishesBySlug(
+  rows: readonly { slug: string; name: string; citySlug: string; city: string; restaurants: number }[],
+): PickableDish[] {
+  const bySlug = new Map<string, PickableDish>();
+
+  for (const row of rows) {
+    const existing = bySlug.get(row.slug);
+    const city = { citySlug: row.citySlug, city: row.city, restaurants: row.restaurants };
+
+    if (existing) existing.cities.push(city);
+    else bySlug.set(row.slug, { slug: row.slug, name: row.name, cities: [city] });
+  }
+
+  return [...bySlug.values()];
 }
