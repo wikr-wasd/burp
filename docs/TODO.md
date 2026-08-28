@@ -108,6 +108,26 @@ fick den en nonce i HTML som återanvänds i en timme. Rättat, och testet läse
 numera app-katalogen i stället för att lita på en lista i huvudet. Se raden om
 CSP under **Näst på tur**.
 
+**Tre dokument som påstod fel saker.** Punkt 8 i Williams lista, *Avhämtning
+med tid och notis*, stod som "halva grunden finns" — den byggdes veckan efter
+att texten skrevs, och alla tre delarna är kontrollerade i koden. `CLAUDE.md`
+lovade en Vercel preview-URL vid varje push till `dev`; den finns inte och har
+aldrig funnits. Och raden *"`/konto`-ytorna talar bara svenska"* i
+**Kända begränsningar** var kvar sedan innan ytorna byggdes om: de läser
+`Accept-Language` genom `requestLocale()` rakt igenom — sidor, serveråtgärder
+och felmeddelanden — inga strängar är hårdkodade i `components/guest/`, och
+`smoke.sh` prövar både *"kroatisk webbläsare får bosniska på kontoytan"* och
+raderat-kvittot på alla fem språken.
+
+En begränsningstabell som räknar upp åtgärdade saker gör de kvarvarande
+osynliga. Raden är borta.
+
+**Ny kontroll: `npm run db:lint`.** `npx supabase db lint` rakt av ger sjutton
+träffar, varav noll i Burps kod — allt kommer ur PostGIS egna funktioner, och
+flera står som `error`. En kontroll som alltid larmar lärs bort. Omslaget
+rapporterar bara funktioner som skapas i `supabase/migrations/` och faller bara
+på `error`-nivå: 104 egna funktioner, inga anmärkningar.
+
 ### Byggt 2026-08-27 — rättsidor och Google-recensioner
 
 Punkt 8 i färdplanen, i två delar. Migrationer `0057` och `0058`.
@@ -1318,7 +1338,6 @@ Medvetna luckor, inte buggar. Var och en ska åtgärdas före sin fas.
 | Kvittots åtkomst går inte att återkalla | `lib/guest-orders.ts` | **Accepterad risk, säkerhetsgenomgången 2026-08-22.** En anonym avhämtningsgäst bevisar åtkomst med en httpOnly-cookie, och skyddet vilar på att order-id är ett slumpat UUID (122 bitar). Modellen är sund — id:t ÄR nyckeln — men den går inte att dra tillbaka: läcker adressen kan vem som helst läsa notan i ett dygn. Referrer-policyn och noindex täcker de vanliga läckvägarna. Ska den bort är vägen ett kortlivat signerat token, som QR-koden redan använder |
 | Ingen automatisk gallring — en gäst som slutar använda tjänsten ligger kvar för alltid | — | Kräver ett svar på hur länge. Öppen fråga 13 |
 | Personal kan inte radera sig själv genom flödet | `erase_guest()` | Anställningen måste avslutas först; ytan för det saknas |
-| `/konto`-ytorna talar bara svenska | `components/guest/` | Strukturfråga, inte glömda strängar: `/konto` ligger utanför `[locale]` och har inget språk i adressen alls. Ytorna är noindex — att läsa `Accept-Language` som kvittona gör räcker |
 | Personalytornas språkväljare är osedd | `components/staff/language-picker.tsx` | Ytorna är översatta och landsspråket påslaget sedan 2026-08-22, men rutan kräver inloggning. Bevisad i SQL — funktionen skriver bara `locale`, bara på `auth.uid()`, och kocken kan inte befordra sig själv. **Behöver göras av William** |
 | `<html lang>` följer inte språksegmentet | `app/layout.tsx` | Next tillåter ett `<html>`, och det ligger utanför segmentet. Språket märks på ett omslutande element i stället |
 | Inga laddningsskelett | — | **Granskat 2026-08-20: bör inte byggas.** Se nedan |
