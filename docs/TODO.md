@@ -1090,6 +1090,28 @@ fråga 15.
 Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
 det utskrivet — och ligger kvar tills beslutet är fattat.
 
+- [ ] **Deployen finns inte — och faller på en cron-rad när den skapas.**
+      Två fynd 2026-08-28, båda kontrollerade mot kontot och mot Vercels egen
+      dokumentation. Se `docs/DEPLOYMENT.md`.
+
+      1. **`* * * * *` går inte på Hobby.** `/api/jobs/send-notices` är satt
+         till varje minut. Hobby tillåter **en gång per dygn**, och ett tätare
+         uttryck *"will fail during deployment"*. Repot går alltså inte att
+         deploya till kontot som det står. Tre vägar: Pro (20 USD/mån),
+         dygnsvist notisjobb (vilket tar bort funktionen snarare än saktar ner
+         den), eller `pg_cron` i Supabase som ringer endpointen.
+         **Kräver ett beslut av dig.**
+
+      2. **Inget Vercel-projekt bygger repot.** `burp-web-admin` är satt till
+         ramverk `vite` och rotkatalog `web-admin` — en katalog som inte finns.
+         Senaste bygget är från 2025-07-02 och föll vid klonsteget. Det finns
+         alltså ingen deploy alls, på någon branch: **preview-flödet i
+         `CLAUDE.md` har aldrig körts.** Skapa ett nytt projekt enligt steg 2.
+         **Kräver dig** — projektinställningar rör jag inte.
+
+      `"regions": ["arn1"]` är däremot i sin ordning: en region, och Hobby
+      tillåter en.
+
 - [ ] **Slå på CSP:n på riktigt.** Den går i rapportläge sedan 2026-08-22 och
       har noll överträdelser på de ytor som gick att pröva.
 

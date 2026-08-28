@@ -7,7 +7,81 @@ göras av dig — stegen nedan är det som återstår.
 |---|---|
 | GitHub | ✅ `github.com/wikr-wasd/burp`, brancher `main` och `dev` |
 | Supabase | ⏳ blockerad av free tier-taket, se steg 1 |
-| Vercel | ⏳ kräver inloggning, se steg 2 |
+| Vercel | ⛔ **inget projekt bygger repot.** Se steg 2 och spärren nedan |
+
+---
+
+## Spärren: cron var minut går inte på Hobby
+
+**Kontrollerat 2026-08-28 mot Vercels egen dokumentation och mot kontot.**
+
+Kontot `wikr-wasd's projects` ligger på **Hobby**. `vercel.json` innehåller två
+cron-jobb:
+
+| Sökväg | Schema | Hobby |
+|---|---|---|
+| `/api/jobs/expire-loyalty` | `0 4 * * *` | ✅ en gång per dygn |
+| `/api/jobs/send-notices` | `* * * * *` | ⛔ **faller vid deploy** |
+
+Vercels dokumentation (`/docs/cron-jobs/usage-and-pricing`, uppdaterad
+2026-07-15) är otvetydig: på Hobby är minsta intervall **en gång per dygn**, och
+*"cron expressions that would run more frequently will fail during deployment"*
+med felet *"Hobby accounts are limited to daily cron jobs."*
+
+**Repot går alltså inte att deploya till det här kontot som det står.** Det
+faller innan bygget ens börjar, och felet handlar om en cron-rad — inte om
+koden — vilket är precis den sortens fel man letar på fel ställe i en timme.
+
+### Tre vägar, och de kostar olika saker
+
+**A. Pro, 20 USD/månad.** Cron per minut, fem funktionsregioner. Notiserna
+behåller sin takt och ingenting i koden ändras. Supabase behöver troligen Pro
+ändå (se steg 1), så det är två uppgraderingar som hänger ihop.
+
+**B. Dygnsvis notisjobb.** En rad i `vercel.json`. Men `sendPendingNotices()`
+finns för att nå gästen **medan hon väntar på sin mat** — ett dygnsvist
+notisjobb är inte en långsammare version av den funktionen, det är ingen
+funktion alls. Brevet skickas i samma jobb, så det försvinner med.
+
+**C. Supabase `pg_cron` + `pg_net` ringer endpointen.** Takten flyttar till
+databasen och Vercel-planen slutar spela roll. Endpointen kräver redan
+`CRON_SECRET`, så det som behövs är ett schemalagt anrop med rätt huvud —
+och nyckeln måste då ligga i **Supabase Vault**, aldrig i en migration.
+Mer att bygga och ett beroende till, men ingen månadskostnad.
+
+`expire-loyalty` klarar sig på alla tre: den är dygnsvis redan.
+
+### Regionen är däremot inget problem
+
+`"regions": ["arn1"]` är **en** region, och Hobby tillåter en. Flera hade fallit
+före bygget; en gör det inte.
+
+---
+
+## Använd inte projektet `burp-web-admin`
+
+Det finns ett Vercel-projekt med det namnet, och det är inte Burp:
+
+| | Värde | Borde vara |
+|---|---|---|
+| Framework | `vite` | `nextjs` |
+| Root Directory | `web-admin` | repo-roten (`./`) |
+| Senaste bygge | 2025-07-02, `ERROR` | — |
+| `live` | `false` | — |
+
+Byggloggen säger *"The specified Root Directory 'web-admin' does not exist."*
+Katalogen finns inte i repot och har aldrig funnits i den här kodbasen —
+projektet är ett arv från en tidigare app med samma namn, och det pekar dessutom
+på ett `githubRepoId` från innan repot skapades om.
+
+Det har **aldrig byggt den här koden**, och det finns ingen deploy — varken
+produktion eller preview — på någon branch. Deploy-flödet i `CLAUDE.md` säger
+att varje push till `dev` ger en preview; det stämmer inte i dag, eftersom
+ingenting är kopplat.
+
+**Skapa ett nytt projekt** enligt steg 2 i stället för att rätta det gamla. Ett
+projekt som bytt ramverk, rotkatalog och repo är enklare att göra om än att
+justera.
 
 ---
 
