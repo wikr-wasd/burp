@@ -916,7 +916,9 @@ export const en: Dictionary = {
       mfaDisableConfirm:
         "Turn off two-step verification? The account will then be protected by its password alone.",
       mfaEnabled: "Done. The next sign-in will ask for a code.",
-      mfaFailed: "That did not work. Try again.",
+      mfaNotEnabled:
+      "Two-step verification is not switched on for Burp yet. Get in touch and we will sort it out.",
+    mfaFailed: "That did not work. Try again.",
       mfaCodeFailed:
         "The code does not match. Check that the phone clock is correct and try again.",
       mfaLoading: "Reading your login…",

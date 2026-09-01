@@ -66,6 +66,56 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Rättat 2026-09-01 — tvåstegsverifieringen var aldrig påslagen
+
+**Hela funktionen var död från migration 0051 (2026-08-22) till 2026-09-01.**
+
+Supabase Auth har TOTP avstängt som standard, och `supabase/config.toml` slog
+aldrig på det. Varje försök att registrera en faktor fick:
+
+```
+{"code":422,"error_code":"mfa_totp_enroll_not_enabled",
+ "msg":"MFA enroll is disabled for TOTP"}
+```
+
+Schemat, RLS-grinden i `mfa_satisfied()`, panelen i personalens inställningar,
+återställningen i backoffice och omdirigeringen i `proxy.ts` fungerade var för
+sig. Ingen kunde registrera en faktor, alltså slog grinden aldrig till för
+någon — och panelen visade samma allmänna felmeddelande som för ett
+nätverksfel, så ingenting pekade på orsaken.
+
+**Varför röktestet inte fångade det.** Kontrollen skrev raden direkt i
+`auth.mfa_factors` med SQL för att pröva databasgrinden. Den vägen finns inte
+för en människa. Det är samma mönster som `item_availability`: två av tre
+räckte inte.
+
+Rättat i tre delar:
+
+- `supabase/config.toml` slår på `[auth.mfa.totp]` för den lokala stacken.
+- Panelen skiljer `mfa_totp_enroll_not_enabled` från allt annat och säger att
+  funktionen inte är påslagen — i stället för att bara säga att det gick fel.
+  Skälet loggas dessutom till konsolen oavsett.
+- `smoke.sh` registrerar en **riktig** faktor över API:t, räknar fram koden ur
+  hemligheten med node, verifierar den och kontrollerar att sessionen blir
+  `aal2`. Sedan städas faktorn bort — en kvarlämnad verifierad faktor låser ute
+  seed-ägaren från varje efterföljande körning.
+
+⚠️ **Molnprojektet ärver ingenting från `config.toml`.** Där slås samma sak på
+under Authentication → Multi-Factor Authentication. Det står numera som en
+punkt i `docs/DEPLOYMENT.md`.
+
+### Byggt 2026-09-01 — VAPID-nycklar genereras lokalt
+
+Push har legat oanvändbart sedan migration 0050 på ett kommando ingen körde.
+`node scripts/write-local-env.mjs` genererar numera ett P-256-par själv — inget
+konto, ingen kostnad, ingen `web-push`-import — och skriver båda raderna i
+`.env.local`. Paret genereras bara när BÅDA saknas: ett halvt par är värre än
+inget, eftersom den publika nyckeln ligger i webbläsarens prenumeration och ett
+byte av den privata gör varje registrerad enhet onåbar utan att något syns.
+
+Produktionen behöver ett eget par i Vercels miljö. Det står kvar som en rad
+under **Näst på tur**.
+
 ### Byggt 2026-08-28 — startsidan är en förstaskärm, inte en karta
 
 Ingen migration. Bara `[locale]/page.tsx`, `globals.css` och fem ordböcker.

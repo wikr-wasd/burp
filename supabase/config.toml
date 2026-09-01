@@ -56,5 +56,33 @@ enable_confirmations = false  # Endast lokalt. I prod ska bekräftelse krävas.
 [auth.sms]
 enable_signup = false
 
+# ── Tvåstegsverifiering ──────────────────────────────────────────────────────
+#
+# MÅSTE stå här. Supabase Auth har TOTP AVSTÄNGT som standard, och utan de här
+# raderna svarar /auth/v1/factors:
+#
+#   {"code":422,"error_code":"mfa_totp_enroll_not_enabled",
+#    "msg":"MFA enroll is disabled for TOTP"}
+#
+# Hela funktionen var därmed död från migration 0051 (2026-08-22) till
+# 2026-09-01: schemat, RLS-grinden, gränssnittet och återställningen i
+# backoffice fanns och fungerade var för sig — men ingen kunde registrera en
+# faktor, alltså slog `mfa_satisfied()` aldrig till för någon.
+#
+# Att det inte syntes berodde på att röktestet prövade DATABASGRINDEN genom att
+# skriva en rad direkt i `auth.mfa_factors`. Den vägen finns inte för en
+# människa. `smoke.sh` registrerar numera en riktig faktor över API:t.
+#
+# ⚠️ Den här filen gäller BARA den lokala stacken. I molnet slås samma sak på
+# under Authentication → Multi-Factor Authentication i Supabase-dashboarden.
+# Se docs/DEPLOYMENT.md.
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
 [analytics]
 enabled = false

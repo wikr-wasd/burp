@@ -1257,7 +1257,21 @@ export const sv = {
       mfaDisableConfirm:
         "Stäng av tvåstegsverifieringen? Kontot skyddas då bara av sitt lösenord.",
       mfaEnabled: "Klart. Nästa inloggning frågar efter en kod.",
-      mfaFailed: "Det gick inte. Försök igen.",
+      /*
+     * Skilj "avstängt för hela Burp" från "det gick inte just nu".
+     *
+     * Supabase har TOTP avstängt som standard, och svarar då
+     * `mfa_totp_enroll_not_enabled`. Panelen visade förut samma allmänna
+     * felmeddelande som för ett nätverksfel, och just därför låg funktionen
+     * död från 2026-08-22 till 2026-09-01 utan att någon kunde se varför.
+     *
+     * Den som läser det här kan inte åtgärda det själv — det är en
+     * projektinställning — så texten ber hen höra av sig i stället för att
+     * försöka igen.
+     */
+    mfaNotEnabled:
+      "Tvåstegsverifiering är inte påslagen för Burp än. Hör av dig till oss så ordnar vi det.",
+    mfaFailed: "Det gick inte. Försök igen.",
       mfaCodeFailed:
         "Koden stämmer inte. Kontrollera att telefonens klocka går rätt och försök igen.",
       mfaLoading: "Läser inloggningen…",

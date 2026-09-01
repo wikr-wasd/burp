@@ -15,12 +15,40 @@
  */
 
 import { execSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/**
+ * Ett VAPID-nyckelpar, utan `web-push` och utan konto någonstans.
+ *
+ * VAPID identifierar Burp för webbläsarens egen pushtjänst. Det finns ingen
+ * leverantör att registrera sig hos och ingenting att betala — nyckelparet är
+ * ett vanligt P-256-par, och det är hela hemligheten. Ändå har push legat
+ * oanvändbart sedan migration 0050 (2026-08-23) på ett kommando som ingen
+ * körde.
+ *
+ * Räknas här i stället för med `web-push`s egen hjälpare, av samma skäl som
+ * resten av skriptet inte importerar något ur `apps/web`: skriptet ska gå att
+ * köra innan beroendena är installerade.
+ *
+ * Formatet är det pushtjänsterna kräver: den publika nyckeln som den
+ * okomprimerade punkten `0x04 || x || y`, den privata som själva skalären.
+ * Båda base64url utan utfyllnad — JWK levererar dem redan så.
+ */
+function vapidKeyPair() {
+  const { publicKey, privateKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const pub = publicKey.export({ format: "jwk" });
+  const priv = privateKey.export({ format: "jwk" });
+
+  const b64 = (value) => Buffer.from(value, "base64url");
+  const point = Buffer.concat([Buffer.from([0x04]), b64(pub.x), b64(pub.y)]);
+
+  return { publicKey: point.toString("base64url"), privateKey: priv.d };
+}
 const envPath = join(root, "apps", "web", ".env.local");
 
 let statusOutput;
@@ -90,6 +118,34 @@ if (!/^CRON_SECRET=.+$/m.test(existing)) {
   updates.CRON_SECRET = randomBytes(24).toString("base64url");
 }
 
+/*
+ * VAPID — utan dem når push ingen, varken personalens larm eller gästens
+ * besked. Vägen är byggd hela vägen sedan migration 0050; det som saknades var
+ * två rader i miljön.
+ *
+ * Paret genereras bara när BÅDA saknas. Ett halvt par är värre än inget: den
+ * publika nyckeln ligger i webbläsarens prenumeration, och byts den privata
+ * ensam slutar varje redan registrerad enhet att gå att nå — tyst, eftersom
+ * pushtjänsten svarar 403 och ingen läser det svaret.
+ *
+ * De här är UTVECKLINGSNYCKLAR. Produktionen har sina egna, satta i Vercel,
+ * och de ska aldrig vara samma.
+ */
+const hasPublicVapid = /^NEXT_PUBLIC_VAPID_PUBLIC_KEY=.+$/m.test(existing);
+const hasPrivateVapid = /^VAPID_PRIVATE_KEY=.+$/m.test(existing);
+
+if (!hasPublicVapid && !hasPrivateVapid) {
+  const pair = vapidKeyPair();
+  updates.NEXT_PUBLIC_VAPID_PUBLIC_KEY = pair.publicKey;
+  updates.VAPID_PUBLIC_KEY = pair.publicKey;
+  updates.VAPID_PRIVATE_KEY = pair.privateKey;
+} else if (hasPublicVapid !== hasPrivateVapid) {
+  console.warn(
+    "VARNING: bara halva VAPID-paret står i .env.local. Push är avstängd tills\n" +
+      "         båda finns. Ta bort raden som står kvar och kör om skriptet.",
+  );
+}
+
 let output = existing;
 for (const [key, value] of Object.entries(updates)) {
   const line = `${key}=${value}`;
@@ -114,3 +170,8 @@ writeFileSync(envPath, `${header}\n\n${body.trimStart()}`, "utf8");
 
 console.log(`Skrev apps/web/.env.local mot ${apiUrl}`);
 console.log("Kör `npm run dev` och sedan `node scripts/print-qr-links.mjs` för bordslänkarna.");
+
+if (updates.VAPID_PRIVATE_KEY) {
+  console.log("Genererade ett VAPID-par — webbpush går nu att prova lokalt.");
+  console.log("Produktionen behöver ett EGET par i Vercels miljö. Se docs/DEPLOYMENT.md.");
+}

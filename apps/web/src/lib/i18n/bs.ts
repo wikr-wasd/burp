@@ -954,7 +954,9 @@ export const bs: Dictionary = {
       mfaDisableConfirm:
         "Isključiti dvofaktorsku prijavu? Račun će tada čuvati samo lozinka.",
       mfaEnabled: "Gotovo. Sljedeća prijava tražit će kod.",
-      mfaFailed: "Nije uspjelo. Pokušajte ponovo.",
+      mfaNotEnabled:
+      "Provjera u dva koraka još nije uključena za Burp. Javite nam se i riješit ćemo to.",
+    mfaFailed: "Nije uspjelo. Pokušajte ponovo.",
       mfaCodeFailed:
         "Kod se ne poklapa. Provjerite da li je sat na telefonu tačan i pokušajte ponovo.",
       mfaLoading: "Učitavanje prijave…",

@@ -78,7 +78,29 @@ export function MfaSettings({ labels }: { labels: MfaSettingsLabels }) {
     });
 
     if (enrollError || !data) {
-      setError(labels.failed);
+      /*
+       * Skilj den avstängda funktionen från allt annat.
+       *
+       * Supabase har TOTP AVSTÄNGT som standard och svarar då 422 med
+       * `mfa_totp_enroll_not_enabled`. Panelen visade tidigare samma allmänna
+       * text som för ett nätverksfel — och det är exakt därför hela
+       * tvåstegsverifieringen låg död från migration 0051 (2026-08-22) till
+       * 2026-09-01 utan att någon kunde se varför. Schemat, RLS-grinden,
+       * gränssnittet och återställningen i backoffice fungerade var för sig;
+       * det gick bara inte att registrera en faktor.
+       *
+       * Lokalt slås den på i `supabase/config.toml`, i molnet under
+       * Authentication → Multi-Factor Authentication.
+       *
+       * Skälet loggas dessutom oavsett. Ett fel som bara syns som en översatt
+       * mening i ett kort kan inte felsökas av den som får rapporten.
+       */
+      const reason =
+        enrollError && "code" in enrollError ? String(enrollError.code) : undefined;
+
+      console.error("[burp] mfa.enroll misslyckades", enrollError);
+
+      setError(reason === "mfa_totp_enroll_not_enabled" ? labels.notEnabled : labels.failed);
       setBusy(false);
       return;
     }

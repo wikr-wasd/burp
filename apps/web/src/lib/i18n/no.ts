@@ -919,7 +919,9 @@ export const no: Dictionary = {
       mfaDisableConfirm:
         "Slå av tostegsverifiseringen? Kontoen beskyttes da bare av passordet sitt.",
       mfaEnabled: "Ferdig. Neste innlogging spør etter en kode.",
-      mfaFailed: "Det gikk ikke. Prøv igjen.",
+      mfaNotEnabled:
+      "Tostegsbekreftelse er ikke slått på for Burp ennå. Ta kontakt, så ordner vi det.",
+    mfaFailed: "Det gikk ikke. Prøv igjen.",
       mfaCodeFailed:
         "Koden stemmer ikke. Sjekk at klokken på telefonen går riktig, og prøv igjen.",
       mfaLoading: "Leser innloggingen…",

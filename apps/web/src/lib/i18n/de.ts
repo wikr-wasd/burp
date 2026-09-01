@@ -927,7 +927,9 @@ export const de: Dictionary = {
       mfaDisableConfirm:
         "Zwei-Faktor-Anmeldung ausschalten? Das Konto ist dann nur durch sein Passwort geschützt.",
       mfaEnabled: "Fertig. Die nächste Anmeldung fragt nach einem Code.",
-      mfaFailed: "Das hat nicht geklappt. Versuchen Sie es erneut.",
+      mfaNotEnabled:
+      "Die Zwei-Schritt-Verifizierung ist für Burp noch nicht aktiviert. Melden Sie sich bei uns, wir kümmern uns darum.",
+    mfaFailed: "Das hat nicht geklappt. Versuchen Sie es erneut.",
       mfaCodeFailed:
         "Der Code stimmt nicht. Prüfen Sie, ob die Uhr des Telefons richtig geht, und versuchen Sie es erneut.",
       mfaLoading: "Anmeldung wird gelesen…",

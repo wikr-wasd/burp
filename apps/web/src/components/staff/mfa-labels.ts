@@ -27,6 +27,8 @@ export interface MfaSettingsLabels {
   disableConfirm: string;
   enabled: string;
   failed: string;
+  /** Funktionen är avstängd på Supabase-projektet — inte ett fel personen kan rätta. */
+  notEnabled: string;
   codeFailed: string;
   loading: string;
 }
@@ -45,6 +47,7 @@ export function mfaLabels(t: Dictionary["staff"]["settings"]): MfaSettingsLabels
     disableConfirm: t.mfaDisableConfirm,
     enabled: t.mfaEnabled,
     failed: t.mfaFailed,
+    notEnabled: t.mfaNotEnabled,
     codeFailed: t.mfaCodeFailed,
     loading: t.mfaLoading,
   };

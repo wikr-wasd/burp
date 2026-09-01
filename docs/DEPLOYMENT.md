@@ -222,6 +222,16 @@ Utöver de öppna frågorna i `OPEN-QUESTIONS.md`:
 - [ ] Byt rate limitern mot Redis — den nuvarande ligger i processminnet och
       ger varje Vercel-instans en egen räknare (`apps/web/src/lib/rate-limit.ts`)
 - [ ] Slå på e-postbekräftelse i Supabase Auth (avstängt lokalt)
+- [ ] **Slå på TOTP i Supabase Auth** — Authentication → Multi-Factor
+      Authentication. Utan det svarar `/auth/v1/factors` med
+      `mfa_totp_enroll_not_enabled` och **hela tvåstegsverifieringen är död**:
+      ingen kan registrera en faktor, alltså slår `mfa_satisfied()` aldrig till
+      för någon, och panelen visar bara att "det gick inte".
+
+      Det var precis vad som gällde lokalt från 2026-08-22 till 2026-09-01.
+      `supabase/config.toml` slår numera på det för den lokala stacken, och
+      `smoke.sh` registrerar en riktig faktor över API:t — men molnprojektet
+      har sin egen inställning och ärver ingenting från filen.
 - [ ] Sätt `NEXT_PUBLIC_SITE_URL` och Supabase `Site URL` till riktiga domänen
 - [ ] Aktivera daglig backup (kräver Pro)
 - [ ] Kör `npm run db:lint` och gå igenom Security Advisor i dashboarden

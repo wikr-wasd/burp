@@ -823,6 +823,107 @@ if [ -n "$MFA_OWNER" ] && [ -n "$OWNER_TOKEN" ]; then
   else
     fail "åtkomsten kom inte tillbaka när faktorn togs bort ($BEFORE -> $AFTER)"
   fi
+
+  # ── Går det ens att REGISTRERA en faktor? ────────────────────────────────
+  #
+  # Kontrollen ovanför skriver raden direkt i `auth.mfa_factors` med SQL. Den
+  # bevisar att databasgrinden håller — men den vägen finns inte för en
+  # människa, och därför missade den att hela funktionen var död.
+  #
+  # Supabase har TOTP AVSTÄNGT som standard. Från migration 0051 (2026-08-22)
+  # till 2026-09-01 svarade /auth/v1/factors:
+  #
+  #   {"code":422,"error_code":"mfa_totp_enroll_not_enabled"}
+  #
+  # Schemat, RLS-grinden, panelen och återställningen i backoffice fungerade
+  # var för sig. Ingen kunde registrera en faktor, alltså slog `mfa_satisfied()`
+  # aldrig till för någon — och panelen visade samma allmänna felmeddelande som
+  # för ett nätverksfel.
+  #
+  # Den här kontrollen går hela vägen en människa går: registrera, hämta
+  # utmaning, räkna fram koden ur hemligheten, verifiera, och kontrollera att
+  # sessionen faktiskt blev aal2.
+  ENROLL=$(curl -s -X POST "$SUPABASE_URL/auth/v1/factors" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"factor_type":"totp","friendly_name":"smoke-api"}')
+
+  FACTOR_ID=$(json_field id <<<"$ENROLL")
+
+  if [ -z "$FACTOR_ID" ]; then
+    if grep -q "mfa_totp_enroll_not_enabled" <<<"$ENROLL"; then
+      fail "TOTP är avstängt i Supabase — slå på [auth.mfa.totp] i supabase/config.toml (lokalt) och Authentication → Multi-Factor Authentication (molnet)"
+    else
+      fail "faktorn gick inte att registrera: $ENROLL"
+    fi
+  else
+    # `json_field` läser bara toppnivån; hemligheten ligger under `totp`.
+    SECRET=$(node -e '
+      let raw=""; process.stdin.on("data",c=>raw+=c);
+      process.stdin.on("end",()=>{ try{ process.stdout.write(String(JSON.parse(raw).totp?.secret ?? "")); }catch{ process.stdout.write(""); } });
+    ' <<<"$ENROLL")
+
+    CHALLENGE=$(curl -s -X POST "$SUPABASE_URL/auth/v1/factors/$FACTOR_ID/challenge" \
+      -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+      -H "Content-Type: application/json" -d '{}')
+    CHALLENGE_ID=$(json_field id <<<"$CHALLENGE")
+
+    # Koden räknas med node, som redan krävs för att bygga projektet. Ingen
+    # ny beroendekedja för ett test.
+    CODE=$(node -e '
+      const c=require("crypto");
+      const A="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+      const s=process.argv[1].replace(/=+$/,"").toUpperCase();
+      let bits=""; for(const ch of s){const i=A.indexOf(ch); if(i>=0) bits+=i.toString(2).padStart(5,"0");}
+      const bytes=Buffer.from((bits.match(/.{8}/g)||[]).map(b=>parseInt(b,2)));
+      const t=Math.floor(Date.now()/1000/30);
+      const buf=Buffer.alloc(8); buf.writeUInt32BE(Math.floor(t/2**32),0); buf.writeUInt32BE(t>>>0,4);
+      const h=c.createHmac("sha1",bytes).update(buf).digest();
+      const o=h[h.length-1]&15;
+      process.stdout.write((((h.readUInt32BE(o)&0x7fffffff)%1e6)+"").padStart(6,"0"));
+    ' "$SECRET")
+
+    VERIFY=$(curl -s -X POST "$SUPABASE_URL/auth/v1/factors/$FACTOR_ID/verify" \
+      -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "{\"challenge_id\":\"$CHALLENGE_ID\",\"code\":\"$CODE\"}")
+
+    AAL2_TOKEN=$(json_field access_token <<<"$VERIFY")
+
+    if [ -n "$AAL2_TOKEN" ]; then
+      pass "en riktig TOTP-faktor går att registrera och verifiera"
+    else
+      fail "koden godtogs inte: $VERIFY"
+    fi
+
+    # aal:et står i nyttolasten, mitt i token:en. Läses ut som ren text —
+    # base64url utan padding, därför tr och en påfyllnad i node.
+    AAL=$(node -e '
+      const p=process.argv[1].split(".")[1];
+      if(!p){process.stdout.write("");}else{
+        const j=JSON.parse(Buffer.from(p.replace(/-/g,"+").replace(/_/g,"/"),"base64").toString());
+        process.stdout.write(String(j.aal||""));
+      }' "${AAL2_TOKEN:-}")
+
+    if [ "$AAL" = "aal2" ]; then
+      pass "sessionen blir aal2 efter verifierad kod"
+    else
+      fail "sessionen blev inte aal2 efter verifiering (aal=$AAL)"
+    fi
+
+    # Städas bort direkt. En kvarlämnad verifierad faktor låser ute
+    # seed-ägaren från varje efterföljande körning — inklusive nästa gång
+    # någon kör röktestet.
+    curl -s -X DELETE "$SUPABASE_URL/auth/v1/factors/$FACTOR_ID" \
+      -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" > /dev/null
+
+    LEFTOVER=$(sql "select count(*) from auth.mfa_factors where user_id = '$MFA_OWNER';" | head -1 | tr -d ' ')
+    if [ "${LEFTOVER:-x}" = "0" ]; then
+      pass "provfaktorn städades bort"
+    else
+      fail "provfaktorn ligger kvar ($LEFTOVER st) — seed-ägaren är låst"
+    fi
+  fi
 else
   printf '  \033[33mhopp\033[0m  andra faktorn i RLS (2 kontroller) — saknade ägare eller token\n'
 fi
