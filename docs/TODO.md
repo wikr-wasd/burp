@@ -11,7 +11,7 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-08-28**, branch `dev`.
+Senast uppdaterad **2026-09-01**, branch `dev`.
 
 Fas 1 är byggd i sin helhet, och **kortbetalning ingår nu**. Produkten går att
 använda rakt igenom: en gäst skannar en dekal, beställer vid bordet, betalar med
@@ -65,6 +65,63 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   upptäcktslistorna har samma tak på åtta rader med "Alla städer" som
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
+
+### Byggt 2026-09-01 — avgiften ändras inte längre av ett felklick
+
+Migration `0062`, `fee_changes`.
+
+Procentsatsen per restaurang fanns redan — `fee_override_bps` sedan migration
+0002, fältet i backoffice sedan dess. Men den var inte byggd för det den
+används till: fältet skrevs så fort det tappade fokus. Ingen bekräftelse, ingen
+anteckning, ingen historik. Ett felklick ändrade vad en restaurang betalar, och
+efteråt gick det inte att svara på vem, när, från vad eller varför.
+
+Kravet är att avgiften bara ändras **vid undantagsfall**. En regel som bara
+finns i någons huvud är ingen regel.
+
+- Tabellen är **oföränderlig** som `order_events`, samma
+  `reject_mutation()`-trigger.
+- **Skälet är obligatoriskt**, minst tre tecken. En rad där `previous_bps` och
+  `new_bps` är lika avvisas — brus i en logg som ska gå att lita på.
+- **NULL betyder Burps standard, inte noll.** Skillnaden avgör om restaurangen
+  följer med när standarden ändras.
+- **Aktörens adress skrivs av på raden.** `auth.users` är inte läsbar genom
+  RLS, och en revisionslogg ska bära vem det VAR även om personen byter adress
+  eller slutar.
+- **Loggraden skrivs FÖRE uppdateringen.** De två skrivningarna är ingen
+  transaktion — PostgREST har ingen — så motsatt ordning hade kunnat ge en
+  ändrad avgift utan spår. Nu blir felet i stället en loggrad som påstår en
+  ändring som inte skedde: synligt och rättningsbart.
+
+Gränssnittet är stängt tills man öppnar det och visar senaste ändringen kvar i
+listan. Fyra kontroller i `smoke.sh`, inklusive att en PATCH som svarar **204**
+ändå inte ändrar en rad — kontrollen mäter datan, inte statuskoden.
+
+### Byggt 2026-09-01 — systemstatus i backoffice
+
+`lib/readiness.ts` + `components/platform/system-status.tsx`.
+
+Tvåstegsverifieringen låg död i tio dagar utan att något i produkten sa det.
+Det är inte ett engångsfel utan en form: **en funktion kan vara fullt byggd och
+helt avstängd på en rad i miljön.** Push har legat så sedan 0050, brev sedan
+`sendEmail()` skrevs, kortbetalning sedan Stripe-adaptern blev klar.
+
+Listan säger vad som är påslaget: QR, push, brev, ansökningar, kort,
+bakgrundsjobb, kartrutor, felrapportering. Ren funktion som tar miljön som
+argument — 19 tester.
+
+**Tre lägen och inte två.** `off` är ett medvetet läge; `degraded` är farligare,
+för det ser påslaget ut och är det inte. Ett halvt VAPID-par är exemplet: den
+publika nyckeln ligger i webbläsarens prenumeration, och byts den privata ensam
+blir varje registrerad enhet onåbar utan att något syns.
+
+Panelen ligger i backoffice och **inte** på `/api/health` — hälsokontrollen är
+publik, och en lista över vilka nycklar som saknas är spaningshjälp åt vem som
+helst.
+
+Listan skriver ut sin egen blinda fläck: tvåstegsverifieringen går inte att
+läsa av, för Supabase rapporterar inte TOTP-läget. Den prövas av `smoke.sh` i
+stället.
 
 ### Rättat 2026-09-01 — tvåstegsverifieringen var aldrig påslagen
 
@@ -1190,6 +1247,50 @@ fråga 15.
 
 Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
 det utskrivet — och ligger kvar tills beslutet är fattat.
+
+- [ ] **E-postutskick till registrerade kunder — VÄNTAR PÅ DITT BESKED.**
+      Beställt 2026-09-01. Ingenting är byggt, och formen avgör vad som byggs.
+
+      Vad som redan finns: automatiska brev vid ny order, ny bokning, ny
+      restaurangansökan, och gästens besked när maten tas emot och blir klar.
+      Alla går genom `sendEmail()` och skrivs bara i loggen utan
+      `RESEND_API_KEY`.
+
+      Vad som **inte** finns: att du som ägare skriver ett brev och skickar det
+      till registrerade kunder.
+
+      **Två saker avgör formen:**
+
+      1. **Samtycket finns redan** — `profiles.marketing_opt_in`, migration
+         0002, med `false` som standard. Ett utskick får bara gå till dem som
+         kryssat i, annars är det olagligt. Och eftersom standardvärdet är
+         `false` är listan i dag **med största sannolikhet tom**: rutan finns
+         inte där gästen skapar konto. Utan den steget är utskicksverktyget en
+         yta utan mottagare.
+      2. **Fritext eller mallar?** Antingen skriver du varje brev för hand och
+         skickar, eller så redigerar du mallar som systemet skickar automatiskt
+         vid händelser (välkomstbrev, "vi saknar dig"). Det är två olika
+         produkter och två olika bygg.
+
+      Svara på 2, så byggs 1 med i samma veva.
+
+- [ ] **Sentry-DSN.** SDK:n är installerad, konfigurerad och skrubbad sedan
+      2026-09-01, men rapporterar ingenting utan DSN. Organisationen finns
+      redan: `123ab` på **EU-regionen** (`de.sentry.io`). Använd en DSN
+      därifrån — DSN:en bär regionen. `NEXT_PUBLIC_SENTRY_DSN` i miljön.
+      **Kräver dig, inte kod.**
+
+- [ ] **Mobilvyn går inte att granska på den här maskinen.** `resize_window`
+      ändrar OS-fönstret men inte viewporten — `innerWidth` stod kvar på 1280
+      efter en begäran om 400. Bekräftat både 2026-08-22 och 2026-09-01.
+
+      Det betyder att startsidans skyltfönster som snap-rulle, den klistrade
+      filterradens höjd och hela QR-flödet i en hand är **osett**, och det är
+      den yta som betyder mest.
+
+      Två vägar: du tittar själv på en telefon, eller så kopplas en
+      Playwright-MCP in som ger en riktig mobilviewport. Den senare är den enda
+      anslutning som skulle låsa upp arbete som inte går att göra i dag.
 
 - [ ] **Ställ tillbaka notisjobbet till `* * * * *` när kontot blir Pro.**
       En rad i `vercel.json`, ingenting annat.
