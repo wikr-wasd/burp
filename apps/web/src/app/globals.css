@@ -1072,14 +1072,34 @@ body {
  * klientkomponent, ingenting som körs när fliken ligger i bakgrunden. Sidan
  * renderas på servern och ska fortsätta göra det.
  *
+ * ── Två spärrar, inte en ───────────────────────────────────────────────────
+ *
  * Regeln ligger INNANFÖR `@supports`. Skrevs `opacity: 0` som utgångsläge
  * utanför den, skulle varje webbläsare utan stöd — Firefox idag — visa en tom
- * lista. Ett effektfel får aldrig bli ett innehållsfel.
+ * lista.
+ *
+ * Fyllnadsläget är `forwards` och inte `both`, och det är den andra spärren.
+ * `both` fyller åt BÅDA håll: ett element vars tidslinje står kvar FÖRE sitt
+ * intervall håller då kvar `from`-läget, alltså `opacity: 0`. Det inträffade
+ * 2026-09-01 i en långlivad dev-session — de tre stegen i "Vid bordet" låg
+ * osynliga med `playState: running` och negativ tidslinjetid, och skärmbilden
+ * visade en tom yta. Det gick inte att reproducera på en ren omladdning, och
+ * inget val av `animation-range` rättade det.
+ *
+ * Med `forwards` gäller elementets egen stil före intervallet, alltså synlig.
+ * Skillnaden syns aldrig i normal drift: intervallet börjar när elementets
+ * överkant når fönstrets underkant, och före det är elementet utanför bild.
+ * Uppmätt på fyra scrollägen med båda lägena — identisk utdata.
+ *
+ * Det är hela poängen: skillnaden mellan `both` och `forwards` är skillnaden
+ * mellan "effekten uteblev" och "innehållet är borta". **Ett effektfel får
+ * aldrig bli ett innehållsfel** — och den regeln höll bara för webbläsare utan
+ * stöd, inte för en tidslinje som fastnat.
  */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .reveal {
-      animation: burp-reveal linear both;
+      animation: burp-reveal linear forwards;
       animation-timeline: view();
       animation-range: entry 0% entry 60%;
     }
