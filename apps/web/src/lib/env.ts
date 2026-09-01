@@ -46,6 +46,20 @@ const publicSchema = z.object({
    * skicka. Den privata ligger i `serverSchema` och lämnar aldrig servern.
    */
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
+
+  /**
+   * Sentrys DSN. Frivillig — utan den rapporteras ingenting.
+   *
+   * `NEXT_PUBLIC_` med flit. En DSN är en adress att skicka till och inte en
+   * nyckel att skydda; den ligger i klientbunten hos varje sajt som använder
+   * Sentry. Två variabler för samma värde hade bara gett ett ställe att
+   * glömma.
+   *
+   * ⚠️ DSN:en bär REGIONEN. Organisationen ligger på EU (`de.sentry.io`), och
+   * en DSN från ett annat projekt skickar felrapporter — som kan bära
+   * restaurang- och ordersammanhang — ut ur EU utan att någon beslutat det.
+   */
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
 });
 
 const serverSchema = z.object({
@@ -121,6 +135,7 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_MAP_TILE_ATTRIBUTION: process.env.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+  NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;

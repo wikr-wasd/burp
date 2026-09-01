@@ -48,6 +48,9 @@ export default async function proxy(request: NextRequest) {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     mapTileUrl:
       process.env.NEXT_PUBLIC_MAP_TILE_URL ?? "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    // Utan den blockeras varje felrapport när policyn slås på — tyst, och
+    // just när rapporterna behövs som mest.
+    sentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   });
 
   const requestHeaders = new Headers(request.headers);

@@ -856,12 +856,22 @@ Ingenting går vidare här utan svar.
       standardvärdet, tillåter inte publika tjänster. Bytet är två
       miljövariabler och ingen kod. MapTiler är förstahandsförslaget — deras
       gratisnivå räcker, och en egen stil kan rita bort blått.
-- [ ] **Sentry — eller ett medvetet nej.** Beställt 2026-08-21, och
-      kontrollerat: inget `@sentry/*`, ingen `instrumentation.ts`, ingen
-      `sentry.*.config.ts`. **Ingenting rapporterar fel från produktion i
-      dag.** Ett fel i en route handler syns i Vercels logg om någon råkar
-      titta, och aldrig annars. Gratisnivån räcker länge; kräver ett konto och
-      en DSN i miljön. Bör vara på plats före lansering, inte efter.
+- [x] **Sentry — installerad 2026-09-01.** `@sentry/nextjs` 10.73 med
+      `instrumentation.ts` och `instrumentation-client.ts`. Inert utan DSN:
+      ingen init, ingen nätverkstrafik. Kvar är **DSN:en**, som är din —
+      organisationen `123ab` finns redan på EU-regionen. Se
+      `docs/DEPLOYMENT.md`.
+
+      Det som gjorde installationen icke-trivial: **Burp lägger nycklar i
+      sökvägen.** Bordets token står i `/t/<token>` och trycks på en dekal som
+      aldrig byts; kvittots order-id ÄR åtkomsten. En felrapport bär
+      `request.url`, och `sendDefaultPii: false` tar bort cookies och IP men
+      inte adressen. `lib/sentry-scrub.ts` byter ut de segmenten — även i
+      brödsmulorna, som annars bär varje navigering i klartext. 20 tester.
+
+      Sentrys ingest står numera i `connect-src`, härlett ur DSN:en. Utan det
+      hade varje felrapport blockerats den dagen CSP:n slås på — tyst, och
+      just när rapporterna behövs som mest.
 - [ ] **123Connect-repot tillgängligt** om säkerhetsjämförelsen ska göras.
       Det ligger inte på den här maskinen. Läs invändningen i *Beställt
       2026-08-21* först: det som är värt att hämta därifrån är praxis, inte

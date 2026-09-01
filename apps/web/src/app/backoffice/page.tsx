@@ -64,15 +64,7 @@ export default async function BackofficePage({ searchParams }: PageProps) {
     cronSecret: env.CRON_SECRET,
     qrTokenSecret: env.QR_TOKEN_SECRET,
     mapTileUrl: publicEnv.NEXT_PUBLIC_MAP_TILE_URL,
-    /*
-     * Ingen `sentryDsn` skickas in, och det är inte en glömska.
-     *
-     * Sentry är inte installerat — inget `@sentry/*`, ingen
-     * `instrumentation.ts`. Att lägga in en SENTRY_DSN i miljöschemat nu hade
-     * varit en variabel ingenting läser, alltså ett skal. Raden i listan blir
-     * "avstängt", vilket är exakt sant: ingenting rapporterar fel från
-     * produktion. `capabilities()` tar emot nyckeln den dagen den finns.
-     */
+    sentryDsn: publicEnv.NEXT_PUBLIC_SENTRY_DSN,
   });
 
   const supabase = await createClient();

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@burp/core": "*",
+    "@sentry/nextjs": "^10.73.0",
     "@stripe/react-stripe-js": "^5.6.1",
     "@stripe/stripe-js": "^8.11.0",
     "@supabase/ssr": "^0.12.0",

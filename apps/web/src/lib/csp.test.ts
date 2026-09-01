@@ -76,6 +76,26 @@ describe("isCachedRoute", () => {
 });
 
 describe("buildCsp", () => {
+  it("Sentrys ingest står i connect-src när en DSN finns", () => {
+    // Utan den blockeras varje felrapport den dagen policyn slås på — tyst,
+    // och just när rapporterna behövs som mest. Värden härleds ur DSN:en
+    // eftersom den bär REGIONEN: organisationen ligger på EU.
+    const csp = buildCsp({
+      ...OPTIONS,
+      nonce: "abc",
+      sentryDsn: "https://publicnyckel@o4508.ingest.de.sentry.io/4509",
+    });
+
+    expect(csp).toContain("https://o4508.ingest.de.sentry.io");
+    expect(csp).not.toContain("publicnyckel");
+  });
+
+  it("utan DSN läggs ingenting till i connect-src", () => {
+    const utan = buildCsp({ ...OPTIONS, nonce: "abc" });
+    expect(utan).toContain("connect-src 'self'");
+    expect(utan).not.toContain("sentry");
+  });
+
   it("nonce ger strict-dynamic, ingen nonce ger unsafe-inline", () => {
     const strict = buildCsp({ ...OPTIONS, nonce: "abc123" });
     expect(strict).toContain("'nonce-abc123'");

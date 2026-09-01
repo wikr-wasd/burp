@@ -234,6 +234,17 @@ Utöver de öppna frågorna i `OPEN-QUESTIONS.md`:
       har sin egen inställning och ärver ingenting från filen.
 - [ ] Sätt `NEXT_PUBLIC_SITE_URL` och Supabase `Site URL` till riktiga domänen
 - [ ] Aktivera daglig backup (kräver Pro)
+- [ ] **Sentry-DSN i miljön** — `NEXT_PUBLIC_SENTRY_DSN`. SDK:n är installerad
+      och konfigurerad sedan 2026-09-01, men rapporterar ingenting utan DSN.
+
+      Organisationen finns redan: `123ab`, på **EU-regionen** (`de.sentry.io`).
+      Använd en DSN därifrån — DSN:en bär regionen, och en från ett annat
+      projekt skickar felrapporter ut ur EU utan att någon beslutat det.
+
+      Sessionsinspelning (`replayIntegration`) är avsiktligt INTE påslagen: den
+      spelar in skärmen medan gästen skriver namn, adress och kortuppgifter.
+      Slås den på ska det vara ett eget beslut med en genomgång av vad som
+      maskeras.
 - [ ] Kör `npm run db:lint` och gå igenom Security Advisor i dashboarden
 
       Punkten sa `npx supabase db lint` rakt av fram till 2026-08-28. Kört så

@@ -116,6 +116,16 @@ export interface CspOptions {
   supabaseUrl: string;
   /** `NEXT_PUBLIC_MAP_TILE_URL`. Kartrutorna hämtas därifrån. */
   mapTileUrl: string;
+  /**
+   * `NEXT_PUBLIC_SENTRY_DSN`. Tom när felrapportering är avstängd.
+   *
+   * Måste stå i `connect-src`, annars blockeras varje felrapport den dagen
+   * policyn slås på — tyst, och just när man som mest behöver rapporterna.
+   * Värdet härleds ur DSN:en i stället för att skrivas som en egen variabel:
+   * DSN:en bär regionen, och en hårdkodad `sentry.io` hade skickat EU-projekt
+   * mot fel värd.
+   */
+  sentryDsn?: string;
 }
 
 /** WebSocket-ursprunget för Supabase Realtime — köksskärmens larm går där. */
@@ -138,10 +148,19 @@ function originOf(value: string): string {
   }
 }
 
-export function buildCsp({ nonce, isDevelopment, supabaseUrl, mapTileUrl }: CspOptions): string {
+export function buildCsp({
+  nonce,
+  isDevelopment,
+  supabaseUrl,
+  mapTileUrl,
+  sentryDsn,
+}: CspOptions): string {
   const supabaseOrigin = originOf(supabaseUrl);
   const supabaseSocket = websocketOrigin(supabaseUrl);
   const tileOrigin = originOf(mapTileUrl);
+
+  // `originOf` klarar användarinformationen i en DSN — `.origin` tappar den.
+  const sentryOrigin = sentryDsn ? originOf(sentryDsn) : "";
 
   /*
    * `'unsafe-eval'` bara i utveckling.
@@ -174,8 +193,9 @@ export function buildCsp({ nonce, isDevelopment, supabaseUrl, mapTileUrl }: CspO
 
     `font-src 'self' data:`,
 
-    // Supabase REST och Realtime, samt Stripes eget API från kortfältet.
-    `connect-src 'self' ${supabaseOrigin} ${supabaseSocket} https://api.stripe.com`.trim(),
+    // Supabase REST och Realtime, Stripes eget API från kortfältet, och
+    // Sentrys ingest när felrapportering är påslagen.
+    `connect-src 'self' ${supabaseOrigin} ${supabaseSocket} https://api.stripe.com ${sentryOrigin}`.trim(),
 
     /*
      * Bara Stripes betalfält.
