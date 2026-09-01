@@ -68,17 +68,42 @@ export async function setRestaurantStatus(
 }
 
 /**
- * Sätter avtalad avgift för en restaurang.
+ * Sätter avtalad avgift för en restaurang, och skriver varför.
  *
  * Tomt fält betyder "Burps standard gäller" och lagras som null, inte som 340.
  * Skillnaden spelar roll: en restaurang med null följer med när standarden
  * ändras, en med 340 gör det inte.
+ *
+ * ── Varför ett skäl krävs ───────────────────────────────────────────────────
+ *
+ * Avgiften ska bara ändras vid UNDANTAGSFALL. Fram till 2026-09-01 skrevs
+ * fältet så fort det tappade fokus — ingen bekräftelse, ingen anteckning,
+ * ingen historik. Det som ändrades var villkoren i ett avtal om pengar, och
+ * efteråt gick det inte att svara på vem som ändrade, när, från vad eller
+ * varför.
+ *
+ * En regel som bara finns i någons huvud är ingen regel. Kravet på ett skäl
+ * gör den till något systemet håller: `fee_changes` (migration 0062) tar inte
+ * emot en rad utan minst tre tecken, och tabellen är oföränderlig som
+ * `order_events`.
+ *
+ * ── Ordningen: logga FÖRE uppdateringen ─────────────────────────────────────
+ *
+ * Loggraden skrivs först. Faller den — för kort skäl, saknad behörighet,
+ * ingen faktisk ändring — rörs avgiften inte. Tvärtom hade gett en ändrad
+ * avgift utan spår, vilket är precis det tillstånd som ska bort.
+ *
+ * De två skrivningarna är inte en transaktion, och det är en medveten
+ * avvägning: PostgREST har ingen. Faller den andra ligger en loggrad kvar som
+ * påstår en ändring som inte skedde — synligt och rättningsbart. Motsatt
+ * ordning hade gett det osynliga felet.
  */
 export async function setRestaurantFee(
   restaurantId: string,
   bpsInput: string,
+  reason: string,
 ): Promise<ActionResult> {
-  await requirePlatformAdmin(WRITE_ROLES);
+  const admin = await requirePlatformAdmin(WRITE_ROLES);
 
   const trimmed = bpsInput.trim();
   let feeOverride: number | null = null;
@@ -92,7 +117,41 @@ export async function setRestaurantFee(
     feeOverride = Math.round(percent * 100);
   }
 
+  const note = reason.trim();
+  if (note.length < 3) {
+    return fail("Skriv varför avgiften ändras. Anteckningen sparas med ändringen.");
+  }
+
   const supabase = await createClient();
+
+  const { data: current, error: readError } = await supabase
+    .from("restaurants")
+    .select("fee_override_bps")
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  if (readError) return fail(readError.message);
+  if (!current) return fail("Restaurangen finns inte.");
+
+  const previous = current.fee_override_bps;
+
+  if (previous === feeOverride) {
+    return fail("Avgiften är redan den du skrev in.");
+  }
+
+  const { error: logError } = await supabase.from("fee_changes").insert({
+    restaurant_id: restaurantId,
+    changed_by: admin.userId,
+    // Adressen skrivs av på raden: `auth.users` är inte läsbar genom RLS, och
+    // loggen ska bära vem det VAR även om personen byter adress eller slutar.
+    changed_by_email: admin.email ?? "okänd",
+    previous_bps: previous,
+    new_bps: feeOverride,
+    reason: note,
+  });
+
+  if (logError) return fail(logError.message);
+
   const { error } = await supabase
     .from("restaurants")
     .update({ fee_override_bps: feeOverride })

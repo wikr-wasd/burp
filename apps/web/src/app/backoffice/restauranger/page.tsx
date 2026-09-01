@@ -40,6 +40,14 @@ export interface PlatformRestaurant {
   orgNumber: string;
   status: string;
   feeOverrideBps: number | null;
+  /** Senaste avgiftsändringen, om någon finns. Migration 0062. */
+  lastFeeChange: {
+    at: string;
+    by: string;
+    reason: string;
+    previousBps: number | null;
+    newBps: number | null;
+  } | null;
   ratingAverage: number | null;
   ratingCount: number;
   createdAt: string;
@@ -85,6 +93,36 @@ export default async function PlatformRestaurantsPage({ searchParams }: PageProp
     staffCount.set(row.restaurant_id, (staffCount.get(row.restaurant_id) ?? 0) + 1);
   }
 
+  /*
+   * Senaste avgiftsändringen per restaurang.
+   *
+   * Hämtas för de restauranger som faktiskt visas och sorteras nyast först;
+   * den första raden per restaurang är den senaste. PostgREST kan inte göra
+   * topp-N-per-grupp, och en fönsterfunktion i databasen vore rätt om loggen
+   * vore stor — men avgiften ändras vid undantagsfall, så det är den inte.
+   */
+  const ids = (rows ?? []).map((row) => row.id);
+
+  const { data: feeRows } = ids.length
+    ? await supabase
+        .from("fee_changes")
+        .select("restaurant_id, created_at, changed_by_email, reason, previous_bps, new_bps")
+        .in("restaurant_id", ids)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  const lastFee = new Map<string, PlatformRestaurant["lastFeeChange"]>();
+  for (const row of feeRows ?? []) {
+    if (lastFee.has(row.restaurant_id)) continue;
+    lastFee.set(row.restaurant_id, {
+      at: row.created_at,
+      by: row.changed_by_email,
+      reason: row.reason,
+      previousBps: row.previous_bps,
+      newBps: row.new_bps,
+    });
+  }
+
   const restaurants: PlatformRestaurant[] = (rows ?? []).map((row) => ({
     id: row.id,
     name: row.name,
@@ -94,6 +132,7 @@ export default async function PlatformRestaurantsPage({ searchParams }: PageProp
     orgNumber: row.org_number,
     status: row.status,
     feeOverrideBps: row.fee_override_bps,
+    lastFeeChange: lastFee.get(row.id) ?? null,
     ratingAverage: row.rating_average,
     ratingCount: row.rating_count,
     createdAt: row.created_at,

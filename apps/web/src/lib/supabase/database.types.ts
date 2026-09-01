@@ -203,6 +203,47 @@ export type Database = {
           },
         ]
       }
+      fee_changes: {
+        Row: {
+          changed_by: string
+          changed_by_email: string
+          created_at: string
+          id: string
+          new_bps: number | null
+          previous_bps: number | null
+          reason: string
+          restaurant_id: string
+        }
+        Insert: {
+          changed_by: string
+          changed_by_email: string
+          created_at?: string
+          id?: string
+          new_bps?: number | null
+          previous_bps?: number | null
+          reason: string
+          restaurant_id: string
+        }
+        Update: {
+          changed_by?: string
+          changed_by_email?: string
+          created_at?: string
+          id?: string
+          new_bps?: number | null
+          previous_bps?: number | null
+          reason?: string
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_changes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fees: {
         Row: {
           base: Database["public"]["Enums"]["fee_base"]

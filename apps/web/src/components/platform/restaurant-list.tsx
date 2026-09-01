@@ -138,7 +138,7 @@ export function RestaurantList({
                   )
                 ) : null}
 
-                <FeeField restaurant={restaurant} pending={pending} onSave={run} />
+                <FeeEditor restaurant={restaurant} pending={pending} onSave={run} />
               </div>
             ) : null}
           </li>
@@ -148,7 +148,28 @@ export function RestaurantList({
   );
 }
 
-function FeeField({
+/** "3,40 %" ur baspunkter, eller ett streck för Burps standard. */
+function feeText(bps: number | null): string {
+  return bps === null ? "standard" : `${(bps / 100).toFixed(2).replace(".", ",")} %`;
+}
+
+/**
+ * Avgiften — den enda siffran här som ändrar ett avtal om pengar.
+ *
+ * Fältet skrevs fram till 2026-09-01 så fort det tappade fokus. Ingen
+ * bekräftelse, ingen anteckning, ingen historik: ett felklick och en
+ * tangenttryckning räckte för att ändra vad en restaurang betalar, och efteråt
+ * gick det inte att svara på vem som gjort det eller varför.
+ *
+ * Avgiften ska bara ändras vid UNDANTAGSFALL. Formen säger det nu: den är
+ * stängd tills man öppnar den, den kräver ett skäl, och skälet sparas i
+ * `fee_changes` (migration 0062) som är oföränderlig. Senaste ändringen står
+ * kvar synlig — det är den som gör regeln kontrollerbar i efterhand.
+ *
+ * Avstängningsknappen intill har samma form av samma skäl, och det är ingen
+ * slump: de två är de enda åtgärderna på sidan som kostar någon annan pengar.
+ */
+function FeeEditor({
   restaurant,
   pending,
   onSave,
@@ -162,32 +183,116 @@ function FeeField({
       ? ""
       : (restaurant.feeOverrideBps / 100).toFixed(2).replace(".", ",");
 
+  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(current);
+  const [reason, setReason] = useState("");
+
+  const last = restaurant.lastFeeChange;
+
+  function close() {
+    setOpen(false);
+    setDraft(current);
+    setReason("");
+  }
+
+  if (!open) {
+    return (
+      <div className="ml-auto text-right">
+        <p className="label-caps">Avgift</p>
+        <p className="mt-0.5 tabular-nums">
+          {restaurant.feeOverrideBps === null ? (
+            <>
+              {(DEFAULT_FEE_BPS / 100).toFixed(2).replace(".", ",")} %{" "}
+              <span className="opacity-60">(standard)</span>
+            </>
+          ) : (
+            <>
+              {current} % <span className="opacity-60">(eget avtal)</span>
+            </>
+          )}
+        </p>
+
+        {/* Senaste ändringen står kvar. En regel om undantagsfall går bara att
+            hålla om det syns när undantaget gjordes, och av vem. */}
+        {last ? (
+          <p className="mt-1 max-w-[22rem] text-xs opacity-60">
+            {feeText(last.previousBps)} → {feeText(last.newBps)} ·{" "}
+            {new Date(last.at).toLocaleDateString("sv-SE")} · {last.by}
+            <br />
+            {last.reason}
+          </p>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          disabled={pending}
+          className="btn btn-secondary mt-2"
+        >
+          Ändra avgift
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <label className="ml-auto">
-      <span className="text-sm font-medium">Avgift %</span>
-      <input
-        value={draft}
-        inputMode="decimal"
-        // Tomt fält = Burps standard. Platshållaren visar vilken den är, så att
-        // "tomt" inte läses som "ingen avgift".
-        placeholder={(DEFAULT_FEE_BPS / 100).toFixed(2).replace(".", ",")}
-        disabled={pending}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => {
-          if (draft !== current) onSave(() => setRestaurantFee(restaurant.id, draft));
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") event.currentTarget.blur();
-          if (event.key === "Escape") {
-            setDraft(current);
-            event.currentTarget.blur();
-          }
-        }}
-        className="mt-1 block w-24 border border-[var(--rule)] bg-transparent px-3 py-2 text-right tabular-nums"
-      />
-    </label>
+    <div className="basis-full border-t border-[var(--rule)] pt-4">
+      <p className="font-medium">Ändra avgift för {restaurant.name}</p>
+      <p className="mt-1 text-sm opacity-70">
+        Ska bara göras vid undantagsfall. Ändringen sparas med ditt namn och din
+        anteckning, och går inte att ta bort i efterhand.
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-start gap-4">
+        <label className="block">
+          <span className="label-caps">Avgift %</span>
+          <input
+            value={draft}
+            inputMode="decimal"
+            autoFocus
+            // Tomt fält = Burps standard. Platshållaren visar vilken den är, så
+            // att "tomt" inte läses som "ingen avgift".
+            placeholder={(DEFAULT_FEE_BPS / 100).toFixed(2).replace(".", ",")}
+            disabled={pending}
+            onChange={(event) => setDraft(event.target.value)}
+            className="field mt-1 w-28 text-right tabular-nums"
+          />
+        </label>
+
+        <label className="block min-w-0 flex-1">
+          <span className="label-caps">Varför</span>
+          <input
+            value={reason}
+            disabled={pending}
+            placeholder="T.ex. omförhandlat avtal efter volymökning"
+            onChange={(event) => setReason(event.target.value)}
+            className="field mt-1 w-full"
+          />
+        </label>
+      </div>
+
+      <p className="mt-2 text-sm opacity-70">
+        Tomt avgiftsfält betyder att Burps standard gäller — restaurangen följer
+        då med när standarden ändras.
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={pending || reason.trim().length < 3 || draft.trim() === current.trim()}
+          onClick={() => {
+            onSave(() => setRestaurantFee(restaurant.id, draft, reason));
+            close();
+          }}
+          className="btn btn-primary"
+        >
+          Spara ändringen
+        </button>
+        <button type="button" onClick={close} disabled={pending} className="btn btn-secondary">
+          Avbryt
+        </button>
+      </div>
+    </div>
   );
 }
 

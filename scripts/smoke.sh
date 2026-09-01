@@ -1030,6 +1030,72 @@ else
   fail "backoffice såg $PLATFORM_COUNT restauranger, väntade minst 7"
 fi
 
+# ── Avgiftsloggen (migration 0062) ──────────────────────────────────────────
+#
+# Avgiften ska bara ändras vid undantagsfall, och kravet bärs av tabellen och
+# inte av gränssnittet: skälet är obligatoriskt, raden är oföränderlig, och
+# bara Burp får läsa den. Ett fält som skrivs när det tappar fokus — vilket
+# var läget fram till 2026-09-01 — går runt varenda regel som bara står i en
+# komponent.
+FEE_RESTAURANT=$(sql "select id from public.restaurants order by created_at limit 1;" | head -1)
+PLATFORM_UID=$(sql "select user_id from public.platform_admins limit 1;" | head -1)
+
+fee_insert() {
+  # $1 = token, $2 = changed_by, $3 = skäl, $4 = nytt bps (eller "null")
+  curl -s -o /dev/null -w '%{http_code}' -X POST "$SUPABASE_URL/rest/v1/fee_changes" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $1" \
+    -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+    -d "{\"restaurant_id\":\"$FEE_RESTAURANT\",\"changed_by\":\"$2\",\"changed_by_email\":\"burp@burp.test\",\"previous_bps\":null,\"new_bps\":$4,\"reason\":\"$3\"}"
+}
+
+CODE=$(fee_insert "$PLATFORM_TOKEN" "$PLATFORM_UID" "roktest omforhandling" 300)
+if [ "$CODE" = "201" ]; then
+  pass "Burp kan skriva en avgiftsändring (201)"
+else
+  fail "avgiftsändringen gick inte att skriva ($CODE)"
+fi
+
+# Skälet är obligatoriskt. Utan det är loggen bara en tidsstämpel.
+CODE=$(fee_insert "$PLATFORM_TOKEN" "$PLATFORM_UID" "x" 310)
+if [ "$CODE" = "400" ] || [ "$CODE" = "409" ]; then
+  pass "en avgiftsändring utan skäl avvisas ($CODE)"
+else
+  fail "en avgiftsändring med tvåbokstavsskäl accepterades ($CODE)"
+fi
+
+# Restaurangen ser inte Burps interna anteckningar om sitt eget avtal.
+OWNER_SEES_FEES=$(curl -s "$SUPABASE_URL/rest/v1/fee_changes?select=id" \
+  -H "apikey: $ANON_KEY" -H "Authorization: Bearer $OWNER_TOKEN" \
+  | node -e 'let r="";process.stdin.on("data",c=>r+=c).on("end",()=>{
+      try { process.stdout.write(String(JSON.parse(r).length)); } catch { process.stdout.write("-1"); }
+    });')
+
+if [ "$OWNER_SEES_FEES" = "0" ]; then
+  pass "restaurangägaren ser inte avgiftsloggen"
+else
+  fail "restaurangägaren såg $OWNER_SEES_FEES rader i avgiftsloggen"
+fi
+
+# Oföränderlig. Trigger OCH avsaknad av policy — två lager, som order_events.
+FEE_PATCH=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH \
+  "$SUPABASE_URL/rest/v1/fee_changes?restaurant_id=eq.$FEE_RESTAURANT" \
+  -H "apikey: $ANON_KEY" -H "Authorization: Bearer $PLATFORM_TOKEN" \
+  -H "Content-Type: application/json" -d '{"reason":"omskrivet"}')
+
+FEE_ROWS_AFTER=$(sql "select count(*) from public.fee_changes where reason = 'omskrivet';" | head -1 | tr -d ' ')
+
+if [ "${FEE_ROWS_AFTER:-x}" = "0" ]; then
+  pass "avgiftsloggen går inte att skriva om (PATCH gav $FEE_PATCH)"
+else
+  fail "avgiftsloggen skrevs om — $FEE_ROWS_AFTER rader ändrade"
+fi
+
+# Städas bort med triggern avstängd; den blockerar även röktestets egen
+# uppstädning, vilket är precis vad den ska göra.
+sql "alter table public.fee_changes disable trigger fee_changes_immutable;
+     delete from public.fee_changes where reason like 'roktest%';
+     alter table public.fee_changes enable trigger fee_changes_immutable;" > /dev/null
+
 # ── Regressionsskyddet ──────────────────────────────────────────────────────
 # Plattformspolicyerna är additiva. Det får INTE betyda att en restaurangägare
 # plötsligt ser andras data. De två kontrollerna nedan är hela skälet till att
