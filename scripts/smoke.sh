@@ -748,6 +748,31 @@ if [ -n "$GUEST_COOKIE" ] && [ -n "$ADMIN_COOKIE" ] && [ -n "$KITCHEN_COOKIE" ];
   check_landing "plattformsadmin" /dashboard  /backoffice "$ADMIN_COOKIE"
   check_landing "plattformsadmin" /backoffice 200         "$ADMIN_COOKIE"
 
+  # ── Systemstatuspanelen renderas ─────────────────────────────────────────
+  #
+  # En serverkomponent som kastar ger 500, och panelen läser miljön. Att den
+  # SVARAR 200 räcker därför inte — sidan ska faktiskt bära rubriken.
+  #
+  # Panelen finns för att en funktion kan vara fullt byggd och helt avstängd på
+  # en rad i miljön, vilket tvåstegsverifieringen var i tio dagar. En
+  # statusyta som själv slutar renderas vore samma fel en gång till.
+  BACKOFFICE_HTML=$(curl -s -H "Cookie: $COOKIE_NAME=$ADMIN_COOKIE" "$BASE/backoffice")
+
+  if grep -q "Systemstatus" <<<"$BACKOFFICE_HTML"; then
+    pass "backoffice visar systemstatus"
+  else
+    fail "systemstatuspanelen saknas i backoffice"
+  fi
+
+  # Kartrutorna kommer från OSM:s egna servrar lokalt, alltså ska panelen säga
+  # att något hindrar en lansering. Säger den "ingenting saknas" med den
+  # miljön ljuger den, och då är ytan värdelös.
+  if grep -q "hindrar en skarp lansering" <<<"$BACKOFFICE_HTML"; then
+    pass "systemstatus rapporterar de luckor som finns"
+  else
+    fail "systemstatus påstod att ingenting saknas, med OSM-rutor och utan brevnyckel"
+  fi
+
   # Kocken: dashboarden är inte hans, köksskärmen är det.
   check_landing "kocken" /dashboard /kok "$KITCHEN_COOKIE"
   check_landing "kocken" /kok       200  "$KITCHEN_COOKIE"

@@ -6,9 +6,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PlatformHeader } from "@/components/platform/platform-header";
 import { MfaReset } from "@/components/platform/mfa-reset";
 import { MfaSettings } from "@/components/staff/mfa-settings";
+import { SystemStatus } from "@/components/platform/system-status";
 import { mfaLabels } from "@/components/staff/mfa-labels";
 import { untranslatedSurface } from "@/lib/i18n";
 import { requirePlatformAdmin } from "@/lib/platform";
+import { capabilities, summarise } from "@/lib/readiness";
+import { serverEnv, publicEnv } from "@/lib/env";
 import { periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
 import { createClient } from "@/lib/supabase/server";
 
@@ -41,6 +44,36 @@ export default async function BackofficePage({ searchParams }: PageProps) {
 
   const periodKey: PeriodKey = isPeriodKey(params.period) ? params.period : "manad";
   const period = periodFor(periodKey);
+
+  /*
+   * Vad som faktiskt är påslaget.
+   *
+   * Läses här och inte i komponenten: `serverEnv()` är serversidan, och
+   * `SystemStatus` ska kunna prövas med en handskriven lista. Se
+   * `lib/readiness.ts` för varför ytan finns alls.
+   */
+  const env = serverEnv();
+  const status = capabilities({
+    vapidPublicKey: publicEnv.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    vapidPrivateKey: env.VAPID_PRIVATE_KEY,
+    resendApiKey: env.RESEND_API_KEY,
+    opsEmail: env.BURP_OPS_EMAIL,
+    stripeSecretKey: env.STRIPE_SECRET_KEY,
+    stripePublishableKey: publicEnv.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET,
+    cronSecret: env.CRON_SECRET,
+    qrTokenSecret: env.QR_TOKEN_SECRET,
+    mapTileUrl: publicEnv.NEXT_PUBLIC_MAP_TILE_URL,
+    /*
+     * Ingen `sentryDsn` skickas in, och det är inte en glömska.
+     *
+     * Sentry är inte installerat — inget `@sentry/*`, ingen
+     * `instrumentation.ts`. Att lägga in en SENTRY_DSN i miljöschemat nu hade
+     * varit en variabel ingenting läser, alltså ett skal. Raden i listan blir
+     * "avstängt", vilket är exakt sant: ingenting rapporterar fel från
+     * produktion. `capabilities()` tar emot nyckeln den dagen den finns.
+     */
+  });
 
   const supabase = await createClient();
 
@@ -238,6 +271,25 @@ export default async function BackofficePage({ searchParams }: PageProps) {
           `untranslatedSurface()`: en plattformsadmin är inte personal någonstans
           och har ingen `staff.locale` att läsa.
         */}
+        {/*
+          Systemstatus.
+
+          Ligger före "Din inloggning" med flit: det första en plattformsadmin
+          behöver veta är om produkten fungerar, inte om hens eget konto gör
+          det. Tvåstegsverifieringen låg död i tio dagar utan att någonting i
+          produkten sa det — den här ytan finns för att det inte ska kunna
+          hända igen på en nyckel som saknas.
+        */}
+        <section className="mt-8">
+          <h2 className="font-display text-2xl">Systemstatus</h2>
+          <p className="mt-1 text-sm opacity-60">
+            Vad som faktiskt är påslaget i den här miljön. En funktion kan vara
+            fullt byggd och ändå avstängd på en rad i miljön — och det syns
+            annars ingenstans.
+          </p>
+          <SystemStatus capabilities={status} summary={summarise(status)} />
+        </section>
+
         <section className="mt-8">
           <h2 className="font-display text-2xl">Din inloggning</h2>
           <p className="mt-1 text-sm opacity-60">
