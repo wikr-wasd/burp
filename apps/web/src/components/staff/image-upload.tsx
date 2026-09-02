@@ -159,7 +159,7 @@ export function ImageUpload({
 
       {busy ? (
         <p className="mt-2 text-sm opacity-70">
-          {uploading ? "Laddar upp…" : "Registrerar…"}
+          {uploading ? labels.uploading : labels.registering}
         </p>
       ) : null}
 

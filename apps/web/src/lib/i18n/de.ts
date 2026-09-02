@@ -527,6 +527,10 @@ export const de: Dictionary = {
     saveAddress: "Adresse speichern",
 
     exportTitle: "Eine Kopie herunterladen",
+    marketingTitle: "Newsletter",
+    marketingBody: "Wir melden uns hin und wieder mit Neuigkeiten und Angeboten. Sie können jederzeit widersprechen, und wir senden nichts, bevor Sie zugestimmt haben.",
+    marketingOn: "Ja, senden Sie mir Newsletter",
+    marketingSaved: "Gespeichert.",
     exportBody:
       "Alles, was Burp über Sie hat, in einer Datei: Ihr Konto, Ihre Adressen, alle Bestellungen mit ihren Positionen, Ihre Bewertungen, Favoriten, Punkte, Gutscheincodes und Stempelkarten. Die Datei ist JSON und sowohl für Sie als auch für ein anderes Programm lesbar.",
     exportButton: "Meine Daten herunterladen",
@@ -567,6 +571,7 @@ export const de: Dictionary = {
 
     errors: {
       mustBeLoggedIn: "Sie müssen angemeldet sein.",
+      saveFailed: "Konnte nicht gespeichert werden. Bitte erneut versuchen.",
       favoritesNeedAccount: "Sie müssen angemeldet sein, um Favoriten zu speichern.",
       favoriteFailed: "Konnte nicht gespeichert werden.",
       reviewUnreadable:
@@ -1399,6 +1404,8 @@ export const de: Dictionary = {
       adjustSaving: "Wird gespeichert…",
       adjustSaved: "Die Anpassung ist gespeichert.",
       adjustFailed: "Die Anpassung konnte nicht gespeichert werden.",
+      uploading: "Wird hochgeladen…",
+      registering: "Wird registriert…",
     },
 
     documents: {

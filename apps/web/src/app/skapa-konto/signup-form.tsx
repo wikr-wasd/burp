@@ -17,6 +17,7 @@ export function SignUpForm({ next }: { next?: string }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +39,19 @@ export function SignUpForm({ next }: { next?: string }) {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName.trim() || null } },
+      /*
+       * Samtycket följer med metadatan och skrivs av `handle_new_user`
+       * (migration 0066), inte av ett anrop efteråt. Med e-postbekräftelse
+       * påslagen finns ingen session förrän länken klickats — en klient som
+       * försökte skriva profilen direkt hade tappat krysset tyst i produktion
+       * men inte lokalt, där bekräftelse är avstängd.
+       */
+      options: {
+        data: {
+          full_name: fullName.trim() || null,
+          marketing_opt_in: marketingOptIn,
+        },
+      },
     });
 
     if (signUpError) {
@@ -112,6 +125,24 @@ export function SignUpForm({ next }: { next?: string }) {
           className="field mt-1.5"
         />
         <span className="mt-1.5 block text-xs text-[var(--muted)]">Minst 8 tecken.</span>
+      </label>
+
+      {/*
+        Orutad ruta är NEJ, och den är orutad från början med flit. Ett
+        förkryssat samtycke är inget samtycke — och listan ska bära dem som
+        faktiskt vill höra av oss, inte dem som inte orkade leta reda på rutan.
+      */}
+      <label className="flex min-h-11 items-start gap-3">
+        <input
+          type="checkbox"
+          checked={marketingOptIn}
+          onChange={(event) => setMarketingOptIn(event.target.checked)}
+          className="mt-0.5 size-5 accent-burp-600"
+        />
+        <span className="text-sm">
+          Ja tack, skicka nyheter och erbjudanden till mig. Du kan tacka nej när
+          du vill under Mina uppgifter.
+        </span>
       </label>
 
       {error ? (

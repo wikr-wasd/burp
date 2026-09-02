@@ -66,6 +66,55 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-09-02 (ii) — sista hålet stängt, och ett samtycke som går att lämna
+
+Migrationerna `0065` och `0066`.
+
+#### Bilden går inte längre att byta ut efter godkännandet
+
+`0065` tar bort UPDATE-policyn på `storage.objects`. Den var **död kod**:
+`image-upload.tsx` skriver varje uppladdning till en ny sökväg med
+`upsert: false`, och det finns inte ett enda anrop till Storage UPDATE i hela
+appen. Att byta bild betydde redan "ladda upp en ny". Enda effekten policyn
+hade var att göra granskningen kringgåbar.
+
+**En lärdom värd att skriva ner:** migrationen innehöll först en
+`comment on table storage.objects`. Den gick igenom i `verify-schema.sh` — som
+skapar sin egen stubbe av tabellen, ägd av postgres — men föll mot den lokala
+Supabase-stacken med `must be owner of table objects`, eftersom tabellen ägs av
+`supabase_storage_admin`. Den hade alltså brutit migrationskedjan **vid
+driftsättning**, och schemakontrollen kan i princip inte fånga det.
+Storage-migrationer måste provas mot den riktiga stacken, inte bara mot
+containern.
+
+#### Marknadsföringssamtycket fanns inte, trots kolumnen
+
+`profiles.marketing_opt_in` har funnits sedan `0002` med `false` som standard.
+Kolumnen låg som ett skal: den skrevs aldrig, gick inte att ändra någonstans i
+produkten, och det enda som läste den var GDPR-exporten — som troget
+rapporterade `false` för varenda gäst. Listan var alltså med säkerhet tom, och
+utskicksverktyget som väntar på ditt besked hade blivit en yta utan mottagare.
+
+Nu finns båda halvorna, och båda behövs:
+
+- **Rutan vid registreringen.** Oförkryssad, och den följer med användarens
+  metadata så att `handle_new_user` skriver den. En klient som försökt skriva
+  profilen efter `signUp()` hade tappat krysset tyst i produktion — med
+  e-postbekräftelse påslagen finns ingen session än — men inte lokalt, där
+  bekräftelse är avstängd.
+- **Växeln på `/konto/uppgifter`.** GDPR kräver att ett samtycke går att
+  återkalla lika enkelt som det lämnades. Den sparar direkt vid klicket, utan
+  sparaknapp: krysset *är* handlingen.
+
+#### Två i18n-läckor tätade
+
+`image-upload.tsx` sa "Laddar upp…" och "Registrerar…" på svenska oavsett vad
+kocken valt för språk. Personalytorna läser `staff.locale`.
+
+Registreringssidan är däremot **inte** översatt alls — hela `/skapa-konto` bär
+hårdkodad svenska och anropar varken `dictionary()` eller `requestLocale()`.
+Samtyckesrutan följer sidans nuvarande språk. Ligger som egen punkt i listan.
+
 ### Byggt 2026-09-02 — ägaren styr sin egen sida, och granskningen går inte längre att gå förbi
 
 Migrationerna `0063` (bildjustering) och `0064` (dokument).
@@ -91,10 +140,10 @@ värde, och regeln är att statusen inte får **ändras**. `media_status_guard`
 avvisar alla utom plattformsadmin och sessionslösa anrop (service role,
 migrationer). Samma grind sitter på dokumenten från första dagen.
 
-**Fortfarande öppet, samma familj:** en godkänd bild kan bytas ut i Storage på
-samma sökväg — `"personal ersätter sina egna bilder"` i 0017 tillåter UPDATE på
-objektet. Pekaren ändras inte, men filen bakom den gör det. Dokumenten har
-därför ingen UPDATE-policy alls; bilderna behöver ett beslut. Se listan nedan.
+**Samma familj, stängt senare samma dag i `0065`:** en godkänd bild kunde bytas
+ut i Storage på samma sökväg — `"personal ersätter sina egna bilder"` i 0017
+tillät UPDATE på objektet. Pekaren ändras inte av ett sådant byte, eftersom den
+pekar på en sökväg och inte på ett innehåll. Se avsnittet nedan.
 
 #### Bildjustering — inte ett filter
 
@@ -1367,29 +1416,17 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
 
       Svara på 2, så byggs 1 med i samma veva.
 
-- [ ] **En godkänd bild kan bytas ut i Storage — BESLUT BEHÖVS.**
-      Hittat 2026-09-02, samma familj som hålet migration 0063 stängde.
+- [ ] **`/skapa-konto` är inte översatt alls.** Hittat 2026-09-02.
+      Sidan och formuläret bär hårdkodad svenska — "Namn", "E-post",
+      "Lösenord", "Minst 8 tecken." — och `page.tsx` anropar varken
+      `dictionary()` eller `requestLocale()`. Alla andra gästytor gör det.
 
-      Storage-policyn `"personal ersätter sina egna bilder"` (0017) tillåter
-      UPDATE på objektet. En restaurang kan alltså ladda upp en oskyldig bild,
-      få den godkänd, och därefter skriva över filen på samma sökväg. Pekaren
-      i `menu_items.image_url` ändras inte — den pekar på en sökväg, inte på
-      ett innehåll — så granskningen märker ingenting.
+      Det betyder att en tysk turist som vill spara sina favoriter möts av
+      svenska i det enda formulär där hen måste förstå vad hon fyller i.
 
-      Dokumenten har därför ingen UPDATE-policy alls (0064): en PDF byts genom
-      att tas bort och laddas upp på nytt, vilket ger en ny rad i kön.
-
-      **Tre vägar, ditt val:**
-
-      1. Ta bort UPDATE-policyn även för bilder. Att "byta bild" blir att
-         ladda upp en ny — som för dokumenten. Enklast, och konsekvent.
-      2. Låt en ersättning sätta tillbaka status till PENDING. Kräver att
-         Storage kan tala om för databasen att filen ändrats, vilket den inte
-         gör av sig själv.
-      3. Låt det vara. Risken är en restaurang som medvetet lurar Burp, inte
-         ett misstag — men den indexerade sidan ligger under vår domän.
-
-      Jag förordar **1**.
+      Samtyckesrutan jag lade till där följer sidans nuvarande språk, alltså
+      svenska. Den ska översättas i samma veva som resten av sidan — inte
+      ensam, för en översatt rad i ett svenskt formulär läser som ett fel.
 
 - [ ] **Sentry-DSN.** SDK:n är installerad, konfigurerad och skrubbad sedan
       2026-09-01, men rapporterar ingenting utan DSN. Organisationen finns

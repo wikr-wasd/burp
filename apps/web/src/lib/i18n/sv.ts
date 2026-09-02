@@ -727,6 +727,10 @@ export const sv = {
 
     /* Mina uppgifter — GDPR artikel 15, 17 och 20. */
     exportTitle: "Hämta en kopia",
+    marketingTitle: "Utskick",
+    marketingBody: "Vi hör av oss ibland med nyheter och erbjudanden. Du kan tacka nej när du vill, och vi skickar ingenting förrän du sagt ja.",
+    marketingOn: "Ja tack, skicka utskick till mig",
+    marketingSaved: "Sparat.",
     exportBody:
       "Allt Burp har om dig i en fil: ditt konto, dina adresser, alla beställningar med rader, dina omdömen, favoriter, poäng, kuponger och klippkort. Filen är JSON och går att läsa både av dig och av ett annat program.",
     exportButton: "Hämta mina uppgifter",
@@ -774,6 +778,7 @@ export const sv = {
 
     errors: {
       mustBeLoggedIn: "Du måste vara inloggad.",
+      saveFailed: "Kunde inte spara. Försök igen.",
       favoritesNeedAccount: "Du måste vara inloggad för att spara favoriter.",
       favoriteFailed: "Kunde inte spara.",
       reviewUnreadable: "Betyget kunde inte tolkas. Välj minst ett betyg på maten.",
@@ -1785,6 +1790,8 @@ export const sv = {
       adjustSaving: "Sparar…",
       adjustSaved: "Justeringen är sparad.",
       adjustFailed: "Justeringen kunde inte sparas.",
+      uploading: "Laddar upp…",
+      registering: "Registrerar…",
     },
 
     /* Restaurangens egna dokument (migration 0064). */

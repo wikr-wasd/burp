@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { eraseGuest } from "@/lib/gdpr";
 import { getGuest } from "@/lib/guest";
 import { dictionary, fill, requestLocale } from "@/lib/i18n";
@@ -64,4 +65,35 @@ export async function eraseMyAccount(confirmation: string): Promise<EraseActionR
   }
 
   redirect("/konto/raderat");
+}
+
+/**
+ * Samtycke till utskick — att lämna det, och att ta tillbaka det.
+ *
+ * Skriver genom gästens EGEN session. `profiles` har redan en policy som säger
+ * att var och en råder över sin egen rad, så service role vore både onödig och
+ * fel: det enda id som får skrivas är det som sessionen bevisar.
+ *
+ * GDPR kräver att ett samtycke går att återkalla lika enkelt som det lämnades.
+ * Den här åtgärden är därför inte en inställning bland andra — den är andra
+ * halvan av rutan vid registreringen.
+ */
+export async function setMarketingOptIn(optIn: boolean): Promise<EraseActionResult> {
+  const guest = await getGuest();
+  const t = dictionary(await requestLocale()).account;
+
+  if (!guest) {
+    return { ok: false, message: t.errors.mustBeLoggedIn };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ marketing_opt_in: optIn })
+    .eq("id", guest.userId);
+
+  if (error) return { ok: false, message: t.errors.favoriteFailed };
+
+  revalidatePath("/konto/uppgifter");
+  return { ok: true };
 }

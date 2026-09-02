@@ -5286,4 +5286,99 @@ begin
 end
 $$;
 
+\echo '   en godkänd fil kan inte bytas ut på samma sökväg'
+
+/*
+ * Migration 0065.
+ *
+ * Regeln prövas som en STRUKTUR och inte som ett anrop, med flit: den enda
+ * skrivningen som skulle bevisa hålet är en UPDATE mot storage.objects, och
+ * den tabellen är en stubbe här. Det som faktiskt bär regeln är frånvaron av
+ * en UPDATE-policy — lägger någon tillbaka en, faller det här testet.
+ *
+ * Varför det spelar roll: pekaren i menu_items.image_url är en SÖKVÄG, inte
+ * ett innehåll. Byts filen bakom sökvägen märker granskningen ingenting, och
+ * den nya bilden ligger publikt på en indexerad sida.
+ */
+do $$
+declare
+  v_update integer;
+  v_insert integer;
+  v_delete integer;
+begin
+  select count(*) into v_update
+  from pg_policies
+  where schemaname = 'storage' and tablename = 'objects' and cmd = 'UPDATE';
+
+  if v_update > 0 then
+    raise exception
+      'FEL: % UPDATE-policy på storage.objects — en godkänd fil går att byta ut', v_update;
+  end if;
+
+  -- Uppladdning och radering ska däremot finnas kvar. Utan INSERT går ingen
+  -- bild att ladda upp alls, och utan DELETE blir varje avvisad bild kvar som
+  -- skräp ingen ser.
+  select count(*) into v_insert
+  from pg_policies
+  where schemaname = 'storage' and tablename = 'objects' and cmd = 'INSERT';
+
+  select count(*) into v_delete
+  from pg_policies
+  where schemaname = 'storage' and tablename = 'objects' and cmd = 'DELETE';
+
+  if v_insert = 0 then
+    raise exception 'FEL: ingen INSERT-policy — ingen bild går att ladda upp';
+  end if;
+
+  if v_delete = 0 then
+    raise exception 'FEL: ingen DELETE-policy — avvisade filer blir kvar';
+  end if;
+end
+$$;
+
+\echo '   samtycket följer med registreringen, och frånvaro är nej'
+
+/*
+ * Migration 0066.
+ *
+ * Samtycket måste skrivas av triggern och inte av klienten efteråt: med
+ * e-postbekräftelse påslagen finns ingen session förrän länken klickats, och
+ * en klient som försökte skriva profilen då hade tappat krysset TYST — i
+ * produktion, men inte lokalt där bekräftelse är avstängd.
+ *
+ * Det tredje fallet är det viktigaste. Saknas fältet helt ska svaret vara nej.
+ * Ett samtycke som uppstår för att någon glömde skicka med ett fält är inget
+ * samtycke, och ett utskick till den som inte kryssat är olagligt.
+ */
+do $$
+declare
+  v_ja   uuid := gen_random_uuid();
+  v_nej  uuid := gen_random_uuid();
+  v_tyst uuid := gen_random_uuid();
+begin
+  insert into auth.users (id, email, raw_user_meta_data) values
+    (v_ja,   'samtycke-ja@example.com',   '{"full_name":"Ja","marketing_opt_in":true}'::jsonb),
+    (v_nej,  'samtycke-nej@example.com',  '{"full_name":"Nej","marketing_opt_in":false}'::jsonb),
+    (v_tyst, 'samtycke-tyst@example.com', '{"full_name":"Tyst"}'::jsonb);
+
+  if not (select marketing_opt_in from public.profiles where id = v_ja) then
+    raise exception 'FEL: ett lämnat samtycke nådde aldrig profilen';
+  end if;
+
+  if (select marketing_opt_in from public.profiles where id = v_nej) then
+    raise exception 'FEL: ett nekat samtycke sparades som ja';
+  end if;
+
+  if (select marketing_opt_in from public.profiles where id = v_tyst) then
+    raise exception 'FEL: frånvaro av fältet lästes som ett samtycke';
+  end if;
+
+  -- Namnet ska fortfarande komma med. Triggern gjorde en sak förut och gör två
+  -- nu; den som lägger till den andra får inte tappa den första.
+  if (select full_name from public.profiles where id = v_tyst) <> 'Tyst' then
+    raise exception 'FEL: namnet tappades när samtycket lades till';
+  end if;
+end
+$$;
+
 rollback;

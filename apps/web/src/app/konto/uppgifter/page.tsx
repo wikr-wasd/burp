@@ -3,12 +3,14 @@ import { Download } from "lucide-react";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { DeleteAccount } from "@/components/guest/delete-account";
 import { PushToggle } from "@/components/notifications/push-toggle";
+import { MarketingToggle } from "@/components/guest/marketing-toggle";
 import {
   removeGuestPushSubscription,
   saveGuestPushSubscription,
 } from "@/app/konto/push-actions";
 import { publicEnv } from "@/lib/env";
 import { requireGuest } from "@/lib/guest";
+import { createClient } from "@/lib/supabase/server";
 import { dictionary, requestLocale } from "@/lib/i18n";
 
 /**
@@ -34,6 +36,20 @@ export const dynamic = "force-dynamic";
 export default async function DataPage() {
   const guest = await requireGuest("/konto/uppgifter");
   const t = dictionary(await requestLocale());
+
+  /*
+   * Samtycket till utskick (migration 0066).
+   *
+   * Läses genom gästens egen session — `profiles` har redan en policy som säger
+   * att var och en råder över sin egen rad. Saknas raden av någon anledning är
+   * svaret NEJ: frånvaro av ett samtycke är inte ett samtycke.
+   */
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("marketing_opt_in")
+    .eq("id", guest.userId)
+    .maybeSingle();
 
   return (
     <>
@@ -73,6 +89,22 @@ export default async function DataPage() {
               offHint: t.account.pushOffHint,
               failed: t.account.pushFailed,
             }}
+          />
+        </section>
+
+        {/*
+          Samtycket står FÖRE exporten och raderingen, av samma skäl som
+          notiserna gör det: det är ett val om vad tjänsten ska göra, inte ett
+          steg på väg ut.
+        */}
+        <section className="mt-10 border-t border-[var(--rule)] pt-8">
+          <h2 className="font-display text-2xl">{t.account.marketingTitle}</h2>
+          <p className="mt-2 text-[var(--muted)]">{t.account.marketingBody}</p>
+
+          <MarketingToggle
+            initial={profile?.marketing_opt_in ?? false}
+            label={t.account.marketingOn}
+            savedLabel={t.account.marketingSaved}
           />
         </section>
 

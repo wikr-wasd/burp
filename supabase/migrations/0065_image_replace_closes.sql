@@ -1,0 +1,48 @@
+-- 0065 — En godkänd bild kan inte längre bytas ut i tysthet.
+--
+-- Sista hålet i familjen som migration 0063 började stänga.
+--
+-- ── Vad som gick ────────────────────────────────────────────────────────────
+--
+-- `"personal ersätter sina egna bilder"` (migration 0017) tillät UPDATE på
+-- objektet i `menu-media`. En restaurang kunde alltså:
+--
+--   1. ladda upp en oskyldig bild
+--   2. få den godkänd av Burp
+--   3. skriva över filen på SAMMA sökväg
+--
+-- Pekaren i `menu_items.image_url` ändras inte av steg tre — den pekar på en
+-- sökväg, inte på ett innehåll. Granskningen märker ingenting, och den nya
+-- bilden ligger publikt på en indexerad sida under Burps domän.
+--
+-- Grinden i 0063 stängde vägen genom `status`. Den här stänger vägen förbi den.
+--
+-- ── Varför det inte kostar något ────────────────────────────────────────────
+--
+-- Policyn var död kod. `image-upload.tsx` skriver varje uppladdning till en NY
+-- sökväg — `{restaurant_id}/{uuid}.{ext}` med `upsert: false` — och det finns
+-- inte ett enda anrop till Storage UPDATE i hela appen. Att byta bild betyder
+-- redan i dag "ladda upp en ny", precis som för dokumenten i 0064.
+--
+-- INSERT och DELETE står kvar orörda. Uppladdning behövs uppenbart, och
+-- `deletePendingMedia()` raderar filen innan posten — en fil utan post är
+-- skräp som ingen ser.
+--
+-- Följden av bytet: en ersatt bild blir en ny rad i granskningskön, alltså
+-- exakt vad kön finns för.
+
+-- ── Ingen COMMENT ON TABLE här, och det är inte en glömska ──────────────────
+--
+-- `storage.objects` ägs av `supabase_storage_admin`, inte av `postgres`.
+-- `comment on table` kräver ägarskap och faller med
+--
+--   ERROR: must be owner of table objects
+--
+-- vilket hade brutit migrationskedjan vid driftsättning. Att det inte syns i
+-- `verify-schema.sh` beror på att skriptet skapar en egen stubbe av tabellen
+-- som postgres äger — kontrollen kan alltså inte fånga det här felet, och den
+-- lokala Supabase-stacken är enda stället det visar sig före produktion.
+--
+-- `drop policy` går däremot bra: den kräver inte ägarskap av tabellen.
+
+drop policy if exists "personal ersätter sina egna bilder" on storage.objects;

@@ -548,6 +548,10 @@ export const bs: Dictionary = {
     saveAddress: "Sačuvaj adresu",
 
     exportTitle: "Preuzmite kopiju",
+    marketingTitle: "Obavijesti",
+    marketingBody: "Povremeno šaljemo novosti i ponude. Možete odustati kad god želite, a ništa ne šaljemo dok ne pristanete.",
+    marketingOn: "Da, šaljite mi obavijesti",
+    marketingSaved: "Sačuvano.",
     exportBody:
       "Sve što Burp ima o vama u jednoj datoteci: vaš nalog, vaše adrese, sve narudžbe sa stavkama, vaše ocjene, omiljeni restorani, bodovi, kuponi i kartice vjernosti. Datoteka je JSON i može je čitati i čovjek i drugi program.",
     exportButton: "Preuzmi moje podatke",
@@ -587,6 +591,7 @@ export const bs: Dictionary = {
 
     errors: {
       mustBeLoggedIn: "Morate biti prijavljeni.",
+      saveFailed: "Nije sačuvano. Pokušajte ponovo.",
       favoritesNeedAccount: "Morate biti prijavljeni da biste čuvali omiljene restorane.",
       favoriteFailed: "Nije uspjelo čuvanje.",
       reviewUnreadable: "Ocjena se nije mogla pročitati. Ocijenite bar hranu.",
@@ -1421,6 +1426,8 @@ export const bs: Dictionary = {
       adjustSaving: "Čuvanje…",
       adjustSaved: "Podešavanje je sačuvano.",
       adjustFailed: "Podešavanje nije sačuvano.",
+      uploading: "Otpremanje…",
+      registering: "Registrovanje…",
     },
 
     documents: {

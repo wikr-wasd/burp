@@ -525,6 +525,10 @@ export const no: Dictionary = {
     saveAddress: "Lagre adresse",
 
     exportTitle: "Last ned en kopi",
+    marketingTitle: "Utsendelser",
+    marketingBody: "Vi tar kontakt av og til med nyheter og tilbud. Du kan si nei takk når du vil, og vi sender ingenting før du har sagt ja.",
+    marketingOn: "Ja takk, send meg utsendelser",
+    marketingSaved: "Lagret.",
     exportBody:
       "Alt Burp har om deg i én fil: kontoen din, adressene dine, alle bestillinger med linjer, tilbakemeldingene dine, favoritter, poeng, kuponger og klippekort. Filen er JSON og kan leses både av deg og av et annet program.",
     exportButton: "Last ned opplysningene mine",
@@ -564,6 +568,7 @@ export const no: Dictionary = {
 
     errors: {
       mustBeLoggedIn: "Du må være innlogget.",
+      saveFailed: "Kunne ikke lagres. Prøv igjen.",
       favoritesNeedAccount: "Du må være innlogget for å lagre favoritter.",
       favoriteFailed: "Kunne ikke lagre.",
       reviewUnreadable: "Karakteren kunne ikke tolkes. Gi i det minste maten en karakter.",
@@ -1384,6 +1389,8 @@ export const no: Dictionary = {
       adjustSaving: "Lagrer…",
       adjustSaved: "Justeringen er lagret.",
       adjustFailed: "Justeringen kunne ikke lagres.",
+      uploading: "Laster opp…",
+      registering: "Registrerer…",
     },
 
     documents: {

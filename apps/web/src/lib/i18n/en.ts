@@ -523,6 +523,10 @@ export const en: Dictionary = {
     saveAddress: "Save address",
 
     exportTitle: "Download a copy",
+    marketingTitle: "Newsletters",
+    marketingBody: "We write now and then with news and offers. You can opt out whenever you like, and we send nothing until you say yes.",
+    marketingOn: "Yes, send me newsletters",
+    marketingSaved: "Saved.",
     exportBody:
       "Everything Burp holds about you in one file: your account, your addresses, every order with its lines, your reviews, favourites, points, coupons and punch cards. The file is JSON and can be read both by you and by another program.",
     exportButton: "Download my data",
@@ -562,6 +566,7 @@ export const en: Dictionary = {
 
     errors: {
       mustBeLoggedIn: "You have to be logged in.",
+      saveFailed: "Could not save. Try again.",
       favoritesNeedAccount: "You have to be logged in to save favourites.",
       favoriteFailed: "Could not save that.",
       reviewUnreadable: "The rating could not be read. Rate the food at least.",
@@ -1380,6 +1385,8 @@ export const en: Dictionary = {
       adjustSaving: "Saving…",
       adjustSaved: "The adjustment is saved.",
       adjustFailed: "The adjustment could not be saved.",
+      uploading: "Uploading…",
+      registering: "Registering…",
     },
 
     documents: {
