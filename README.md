@@ -6,6 +6,8 @@ QR-beställning vid bordet, restaurangdashboard och köksskärm.
 Full arkitektur: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 Beslut som saknas: [`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md)
 Koppla Supabase och Vercel: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+Förtroendegränserna: [`docs/SECURITY.md`](docs/SECURITY.md)
+Rapportera en sårbarhet: [`SECURITY.md`](SECURITY.md)
 
 ---
 

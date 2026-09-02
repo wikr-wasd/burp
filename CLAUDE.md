@@ -60,6 +60,8 @@ tekniken. Den delen har högst kvalitetskrav i hela produkten.
 | `docs/OPEN-QUESTIONS.md` | Beslut som blockerar |
 | `docs/DESIGN.md` | Designspråket, färgerna och varför |
 | `docs/DEPLOYMENT.md` | Miljöer och driftsättning |
+| `docs/SECURITY.md` | Förtroendegränserna, och vad RLS **inte** kan |
+| `docs/PERSONUPPGIFTER.md` | Vad som samlas in, var det ligger och vem det delas med |
 | `docs/BUSINESS.md` | Affärsmodellen, intäktsscenarier och villkoren för nytt land |
 
 ---
