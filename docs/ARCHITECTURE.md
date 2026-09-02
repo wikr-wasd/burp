@@ -6,18 +6,23 @@ Version 0.1 · underlag för bygge
 
 ## Vad som ändrats sedan v0.1
 
-Dokumentet nedan är oförändrat sedan det skrevs. Sex saker har beslutats efter
-det och gäller framför texten där de krockar. Det här avsnittet finns för att
-ett arkitekturdokument som tyst blivit fel är farligare än inget alls.
+Dokumentet nedan är oförändrat sedan det skrevs. Sakerna i tabellen har
+beslutats efter det och gäller framför texten där de krockar. Det här avsnittet
+finns för att ett arkitekturdokument som tyst blivit fel är farligare än inget
+alls — och tabellen hade själv hunnit bli fel på två punkter innan den
+uppdaterades 2026-09-02.
 
 | Ändring | Följd | Var |
 |---|---|---|
 | **Marknaden är Bosnien, Kroatien och Serbien**, inte Sverige | Landet är en egenskap hos restaurangen och styr valuta, momssatser, organisationsnummerformat och tidszon | `packages/core/src/country.ts`, migration `0019` |
 | **Valutan fryses på ordern** | Ett kvitto ändrar sig aldrig i efterhand för att restaurangen bytt valuta. Plattformsöversikten redovisar per valuta — belopp från olika valutor summeras aldrig | Migration `0020` |
 | **Varje restaurang har en egen sida** | Marknadsplatsen är inte en katalog. Presentation, bild, kökstyper, prisklass, adress och kartnål redigeras av restaurangen själv | `components/staff/presentation-editor.tsx` |
-| **Kartor och vägbeskrivning** | Google Maps, Apple Kartor och Waze, byggt på koordinater i stället för adresstext. Karta via OpenStreetMap, utan API-nyckel | `components/site/directions.tsx`, `map-embed.tsx` |
+| **Kartor och vägbeskrivning** | Vägbeskrivningen är utgående länkar till Google Maps och Apple Kartor, byggda på koordinater i stället för adresstext — gratis och utan tredje part i sidan. Kartan ritas av **Leaflet**, och rutorna hämtas från `NEXT_PUBLIC_MAP_TILE_URL`. Standardvärdet pekar på OpenStreetMaps egna servrar, vilket **inte är tillåtet för en publik tjänst** — öppen fråga 8 blockerar lansering | `components/site/directions.tsx`, `discovery/restaurant-map.tsx`, `site/place-map.tsx` |
 | **Fem språk, med språket i URL:en** | `/bs/`, `/en/`, `/de/`, `/no/`, `/sv/` för de indexerade ytorna; QR-sidan och kvittona väljer på `Accept-Language` eftersom de är noindex. `bs` täcker bosniska, kroatiska och serbiska i latinsk skrift och pekas ut med `hreflang` för alla tre. Personalytorna är svenska med flit | `lib/i18n/` |
-| **Designspråket är ett, inte ett per sida** | Byggstenarna definieras en gång i `globals.css`. Inga rundade hörn, inga skuggor — det är signaturen | `CLAUDE.md`, `app/globals.css` |
+| **Designspråket är ett, inte ett per sida** | Byggstenarna definieras en gång i `globals.css`. Sedan **2026-08-16** följer Burp 123Connect Design System: handlingsrött, vita kort, rundade hörn och låga skuggor. Den tidigare redaktionella formen — papper, antikva, inga rundade hörn — är borta, och beskrivningen stod kvar här i två veckor efter att den slutat stämma | `docs/DESIGN.md`, `app/globals.css` |
+| **Restaurangen äger sitt eget inlösenavtal** | Öppen fråga 5, besvarad. Burp håller aldrig gästens pengar, utan fakturerar sin avgift i efterhand. Det är det som gjorde kortbetalning möjlig utan betaltjänsttillstånd | `docs/OPEN-QUESTIONS.md`, migration `0039` |
+| **Modererat innehåll är plattformens beslut, inte restaurangens** | Bilder och dokument börjar som `PENDING` och publiceras av en trigger vid godkännande. Statusen kan bara ändras av en plattformsadmin — en RLS-policy kan inte uttrycka det, eftersom den bara ser den nya raden | Migrationerna `0063`–`0065`, `docs/SECURITY.md` |
+| **Restaurangen justerar sina egna bilder, inom gränser** | Fokuspunkt, ljusstyrka, kontrast och mättnad inom 85–115 %. Inte ett filter: gränserna är det som gör att en ändring inte behöver granskas om | `packages/core/src/image-adjust.ts`, migration `0063` |
 
 Avsnitt 14 (öppna frågor) har dessutom skrivits om: fråga 4 och 5 var ställda
 för den svenska marknaden och gav fel svar på fel fråga. Se
@@ -30,16 +35,16 @@ för den svenska marknaden och gav fel svar på fel fråga. Se
 | Avsnitt | Status | Var |
 |---|---|---|
 | 2 Teknikval | Byggt | `apps/web`, `packages/core`, `supabase/` |
-| 3 Datamodell | Byggt och verifierat mot riktig Postgres | `supabase/migrations/0001`–`0010`, `scripts/verify-schema.sh` |
+| 3 Datamodell | Byggt och verifierat mot riktig Postgres | `supabase/migrations/0001`–`0066`, `scripts/verify-schema.sh` |
 | 4 QR vid bordet | Byggt — meny, varukorg, kassa och kvitto | `packages/core/src/qr.ts`, `apps/web/src/lib/table-session.ts`, `apps/web/src/app/t/[token]` |
 | 5 Orderns livscykel | Byggt | `packages/core/src/order-status.ts`, `order-policy.ts`, migration `0010` |
-| 6 Betalning och avgifter | Delvis — schema klart, leverantör obeslutad | `supabase/migrations/0006`, `packages/core/src/pricing.ts` |
-| 7 Rating | Schema och triggers klart, UI saknas | `supabase/migrations/0007`, `0010` |
-| 8 Media | Schema klart, uppladdning saknas | `supabase/migrations/0008` |
+| 6 Betalning och avgifter | Byggt. Kort, Apple Pay och kontant i kassan; Stripe-adaptern klar mot testnycklar, Monri läggs på samma gränssnitt. Avräkningen fakturerar avgiften i efterhand | `supabase/migrations/0006`, `0026`, `0039`, `0044`, `packages/core/src/pricing.ts` |
+| 7 Rating | Byggt. Omdöme lämnas på bordskvittot, visas på restaurangsidan och modereras i backoffice | `supabase/migrations/0007`, `0028`, `components/reviews/`, `app/dashboard/omdomen` |
+| 8 Media | Byggt för **bild**: uppladdning, granskning, publicering och justering. **Video är dött schema** — `media.kind` bär `VIDEO`, men ingenting skriver det och ingen yta spelar upp det. Dokument som PDF har egen tabell | `supabase/migrations/0008`, `0017`, `0053`, `0063`, `0064` |
 | 9 SEO | Grund byggd | `apps/web/src/app/r/[city]/[slug]`, `src/lib/seo/jsonld.ts` |
-| 10 Lojalitet | Logik och schema klart, UI saknas | `packages/core/src/loyalty.ts`, migration `0007` |
-| 11 Dashboard | Översikt, order live, köksskärm, kassa, meny, bord, omdömen, statistik och inställningar byggt; kampanjer och utbetalningar kvar | `apps/web/src/app/dashboard`, `apps/web/src/app/kok` |
-| 12 Säkerhet | Byggt | `supabase/migrations/0009`, `apps/web/src/lib/rate-limit.ts`, `proxy.ts` |
+| 10 Lojalitet | Byggt. Poäng, utgång, klippkort, kuponger och presentkort; saldot lagras aldrig utan räknas ur loggen | `packages/core/src/loyalty.ts`, migrationerna `0007`, `0016`, `0029`–`0031`, `0042` |
+| 11 Dashboard | Sexton sidor byggda, inklusive kampanjer, presentkort, bokningar, personal, säkerhet och avräkning. Statistiken och avräkningen går att exportera som CSV | `apps/web/src/app/dashboard`, `apps/web/src/app/kok` |
+| 12 Säkerhet | Byggt. Förtroendegränserna och de kända svagheterna står samlade i [SECURITY.md](./SECURITY.md); personuppgifterna i [PERSONUPPGIFTER.md](./PERSONUPPGIFTER.md) | `supabase/migrations/0009`, `0012`, `0051`, `apps/web/src/lib/rate-limit.ts`, `proxy.ts` |
 
 Öppna frågor som blockerar: se [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md).
 
