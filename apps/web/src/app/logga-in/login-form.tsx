@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { loginDestination } from "@/app/logga-in/actions";
 import { MFA_CHALLENGE_PATH } from "@/lib/mfa-path";
 import { createClient } from "@/lib/supabase/client";
+import type { Dictionary } from "@/lib/i18n";
 
 /**
  * Inloggningsformulär.
@@ -14,7 +15,14 @@ import { createClient } from "@/lib/supabase/client";
  * inloggning — och det som gör att en köksskärm kan stå påslagen hela dagen
  * utan att tappa sessionen.
  */
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({
+  next,
+  labels,
+}: {
+  next?: string;
+  /** Rena strängar — klientkod kan inte ta emot en funktion över gränsen. */
+  labels: Dictionary["auth"];
+}) {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -33,7 +41,7 @@ export function LoginForm({ next }: { next?: string }) {
     if (signInError) {
       // Samma meddelande för fel lösenord och okänt konto. Skiljer de sig kan
       // sidan användas för att ta reda på vilka e-postadresser som finns.
-      setError("Fel e-postadress eller lösenord.");
+      setError(labels.loginFailed);
       setSubmitting(false);
       return;
     }
@@ -81,7 +89,7 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <form onSubmit={handleSubmit} className="mt-10 space-y-7">
       <label className="block">
-        <span className="label-caps">E-post</span>
+        <span className="label-caps">{labels.email}</span>
         <input
           type="email"
           value={email}
@@ -94,7 +102,7 @@ export function LoginForm({ next }: { next?: string }) {
       </label>
 
       <label className="block">
-        <span className="label-caps">Lösenord</span>
+        <span className="label-caps">{labels.password}</span>
         <input
           type="password"
           value={password}
@@ -115,7 +123,7 @@ export function LoginForm({ next }: { next?: string }) {
       ) : null}
 
       <button type="submit" disabled={submitting} className="btn btn-primary w-full">
-        {submitting ? "Loggar in…" : "Logga in"}
+        {submitting ? labels.loggingIn : labels.loginButton}
       </button>
     </form>
   );

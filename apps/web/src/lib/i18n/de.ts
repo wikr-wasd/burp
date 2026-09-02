@@ -65,6 +65,33 @@ export const de: Dictionary = {
     emptyHint: "Entfernen Sie einen Filter oder durchsuchen Sie den gesamten Marktplatz.",
   },
 
+  auth: {
+    signUpLabel: "Gastkonto",
+    signUpTitle: "Konto erstellen",
+    signUpBody: "Bewahren Sie Ihre Bestellungen, Favoriten und Adressen auf. Bestellen geht auch ohne Konto.",
+    haveAccount: "Haben Sie bereits ein Konto?",
+    name: "Name",
+    nameOptional: "optional",
+    email: "E-Mail",
+    password: "Passwort",
+    passwordHint: "Mindestens 8 Zeichen.",
+    passwordTooShort: "Das Passwort braucht mindestens 8 Zeichen.",
+    emailTaken: "Mit dieser E-Mail-Adresse besteht bereits ein Konto.",
+    signUpFailed: "Das Konto konnte nicht erstellt werden. Bitte erneut versuchen.",
+    signingUp: "Konto wird erstellt…",
+    signUpButton: "Konto erstellen",
+    confirmSent: "Fast geschafft. Wir haben einen Bestätigungslink an {email} geschickt — klicken Sie darauf, dann ist das Konto bereit.",
+    marketingOptIn: "Ja, senden Sie mir Neuigkeiten und Angebote. Sie können jederzeit unter Meine Daten widersprechen.",
+    loginLabel: "Für Restaurants",
+    loginTitle: "Anmelden",
+    loginBody: "Bestellungen, Küchenbildschirm, Speisekarte und Statistik für Ihr Restaurant.",
+    loginFailed: "Falsche E-Mail-Adresse oder falsches Passwort.",
+    loggingIn: "Anmeldung läuft…",
+    loginButton: "Anmelden",
+    guestHint: "Sind Sie Gast? Zum Bestellen brauchen Sie kein Konto —",
+    guestLink: "scannen Sie den QR-Code am Tisch",
+  },
+
   join: {
     metaTitle: "Ihr Restaurant anmelden",
     metaDescription:

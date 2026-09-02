@@ -87,6 +87,33 @@ export const bs: Dictionary = {
     emptyHint: "Uklonite jedan filter ili pretražite cijelo tržište.",
   },
 
+  auth: {
+    signUpLabel: "Gostinski račun",
+    signUpTitle: "Otvorite račun",
+    signUpBody: "Sačuvajte svoje narudžbe, omiljena mjesta i adrese. Možete naručiti i bez računa.",
+    haveAccount: "Već imate račun?",
+    name: "Ime",
+    nameOptional: "nije obavezno",
+    email: "E-pošta",
+    password: "Lozinka",
+    passwordHint: "Najmanje 8 znakova.",
+    passwordTooShort: "Lozinka mora imati najmanje 8 znakova.",
+    emailTaken: "Račun s tom e-poštom već postoji.",
+    signUpFailed: "Račun nije otvoren. Pokušajte ponovo.",
+    signingUp: "Otvaranje računa…",
+    signUpButton: "Otvorite račun",
+    confirmSent: "Skoro gotovo. Poslali smo link za potvrdu na {email} — kliknite na njega i račun je spreman.",
+    marketingOptIn: "Da, šaljite mi novosti i ponude. Možete odustati kad god želite pod Moji podaci.",
+    loginLabel: "Za restorane",
+    loginTitle: "Prijavite se",
+    loginBody: "Narudžbe, kuhinjski ekran, meni i statistika za vaš restoran.",
+    loginFailed: "Pogrešna e-pošta ili lozinka.",
+    loggingIn: "Prijava…",
+    loginButton: "Prijavite se",
+    guestHint: "Vi ste gost? Za narudžbu vam ne treba račun —",
+    guestLink: "skenirajte QR kod za stolom",
+  },
+
   join: {
     metaTitle: "Priključite svoj restoran",
     metaDescription:

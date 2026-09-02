@@ -66,6 +66,29 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-09-02 (iii) — ingången till produkten talar inte bara svenska
+
+`/skapa-konto` och `/logga-in` var **helt oöversatta**. Ingen av dem anropade
+`dictionary()` eller `requestLocale()`, och båda formulären bar hårdkodad
+svenska: "Namn", "E-post", "Lösenord", "Fel e-postadress eller lösenord."
+
+Det är de två sidor där en besökare måste förstå vad hon fyller i, och den ena
+är gästens enda väg till ett konto. En tysk turist — största turistgruppen i
+regionen — möttes av svenska.
+
+Nytt avsnitt `auth` i alla fem ordböckerna, 24 nycklar.
+
+**`/skapa-konto` är nu noindex.** Den var `index: true` utan språk i adressen,
+vilket är precis den kombination `CLAUDE.md` varnar för: Google indexerar en URL
+och inte en cookie, så bara en språkversion hade kunnat nå sökresultaten. Sidan
+låg inte i sitemapen, och ingen söker efter "skapa konto" i en sökmotor — hit
+kommer man från sidfoten och från `/anslut`. Vill du ändå ha den indexerad är
+rätt lösning att flytta den under `[locale]`, inte att låta den ligga kvar som
+den var.
+
+`/logga-in` läser `Accept-Language` och inte `staff.locale`. Personalytorna
+läser språket ur personen — men vid inloggningen finns ingen person än.
+
 ### Byggt 2026-09-02 (ii) — sista hålet stängt, och ett samtycke som går att lämna
 
 Migrationerna `0065` och `0066`.
@@ -111,9 +134,10 @@ Nu finns båda halvorna, och båda behövs:
 `image-upload.tsx` sa "Laddar upp…" och "Registrerar…" på svenska oavsett vad
 kocken valt för språk. Personalytorna läser `staff.locale`.
 
-Registreringssidan är däremot **inte** översatt alls — hela `/skapa-konto` bär
-hårdkodad svenska och anropar varken `dictionary()` eller `requestLocale()`.
-Samtyckesrutan följer sidans nuvarande språk. Ligger som egen punkt i listan.
+Registreringssidan var däremot **inte** översatt alls — hela `/skapa-konto` bar
+hårdkodad svenska och anropade varken `dictionary()` eller `requestLocale()`.
+Det rättades i nästa steg samma dag, se avsnittet ovan; samtyckesrutan talar nu
+alla fem språken.
 
 ### Byggt 2026-09-02 — ägaren styr sin egen sida, och granskningen går inte längre att gå förbi
 
@@ -1415,18 +1439,6 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
          produkter och två olika bygg.
 
       Svara på 2, så byggs 1 med i samma veva.
-
-- [ ] **`/skapa-konto` är inte översatt alls.** Hittat 2026-09-02.
-      Sidan och formuläret bär hårdkodad svenska — "Namn", "E-post",
-      "Lösenord", "Minst 8 tecken." — och `page.tsx` anropar varken
-      `dictionary()` eller `requestLocale()`. Alla andra gästytor gör det.
-
-      Det betyder att en tysk turist som vill spara sina favoriter möts av
-      svenska i det enda formulär där hen måste förstå vad hon fyller i.
-
-      Samtyckesrutan jag lade till där följer sidans nuvarande språk, alltså
-      svenska. Den ska översättas i samma veva som resten av sidan — inte
-      ensam, för en översatt rad i ett svenskt formulär läser som ett fel.
 
 - [ ] **Sentry-DSN.** SDK:n är installerad, konfigurerad och skrubbad sedan
       2026-09-01, men rapporterar ingenting utan DSN. Organisationen finns

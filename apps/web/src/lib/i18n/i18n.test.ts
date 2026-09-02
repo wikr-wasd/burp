@@ -268,6 +268,9 @@ describe("ordböckerna", () => {
        */
       "staff.bookings.table",
       "staff.bookings.seat",
+      // "E-post" stavas likadant. "Passord" och "Navn" gör det inte,
+      // vilket är kvittot på att avsnittet faktiskt är norskt.
+      "auth.email",
       // "Kontrast" är samma lånord som på svenska.
       "staff.image.contrast",
 

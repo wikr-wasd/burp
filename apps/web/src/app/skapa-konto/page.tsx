@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { dictionary, requestLocale } from "@/lib/i18n";
 import { redirect } from "next/navigation";
 import { getGuest } from "@/lib/guest";
 import { safeNext } from "@/lib/safe-redirect";
@@ -19,10 +19,24 @@ import { SignUpForm } from "./signup-form";
  * att skaffa själv.
  */
 
-export const metadata: Metadata = {
-  title: "Skapa konto",
-  robots: { index: true, follow: true },
-};
+/*
+ * Sidan läser `Accept-Language`, som `/konto` och QR-sidan, och är därför
+ * noindex.
+ *
+ * Den var indexerad utan språk i adressen, vilket är den kombination CLAUDE.md
+ * varnar för: Google indexerar en URL och inte en cookie, så bara en
+ * språkversion hade kunnat nå sökresultaten. Alternativet vore att flytta
+ * sidan under `[locale]`, men ingen letar efter "skapa konto" i en sökmotor —
+ * hit kommer man från sidfoten och från /anslut.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const t = dictionary(await requestLocale());
+
+  return {
+    title: t.auth.signUpTitle,
+    robots: { index: false, follow: true },
+  };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -36,23 +50,24 @@ export default async function SignUpPage({ searchParams }: PageProps) {
   const guest = await getGuest();
   if (guest) redirect(safeNext(next) ?? "/konto");
 
+  const locale = await requestLocale();
+  const t = dictionary(locale);
+
   return (
     <>
-      <SiteHeader locale={DEFAULT_LOCALE} />
+      <SiteHeader locale={locale} />
 
       <main className="mx-auto w-full max-w-sm px-6 py-20 sm:py-28">
-        <p className="label-caps">Gästkonto</p>
-        <h1 className="font-display mt-2 text-4xl">Skapa konto</h1>
-        <p className="mt-3 text-[var(--muted)]">
-          Spara dina beställningar, favoriter och adresser. Du kan beställa utan konto också.
-        </p>
+        <p className="label-caps">{t.auth.signUpLabel}</p>
+        <h1 className="font-display mt-2 text-4xl">{t.auth.signUpTitle}</h1>
+        <p className="mt-3 text-[var(--muted)]">{t.auth.signUpBody}</p>
 
-        <SignUpForm next={safeNext(next)} />
+        <SignUpForm next={safeNext(next)} labels={t.auth} />
 
         <p className="mt-10 text-sm text-[var(--muted)]">
-          Har du redan ett konto?{" "}
+          {t.auth.haveAccount}{" "}
           <Link href="/logga-in" className="link">
-            Logga in
+            {t.auth.loginTitle}
           </Link>
         </p>
       </main>

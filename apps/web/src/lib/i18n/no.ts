@@ -67,6 +67,33 @@ export const no: Dictionary = {
     emptyHint: "Fjern et filter, eller søk i hele markedsplassen.",
   },
 
+  auth: {
+    signUpLabel: "Gjestekonto",
+    signUpTitle: "Opprett konto",
+    signUpBody: "Ta vare på bestillingene, favorittene og adressene dine. Du kan bestille uten konto også.",
+    haveAccount: "Har du allerede en konto?",
+    name: "Navn",
+    nameOptional: "valgfritt",
+    email: "E-post",
+    password: "Passord",
+    passwordHint: "Minst 8 tegn.",
+    passwordTooShort: "Passordet må ha minst 8 tegn.",
+    emailTaken: "Det finnes allerede en konto med den e-postadressen.",
+    signUpFailed: "Kontoen ble ikke opprettet. Prøv igjen.",
+    signingUp: "Oppretter konto…",
+    signUpButton: "Opprett konto",
+    confirmSent: "Nesten ferdig. Vi har sendt en bekreftelseslenke til {email} — klikk på den, så er kontoen i gang.",
+    marketingOptIn: "Ja takk, send meg nyheter og tilbud. Du kan si nei takk når du vil under Mine opplysninger.",
+    loginLabel: "For restauranter",
+    loginTitle: "Logg inn",
+    loginBody: "Bestillinger, kjøkkenskjerm, meny og statistikk for restauranten din.",
+    loginFailed: "Feil e-postadresse eller passord.",
+    loggingIn: "Logger inn…",
+    loginButton: "Logg inn",
+    guestHint: "Er du gjest? Du trenger ingen konto for å bestille —",
+    guestLink: "skann QR-koden ved bordet",
+  },
+
   join: {
     metaTitle: "Meld på restauranten din",
     metaDescription:

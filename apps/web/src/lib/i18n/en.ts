@@ -66,6 +66,33 @@ export const en: Dictionary = {
     emptyHint: "Remove a filter, or search the whole marketplace.",
   },
 
+  auth: {
+    signUpLabel: "Guest account",
+    signUpTitle: "Create an account",
+    signUpBody: "Keep your orders, favourites and addresses. You can order without an account too.",
+    haveAccount: "Already have an account?",
+    name: "Name",
+    nameOptional: "optional",
+    email: "Email",
+    password: "Password",
+    passwordHint: "At least 8 characters.",
+    passwordTooShort: "The password needs at least 8 characters.",
+    emailTaken: "An account with that email already exists.",
+    signUpFailed: "The account could not be created. Try again.",
+    signingUp: "Creating account…",
+    signUpButton: "Create an account",
+    confirmSent: "Almost there. We sent a confirmation link to {email} — click it and the account is live.",
+    marketingOptIn: "Yes, send me news and offers. You can opt out whenever you like under My details.",
+    loginLabel: "For restaurants",
+    loginTitle: "Log in",
+    loginBody: "Orders, kitchen screen, menu and statistics for your restaurant.",
+    loginFailed: "Wrong email or password.",
+    loggingIn: "Logging in…",
+    loginButton: "Log in",
+    guestHint: "Are you a guest? You need no account to order —",
+    guestLink: "scan the QR code at the table",
+  },
+
   join: {
     metaTitle: "List your restaurant",
     metaDescription:

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
  * Registreringsformulär.
@@ -11,7 +12,14 @@ import { createClient } from "@/lib/supabase/client";
  * (`handle_new_user` i migration 0002), inte härifrån. Skulle klienten göra
  * det skulle en avbruten registrering kunna lämna ett konto utan profil.
  */
-export function SignUpForm({ next }: { next?: string }) {
+export function SignUpForm({
+  next,
+  labels,
+}: {
+  next?: string;
+  /** Rena strängar — klientkod kan inte ta emot en funktion över gränsen. */
+  labels: Dictionary["auth"];
+}) {
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
@@ -28,7 +36,7 @@ export function SignUpForm({ next }: { next?: string }) {
     // Supabase kräver minst sex tecken. Att säga det före anropet är snällare
     // än att låta servern avvisa efter en rundtur.
     if (password.length < 8) {
-      setError("Lösenordet behöver minst 8 tecken.");
+      setError(labels.passwordTooShort);
       return;
     }
 
@@ -57,8 +65,8 @@ export function SignUpForm({ next }: { next?: string }) {
     if (signUpError) {
       setError(
         signUpError.message.includes("already registered")
-          ? "Det finns redan ett konto med den e-postadressen."
-          : "Kontot kunde inte skapas. Försök igen.",
+          ? labels.emailTaken
+          : labels.signUpFailed,
       );
       setSubmitting(false);
       return;
@@ -80,8 +88,7 @@ export function SignUpForm({ next }: { next?: string }) {
   if (needsConfirmation) {
     return (
       <p className="mt-8 bg-green-600/10 px-4 py-3 text-sm text-green-800 dark:text-green-300">
-        Nästan klart. Vi har skickat en bekräftelselänk till {email} — klicka på den så är
-        kontot igång.
+        {fill(labels.confirmSent, { email })}
       </p>
     );
   }
@@ -90,7 +97,8 @@ export function SignUpForm({ next }: { next?: string }) {
     <form onSubmit={handleSubmit} className="mt-10 space-y-7">
       <label className="block">
         <span className="label-caps">
-          Namn <span className="normal-case whitespace-nowrap">valfritt</span>
+          {labels.name}{" "}
+          <span className="normal-case whitespace-nowrap">{labels.nameOptional}</span>
         </span>
         <input
           value={fullName}
@@ -102,7 +110,7 @@ export function SignUpForm({ next }: { next?: string }) {
       </label>
 
       <label className="block">
-        <span className="label-caps">E-post</span>
+        <span className="label-caps">{labels.email}</span>
         <input
           type="email"
           value={email}
@@ -114,7 +122,7 @@ export function SignUpForm({ next }: { next?: string }) {
       </label>
 
       <label className="block">
-        <span className="label-caps">Lösenord</span>
+        <span className="label-caps">{labels.password}</span>
         <input
           type="password"
           value={password}
@@ -124,7 +132,7 @@ export function SignUpForm({ next }: { next?: string }) {
           autoComplete="new-password"
           className="field mt-1.5"
         />
-        <span className="mt-1.5 block text-xs text-[var(--muted)]">Minst 8 tecken.</span>
+        <span className="mt-1.5 block text-xs text-[var(--muted)]">{labels.passwordHint}</span>
       </label>
 
       {/*
@@ -139,10 +147,7 @@ export function SignUpForm({ next }: { next?: string }) {
           onChange={(event) => setMarketingOptIn(event.target.checked)}
           className="mt-0.5 size-5 accent-burp-600"
         />
-        <span className="text-sm">
-          Ja tack, skicka nyheter och erbjudanden till mig. Du kan tacka nej när
-          du vill under Mina uppgifter.
-        </span>
+        <span className="text-sm">{labels.marketingOptIn}</span>
       </label>
 
       {error ? (

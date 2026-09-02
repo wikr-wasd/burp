@@ -81,6 +81,44 @@ export const sv = {
    * Skickas till en klientkomponent och måste därför vara rena strängar rakt
    * igenom. Variabler skrivs `{namn}` och fylls i med `fill()`.
    */
+  /*
+   * Registrering och inloggning.
+   *
+   * Båda ytorna är noindex och läser `Accept-Language`, som `/konto` och
+   * QR-sidan. En indexerad sida MÅSTE ha språket i adressen — Google indexerar
+   * en URL, inte en cookie — och de här två har det inte. Att hålla dem
+   * osynliga för sökmotorn är det som gör att de får läsa språket ur begäran.
+   *
+   * Ingen letar heller efter "skapa konto" i en sökmotor. Sidan nås från
+   * sidfoten och från /anslut.
+   */
+  auth: {
+    signUpLabel: "Gästkonto",
+    signUpTitle: "Skapa konto",
+    signUpBody: "Spara dina beställningar, favoriter och adresser. Du kan beställa utan konto också.",
+    haveAccount: "Har du redan ett konto?",
+    name: "Namn",
+    nameOptional: "valfritt",
+    email: "E-post",
+    password: "Lösenord",
+    passwordHint: "Minst 8 tecken.",
+    passwordTooShort: "Lösenordet behöver minst 8 tecken.",
+    emailTaken: "Det finns redan ett konto med den e-postadressen.",
+    signUpFailed: "Kontot kunde inte skapas. Försök igen.",
+    signingUp: "Skapar konto…",
+    signUpButton: "Skapa konto",
+    confirmSent: "Nästan klart. Vi har skickat en bekräftelselänk till {email} — klicka på den så är kontot igång.",
+    marketingOptIn: "Ja tack, skicka nyheter och erbjudanden till mig. Du kan tacka nej när du vill under Mina uppgifter.",
+    loginLabel: "För restauranger",
+    loginTitle: "Logga in",
+    loginBody: "Order, köksskärm, meny och statistik för din restaurang.",
+    loginFailed: "Fel e-postadress eller lösenord.",
+    loggingIn: "Loggar in…",
+    loginButton: "Logga in",
+    guestHint: "Är du gäst? Du behöver inget konto för att beställa —",
+    guestLink: "skanna QR-koden vid bordet",
+  },
+
   join: {
     metaTitle: "Anslut din restaurang",
     metaDescription:
