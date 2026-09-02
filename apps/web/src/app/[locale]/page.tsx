@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Clock, QrCode, Receipt, Star, UtensilsCrossed } from "lucide-react";
+import { ChevronDown, Clock, QrCode, Receipt, Star, UtensilsCrossed } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
 import { RestaurantMap, type MapPin } from "@/components/discovery/restaurant-map";
 import { FocusOnHover } from "@/components/discovery/focus-on-hover";
@@ -388,7 +388,57 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
 
               <span aria-hidden="true" className="h-6 w-px shrink-0 bg-[var(--rule)]" />
 
-              <FilterRow label={t.home.city}>
+              {/*
+                I mobilen är städerna en knapp, inte en rad.
+
+                Nio städer i en rullbar rad på en telefonskärm visar tre åt
+                gången, och de sex andra finns bara för den som gissar att raden
+                går att dra i. En knapp som bär det VALDA namnet säger både vad
+                filtret står på och att det går att ändra — på en yta där
+                tummen redan är.
+
+                `<details>` och ingen klientkomponent: listan är länkar, och
+                länkar behöver ingen JavaScript för att fungera. Panelen stängs
+                av att sidan laddas om vid valet.
+              */}
+              <details className="group relative shrink-0 sm:hidden">
+                <summary
+                  aria-label={`${t.home.city}: ${activeCity?.name ?? t.home.allCities}`}
+                  className="chip flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden"
+                >
+                  {activeCity?.name ?? t.home.allCities}
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="size-3.5 shrink-0 transition-transform duration-[var(--speed)] group-open:rotate-180 motion-reduce:transition-none"
+                  />
+                </summary>
+
+                {/*
+                  `max-h` och egen rullning: nio städer ryms, femtio gör det
+                  inte, och en panel som växer förbi skärmkanten går inte att nå
+                  botten av när raden ovanför är klistrad.
+                */}
+                <div className="absolute top-full left-0 z-30 mt-2 max-h-[60vh] w-56 overflow-y-auto rounded-xl border border-[var(--rule)] bg-[var(--surface)] p-1.5 shadow-lg">
+                  <CityOption
+                    href={filterHref(locale, params, { stad: null })}
+                    active={!city}
+                  >
+                    {t.home.allCities}
+                  </CityOption>
+
+                  {cities.map((entry) => (
+                    <CityOption
+                      key={entry.slug}
+                      href={filterHref(locale, params, { stad: entry.slug })}
+                      active={city === entry.slug}
+                    >
+                      {entry.name}
+                    </CityOption>
+                  ))}
+                </div>
+              </details>
+
+              <FilterRow label={t.home.city} display="hidden sm:flex">
                 <Chip href={filterHref(locale, params, { stad: null })} active={!city}>
                   {t.home.allCities}
                 </Chip>
@@ -854,10 +904,26 @@ function HowItWorks({ t }: { t: Dictionary }) {
  * och filterraden är klistrad sedan 2026-08-28 — en rad som följer med nedåt
  * har inte råd med en spalt som upprepar vad chipsen redan säger.
  */
-function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FilterRow({
+  label,
+  children,
+  /*
+   * Displayen kommer utifrån och står inte i basklasserna.
+   *
+   * Stadsraden ska vara dold i mobilen, och `hidden sm:flex` tillsammans med
+   * ett `flex` i basen hade avgjorts av vilken av dem Tailwind råkar skriva
+   * sist i sin stilmall — inte av vad som står först i strängen. Att låta
+   * anroparen äga display gör regeln entydig.
+   */
+  display = "flex",
+}: {
+  label: string;
+  children: React.ReactNode;
+  display?: string;
+}) {
   return (
     <div
-      className="-mr-4 flex min-w-0 flex-1 gap-1 overflow-x-auto py-1 pr-4 sm:-mr-6 sm:pr-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className={`${display} -mr-4 min-w-0 flex-1 gap-1 overflow-x-auto py-1 pr-4 sm:-mr-6 sm:pr-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
       role="group"
       aria-label={label}
     >
@@ -874,6 +940,43 @@ function FilterRow({ label, children }: { label: string; children: React.ReactNo
  * Den läste som en tidningsavdelning, vilket var meningen då, men gick inte
  * att skilja från en rubrik i den nuvarande formen.
  */
+/**
+ * En stad i mobilens rullgardin.
+ *
+ * Full bredd och minst 44 px hög, till skillnad från chipsen: det här är en
+ * lista att träffa med tummen, inte en rad att ögna igenom.
+ */
+function CityOption({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "true" : undefined}
+      /*
+        `--surface` är VIT och `--background` är den grå sidgrunden — inte
+        tvärtom. Panelen är därför vit som ett kort, och hovern grå. Med
+        panelen på `--background` blev den samma färg som sidan bakom och
+        syntes bara på sin skugga; det gick inte att se i markup, bara i
+        webbläsaren.
+      */
+      className={`flex min-h-11 items-center rounded-lg px-3 text-sm transition-colors duration-[var(--speed)] ${
+        active
+          ? "bg-burp-600 font-medium text-white"
+          : "hover:bg-[var(--background)]"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
 function Chip({
   href,
   active,

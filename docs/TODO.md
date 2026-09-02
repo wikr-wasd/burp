@@ -66,6 +66,28 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-09-02 (iv) — städerna är en knapp i mobilen
+
+Nio städer i en rullbar rad visar tre åt gången på en telefon; de sex andra
+finns bara för den som gissar att raden går att dra i. Stadsfiltret är nu en
+knapp under `sm`, och knappen bär det **valda** namnet — den säger alltså både
+vad filtret står på och att det går att ändra. Chipsraden är oförändrad från
+`sm` och uppåt.
+
+`<details>` och ingen klientkomponent: innehållet är länkar, och länkar behöver
+ingen JavaScript. Panelen stängs av att sidan laddas om vid valet.
+
+`FilterRow` äger inte längre sin egen `display`. `hidden sm:flex` tillsammans
+med ett `flex` i basklasserna hade avgjorts av vilken regel Tailwind råkar
+skriva sist i sin stilmall, inte av ordningen i strängen.
+
+Mätt i webbläsaren vid 500 px: panelen får plats i sidled, rullar internt när
+städerna inte ryms, och när filterraden klistrat sig högst upp — det läge den
+faktiskt används i — syns hela panelen.
+
+Kökraden är fortfarande en rullbar rad. Ojämnt, men städer är det filter som
+används; säg till om den ska följa efter.
+
 ### Byggt 2026-09-02 (iii) — ingången till produkten talar inte bara svenska
 
 `/skapa-konto` och `/logga-in` var **helt oöversatta**. Ingen av dem anropade
@@ -1446,17 +1468,23 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
       därifrån — DSN:en bär regionen. `NEXT_PUBLIC_SENTRY_DSN` i miljön.
       **Kräver dig, inte kod.**
 
-- [ ] **Mobilvyn går inte att granska på den här maskinen.** `resize_window`
-      ändrar OS-fönstret men inte viewporten — `innerWidth` stod kvar på 1280
-      efter en begäran om 400. Bekräftat både 2026-08-22 och 2026-09-01.
+- [x] **Mobilvyn GÅR att granska sedan 2026-09-02.** William ställde om
+      webbläsaren; `window.innerWidth` är 500 och medieförfrågningarna slår
+      igenom på riktigt — stadsknappen renderas och chipsraden är dold, mätt i
+      sidan och inte gissad ur markup.
 
-      Det betyder att startsidans skyltfönster som snap-rulle, den klistrade
-      filterradens höjd och hela QR-flödet i en hand är **osett**, och det är
-      den yta som betyder mest.
+      Raden stod här som omöjlig, bekräftad två gånger, och byggde på att
+      `resize_window` ändrar OS-fönstret men inte viewporten. Det stämmer
+      fortfarande om verktyget, men inte om maskinen.
 
-      Två vägar: du tittar själv på en telefon, eller så kopplas en
-      Playwright-MCP in som ger en riktig mobilviewport. Den senare är den enda
-      anslutning som skulle låsa upp arbete som inte går att göra i dag.
+      **Följden:** det som stod som osett går nu att se här — startsidans
+      skyltfönster som snap-rulle, den klistrade filterradens höjd och QR-flödet
+      i en hand. Punkterna nedan om mobilvyn och gästflödet kan tas i tur och
+      ordning i stället för att vänta på en telefon.
+
+      Första vinsten kom direkt: stadsväljarens panel hade fått
+      `--background` (grå sidgrund) i stället för `--surface` (vit, som korten)
+      och var alltså exakt samma färg som sidan bakom. Det syns inte i en diff.
 
 - [ ] **Ställ tillbaka notisjobbet till `* * * * *` när kontot blir Pro.**
       En rad i `vercel.json`, ingenting annat.
