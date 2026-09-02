@@ -53,6 +53,16 @@ export default async function SettlementPage() {
       title={t.reports.settlementTitle}
       intro={t.reports.settlementIntro}
       width="narrow"
+      actions={
+        <a
+          href="/dashboard/avrakning/export"
+          download
+          title={t.reports.exportCsvHint}
+          className="btn btn-secondary"
+        >
+          {t.reports.exportCsv}
+        </a>
+      }
     >
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

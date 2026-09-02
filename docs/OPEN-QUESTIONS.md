@@ -369,6 +369,25 @@ skarpt — inte bara innan startsidans karta gör det.
 En egen stil är värd att väga in: OSM:s standardkarta är blå och grön, och blått
 finns annars inte i produkten av ett uttalat skäl.
 
+**Rekommendation 2026-09-01: MapTiler.** Gratisnivån räcker för Burps volym,
+egen stil går att rita i produktens palett i stället för OSM:s blå, och bytet är
+de två miljövariablerna ovan — ingen kodändring i någon av de tre
+kartkomponenterna.
+
+**Google Maps stryks som alternativ, och priset är inte huvudskälet.** Den
+samlade krediten på 200 USD/mån togs bort i mars 2025 och ersattes av fria
+kvoter per SKU som inte poolas ihop. Men även gratis hade svaret blivit
+detsamma: kartan ritas av Leaflet i `restaurant-map.tsx`, `place-map.tsx` och
+`map-embed.tsx`, och ett byte till Maps JS SDK är tre omskrivna komponenter, en
+ny CSP-modell för `maps.googleapis.com` och ett Google-skript i gästens
+webbläsare på den mest besökta sidtypen i produkten. `lib/csp.ts` härleder i dag
+tillåten `img-src` ur `NEXT_PUBLIC_MAP_TILE_URL` och behöver inte veta mer än
+så.
+
+Det Google gör bra åt oss görs dessutom redan, och kostnadsfritt:
+`components/site/directions.tsx` länkar ut till Google Maps och Apple Maps för
+vägbeskrivningen. Ingen nyckel, ingen fakturering, ingen tredje part i sidan.
+
 ---
 
 ## 9. Ska mörkt läge gälla överallt, eller bara vid bordet?

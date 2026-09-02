@@ -5,6 +5,7 @@ import type { Dictionary } from "@/lib/i18n";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { registerMedia } from "@/app/dashboard/meny/media-actions";
+import { ImageAdjuster } from "@/components/staff/image-adjuster";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -29,6 +30,8 @@ export function ImageUpload({
   label = "Ladda upp bild",
   labels,
   currentUrl,
+  mediaId,
+  adjust,
 }: {
   restaurantId: string;
   menuItemId?: string;
@@ -41,6 +44,14 @@ export function ImageUpload({
   /** Bilduppladdningens besked ur ordboken. Rena strängar — klientkod. */
   labels: Dictionary["staff"]["image"];
   currentUrl?: string | null;
+  /**
+   * Medieraden bakom `currentUrl`, när den finns. Utan den visas bilden men
+   * går inte att justera — vilket är fallet direkt efter en uppladdning, innan
+   * sidan hämtats om.
+   */
+  mediaId?: string | null;
+  /** Justeringen rakt ur kolumnen (migration 0063). */
+  adjust?: unknown;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -110,7 +121,20 @@ export function ImageUpload({
 
   return (
     <div>
-      {currentUrl ? (
+      {/*
+        Logotypen justeras inte. Den är en designad tillgång, inte ett
+        telefonfoto — att dra i ljusstyrkan på ett märke är meningslöst, och
+        migration 0063 har därför ingen kolumn för den.
+      */}
+      {currentUrl && mediaId && purpose !== "LOGO" ? (
+        <ImageAdjuster
+          mediaId={mediaId}
+          imageUrl={currentUrl}
+          initial={adjust}
+          ratio={purpose === "BANNER" ? "aspect-[21/9]" : "aspect-video"}
+          labels={labels}
+        />
+      ) : currentUrl ? (
         <img
           src={currentUrl}
           alt=""

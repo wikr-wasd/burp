@@ -65,6 +65,7 @@ export function CityRestaurantList({
                     restaurant.heroImageUrl,
                   )}
                   alt=""
+                  adjust={restaurant.heroAdjust}
                 />
                 <span
                   className={`badge absolute top-3 left-3 backdrop-blur ${

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { MenuEditor } from "@/components/staff/menu-editor";
 import { requireStaff } from "@/lib/auth";
+import { currentMedia, type MediaRow } from "@/lib/current-media";
 import { dictionary } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,6 +49,8 @@ export interface EditorItem {
   imageUrl: string | null;
   /** Bilder som väntar på Burps granskning. */
   pendingMedia: number;
+  /** Medieraden bakom bilden, så att den går att justera (migration 0063). */
+  media: { id: string; adjust: unknown } | null;
   /**
    * Schemalagd otillgänglighet: ISO-tid då rätten blir valbar igen.
    *
@@ -153,21 +156,36 @@ export default async function MenuPage() {
         .order("sort_order", { ascending: true })
     : { data: [] };
 
-  // Bilder som väntar på granskning. Restaurangen ska se att uppladdningen
-  // gick igenom även innan Burp hunnit titta på den.
-  const { data: pendingMedia } = itemIds.length
+  /*
+   * Rätternas bilder.
+   *
+   * Två svar ur samma fråga: hur många som väntar på granskning — restaurangen
+   * ska se att uppladdningen gick igenom även innan Burp hunnit titta på den —
+   * och vilken rad justeringsreglaget ska peka på (migration 0063).
+   */
+  const { data: itemMedia } = itemIds.length
     ? await supabase
         .from("media")
-        .select("menu_item_id")
-        .eq("status", "PENDING")
+        .select(
+          "id, menu_item_id, status, created_at, focal_x, focal_y, brightness, contrast, saturation",
+        )
+        .neq("status", "REJECTED")
         .in("menu_item_id", itemIds)
     : { data: [] };
 
   const pendingByItem = new Map<string, number>();
-  for (const row of pendingMedia ?? []) {
-    if (row.menu_item_id) {
+  const mediaRowsByItem = new Map<string, MediaRow[]>();
+
+  for (const row of itemMedia ?? []) {
+    if (!row.menu_item_id) continue;
+
+    if (row.status === "PENDING") {
       pendingByItem.set(row.menu_item_id, (pendingByItem.get(row.menu_item_id) ?? 0) + 1);
     }
+
+    const rows = mediaRowsByItem.get(row.menu_item_id) ?? [];
+    rows.push(row);
+    mediaRowsByItem.set(row.menu_item_id, rows);
   }
 
   // Restaurangens egna förslag i kundvagnen.
@@ -208,6 +226,7 @@ export default async function MenuPage() {
         status: item.status,
         imageUrl: item.image_url,
         pendingMedia: pendingByItem.get(item.id) ?? 0,
+        media: currentMedia(mediaRowsByItem.get(item.id) ?? []),
         unavailableUntil: availabilityByItem.get(item.id)?.until ?? null,
         unavailableReason: availabilityByItem.get(item.id)?.reason ?? null,
         minQuantity: item.min_quantity,

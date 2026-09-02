@@ -1,3 +1,5 @@
+import { imageAdjustStyle, parseImageAdjust } from "@burp/core";
+
 /**
  * Matbild med fast bildformat.
  *
@@ -25,6 +27,12 @@ interface FoodImageProps {
    * poängen med lazy är att resten väntar.
    */
   priority?: boolean;
+  /**
+   * Restaurangens egen justering, rakt ur `image_adjust`-kolumnen (migration
+   * 0063). Tas emot orörd och tolkas här, så att varje anropsplats bara
+   * skickar kolumnen vidare utan att veta något om formen.
+   */
+  adjust?: unknown;
 }
 
 export function FoodImage({
@@ -33,7 +41,12 @@ export function FoodImage({
   ratio = "aspect-[4/3]",
   className = "",
   priority = false,
+  adjust,
 }: FoodImageProps) {
+  // Fokuspunkten avgör VAD som överlever beskärningen. Utan den kapar
+  // `object-cover` alltid från mitten, och en hög tallrik tappar toppen.
+  const style = imageAdjustStyle(parseImageAdjust(adjust));
+
   return (
     <span
       className={`block overflow-hidden bg-[var(--surface)] ${ratio} ${className}`}
@@ -46,6 +59,7 @@ export function FoodImage({
         // `fetchPriority` på hjältebilden gör att den hämtas före resten av
         // sidans resurser. Det är den enda bilden gästen ser innan de scrollar.
         fetchPriority={priority ? "high" : "auto"}
+        style={style}
         className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
       />
     </span>

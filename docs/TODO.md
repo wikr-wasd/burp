@@ -11,7 +11,7 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-09-01**, branch `dev`.
+Senast uppdaterad **2026-09-02**, branch `dev`.
 
 Fas 1 är byggd i sin helhet, och **kortbetalning ingår nu**. Produkten går att
 använda rakt igenom: en gäst skannar en dekal, beställer vid bordet, betalar med
@@ -65,6 +65,99 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   upptäcktslistorna har samma tak på åtta rader med "Alla städer" som
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
+
+### Byggt 2026-09-02 — ägaren styr sin egen sida, och granskningen går inte längre att gå förbi
+
+Migrationerna `0063` (bildjustering) och `0064` (dokument).
+
+#### ⚠️ Ett hål som fanns från 0017 till 0063
+
+**En restaurangägare kunde godkänna sin egen bild.** `media_write_staff` i
+`0009_rls.sql` är `for all` och prövar bara rollen, aldrig vad som ändras.
+Policyer är dessutom tillåtande och OR:as ihop, så plattformens egen policy
+begränsade ingenting. Kommentaren i `0017` påstod motsatsen:
+
+> "Statusen sätts av kolumnens default (PENDING) och kan inte ändras av
+> restaurangen själv."
+
+Bevisat i den lokala stacken som `agare@burp.test`: `update media set status =
+'APPROVED'` gick igenom, och `media_publish_on_approval` publicerade lydigt
+bilden på restaurangsidan. Hela granskningskön var frivillig för den som anropar
+PostgREST direkt — och menyvyn är klientkod, så den som gick förbi den hade
+aldrig sett knappen.
+
+Rättat med en trigger, inte en policy: RLS kan inte jämföra gammalt och nytt
+värde, och regeln är att statusen inte får **ändras**. `media_status_guard`
+avvisar alla utom plattformsadmin och sessionslösa anrop (service role,
+migrationer). Samma grind sitter på dokumenten från första dagen.
+
+**Fortfarande öppet, samma familj:** en godkänd bild kan bytas ut i Storage på
+samma sökväg — `"personal ersätter sina egna bilder"` i 0017 tillåter UPDATE på
+objektet. Pekaren ändras inte, men filen bakom den gör det. Dokumenten har
+därför ingen UPDATE-policy alls; bilderna behöver ett beslut. Se listan nedan.
+
+#### Bildjustering — inte ett filter
+
+Ägaren kan justera **fokuspunkt, ljusstyrka, kontrast och mättnad**. Ingenting
+mer, med flit:
+
+- Ett filter konkurrerar med maten, och femton restauranger med var sitt gör
+  startsidans rutnät spretigt — det rutnätet är Burps yta, inte restaurangens.
+- Gränserna **85–115 %** är inte kosmetik. Inom dem kan en bild inte bli en
+  annan bild, och det är därför en ändrad justering inte behöver gå genom
+  granskningen igen.
+- **Mättnad och inte värme.** Värme förskjuter färgen, och en gäst som får mat
+  som inte ser ut som bilden är ett riktigt problem, inte ett estetiskt.
+- **Logotypen justeras inte** och fick därför ingen kolumn. Den är en designad
+  tillgång, inte ett telefonfoto.
+
+Fokuspunkten är den enskilt största vinsten: `object-cover` beskar tidigare
+alltid från mitten och kapade toppen av en hög tallrik.
+
+Sanningen står i `media`, som typade kolumner med check-villkor. Kopian ligger
+i `menu_items.image_adjust` och `restaurants.hero_adjust` / `banner_adjust`,
+skriven av samma trigger som skriver bildpekaren — annars hade sex läsvägar
+behövt en join mot `media` för fem heltal. `sync_media_adjustment()` låter en
+ändring slå igenom på en redan godkänd bild.
+
+Uträkningen finns på **ett** ställe: `imageAdjustStyle()` i `@burp/core`. Samma
+funktion ritar gästens sida, ägarens förhandsvisning och granskningskön i
+backoffice — kön visar det gästen ser, annars godkänner Burp en bild och
+restaurangen visar en annan.
+
+#### CSV-export
+
+Statistiken och avräkningen går att ladda ner. Fanns inte någonstans i produkten
+innan. Öppnas direkt i Google Kalkylark och Excel — utan OAuth, utan tokens och
+utan att Burp begär åtkomst till någons Google-konto.
+
+Tre val i `lib/csv.ts` som ser små ut och inte är det: BOM först (annars läser
+Excel filen som Windows-1252 och varje å blir "Ã¥"), CRLF som radbrytning, och
+celler som börjar med `=`, `+`, `-` eller `@` avväpnas — en cell är
+restaurangens egen text och ska aldrig kunna köras hos den som öppnar filen.
+Beloppen räknas med `CURRENCY_INFO`, så serbiska dinarer skrivs utan decimaler.
+
+Båda rutterna anropar samma funktioner som sidorna ritar. En egen fråga hade
+blivit en andra kopia, och två uträkningar av vad restaurangen är skyldig Burp
+får aldrig kunna svara olika.
+
+#### Dokument som PDF
+
+Egen tabell `restaurant_documents`, egen bucket `restaurant-docs`, egen
+granskningskö i backoffice, och en egen sektion på restaurangsidan.
+
+**Menyn blir aldrig en PDF.** En PDF går inte att beställa ur, är inte sökbar,
+översätts inte till de fem språken och skalar inte i en hand vid ett bord. Det
+här är för de dokument en restaurang faktiskt har och som inte är en meny:
+allergenintyg, vinlista som inte säljs i appen, cateringblad.
+
+#### Verifierat
+
+- 628 enhetstester, `type-check`, `lint` och `build` gröna.
+- Hela schemat byggt från noll i en ren PostGIS-container, med **tre nya
+  logiktester**: att ägaren inte kan godkänna sin egen bild, att justeringen
+  följer med pekaren också när den ändras efteråt, och att ett dokument inte
+  syns för gästen förrän Burp granskat det.
 
 ### Byggt 2026-09-01 — avgiften ändras inte längre av ett felklick
 
@@ -1274,6 +1367,30 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
 
       Svara på 2, så byggs 1 med i samma veva.
 
+- [ ] **En godkänd bild kan bytas ut i Storage — BESLUT BEHÖVS.**
+      Hittat 2026-09-02, samma familj som hålet migration 0063 stängde.
+
+      Storage-policyn `"personal ersätter sina egna bilder"` (0017) tillåter
+      UPDATE på objektet. En restaurang kan alltså ladda upp en oskyldig bild,
+      få den godkänd, och därefter skriva över filen på samma sökväg. Pekaren
+      i `menu_items.image_url` ändras inte — den pekar på en sökväg, inte på
+      ett innehåll — så granskningen märker ingenting.
+
+      Dokumenten har därför ingen UPDATE-policy alls (0064): en PDF byts genom
+      att tas bort och laddas upp på nytt, vilket ger en ny rad i kön.
+
+      **Tre vägar, ditt val:**
+
+      1. Ta bort UPDATE-policyn även för bilder. Att "byta bild" blir att
+         ladda upp en ny — som för dokumenten. Enklast, och konsekvent.
+      2. Låt en ersättning sätta tillbaka status till PENDING. Kräver att
+         Storage kan tala om för databasen att filen ändrats, vilket den inte
+         gör av sig själv.
+      3. Låt det vara. Risken är en restaurang som medvetet lurar Burp, inte
+         ett misstag — men den indexerade sidan ligger under vår domän.
+
+      Jag förordar **1**.
+
 - [ ] **Sentry-DSN.** SDK:n är installerad, konfigurerad och skrubbad sedan
       2026-09-01, men rapporterar ingenting utan DSN. Organisationen finns
       redan: `123ab` på **EU-regionen** (`de.sentry.io`). Använd en DSN
@@ -1475,6 +1592,19 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
       De två frågorna som skulle bestämmas före bygget fick sina svar:
       bokningen håller ett **bestämt bord**, och ett bord som står tomt
       släpps efter **15 minuters karens** — räknad, inte satt av ett jobb.
+
+- [ ] **Stämpelkort i Google Wallet.** Föreslaget 2026-09-01. Lojaliteten är
+      redan byggd — `loyalty_transactions` och `loyalty_balance()` (migration
+      0042) — och ett pass i telefonens plånbok visar saldot utan att gästen
+      installerar något. Samma säljargument som QR-dekalen: ingen app.
+
+      Bryter inte mot regel 7. Passet **visar** ett saldo som fortfarande
+      räknas ur loggen; det lagrar det inte.
+
+      **Kräver dig:** ett Google Wallet Issuer-konto och en tjänstenyckel att
+      signera passen med. Kräver dessutom svar på öppen fråga 3 — vem som
+      bekostar en inlöst belöning — innan det är värt att bygga, eftersom ett
+      pass i plånboken gör belöningen synligare och inlösen vanligare.
 
 - [ ] **Surfplatta vid bordet.** Beslutad. Delar mycket med QR-flödet.
 - [ ] **Mobilapp (React Native).** Beslutad. `@burp/core` är byggt för att

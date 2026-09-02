@@ -38,6 +38,8 @@ export interface MenuItem {
   vatRateBps: number;
   allergens: string[];
   imageUrl: string | null;
+  /** Restaurangens bildjustering (migration 0063). Orörd form, tolkas av FoodImage. */
+  imageAdjust: unknown;
   isAvailable: boolean;
   /**
    * Varför rätten inte går att beställa, när restaurangen skrivit ett skäl.
@@ -135,7 +137,7 @@ export async function getActiveMenu(
   const { data: items } = await supabase
     .from("menu_items")
     .select(
-      "id, category_id, name, description, price_ore, vat_rate_bps, allergens, image_url, is_available, min_quantity, sort_order",
+      "id, category_id, name, description, price_ore, vat_rate_bps, allergens, image_url, image_adjust, is_available, min_quantity, sort_order",
     )
     .in(
       "category_id",
@@ -243,6 +245,7 @@ export async function getActiveMenu(
           vatRateBps: item.vat_rate_bps,
           allergens: item.allergens ?? [],
           imageUrl: resolveMediaUrl(item.image_url),
+          imageAdjust: item.image_adjust,
           // Båda måste släppa igenom. Av/på-knappen är personalens omedelbara
           // beslut och ska aldrig kunna kringgås av ett schema.
           isAvailable: item.is_available && scheduled.isAvailable,

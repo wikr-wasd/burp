@@ -248,6 +248,8 @@ export const sv = {
     onThisPage: "På den här sidan",
     menu: "Meny",
     findUs: "Hitta hit",
+    documents: "Dokument",
+    documentsHint: "Öppnas som PDF.",
     reviews: "Omdömen",
     orderForPickup: "Beställ för avhämtning",
     noMenuTitle: "Ingen meny just nu",
@@ -1579,6 +1581,8 @@ export const sv = {
       settlementIntro:
         "Burps avgift, samlad per månad och fakturerad i efterhand. Gästernas pengar går direkt till er — de passerar aldrig Burp — så det här är det enda som ska betalas härifrån.",
       settlementOngoing: "Pågående — inte fakturerad än",
+      exportCsv: "Ladda ner som CSV",
+      exportCsvHint: "Öppnas i Google Kalkylark och Excel.",
       settlementClosed: "Stängda perioder",
       settlementEmptyTitle: "Ingen period är stängd än",
       settlementEmptyBody:
@@ -1770,6 +1774,38 @@ export const sv = {
       formatError: "Bilden måste vara JPEG, PNG, WebP eller AVIF.",
       uploadedNotice:
         "Bilden är uppladdad och väntar på granskning. Den syns för gästen när den godkänts.",
+      adjustTitle: "Justera bilden",
+      adjustHint: "Klicka i bilden för att välja vad som ska synas när den beskärs.",
+      adjustNoReview: "Justeringar syns direkt och behöver ingen ny granskning.",
+      brightness: "Ljusstyrka",
+      contrast: "Kontrast",
+      saturation: "Mättnad",
+      adjustReset: "Återställ",
+      adjustSave: "Spara justering",
+      adjustSaving: "Sparar…",
+      adjustSaved: "Justeringen är sparad.",
+      adjustFailed: "Justeringen kunde inte sparas.",
+    },
+
+    /* Restaurangens egna dokument (migration 0064). */
+    documents: {
+      title: "Dokument",
+      hint: "Allergenintyg, vinlista eller cateringblad som PDF. Menyn hör inte hit — den redigeras under Meny och går att beställa ur.",
+      empty: "Inga dokument än.",
+      titleLabel: "Titel",
+      titlePlaceholder: "Vinlista 2026",
+      choose: "Välj PDF",
+      add: "Lägg till dokument",
+      adding: "Laddar upp…",
+      remove: "Ta bort",
+      removeConfirm: "Ta bort dokumentet? Det går inte att ångra.",
+      pending: "Väntar på granskning",
+      rejected: "Avvisat",
+      approved: "Publicerat",
+      needTitle: "Skriv en titel först.",
+      formatError: "Dokumentet måste vara en PDF.",
+      sizeError: "Dokumentet får vara högst 10 MB.",
+      failed: "Dokumentet kunde inte sparas.",
     },
 
     /* Inbjudningssidan. Personen är inloggad men ännu inte personal. */

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { toAdjustColumns, type ImageAdjust } from "@burp/core";
 
 /**
  * Registrerar en uppladdad bild i `media` (avsnitt 8.3).
@@ -105,6 +106,40 @@ export async function deletePendingMedia(mediaId: string): Promise<ActionResult>
 
   revalidatePath("/dashboard/meny");
   // Huvudbilden laddas upp från inställningarna, inte från menyn.
+  revalidatePath("/dashboard/installningar");
+  return { ok: true };
+}
+
+/**
+ * Sparar restaurangens bildjustering (migration 0063).
+ *
+ * Går genom personalens egen session och inte service role: `media_write_staff`
+ * avgör att raden hör till den egna restaurangen, och `media_status_guard`
+ * hindrar att något annat än justeringen ändras på vägen. Filtret på
+ * `restaurant_id` är alltså inte det som skyddar — det är där för att en
+ * felaktig id-gissning ska ge noll rader i stället för ett fel som låter som
+ * ett behörighetsproblem.
+ *
+ * Ingen ny granskning krävs. Gränserna 85–115 i `toAdjustColumns()` är det som
+ * gör att en justerad bild inte kan bli en annan bild.
+ */
+export async function saveImageAdjust(
+  mediaId: string,
+  adjust: ImageAdjust,
+): Promise<ActionResult> {
+  const staff = await requireStaff(["owner", "manager"]);
+  const supabase = await createClient();
+
+  const { error, count } = await supabase
+    .from("media")
+    .update(toAdjustColumns(adjust), { count: "exact" })
+    .eq("id", mediaId)
+    .eq("restaurant_id", staff.restaurantId);
+
+  if (error) return { ok: false, message: error.message };
+  if (count === 0) return { ok: false, message: staffErrors(staff).imageNotYours };
+
+  revalidatePath("/dashboard/meny");
   revalidatePath("/dashboard/installningar");
   return { ok: true };
 }

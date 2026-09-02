@@ -681,6 +681,8 @@ interface ShowcaseItem {
   city: string;
   href: string;
   image: string;
+  /** Bildjustering ur hero_adjust (migration 0063). */
+  adjust: unknown;
   currency: DiscoveryRestaurant["currency"];
   /** Översta raden ur menyn. Null för en restaurang utan publicerad meny. */
   dish: DishHighlight | null;
@@ -725,7 +727,7 @@ function Showcase({
               href={item.href}
               className="card group relative block overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
             >
-              <FoodImage src={item.image} alt="" ratio="aspect-[4/3]" />
+              <FoodImage src={item.image} alt="" ratio="aspect-[4/3]" adjust={item.adjust} />
 
               {/* Mörkningen är byggstenen `.media-scrim` — genomskinlig upptill
                   så att maten syns, nästan svart nertill så att texten går att
@@ -791,6 +793,7 @@ function pickShowcase(
     city: entry.city,
     href: localePath(locale, `/r/${entry.citySlug}/${entry.slug}`),
     image: restaurantImage(entry.name, entry.city, entry.heroImageUrl),
+    adjust: entry.heroAdjust,
     currency: entry.currency,
     dish: highlights.get(entry.id)?.[0] ?? null,
   }));
@@ -946,6 +949,7 @@ function RestaurantCard({
         <FoodImage
           src={restaurantImage(restaurant.name, restaurant.city, restaurant.heroImageUrl)}
           alt=""
+          adjust={restaurant.heroAdjust}
         />
 
         {/* Öppetmärket ligger på bilden, där ögat redan är. Grönt för öppet,

@@ -680,8 +680,12 @@ export type Database = {
       media: {
         Row: {
           alt_text: string | null
+          brightness: number
+          contrast: number
           created_at: string
           duration_ms: number | null
+          focal_x: number
+          focal_y: number
           height: number | null
           id: string
           is_primary: boolean
@@ -696,6 +700,7 @@ export type Database = {
           restaurant_id: string
           reviewed_at: string | null
           reviewed_by: string | null
+          saturation: number
           sort_order: number
           status: Database["public"]["Enums"]["media_status"]
           storage_path: string | null
@@ -705,8 +710,12 @@ export type Database = {
         }
         Insert: {
           alt_text?: string | null
+          brightness?: number
+          contrast?: number
           created_at?: string
           duration_ms?: number | null
+          focal_x?: number
+          focal_y?: number
           height?: number | null
           id?: string
           is_primary?: boolean
@@ -721,6 +730,7 @@ export type Database = {
           restaurant_id: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          saturation?: number
           sort_order?: number
           status?: Database["public"]["Enums"]["media_status"]
           storage_path?: string | null
@@ -730,8 +740,12 @@ export type Database = {
         }
         Update: {
           alt_text?: string | null
+          brightness?: number
+          contrast?: number
           created_at?: string
           duration_ms?: number | null
+          focal_x?: number
+          focal_y?: number
           height?: number | null
           id?: string
           is_primary?: boolean
@@ -746,6 +760,7 @@ export type Database = {
           restaurant_id?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          saturation?: number
           sort_order?: number
           status?: Database["public"]["Enums"]["media_status"]
           storage_path?: string | null
@@ -828,6 +843,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          image_adjust: Json | null
           image_url: string | null
           is_available: boolean
           min_quantity: number
@@ -845,6 +861,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_adjust?: Json | null
           image_url?: string | null
           is_available?: boolean
           min_quantity?: number
@@ -862,6 +879,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_adjust?: Json | null
           image_url?: string | null
           is_available?: boolean
           min_quantity?: number
@@ -1876,6 +1894,62 @@ export type Database = {
           },
         ]
       }
+      restaurant_documents: {
+        Row: {
+          created_at: string
+          id: string
+          rejection_reason: string | null
+          restaurant_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          size_bytes: number
+          sort_order: number
+          status: Database["public"]["Enums"]["media_status"]
+          storage_path: string
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rejection_reason?: string | null
+          restaurant_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          size_bytes: number
+          sort_order?: number
+          status?: Database["public"]["Enums"]["media_status"]
+          storage_path: string
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rejection_reason?: string | null
+          restaurant_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          size_bytes?: number
+          sort_order?: number
+          status?: Database["public"]["Enums"]["media_status"]
+          storage_path?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_documents_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_payment_accounts: {
         Row: {
           capabilities: Json
@@ -1923,6 +1997,7 @@ export type Database = {
       restaurants: {
         Row: {
           accent_hex: string | null
+          banner_adjust: Json | null
           banner_url: string | null
           city: string
           city_slug: string | null
@@ -1935,10 +2010,12 @@ export type Database = {
           fee_base: Database["public"]["Enums"]["fee_base"]
           fee_override_bps: number | null
           google_review_url: string | null
+          hero_adjust: Json | null
           hero_image_url: string | null
           id: string
           latitude: number | null
           location: unknown
+          logo_adjust: Json | null
           logo_url: string | null
           longitude: number | null
           loyalty_points_per_krona: number
@@ -1961,6 +2038,7 @@ export type Database = {
         }
         Insert: {
           accent_hex?: string | null
+          banner_adjust?: Json | null
           banner_url?: string | null
           city: string
           city_slug?: string | null
@@ -1973,10 +2051,12 @@ export type Database = {
           fee_base?: Database["public"]["Enums"]["fee_base"]
           fee_override_bps?: number | null
           google_review_url?: string | null
+          hero_adjust?: Json | null
           hero_image_url?: string | null
           id?: string
           latitude?: number | null
           location?: unknown
+          logo_adjust?: Json | null
           logo_url?: string | null
           longitude?: number | null
           loyalty_points_per_krona?: number
@@ -1999,6 +2079,7 @@ export type Database = {
         }
         Update: {
           accent_hex?: string | null
+          banner_adjust?: Json | null
           banner_url?: string | null
           city?: string
           city_slug?: string | null
@@ -2011,10 +2092,12 @@ export type Database = {
           fee_base?: Database["public"]["Enums"]["fee_base"]
           fee_override_bps?: number | null
           google_review_url?: string | null
+          hero_adjust?: Json | null
           hero_image_url?: string | null
           id?: string
           latitude?: number | null
           location?: unknown
+          logo_adjust?: Json | null
           logo_url?: string | null
           longitude?: number | null
           loyalty_points_per_krona?: number
@@ -3052,6 +3135,10 @@ export type Database = {
       mark_notice_sent: {
         Args: { p_error?: string; p_id: string }
         Returns: undefined
+      }
+      media_adjust_json: {
+        Args: { m: Database["public"]["Tables"]["media"]["Row"] }
+        Returns: Json
       }
       mfa_satisfied: { Args: never; Returns: boolean }
       my_role_at: {

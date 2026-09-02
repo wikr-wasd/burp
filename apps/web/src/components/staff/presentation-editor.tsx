@@ -48,6 +48,7 @@ export function PresentationEditor({
   initial,
   labels,
   imageLabels,
+  heroMedia,
 }: {
   restaurantId: string;
   restaurantName: string;
@@ -59,6 +60,8 @@ export function PresentationEditor({
   labels: Dictionary["staff"]["settings"];
   /** Bilduppladdningens besked. Delas med menyredigeraren — se ordboken. */
   imageLabels: Dictionary["staff"]["image"];
+  /** Medieraden bakom bilden, så att den går att justera (migration 0063). */
+  heroMedia?: { id: string; adjust: unknown } | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -133,6 +136,8 @@ export function PresentationEditor({
             label={labels.heroUpload}
             labels={imageLabels}
             currentUrl={initial.heroImageUrl}
+            mediaId={heroMedia?.id ?? null}
+            adjust={heroMedia?.adjust}
           />
         </div>
 

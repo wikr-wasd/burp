@@ -5089,4 +5089,201 @@ begin
 end
 $$;
 
+\echo '   restaurangen kan inte godkänna sin egen bild'
+
+/*
+ * Grinden i migration 0063.
+ *
+ * Hålet fanns från 0017 till 0063: `media_write_staff` är `for all` och prövar
+ * bara rollen, aldrig VAD som ändras. En ägare kunde alltså skriva
+ * status = 'APPROVED' på sin egen rad och publicera vilken bild som helst på
+ * en indexerad sida, förbi hela granskningskön.
+ *
+ * Kontrollen måste göras som en INLOGGAD ägare. Som superanvändare är
+ * auth.uid() null, och då släpper grinden igenom med flit — service role och
+ * migrationer ska inte spärras ute.
+ */
+do $$
+declare
+  v_rest  uuid;
+  v_agare uuid;
+  v_media uuid;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Sjalvgodkant', 'sjalvgodkant', '4200000000191',
+          'Ferhadija 91', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-godkann@example.com')
+  returning id into v_agare;
+  insert into public.staff (user_id, restaurant_id, role, is_active)
+  values (v_agare, v_rest, 'owner', true);
+
+  insert into public.media (restaurant_id, kind, storage_path, purpose, status, is_primary)
+  values (v_rest, 'IMAGE', v_rest || '/egen.jpg', 'HERO', 'PENDING', true)
+  returning id into v_media;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_agare::text, true);
+
+  begin
+    update public.media set status = 'APPROVED' where id = v_media;
+    raise exception 'FEL: ägaren godkände sin egen bild';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- Justeringen ska däremot gå. Den är hela poängen med gränserna 85-115.
+  update public.media set brightness = 110, focal_y = 30 where id = v_media;
+
+  perform set_config('request.jwt.claim.sub', '', true);
+  execute 'set local role postgres';
+
+  if (select status from public.media where id = v_media) <> 'PENDING' then
+    raise exception 'FEL: statusen ändrades trots att grinden avvisade';
+  end if;
+
+  if (select hero_image_url from public.restaurants where id = v_rest) is not null then
+    raise exception 'FEL: bilden publicerades utan granskning';
+  end if;
+end
+$$;
+
+\echo '   bildjusteringen följer med pekaren, också när den ändras efteråt'
+
+do $$
+declare
+  v_rest   uuid;
+  v_media  uuid;
+  v_adjust jsonb;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Justerad', 'justerad', '4200000000192',
+          'Ferhadija 92', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into public.media (restaurant_id, kind, storage_path, purpose, status, is_primary, focal_y, brightness)
+  values (v_rest, 'IMAGE', v_rest || '/hero.jpg', 'HERO', 'PENDING', true, 30, 110)
+  returning id into v_media;
+
+  -- Gränserna hör ihop med ADJUST_MIN och ADJUST_MAX i @burp/core. Ändras den
+  -- ena måste den andra följa med, av samma skäl som allowed_vat_rates().
+  begin
+    update public.media set brightness = 200 where id = v_media;
+    raise exception 'FEL: ljusstyrka utanför gränsen accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  update public.media set status = 'APPROVED' where id = v_media;
+
+  select hero_adjust into v_adjust from public.restaurants where id = v_rest;
+  if v_adjust is null then
+    raise exception 'FEL: justeringen följde inte med publiceringen';
+  end if;
+  if (v_adjust ->> 'brightness')::int <> 110 or (v_adjust ->> 'focal_y')::int <> 30 then
+    raise exception 'FEL: fel justering skrevs: %', v_adjust;
+  end if;
+
+  -- Ändras justeringen efter godkännandet ska den slå igenom utan ny
+  -- granskning. Utan den kopplingen sparas reglaget men syns aldrig.
+  update public.media set contrast = 108 where id = v_media;
+
+  select hero_adjust into v_adjust from public.restaurants where id = v_rest;
+  if (v_adjust ->> 'contrast')::int <> 108 then
+    raise exception 'FEL: en ändrad justering nådde aldrig sidan';
+  end if;
+
+  -- En orörd bild ska ge NULL och inte fem standardvärden.
+  update public.media
+     set focal_x = 50, focal_y = 50, brightness = 100, contrast = 100, saturation = 100
+   where id = v_media;
+
+  if (select hero_adjust from public.restaurants where id = v_rest) is not null then
+    raise exception 'FEL: en orörd bild lämnade en justering efter sig';
+  end if;
+
+  update public.media set status = 'REJECTED' where id = v_media;
+
+  if (select hero_image_url from public.restaurants where id = v_rest) is not null then
+    raise exception 'FEL: en tillbakadragen bild låg kvar';
+  end if;
+end
+$$;
+
+\echo '   ett dokument syns för gästen först när Burp granskat det'
+
+do $$
+declare
+  v_rest  uuid;
+  v_agare uuid;
+  v_doc   uuid;
+  v_antal integer;
+begin
+  insert into public.restaurants (
+    name, slug, org_number, street_address, postal_code, city, status, country, currency
+  )
+  values ('Dokumenten', 'dokumenten', '4200000000193',
+          'Ferhadija 93', '71000', 'Sarajevo', 'ACTIVE', 'BA', 'BAM')
+  returning id into v_rest;
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-doc@example.com')
+  returning id into v_agare;
+  insert into public.staff (user_id, restaurant_id, role, is_active)
+  values (v_agare, v_rest, 'owner', true);
+
+  insert into public.restaurant_documents (restaurant_id, title, storage_path, size_bytes)
+  values (v_rest, 'Vinlista 2026', v_rest || '/vin.pdf', 24000)
+  returning id into v_doc;
+
+  -- Titeln är gästens enda ledtråd om vad filen är. En tom sådan är ingen.
+  begin
+    update public.restaurant_documents set title = '   ' where id = v_doc;
+    raise exception 'FEL: en tom titel gick att spara';
+  exception
+    when check_violation then null;
+  end;
+
+  execute 'set local role anon';
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  select count(*) into v_antal from public.restaurant_documents where id = v_doc;
+  if v_antal <> 0 then
+    raise exception 'FEL: gästen såg ett ogranskat dokument';
+  end if;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_agare::text, true);
+
+  -- Samma grind som bilderna: restaurangen godkänner inte sitt eget.
+  begin
+    update public.restaurant_documents set status = 'APPROVED' where id = v_doc;
+    raise exception 'FEL: ägaren godkände sitt eget dokument';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  perform set_config('request.jwt.claim.sub', '', true);
+  execute 'set local role postgres';
+
+  update public.restaurant_documents set status = 'APPROVED' where id = v_doc;
+
+  execute 'set local role anon';
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  select count(*) into v_antal from public.restaurant_documents where id = v_doc;
+
+  perform set_config('request.jwt.claim.sub', '', true);
+  execute 'set local role postgres';
+
+  if v_antal <> 1 then
+    raise exception 'FEL: gästen såg inte det godkända dokumentet';
+  end if;
+end
+$$;
+
 rollback;

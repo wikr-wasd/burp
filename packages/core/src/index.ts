@@ -27,3 +27,5 @@ export * from "./scheduling";
 export * from "./qr";
 export * from "./schemas";
 export * from "./loyalty";
+
+export * from "./image-adjust";

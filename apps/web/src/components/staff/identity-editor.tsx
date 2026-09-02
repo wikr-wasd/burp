@@ -31,6 +31,7 @@ export function IdentityEditor({
   bannerUrl,
   labels,
   errorLabels,
+  bannerMedia,
   imageLabels,
 }: {
   restaurantId: string;
@@ -38,6 +39,8 @@ export function IdentityEditor({
   logoUrl: string | null;
   bannerUrl: string | null;
   labels: Dictionary["staff"]["settings"];
+  /** Medieraden bakom bilden, så att den går att justera (migration 0063). */
+  bannerMedia?: { id: string; adjust: unknown } | null;
   /*
    * Beskeden när färgen inte duger.
    *
@@ -179,6 +182,8 @@ export function IdentityEditor({
             label={labels.bannerUpload}
             labels={imageLabels}
             currentUrl={bannerUrl}
+            mediaId={bannerMedia?.id ?? null}
+            adjust={bannerMedia?.adjust}
           />
         </div>
       </div>

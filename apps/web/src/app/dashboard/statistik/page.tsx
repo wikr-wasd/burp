@@ -63,18 +63,37 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
       title={t.section.statistik}
       width="narrow"
       actions={
-        <nav className="flex gap-2" aria-label="Period">
-          {(Object.keys(PERIODS) as PeriodKey[]).map((key) => (
-            <Link
-              key={key}
-              href={`/dashboard/statistik?period=${key}`}
-              aria-current={key === periodKey ? "page" : undefined}
-              className={`chip ${key === periodKey ? "chip-active" : ""}`}
+        <div className="flex flex-wrap items-center gap-2">
+          <nav className="flex gap-2" aria-label="Period">
+            {(Object.keys(PERIODS) as PeriodKey[]).map((key) => (
+              <Link
+                key={key}
+                href={`/dashboard/statistik?period=${key}`}
+                aria-current={key === periodKey ? "page" : undefined}
+                className={`chip ${key === periodKey ? "chip-active" : ""}`}
+              >
+                {PERIODS[key].label}
+              </Link>
+            ))}
+          </nav>
+
+          {/*
+            Vanlig länk och ingen knapp med fetch: svaret är en fil, och
+            webbläsaren laddar ner den själv. `download` gör att den inte öppnas
+            i en flik som visar rå CSV. Perioden följer med den som visas — den
+            som exporterar vill ha det hen tittar på.
+          */}
+          {summary.ordersCount > 0 ? (
+            <a
+              href={`/dashboard/statistik/export?period=${periodKey}`}
+              download
+              title={t.reports.exportCsvHint}
+              className="btn btn-secondary"
             >
-              {PERIODS[key].label}
-            </Link>
-          ))}
-        </nav>
+              {t.reports.exportCsv}
+            </a>
+          ) : null}
+        </div>
       }
     >
         {summary.ordersCount === 0 ? (

@@ -5,6 +5,8 @@ import {
   availableSlots,
   checkAccentColor,
   COUNTRY_INFO,
+  imageAdjustStyle,
+  parseImageAdjust,
   parseReservationPolicy,
   parseOpeningHours,
   parseOrderPolicy,
@@ -71,6 +73,8 @@ interface RestaurantRow {
   price_tier: number | null;
   cuisines: string[] | null;
   hero_image_url: string | null;
+  hero_adjust: unknown;
+  banner_adjust: unknown;
   accent_hex: string | null;
   logo_url: string | null;
   banner_url: string | null;
@@ -83,12 +87,39 @@ interface RestaurantRow {
   currency: CurrencyCode;
 }
 
+interface DocumentRow {
+  id: string;
+  title: string;
+  storage_path: string;
+  size_bytes: number;
+}
+
+/**
+ * Restaurangens egna dokument (migration 0064).
+ *
+ * Bara godkända — RLS säger samma sak, men filtret står här också så att
+ * frågan går att läsa utan att man slår upp policyn. Menyn är INTE ett
+ * dokument: den ligger som data längre ner på sidan och går att beställa ur.
+ */
+async function getDocuments(restaurantId: string): Promise<DocumentRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("restaurant_documents")
+    .select("id, title, storage_path, size_bytes")
+    .eq("restaurant_id", restaurantId)
+    .eq("status", "APPROVED")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  return data ?? [];
+}
+
 async function getRestaurant(city: string, slug: string): Promise<RestaurantRow | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("restaurants")
     .select(
-      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, accent_hex, logo_url, banner_url, rating_average, rating_count, opening_hours, order_policy, reservation_policy, country, currency",
+      "id, name, slug, description, city, street_address, postal_code, latitude, longitude, phone, price_tier, cuisines, hero_image_url, hero_adjust, accent_hex, logo_url, banner_url, banner_adjust, rating_average, rating_count, opening_hours, order_policy, reservation_policy, country, currency",
     )
     .eq("slug", slug)
     .eq("city_slug", city)
@@ -160,6 +191,8 @@ export default async function RestaurantPage({ params }: PageProps) {
    */
   const reservationPolicy = parseReservationPolicy(restaurant.reservation_policy);
   const today = new Intl.DateTimeFormat("sv-SE", { timeZone }).format(new Date());
+
+  const documents = await getDocuments(restaurant.id);
 
   const accent = restaurant.accent_hex ? checkAccentColor(restaurant.accent_hex) : null;
   const logoUrl = resolveMediaUrl(restaurant.logo_url);
@@ -248,6 +281,9 @@ export default async function RestaurantPage({ params }: PageProps) {
         <img
           src={bannerUrl}
           alt=""
+          // En banner är 21:9. Utan fokuspunkt beskärs den från mitten, och på
+          // en bild av en lokal är det golvet som överlever.
+          style={imageAdjustStyle(parseImageAdjust(restaurant.banner_adjust))}
           className="mt-6 aspect-[21/9] w-full overflow-hidden rounded-xl object-cover"
         />
       ) : (
@@ -256,6 +292,7 @@ export default async function RestaurantPage({ params }: PageProps) {
           alt=""
           ratio="aspect-[16/9] sm:aspect-[21/9]"
           className="mt-6 overflow-hidden rounded-xl"
+          adjust={restaurant.hero_adjust}
           priority
         />
       )}
@@ -365,6 +402,9 @@ export default async function RestaurantPage({ params }: PageProps) {
           {[
             { href: "#meny", label: t.restaurant.menu },
             { href: "#hitta-hit", label: t.restaurant.findUs },
+            ...(documents.length > 0
+              ? [{ href: "#dokument", label: t.restaurant.documents }]
+              : []),
             { href: "#omdomen", label: t.restaurant.reviews },
           ].map((entry) => (
             <a
@@ -430,6 +470,42 @@ export default async function RestaurantPage({ params }: PageProps) {
           </p>
         </section>
       )}
+
+      {/*
+        Dokumenten. Ingen egen sida och ingen inbäddad läsare — en PDF öppnas
+        av telefonens egen visare, och en iframe hade bara lagt ett lager
+        emellan som inte går att zooma i.
+      */}
+      {documents.length > 0 ? (
+        <section id="dokument" className="mt-16">
+          <h2 className="font-display text-3xl">{t.restaurant.documents}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t.restaurant.documentsHint}</p>
+
+          <ul className="mt-4 space-y-2">
+            {documents.map((document) => (
+              <li key={document.id}>
+                <a
+                  href={
+                    resolveMediaUrl(
+                      `/storage/v1/object/public/restaurant-docs/${document.storage_path}`,
+                    ) ?? "#"
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="card flex min-h-11 items-center justify-between gap-3 px-4 py-3 transition-shadow duration-[var(--speed)] hover:shadow-md"
+                >
+                  <span className="min-w-0 truncate font-medium">{document.title}</span>
+                  {/* Storleken står ut för att ingen ska hämta 8 MB på
+                      mobildata utan att veta om det. */}
+                  <span className="shrink-0 text-sm text-[var(--muted)] tabular-nums">
+                    PDF · {Math.max(1, Math.round(document.size_bytes / 1024))} kB
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section id="hitta-hit" className="mt-16">
         <h2 className="font-display text-3xl">{t.restaurant.findUs}</h2>

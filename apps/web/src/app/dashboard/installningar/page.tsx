@@ -14,6 +14,8 @@ import {
 } from "@/components/staff/card-payment-settings";
 import { OpeningHoursEditor } from "@/components/staff/opening-hours-editor";
 import { PresentationEditor } from "@/components/staff/presentation-editor";
+import { currentMedia } from "@/lib/current-media";
+import { DocumentManager } from "@/components/staff/document-manager";
 import { OrderPolicyEditor } from "@/components/staff/order-policy-editor";
 import { IdentityEditor } from "@/components/staff/identity-editor";
 import { ReservationSettings } from "@/components/staff/reservation-settings";
@@ -60,6 +62,40 @@ export default async function SettingsPage() {
     )
     .eq("id", staff.restaurantId)
     .single();
+
+  /*
+   * Bilderna bakom huvudbilden och bannern, så att de går att justera
+   * (migration 0063). `menu_item_id is null` är det som skiljer restaurangens
+   * egna bilder från rätternas; avvisade rader utelämnas eftersom de aldrig
+   * blir det gästen ser.
+   */
+  const { data: mediaRows } = await supabase
+    .from("media")
+    .select(
+      "id, purpose, status, is_primary, created_at, focal_x, focal_y, brightness, contrast, saturation",
+    )
+    .eq("restaurant_id", staff.restaurantId)
+    .is("menu_item_id", null)
+    .neq("status", "REJECTED");
+
+  /*
+   * Restaurangens egna dokument (migration 0064). Avvisade tas med — den som
+   * fått ett dokument avvisat ska se det och kunna ta bort det, inte undra
+   * vart det tog vägen.
+   */
+  const { data: documents } = await supabase
+    .from("restaurant_documents")
+    .select("id, title, status, size_bytes, rejection_reason")
+    .eq("restaurant_id", staff.restaurantId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  const heroMedia = currentMedia(
+    (mediaRows ?? []).filter((row) => row.purpose === "HERO" && row.is_primary),
+  );
+  const bannerMedia = currentMedia(
+    (mediaRows ?? []).filter((row) => row.purpose === "BANNER"),
+  );
 
   const hours: OpeningHours = parseOpeningHours(restaurant?.opening_hours);
   const policy: OrderPolicy = parseOrderPolicy(restaurant?.order_policy);
@@ -116,6 +152,7 @@ export default async function SettingsPage() {
               }}
               labels={t.settings}
               imageLabels={t.image}
+              heroMedia={heroMedia}
             />
           </div>
         ) : null}
@@ -140,7 +177,33 @@ export default async function SettingsPage() {
             labels={t.settings}
             errorLabels={t.errors}
             imageLabels={t.image}
+            bannerMedia={bannerMedia}
           />
+        </section>
+
+        <hr className="rule mt-14" />
+
+        {/*
+          Dokumenten ligger efter identiteten och före öppettiderna: de hör till
+          hur restaurangen presenterar sig, inte till när den går att beställa
+          från.
+        */}
+        <section className="mt-10">
+          <h2 className="font-display text-2xl">{t.documents.title}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t.documents.hint}</p>
+          <div className="mt-4">
+            <DocumentManager
+              restaurantId={staff.restaurantId}
+              documents={(documents ?? []).map((row) => ({
+                id: row.id,
+                title: row.title,
+                status: row.status,
+                sizeBytes: row.size_bytes,
+                rejectionReason: row.rejection_reason,
+              }))}
+              labels={t.documents}
+            />
+          </div>
         </section>
 
         <hr className="rule mt-14" />

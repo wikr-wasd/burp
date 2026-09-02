@@ -1141,7 +1141,7 @@ function MenuItemCard({
     return (
       <li className="card overflow-hidden opacity-50">
         <div className="relative">
-          <FoodImage src={dishImage(item.name, item.imageUrl)} alt="" ratio="aspect-[4/3]" />
+          <FoodImage src={dishImage(item.name, item.imageUrl)} alt="" ratio="aspect-[4/3]" adjust={item.imageAdjust} />
           <span className="absolute inset-0 grid place-items-center bg-[var(--background)]/70">
             {/* Restaurangens eget skäl om det finns. "Slut till fredag" får
                 gästen att komma tillbaka; "slut för dagen" gör det inte. */}
@@ -1165,7 +1165,7 @@ function MenuItemCard({
         aria-expanded={hasOptions ? isOpen : undefined}
         className="card group block w-full overflow-hidden text-left transition-shadow duration-[var(--speed)] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
       >
-        <FoodImage src={dishImage(item.name, item.imageUrl)} alt="" ratio="aspect-[4/3]" />
+        <FoodImage src={dishImage(item.name, item.imageUrl)} alt="" ratio="aspect-[4/3]" adjust={item.imageAdjust} />
 
         <span className="block p-4">
         <span className="flex items-baseline justify-between gap-4">

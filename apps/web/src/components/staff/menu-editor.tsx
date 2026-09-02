@@ -674,6 +674,8 @@ function ItemRow({
                 restaurantId={restaurantId}
                 menuItemId={item.id}
                 currentUrl={item.imageUrl}
+                mediaId={item.media?.id ?? null}
+                adjust={item.media?.adjust}
                 label={fill(labels.imageUploadFor, { name: item.name })}
                 labels={useMenuLocale().imageLabels}
               />

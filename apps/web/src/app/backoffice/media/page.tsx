@@ -3,6 +3,7 @@ import { Images, ImageOff } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PlatformHeader } from "@/components/platform/platform-header";
 import { MediaQueue } from "@/components/platform/media-queue";
+import { DocumentQueue, type ModeratedDocument } from "@/components/platform/document-queue";
 import { publicEnv } from "@/lib/env";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
@@ -35,6 +36,8 @@ export interface ModeratedMedia {
   createdAt: string;
   restaurantName: string;
   itemName: string | null;
+  /** Restaurangens bildjustering (migration 0063). Kön visar det gästen ser. */
+  adjust: unknown;
 }
 
 interface PageProps {
@@ -64,14 +67,32 @@ export default async function MediaPage({ searchParams }: PageProps) {
   const { data: rows } = await supabase
     .from("media")
     .select(
-      "id, kind, status, storage_path, playback_url, poster_url, alt_text, rejection_reason, created_at, restaurant_id, menu_item_id",
+      "id, kind, status, storage_path, playback_url, poster_url, alt_text, rejection_reason, created_at, restaurant_id, menu_item_id, focal_x, focal_y, brightness, contrast, saturation",
     )
+    .eq("status", status)
+    .order("created_at", { ascending: true });
+
+  /*
+   * Dokumenten granskas i samma vy och med samma statusfilter.
+   *
+   * Egen tabell (migration 0064) men samma beslut: Burp står som värd för det
+   * som ligger på en indexerad sida. Att lägga dem i en egen vy hade betytt två
+   * köer att komma ihåg att titta i, och den ena hade blivit den som glöms.
+   */
+  const { data: documentRows } = await supabase
+    .from("restaurant_documents")
+    .select("id, title, status, storage_path, size_bytes, created_at, restaurant_id, rejection_reason")
     .eq("status", status)
     .order("created_at", { ascending: true });
 
   // Namnen hämtas separat. En join hade gått, men media kan peka på en rätt
   // som hunnit tas bort, och då ska raden ändå gå att moderera.
-  const restaurantIds = [...new Set((rows ?? []).map((row) => row.restaurant_id))];
+  const restaurantIds = [
+    ...new Set([
+      ...(rows ?? []).map((row) => row.restaurant_id),
+      ...(documentRows ?? []).map((row) => row.restaurant_id),
+    ]),
+  ];
   const itemIds = [
     ...new Set((rows ?? []).map((row) => row.menu_item_id).filter((id): id is string => id !== null)),
   ];
@@ -91,6 +112,8 @@ export default async function MediaPage({ searchParams }: PageProps) {
   // Bucketen är publik, så URL:en går att bygga utan signering. Den byggs här
   // och inte i klienten, så att formen bara finns på ett ställe.
   const publicBase = `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menu-media/`;
+  const documentBase = `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/restaurant-docs/`;
+
 
   const media: ModeratedMedia[] = (rows ?? []).map((row) => ({
     id: row.id,
@@ -104,6 +127,31 @@ export default async function MediaPage({ searchParams }: PageProps) {
     createdAt: row.created_at,
     restaurantName: restaurantName.get(row.restaurant_id) ?? "Okänd restaurang",
     itemName: row.menu_item_id ? (itemName.get(row.menu_item_id) ?? null) : null,
+    /*
+     * Granskningen ska se det gästen ser.
+     *
+     * Utan justeringen godkänner Burp en bild och restaurangen visar en annan
+     * — inom ±15 %, men ändå en annan. Att kön visar originalet vore samma
+     * sorts halva koppling som gjorde `tips` till ett skal fram till 0040.
+     */
+    adjust: {
+      focal_x: row.focal_x,
+      focal_y: row.focal_y,
+      brightness: row.brightness,
+      contrast: row.contrast,
+      saturation: row.saturation,
+    },
+  }));
+
+  const documents: ModeratedDocument[] = (documentRows ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    url: `${documentBase}${row.storage_path}`,
+    sizeBytes: row.size_bytes,
+    createdAt: row.created_at,
+    restaurantName: restaurantName.get(row.restaurant_id) ?? "Okänd restaurang",
+    rejectionReason: row.rejection_reason,
   }));
 
   return (
@@ -153,6 +201,21 @@ export default async function MediaPage({ searchParams }: PageProps) {
           </div>
         ) : (
           <MediaQueue media={media} canWrite={admin.role !== "support"} />
+        )}
+
+        <h2 className="font-display mt-12 text-2xl">Dokument</h2>
+        <p className="mt-1 text-sm opacity-70">
+          PDF från restaurangerna. Menyn ligger aldrig här — den är data.
+        </p>
+
+        {documents.length === 0 ? (
+          <p className="mt-4 text-sm opacity-60">
+            {status === "PENDING"
+              ? "Inga dokument väntar på granskning."
+              : "Inga dokument med den statusen."}
+          </p>
+        ) : (
+          <DocumentQueue documents={documents} canWrite={admin.role !== "support"} />
         )}
       </main>
     </>

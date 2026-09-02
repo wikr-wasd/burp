@@ -331,3 +331,35 @@ export async function resetMfaFactors(email: string, note?: string): Promise<Act
   revalidatePath("/backoffice");
   return { ok: true };
 }
+
+/**
+ * Godkänner eller avvisar ett dokument (migration 0064).
+ *
+ * Egen åtgärd och inte en gren i `moderateMedia`: dokumenten ligger i en egen
+ * tabell, av samma skäl som de inte fick plats i `media` — `kind`, `purpose`
+ * och `is_primary` betyder ingenting för en PDF.
+ *
+ * Går genom plattformsadminens egen session, precis som bildmodereringen.
+ * `restaurant_documents_status_guard` släpper bara igenom den som verkligen är
+ * plattformsadmin.
+ */
+export async function moderateDocument(
+  documentId: string,
+  approve: boolean,
+  reason?: string,
+): Promise<ActionResult> {
+  const admin = await requirePlatformAdmin(WRITE_ROLES);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("restaurant_documents")
+    .update({
+      status: approve ? "APPROVED" : "REJECTED",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: admin.userId,
+      rejection_reason: approve ? null : (reason?.trim() || "Uppfyller inte riktlinjerna"),
+    })
+    .eq("id", documentId);
+
+  return error ? fail(error.message) : done();
+}

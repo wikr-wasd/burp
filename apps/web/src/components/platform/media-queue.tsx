@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { moderateMedia } from "@/app/backoffice/actions";
+import { imageAdjustStyle, parseImageAdjust } from "@burp/core";
 import type { ModeratedMedia } from "@/app/backoffice/media/page";
 
 /**
@@ -154,6 +155,7 @@ function MediaPreview({ item }: { item: ModeratedMedia }) {
     <img
       src={url}
       alt={item.altText ?? "Media som väntar på granskning"}
+      style={imageAdjustStyle(parseImageAdjust(item.adjust))}
       className="mt-3 aspect-video w-full object-cover"
       loading="lazy"
     />

@@ -143,6 +143,8 @@ describe("ordböckerna", () => {
       // "Datum" är samma ord på bosniska. "Vrijeme" och "Sto" är det inte,
       // vilket är kvittot på att bokningsavsnittet faktiskt är översatt.
       "booking.date",
+      // "Kontrast" är samma lånord som på svenska.
+      "staff.image.contrast",
     ],
 
     de: [
@@ -184,6 +186,10 @@ describe("ordböckerna", () => {
       "staff.settings.bannerTitle",
       // "Datum" delas rakt av. "Tisch" och "Uhrzeit" gör det inte.
       "booking.date",
+      // "Kontrast" är samma lånord som på svenska.
+      "staff.image.contrast",
+      // "Titel" delas rakt av. "Weinkarte 2026" och resten av avsnittet gör det inte.
+      "staff.documents.titleLabel",
     ],
 
     en: [
@@ -262,6 +268,9 @@ describe("ordböckerna", () => {
        */
       "staff.bookings.table",
       "staff.bookings.seat",
+      // "Kontrast" är samma lånord som på svenska.
+      "staff.image.contrast",
+
       // "stopp" är samma ord på norska. "Ny rute" och "Endret" är det inte.
       "routes.stopCount",
       /*

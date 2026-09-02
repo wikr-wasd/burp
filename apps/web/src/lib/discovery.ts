@@ -27,6 +27,8 @@ export interface DiscoveryRestaurant {
   ratingAverage: number | null;
   ratingCount: number;
   heroImageUrl: string | null;
+  /** Bildjustering ur hero_adjust (migration 0063). Orörd form. */
+  heroAdjust: unknown;
   openingHours: OpeningHours | null;
   country: CountryCode;
   currency: CurrencyCode;
@@ -77,7 +79,7 @@ export interface DiscoveryFilters {
 }
 
 const COLUMNS =
-  "id, name, slug, city, city_slug, description, street_address, cuisines, price_tier, rating_average, rating_count, hero_image_url, opening_hours, country, currency, latitude, longitude";
+  "id, name, slug, city, city_slug, description, street_address, cuisines, price_tier, rating_average, rating_count, hero_image_url, hero_adjust, opening_hours, country, currency, latitude, longitude";
 
 interface RestaurantRow {
   id: string;
@@ -92,6 +94,7 @@ interface RestaurantRow {
   rating_average: number | null;
   rating_count: number | null;
   hero_image_url: string | null;
+  hero_adjust: unknown;
   opening_hours: OpeningHours | null;
   country: CountryCode;
   currency: CurrencyCode;
@@ -113,6 +116,7 @@ function toRestaurant(row: RestaurantRow): DiscoveryRestaurant {
     ratingAverage: row.rating_average,
     ratingCount: row.rating_count ?? 0,
     heroImageUrl: resolveMediaUrl(row.hero_image_url),
+    heroAdjust: row.hero_adjust,
     openingHours: row.opening_hours,
     country: row.country,
     currency: row.currency,

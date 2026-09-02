@@ -30,6 +30,8 @@ export interface RouteStop {
   city: string;
   cuisines: string[];
   heroImageUrl: string | null;
+  /** Bildjustering ur hero_adjust (migration 0063). Orörd form. */
+  heroAdjust: unknown;
   latitude: number | null;
   longitude: number | null;
   position: number;
@@ -55,7 +57,7 @@ export interface RouteDetail extends RouteSummary {
 }
 
 const STOP_COLUMNS =
-  "id, restaurant_id, position, note, restaurants!inner (name, slug, city, city_slug, cuisines, hero_image_url, latitude, longitude)";
+  "id, restaurant_id, position, note, restaurants!inner (name, slug, city, city_slug, cuisines, hero_image_url, hero_adjust, latitude, longitude)";
 
 /** Gästens rutter, senast ändrade först. */
 export async function listRoutes(): Promise<RouteSummary[]> {
@@ -110,6 +112,7 @@ export async function getRoute(routeId: string): Promise<RouteDetail | null> {
       city_slug: string;
       cuisines: string[] | null;
       hero_image_url: string | null;
+      hero_adjust: unknown;
       latitude: number | null;
       longitude: number | null;
     };
@@ -153,6 +156,7 @@ export async function getRoute(routeId: string): Promise<RouteDetail | null> {
       city: restaurant.city,
       cuisines: restaurant.cuisines ?? [],
       heroImageUrl: resolveMediaUrl(restaurant.hero_image_url),
+      heroAdjust: restaurant.hero_adjust,
       latitude: restaurant.latitude,
       longitude: restaurant.longitude,
       position: row.position,
