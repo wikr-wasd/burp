@@ -23,24 +23,21 @@ export interface PublicReview {
   response: string | null;
   respondedAt: string | null;
   /**
-   * Alltid null. Omdömen är pseudonyma, och det är ett beslut — inte en lucka.
+   * Namnet gästen VALT att publicera, eller null.
    *
-   * Fältet fanns för att visa skribentens förnamn, och uppslaget mot
-   * `profiles` gjordes via RLS-klienten. Policyn `profiles_select_own` släpper
-   * bara igenom din EGEN rad, så frågan returnerade alltid tomt: varje omdöme
-   * visade reservtexten ändå. Utfallet var rätt, men koden såg ut att mena
-   * motsatsen — och nästa person som undrade varför namnet aldrig syns hade en
-   * uppenbar "fix": byt till `createAdminClient()`. Då publiceras varje
-   * recensents riktiga namn på en indexerad sida, och ingen policy stoppar det.
+   * Aldrig hennes profilnamn — beslutet från 2026-08-22 står kvar och är hela
+   * skälet till att kolumnen är egen. Uppslaget mot `profiles` gjordes en gång
+   * via RLS-klienten och returnerade alltid tomt, eftersom
+   * `profiles_select_own` bara släpper igenom den egna raden. Utfallet var
+   * rätt men koden såg ut att mena motsatsen, och nästa "fix" hade varit att
+   * byta till service role — varpå varje recensents riktiga namn hamnat på en
+   * indexerad sida.
    *
-   * Uppslaget är borttaget 2026-08-22 och beslutet skrivet i stället. Ska
-   * namnet visas är vägen ett eget visningsnamn gästen själv väljer att
-   * publicera — inte hennes profilnamn. Se docs/TODO.md.
-   *
-   * Fältet står kvar i typen så att gränssnitten inte behöver ändras den dagen
-   * ett sådant namn finns.
+   * `display_name` (migration 0069) är vad hon valt att kalla sig offentligt.
+   * Null betyder att hon inte valt något, och omdömet står som "Gäst" som
+   * förut. Det är fortfarande det vanliga fallet: QR-gästen har inget konto.
    */
-  authorName: null;
+  authorName: string | null;
   /**
    * Skribentens bild, men bara när hon VALT att visa den och Burp granskat den.
    *
@@ -88,19 +85,33 @@ export async function getPublicReviews(restaurantId: string, limit = 20): Promis
   const authorIds = [...new Set(rows.map((row) => row.user_id).filter((id): id is string => id !== null))];
 
   const avatarByUser = new Map<string, string>();
+  const nameByUser = new Map<string, string>();
 
   if (authorIds.length > 0) {
-    const { data: avatars } = await supabase.rpc("public_avatar_paths", {
-      p_user_ids: authorIds,
-    });
+    /*
+     * Två funktioner och inte en, därför att villkoren skiljer sig.
+     *
+     * Bilden kräver att gästen valt att visa den OCH att Burp granskat den.
+     * Namnet kräver bara att hon skrivit ett — text från gäster publiceras
+     * redan osedd i `comment`, och en kö för namnet hade varit teater medan
+     * den större ytan går igenom.
+     */
+    const [avatars, names] = await Promise.all([
+      supabase.rpc("public_avatar_paths", { p_user_ids: authorIds }),
+      supabase.rpc("public_display_names", { p_user_ids: authorIds }),
+    ]);
 
-    for (const row of avatars ?? []) {
+    for (const row of avatars.data ?? []) {
       if (row.avatar_path) {
         avatarByUser.set(
           row.user_id,
           `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/guest-avatars/${row.avatar_path}`,
         );
       }
+    }
+
+    for (const row of names.data ?? []) {
+      if (row.display_name) nameByUser.set(row.user_id, row.display_name);
     }
   }
 
@@ -113,7 +124,7 @@ export async function getPublicReviews(restaurantId: string, limit = 20): Promis
     createdAt: row.created_at,
     response: row.response,
     respondedAt: row.responded_at,
-    authorName: null,
+    authorName: row.user_id ? (nameByUser.get(row.user_id) ?? null) : null,
     authorAvatarUrl: row.user_id ? (avatarByUser.get(row.user_id) ?? null) : null,
   }));
 }
@@ -149,6 +160,9 @@ export async function getReviewsForStaff(restaurantId: string): Promise<StaffRev
     response: row.response,
     respondedAt: row.responded_at,
     isPublished: row.is_published,
+    // Personalens vy är till för att moderera och svara, inte för att lära
+    // känna gästen. Namnet hämtas inte här av samma skäl som bilden inte gör
+    // det — se kommentaren nedan.
     authorName: null,
     /*
      * Restaurangens egen vy visar ingen bild.

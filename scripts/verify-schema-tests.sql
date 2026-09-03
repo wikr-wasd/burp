@@ -5514,4 +5514,68 @@ begin
 end
 $$;
 
+\echo '   visningsnamnet är gästens eget val, aldrig hennes profilnamn'
+
+/*
+ * Migration 0069.
+ *
+ * Regeln finns skriven i lib/reviews.ts sedan 2026-08-22 och är hela skälet
+ * till att kolumnen är egen: `full_name` är vad hon HETER, `display_name` är
+ * vad hon valt att kalla sig offentligt. Uppslaget mot profiles gjordes en
+ * gång via RLS-klienten och gav alltid tomt; nästa "fix" hade varit service
+ * role, varpå varje recensents riktiga namn hamnat på en indexerad sida.
+ */
+do $$
+declare
+  v_user uuid;
+  v_namn text;
+begin
+  insert into auth.users (id, email, raw_user_meta_data)
+  values (gen_random_uuid(), 'namn-gast@example.com', '{"full_name":"Amina Softić"}'::jsonb)
+  returning id into v_user;
+
+  -- Triggern satte full_name. Visningsnamnet ska INTE ha ärvt det.
+  if (select full_name from public.profiles where id = v_user) is null then
+    raise exception 'FEL: testet vilar på att full_name sattes, och det gjorde det inte';
+  end if;
+
+  if (select display_name from public.profiles where id = v_user) is not null then
+    raise exception 'FEL: visningsnamnet ärvde profilnamnet';
+  end if;
+
+  select count(*)::text into v_namn from public.public_display_names(array[v_user]);
+  if v_namn <> '0' then
+    raise exception 'FEL: ett namn publicerades utan att gästen valt ett';
+  end if;
+
+  -- Hon väljer ett.
+  update public.profiles set display_name = 'Amina S.' where id = v_user;
+
+  select display_name into v_namn from public.public_display_names(array[v_user]);
+  if v_namn <> 'Amina S.' then
+    raise exception 'FEL: det valda namnet kom inte ut: %', v_namn;
+  end if;
+
+  -- Ett namn på fyrtioen tecken ska inte gå att spara.
+  begin
+    update public.profiles set display_name = repeat('a', 41) where id = v_user;
+    raise exception 'FEL: ett för långt namn sparades';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Funktionen ger ut två fält, inte profilen.
+  select string_agg(a.attname, ', ' order by a.ord) into v_namn
+  from pg_proc p
+  join lateral unnest(p.proargnames, p.proargmodes)
+       with ordinality as a(attname, mode, ord) on true
+  where p.proname = 'public_display_names'
+    and a.mode = 't';
+
+  if v_namn is distinct from 'user_id, display_name' then
+    raise exception 'FEL: public_display_names ger ut %', v_namn;
+  end if;
+end
+$$;
+
 rollback;

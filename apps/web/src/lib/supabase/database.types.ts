@@ -1555,6 +1555,7 @@ export type Database = {
           avatar_status: Database["public"]["Enums"]["media_status"]
           birth_date: string | null
           created_at: string
+          display_name: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -1570,6 +1571,7 @@ export type Database = {
           avatar_status?: Database["public"]["Enums"]["media_status"]
           birth_date?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
           full_name?: string | null
           id: string
@@ -1585,6 +1587,7 @@ export type Database = {
           avatar_status?: Database["public"]["Enums"]["media_status"]
           birth_date?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -3265,6 +3268,13 @@ export type Database = {
         Args: { p_user_ids: string[] }
         Returns: {
           avatar_path: string
+          user_id: string
+        }[]
+      }
+      public_display_names: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          display_name: string
           user_id: string
         }[]
       }

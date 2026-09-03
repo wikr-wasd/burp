@@ -206,3 +206,34 @@ export async function setAvatarPublic(isPublic: boolean): Promise<EraseActionRes
   revalidatePath("/konto/uppgifter");
   return { ok: true };
 }
+
+/**
+ * Namnet gästen väljer att visa vid sina omdömen (migration 0069).
+ *
+ * Aldrig hennes profilnamn. `full_name` är vad hon heter; det här är vad hon
+ * valt att kalla sig offentligt, och tomt betyder att omdömet står som "Gäst"
+ * — vilket är det vanliga fallet.
+ */
+export async function setDisplayName(name: string): Promise<EraseActionResult> {
+  const guest = await getGuest();
+  const t = dictionary(await requestLocale()).account;
+
+  if (!guest) return { ok: false, message: t.errors.mustBeLoggedIn };
+
+  const trimmed = name.trim();
+  if (trimmed.length > 40) {
+    return { ok: false, message: t.displayNameTooLong };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    // Tomt fält betyder "jag vill inte synas", inte en tom sträng i databasen.
+    .update({ display_name: trimmed === "" ? null : trimmed })
+    .eq("id", guest.userId);
+
+  if (error) return { ok: false, message: t.errors.saveFailed };
+
+  revalidatePath("/konto/uppgifter");
+  return { ok: true };
+}

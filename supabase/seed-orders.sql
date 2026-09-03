@@ -692,6 +692,55 @@ begin
 end
 $$;
 
+/*
+ * Några omdömen från den inloggade gästen.
+ *
+ * Alla andra kommer från bordssessioner, alltså QR-gäster utan konto — vilket
+ * är realistiskt och samtidigt betyder att visningsnamnet (migration 0069) och
+ * bilden (0068) ALDRIG syns i demodatan. Två ytor som är byggda och verifierade
+ * men aldrig setts med data, exakt det den här filen finns för att förhindra.
+ *
+ * Bilden lämnas orörd: den kräver en riktig fil i lagringen, och en pekare till
+ * en fil som inte finns är en trasig bild — sämre än ingen.
+ */
+do $$
+declare
+  v_gast uuid;
+begin
+  select id into v_gast from auth.users where email = 'gast@burp.test';
+  if v_gast is null then
+    return;
+  end if;
+
+  update public.profiles set display_name = 'Amina S.' where id = v_gast;
+
+  /*
+   * De två NYASTE per restaurang, inte tolv slumpade.
+   *
+   * Slumpen la dem över nittio dagar, och restaurangsidan visar de tjugo
+   * senaste omdömena. Följden var att namnet fanns i databasen, funktionen
+   * returnerade det, och sidan ändå inte visade ett enda — koden var rätt hela
+   * tiden och demodatan gjorde funktionen osynlig.
+   *
+   * Det är samma sorts fel som att inte ha någon data alls, bara svårare att
+   * se: allt SER ut att fungera.
+   */
+  with nyast as (
+    select id, row_number() over (partition by restaurant_id order by created_at desc) as rn
+    from public.reviews
+    where user_id is null
+  )
+  update public.reviews r
+  set user_id = v_gast
+  from nyast
+  where r.id = nyast.id and nyast.rn <= 2;
+
+  raise notice 'Omdömen knutna till gästkontot: %', (
+    select count(*) from public.reviews where user_id = v_gast
+  );
+end
+$$;
+
 commit;
 
 select

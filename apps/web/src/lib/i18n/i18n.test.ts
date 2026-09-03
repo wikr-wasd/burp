@@ -131,6 +131,9 @@ describe("ordböckerna", () => {
     bs: [
       "errors.notFoundLabel",
       "menu.giftCardPlaceholder",
+      // Ett NAMN i ett platshållarfält. "Amina S." ser likadant ut på alla
+      // fem språken, av samma skäl som presentkortskoden gör det.
+      "account.displayNamePlaceholder",
       // Lånord ur samma rot. "Telefon" är rätt på bosniska.
       "restaurant.phone",
       // "min" är samma förkortning på alla fem språken.
@@ -150,6 +153,9 @@ describe("ordböckerna", () => {
     de: [
       "errors.notFoundLabel",
       "menu.giftCardPlaceholder",
+      // Ett NAMN i ett platshållarfält. "Amina S." ser likadant ut på alla
+      // fem språken, av samma skäl som presentkortskoden gör det.
+      "account.displayNamePlaceholder",
       // Tyska och svenska delar de här orden rakt av.
       "restaurant.phone",
       "menu.discount",
@@ -195,6 +201,9 @@ describe("ordböckerna", () => {
     en: [
       "errors.notFoundLabel",
       "menu.giftCardPlaceholder",
+      // Ett NAMN i ett platshållarfält. "Amina S." ser likadant ut på alla
+      // fem språken, av samma skäl som presentkortskoden gör det.
+      "account.displayNamePlaceholder",
       "staff.kitchen.minutes",
       // "min" igen, och "{n} min" med den.
       "staff.kitchen.prepMinutes",
@@ -225,6 +234,9 @@ describe("ordböckerna", () => {
       "receipt.cancelConfirm",
       "menu.allergens",
       "menu.giftCardPlaceholder",
+      // Ett NAMN i ett platshållarfält. "Amina S." ser likadant ut på alla
+      // fem språken, av samma skäl som presentkortskoden gör det.
+      "account.displayNamePlaceholder",
       "site.language",
       "site.becomePartner",
       "restaurant.menu",

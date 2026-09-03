@@ -125,11 +125,23 @@ som en väntande restaurangbild i `menu-media`. Sökvägen bär ett slumpat uuid
 Det är samma avvägning som gjordes en gång i `0017`, nu gjord medvetet en gång
 till för ett ansikte.
 
-#### Kvar
+#### Visningsnamnet — byggt i `0069` direkt efteråt
 
-Visningsnamnet. Bilden syns nu men skribenten står fortfarande som "Gäst". Ett
-namn är samma sorts beslut som bilden var: det ska vara ett namn hon väljer att
-publicera, inte hennes profilnamn. Se regeln i `lib/reviews.ts`.
+Bilden syntes men skribenten stod som "Gäst". `profiles.display_name` är ett
+EGET fält, aldrig härlett ur `full_name` — det är regeln i `lib/reviews.ts` och
+hela skälet till att kolumnen finns. Tomt betyder "Gäst", vilket förblir det
+vanliga: QR-gästen har inget konto.
+
+**Ingen egen granskningskö, och det är ett resonemang.** Bilden granskas för att
+Burp står som värd för ett ansikte. Ett namn är text, och gästens fritext
+publiceras redan osedd i `reviews.comment`. En kö för namnet hade varit teater
+medan den större ytan går igenom. Går namnet över styr döljs omdömet, som i dag.
+
+**Demodatan gjorde funktionen osynlig, och det var svårare att se än ingen data
+alls.** Namnet fanns i databasen, funktionen returnerade det, och sidan visade
+ändå ingenting: de tolv omdömena knöts till slumpade rader spridda över nittio
+dagar, och restaurangsidan visar de tjugo senaste. Nu knyts de två NYASTE per
+restaurang. Verifierat i webbläsaren på tre restaurangsidor.
 
 ### Byggt 2026-09-03 (ii) — gästens konto blev gästens
 

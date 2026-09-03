@@ -5,6 +5,7 @@ import { DeleteAccount } from "@/components/guest/delete-account";
 import { PushToggle } from "@/components/notifications/push-toggle";
 import { MarketingToggle } from "@/components/guest/marketing-toggle";
 import { AvatarUpload } from "@/components/guest/avatar-upload";
+import { DisplayNameForm } from "@/components/guest/display-name-form";
 import {
   removeGuestPushSubscription,
   saveGuestPushSubscription,
@@ -48,7 +49,7 @@ export default async function DataPage() {
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("marketing_opt_in")
+    .select("marketing_opt_in, display_name")
     .eq("id", guest.userId)
     .maybeSingle();
 
@@ -83,6 +84,17 @@ export default async function DataPage() {
           <p className="mt-2 text-[var(--muted)]">{t.account.photoHint}</p>
 
           <AvatarUpload avatar={avatar} userId={guest.userId} labels={t.account} />
+        </section>
+
+        {/*
+          Namnet direkt efter bilden: båda svarar på samma fråga — vad andra
+          ser av dig när du tycker något.
+        */}
+        <section className="mt-10 border-t border-[var(--rule)] pt-8">
+          <h2 className="font-display text-2xl">{t.account.displayNameTitle}</h2>
+          <p className="mt-2 text-[var(--muted)]">{t.account.displayNameHint}</p>
+
+          <DisplayNameForm initial={profile?.display_name ?? null} labels={t.account} />
         </section>
 
         <section className="mt-10 border-t border-[var(--rule)] pt-8">

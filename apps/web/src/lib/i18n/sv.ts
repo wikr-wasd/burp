@@ -754,6 +754,20 @@ export const sv = {
     photoPending: "Väntar på granskning. Den visas när Burp tittat på den.",
     photoApproved: "Visas på dina omdömen.",
     photoRejected: "Bilden godkändes inte för publicering. Den är kvar som din privata bild.",
+    /*
+     * Visningsnamnet.
+     *
+     * Hjälptexten säger uttryckligen att det riktiga namnet aldrig publiceras.
+     * Det är regeln i lib/reviews.ts, och gästen ska kunna lita på den utan
+     * att läsa vår kod.
+     */
+    displayNameTitle: "Ditt namn vid omdömen",
+    displayNameHint: "Skrivs ut vid dina omdömen. Lämnar du det tomt står det bara “Gäst”. Ditt riktiga namn publiceras aldrig.",
+    displayNameLabel: "Visningsnamn",
+    displayNamePlaceholder: "Amina S.",
+    displayNameSave: "Spara namnet",
+    displayNameSaved: "Namnet är sparat.",
+    displayNameTooLong: "Högst 40 tecken.",
     photoChoose: "Välj en bild",
     photoRemove: "Ta bort bilden",
     photoUploading: "Laddar upp…",
