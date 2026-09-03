@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PlatformHeader } from "@/components/platform/platform-header";
 import { MediaQueue } from "@/components/platform/media-queue";
 import { DocumentQueue, type ModeratedDocument } from "@/components/platform/document-queue";
+import { AvatarQueue, type PendingAvatar } from "@/components/platform/avatar-queue";
 import { publicEnv } from "@/lib/env";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
@@ -114,6 +115,21 @@ export default async function MediaPage({ searchParams }: PageProps) {
   const publicBase = `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/menu-media/`;
   const documentBase = `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/restaurant-docs/`;
 
+  /*
+   * Gästbilder som väntar (migration 0068).
+   *
+   * Alltid de väntande, oavsett statusfiltret ovan. Filtret hör till
+   * restaurangernas media; en gästbild har bara ett läge som kräver en
+   * handling, och en kö som göms bakom ett filter är en kö som glöms.
+   */
+  const { data: avatarRows } = await supabase.rpc("pending_avatars");
+
+  const avatars: PendingAvatar[] = (avatarRows ?? []).map((row) => ({
+    userId: row.user_id,
+    url: `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/guest-avatars/${row.avatar_path}`,
+    since: row.since,
+  }));
+
 
   const media: ModeratedMedia[] = (rows ?? []).map((row) => ({
     id: row.id,
@@ -207,6 +223,18 @@ export default async function MediaPage({ searchParams }: PageProps) {
         <p className="mt-1 text-sm opacity-70">
           PDF från restaurangerna. Menyn ligger aldrig här — den är data.
         </p>
+
+        {avatars.length > 0 ? (
+          <>
+            <h2 className="font-display mt-12 text-2xl">Gästbilder</h2>
+            <p className="mt-1 text-sm opacity-70">
+              Gästen har valt att visa bilden på sina omdömen. Kön visar bilden och
+              ingenting annat — granskaren ska bedöma ett ansikte, inte läsa en profil.
+            </p>
+
+            <AvatarQueue avatars={avatars} canWrite={admin.role !== "support"} />
+          </>
+        ) : null}
 
         {documents.length === 0 ? (
           <p className="mt-4 text-sm opacity-60">

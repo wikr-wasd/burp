@@ -66,6 +66,71 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-09-03 (iii) — bilden på omdömet, om gästen väljer det
+
+Migration `0068`. **Williams beslut:** bilden ska synas vid omdömet, för
+trovärdighetens skull.
+
+Beslutet är byggt — men inte som en omställning. Tre saker stod i vägen, och
+alla tre är kvar som funktioner.
+
+#### 1. Koden bar redan ett motsatt beslut, med skäl
+
+`lib/reviews.ts` har sedan 2026-08-22 en skriven regel: omdömen är
+**pseudonyma**. Skribentens namn visas inte, eftersom gästen aldrig sagt ja till
+att publiceras på en indexerad sida — och vägen dit går genom något hon själv
+väljer att publicera, inte genom att vi läser hennes profil.
+
+Bilden faller under samma princip. Den är därför ett **val** (`avatar_public`,
+standard NEJ), inte en följd av att hon laddat upp något.
+
+#### 2. Ett löfte hade brutits
+
+Uppladdningen i `0067` stod under texten *"Bara du ser den. Den visas inte på
+dina omdömen."* Att publicera de bilderna i efterhand hade varit att bryta det
+mot varje gäst som redan tryckt på knappen. Texten är omskriven i alla fem
+språken, och gamla bilder publiceras inte av att en kolumn tillkom.
+
+#### 3. Granskning krävs nu — och en RLS-fälla undveks
+
+En publicerad bild betyder att Burp står som värd för ett ansikte på en
+indexerad sida. Samma kö som restaurangernas bilder, samma grind som `0063`:
+`profiles_avatar_guard` avvisar en gäst som försöker godkänna sin egen.
+
+**Och den regel som är lättast att bygga bort:** byter hon bild går granskningen
+tillbaka till `PENDING`. Utan det räcker det att få EN bild godkänd för att
+sedan lägga vad som helst på en indexerad sida — samma hål som storage-UPDATE
+var för restaurangerna (`0065`), fast genom framdörren.
+
+⚠️ **Uppslaget går genom en funktion, aldrig genom en policy.** Att lägga en
+select-policy på `profiles` för anon hade varit den uppenbara vägen och ett
+allvarligt fel: RLS är RADnivå, inte kolumnnivå. En policy som släpper igenom
+raden släpper igenom `email`, `phone` och `birth_date` med den.
+`public_avatar_paths()` är security definer och ger ut två fält. Ett logiktest
+prövar att den fortsätter göra det.
+
+Samma sak i backoffice: kön läser `pending_avatars()` och visar **bilden och
+åldern, ingenting annat**. Granskaren ska bedöma ett ansikte, inte läsa en
+profil.
+
+#### Bucketen blev publik, och det är en verklig förändring
+
+`guest-avatars` var privat i `0067` med signerade adresser. Det går inte längre:
+restaurangsidan är ISR-cachad en timme, så en signerad adress hinner gå ut innan
+sidan byggs om — och att signera per visning hade betytt ett serveranrop per
+ansikte i en lista med tjugo omdömen.
+
+Priset är att en bild går att nå med sin adress även innan den granskats, precis
+som en väntande restaurangbild i `menu-media`. Sökvägen bär ett slumpat uuid.
+Det är samma avvägning som gjordes en gång i `0017`, nu gjord medvetet en gång
+till för ett ansikte.
+
+#### Kvar
+
+Visningsnamnet. Bilden syns nu men skribenten står fortfarande som "Gäst". Ett
+namn är samma sorts beslut som bilden var: det ska vara ett namn hon väljer att
+publicera, inte hennes profilnamn. Se regeln i `lib/reviews.ts`.
+
 ### Byggt 2026-09-03 (ii) — gästens konto blev gästens
 
 Migration `0067`.
@@ -137,13 +202,10 @@ länken i stället.
 **Knappen sitter på restaurangsidan och rättsidan, aldrig på ett kvitto.** Ett
 kvitto bär vad gästen åt och vad hon betalade.
 
-#### Kvar att bestämma: syns bilden på omdömen?
+#### Besvarad samma dag: ja, bilden syns på omdömen
 
-I dag: nej, och det är byggt så med flit. Ska den synas blir det en annan sak —
-Burp blir värd för ett ansikte på en indexerad sida, alltså samma granskningskö
-som restaurangernas bilder, och omdömena går från nästan anonyma till
-identifierade. Det är en integritetsförändring, inte en designdetalj, och den
-bör beslutas för sig.
+William valde att visa den, för trovärdighetens skull. Byggt i `0068` — men som
+ett val gästen gör, inte som en omställning. Se avsnittet ovan.
 
 ### Byggt 2026-09-03 — klickbara bord, 90 dagar, och demodata som faktiskt kom in
 

@@ -10,7 +10,7 @@ import {
   saveGuestPushSubscription,
 } from "@/app/konto/push-actions";
 import { publicEnv } from "@/lib/env";
-import { getGuestAvatarUrl, requireGuest } from "@/lib/guest";
+import { getGuestAvatar, requireGuest } from "@/lib/guest";
 import { createClient } from "@/lib/supabase/server";
 import { dictionary, requestLocale } from "@/lib/i18n";
 
@@ -52,7 +52,7 @@ export default async function DataPage() {
     .eq("id", guest.userId)
     .maybeSingle();
 
-  const avatarUrl = await getGuestAvatarUrl(guest.userId);
+  const avatar = await getGuestAvatar(guest.userId);
 
   return (
     <>
@@ -82,7 +82,7 @@ export default async function DataPage() {
           <h2 className="font-display text-2xl">{t.account.photoTitle}</h2>
           <p className="mt-2 text-[var(--muted)]">{t.account.photoHint}</p>
 
-          <AvatarUpload currentUrl={avatarUrl} userId={guest.userId} labels={t.account} />
+          <AvatarUpload avatar={avatar} userId={guest.userId} labels={t.account} />
         </section>
 
         <section className="mt-10 border-t border-[var(--rule)] pt-8">

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "./supabase/server";
+import { publicEnv } from "./env";
 
 /**
  * Omdömen (avsnitt 7).
@@ -40,6 +41,17 @@ export interface PublicReview {
    * ett sådant namn finns.
    */
   authorName: null;
+  /**
+   * Skribentens bild, men bara när hon VALT att visa den och Burp granskat den.
+   *
+   * Samma princip som `authorName`, med motsatt utfall: namnet visas inte
+   * eftersom hon aldrig sagt ja, bilden visas eftersom hon uttryckligen har
+   * det. `avatar_public` är NEJ tills hon säger något annat — bilden i
+   * migration 0067 laddades upp under löftet att bara hon ser den.
+   *
+   * Null för QR-gästen, som inte har något konto alls.
+   */
+  authorAvatarUrl: string | null;
 }
 
 /**
@@ -55,7 +67,7 @@ export async function getPublicReviews(restaurantId: string, limit = 20): Promis
   const { data: rows } = await supabase
     .from("reviews")
     .select(
-      "id, rating_food, rating_service, rating_delivery, comment, created_at, response, responded_at",
+      "id, user_id, rating_food, rating_service, rating_delivery, comment, created_at, response, responded_at",
     )
     .eq("restaurant_id", restaurantId)
     .eq("is_published", true)
@@ -63,6 +75,34 @@ export async function getPublicReviews(restaurantId: string, limit = 20): Promis
     .limit(limit);
 
   if (!rows || rows.length === 0) return [];
+
+  /*
+   * Bilderna hämtas med en funktion som ger ut ETT fält.
+   *
+   * En select-policy på `profiles` för anon hade varit den uppenbara vägen och
+   * ett allvarligt fel: RLS är radnivå, inte kolumnnivå, så en policy som
+   * släpper igenom raden släpper igenom `email`, `phone` och `birth_date` med
+   * den. `public_avatar_paths()` (migration 0068) är security definer och
+   * returnerar bara sökvägen, för dem som valt att visa den.
+   */
+  const authorIds = [...new Set(rows.map((row) => row.user_id).filter((id): id is string => id !== null))];
+
+  const avatarByUser = new Map<string, string>();
+
+  if (authorIds.length > 0) {
+    const { data: avatars } = await supabase.rpc("public_avatar_paths", {
+      p_user_ids: authorIds,
+    });
+
+    for (const row of avatars ?? []) {
+      if (row.avatar_path) {
+        avatarByUser.set(
+          row.user_id,
+          `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/guest-avatars/${row.avatar_path}`,
+        );
+      }
+    }
+  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -74,6 +114,7 @@ export async function getPublicReviews(restaurantId: string, limit = 20): Promis
     response: row.response,
     respondedAt: row.responded_at,
     authorName: null,
+    authorAvatarUrl: row.user_id ? (avatarByUser.get(row.user_id) ?? null) : null,
   }));
 }
 
@@ -109,5 +150,14 @@ export async function getReviewsForStaff(restaurantId: string): Promise<StaffRev
     respondedAt: row.responded_at,
     isPublished: row.is_published,
     authorName: null,
+    /*
+     * Restaurangens egen vy visar ingen bild.
+     *
+     * Inte av integritetsskäl — har gästen valt att publicera den ser
+     * restaurangen den ändå på sin publika sida. Skälet är att den här listan
+     * finns för att moderera och svara, och ett ansikte bredvid varje rad
+     * flyttar blicken från texten till personen.
+     */
+    authorAvatarUrl: null,
   }));
 }

@@ -177,3 +177,32 @@ export async function removeAvatar(): Promise<EraseActionResult> {
   revalidatePath("/konto/uppgifter");
   return { ok: true };
 }
+
+/**
+ * Gästens val att visa bilden på sina omdömen.
+ *
+ * Eget val och inte en följd av att hon laddat upp en bild. Uppladdningen i
+ * migration 0067 stod under löftet "bara du ser den", och ett löfte upphävs
+ * inte av att en kolumn tillkommer.
+ *
+ * Statusen rörs inte här — `profiles_avatar_guard` (0068) avvisar en gäst som
+ * försöker godkänna sin egen bild, och nollställer granskningen så fort bilden
+ * byts.
+ */
+export async function setAvatarPublic(isPublic: boolean): Promise<EraseActionResult> {
+  const guest = await getGuest();
+  const t = dictionary(await requestLocale()).account;
+
+  if (!guest) return { ok: false, message: t.errors.mustBeLoggedIn };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_public: isPublic })
+    .eq("id", guest.userId);
+
+  if (error) return { ok: false, message: t.errors.saveFailed };
+
+  revalidatePath("/konto/uppgifter");
+  return { ok: true };
+}

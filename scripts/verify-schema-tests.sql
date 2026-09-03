@@ -5381,4 +5381,137 @@ begin
 end
 $$;
 
+\echo '   gästbilden publiceras bara om gästen valt det och Burp granskat den'
+
+/*
+ * Migration 0068.
+ *
+ * Tre regler, och den tredje är den som är lätt att bygga bort:
+ *
+ *   1. Bilden är privat tills gästen själv säger annat. Den laddades upp under
+ *      löftet "bara du ser den" (0067), och ett löfte upphävs inte av att en
+ *      kolumn tillkommer.
+ *   2. Gästen godkänner inte sin egen bild. Samma grind som 0063 och 0064.
+ *   3. BYTER hon bild går granskningen tillbaka till PENDING. Utan det räcker
+ *      det att få en bild godkänd för att sedan lägga vad som helst på en
+ *      indexerad sida — samma hål som storage-UPDATE var för restaurangerna.
+ */
+do $$
+declare
+  v_user  uuid;
+  v_admin uuid;
+  v_antal integer;
+begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'bild-gast@example.com')
+  returning id into v_user;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'bild-admin@example.com')
+  returning id into v_admin;
+
+  insert into public.platform_admins (user_id, role) values (v_admin, 'admin');
+
+  -- Triggern i 0002 skapade profilen. Gästen laddar upp en bild.
+  update public.profiles set avatar_path = v_user || '/ett.jpg' where id = v_user;
+
+  if (select avatar_public from public.profiles where id = v_user) then
+    raise exception 'FEL: bilden var publik utan att gästen valt det';
+  end if;
+
+  -- Privat bild ska aldrig komma ut ur funktionen, oavsett status.
+  select count(*) into v_antal from public.public_avatar_paths(array[v_user]);
+  if v_antal <> 0 then
+    raise exception 'FEL: en privat bild lämnade profilen';
+  end if;
+
+  -- Gästen väljer att visa den. Den ska då vänta på granskning, inte synas.
+  update public.profiles set avatar_public = true where id = v_user;
+
+  if (select avatar_status from public.profiles where id = v_user) <> 'PENDING' then
+    raise exception 'FEL: bilden var inte ogranskad efter uppladdning';
+  end if;
+
+  select count(*) into v_antal from public.public_avatar_paths(array[v_user]);
+  if v_antal <> 0 then
+    raise exception 'FEL: en ogranskad bild publicerades';
+  end if;
+
+  -- Gästen försöker godkänna sig själv.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_user::text, true);
+
+  begin
+    update public.profiles set avatar_status = 'APPROVED' where id = v_user;
+    raise exception 'FEL: gästen godkände sin egen bild';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  begin
+    perform public.moderate_avatar(v_user, true);
+    raise exception 'FEL: gästen kom åt granskningsfunktionen';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- Burps personal godkänner.
+  perform set_config('request.jwt.claim.sub', v_admin::text, true);
+  perform public.moderate_avatar(v_user, true);
+
+  perform set_config('request.jwt.claim.sub', '', true);
+  execute 'set local role postgres';
+
+  select count(*) into v_antal from public.public_avatar_paths(array[v_user]);
+  if v_antal <> 1 then
+    raise exception 'FEL: en godkänd och publik bild kom inte ut';
+  end if;
+
+  -- Och så det som är lätt att bygga bort: hon byter bild.
+  update public.profiles set avatar_path = v_user || '/tva.jpg' where id = v_user;
+
+  if (select avatar_status from public.profiles where id = v_user) <> 'PENDING' then
+    raise exception 'FEL: en NY bild ärvde det gamla godkännandet';
+  end if;
+
+  select count(*) into v_antal from public.public_avatar_paths(array[v_user]);
+  if v_antal <> 0 then
+    raise exception 'FEL: den nya bilden publicerades osedd';
+  end if;
+end
+$$;
+
+\echo '   bilduppslaget ger aldrig ut e-post eller telefon'
+
+/*
+ * En select-policy på `profiles` för anon hade varit den uppenbara vägen och
+ * ett allvarligt fel: RLS är RADnivå, inte kolumnnivå. En policy som släpper
+ * igenom raden släpper igenom `email`, `phone` och `birth_date` med den.
+ *
+ * Testet prövar formen och inte ett anrop: funktionen får returnera två fält,
+ * och lägger någon till ett tredje ska det synas här och inte i en läcka.
+ */
+do $$
+declare
+  v_kolumner text;
+begin
+  select string_agg(a.attname, ', ' order by a.ord) into v_kolumner
+  from pg_proc p
+  join lateral unnest(p.proargnames, p.proargmodes)
+       with ordinality as a(attname, mode, ord) on true
+  where p.proname = 'public_avatar_paths'
+    and a.mode = 't';
+
+  if v_kolumner is distinct from 'user_id, avatar_path' then
+    raise exception 'FEL: public_avatar_paths ger ut %, inte bara sökvägen', v_kolumner;
+  end if;
+
+  -- Anon ska inte nå profiles direkt.
+  if exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'profiles'
+      and 'anon' = any(roles) and cmd = 'SELECT'
+  ) then
+    raise exception 'FEL: anon har en select-policy på profiles — hela raden läcker';
+  end if;
+end
+$$;
+
 rollback;

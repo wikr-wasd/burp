@@ -363,3 +363,26 @@ export async function moderateDocument(
 
   return error ? fail(error.message) : done();
 }
+
+/**
+ * Godkänner eller avvisar en gästbild (migration 0068).
+ *
+ * Går genom `moderate_avatar()` och inte genom en tabelluppdatering: backoffice
+ * kan inte läsa eller skriva andra gästers profiler, och det är avsiktligt —
+ * `profiles_select_own` släpper bara igenom den egna raden. En policy för
+ * plattformsadmin hade gett Burps personal e-post, telefon och födelsedatum för
+ * varenda gäst, för att kunna titta på en bild.
+ *
+ * Funktionen prövar rollen själv, eftersom den är security definer.
+ */
+export async function moderateAvatar(userId: string, approve: boolean): Promise<ActionResult> {
+  await requirePlatformAdmin(WRITE_ROLES);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("moderate_avatar", {
+    p_user_id: userId,
+    p_approve: approve,
+  });
+
+  return error ? fail(error.message) : done();
+}

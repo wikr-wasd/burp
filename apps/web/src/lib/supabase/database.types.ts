@@ -1549,6 +1549,10 @@ export type Database = {
       profiles: {
         Row: {
           avatar_path: string | null
+          avatar_public: boolean
+          avatar_reviewed_at: string | null
+          avatar_reviewed_by: string | null
+          avatar_status: Database["public"]["Enums"]["media_status"]
           birth_date: string | null
           created_at: string
           email: string | null
@@ -1560,6 +1564,10 @@ export type Database = {
         }
         Insert: {
           avatar_path?: string | null
+          avatar_public?: boolean
+          avatar_reviewed_at?: string | null
+          avatar_reviewed_by?: string | null
+          avatar_status?: Database["public"]["Enums"]["media_status"]
           birth_date?: string | null
           created_at?: string
           email?: string | null
@@ -1571,6 +1579,10 @@ export type Database = {
         }
         Update: {
           avatar_path?: string | null
+          avatar_public?: boolean
+          avatar_reviewed_at?: string | null
+          avatar_reviewed_by?: string | null
+          avatar_status?: Database["public"]["Enums"]["media_status"]
           birth_date?: string | null
           created_at?: string
           email?: string | null
@@ -3141,6 +3153,10 @@ export type Database = {
         Returns: Json
       }
       mfa_satisfied: { Args: never; Returns: boolean }
+      moderate_avatar: {
+        Args: { p_approve: boolean; p_user_id: string }
+        Returns: undefined
+      }
       my_role_at: {
         Args: { p_restaurant_id: string }
         Returns: Database["public"]["Enums"]["staff_role"]
@@ -3158,6 +3174,14 @@ export type Database = {
           p_table_id: string
         }
         Returns: string
+      }
+      pending_avatars: {
+        Args: never
+        Returns: {
+          avatar_path: string
+          since: string
+          user_id: string
+        }[]
       }
       place_order: { Args: { p_payload: Json }; Returns: string }
       platform_revenue_by_currency: {
@@ -3237,6 +3261,13 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      public_avatar_paths: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          avatar_path: string
+          user_id: string
+        }[]
+      }
       punch_card_status: {
         Args: { p_guest_id: string; p_restaurant_id: string }
         Returns: {

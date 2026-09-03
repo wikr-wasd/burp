@@ -48,7 +48,23 @@ export function ReviewList({
   return (
     <ul className="mt-4 space-y-4">
       {reviews.map((review) => (
-        <li key={review.id} className="card p-4">
+        <li key={review.id} className="card flex gap-3 p-4">
+          {/*
+            Bilden bara när gästen valt att visa den OCH Burp granskat den.
+            Ingen platshållare för de andra: en tom rund ruta bredvid varje
+            anonymt omdöme läser som att något saknas, och de allra flesta
+            omdömen kommer från QR-gästen som inte har något konto alls.
+          */}
+          {review.authorAvatarUrl ? (
+            <img
+              src={review.authorAvatarUrl}
+              alt=""
+              loading="lazy"
+              className="size-10 shrink-0 rounded-full border border-[var(--rule)] object-cover"
+            />
+          ) : null}
+
+          <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <Stars rating={review.ratingFood} label={labels.foodRating} outOf={labels.ratingOutOf} />
             <span className="text-sm text-[var(--muted)]">
@@ -75,6 +91,7 @@ export function ReviewList({
               <p className="mt-1 text-sm">{review.response}</p>
             </div>
           ) : null}
+          </div>
         </li>
       ))}
     </ul>

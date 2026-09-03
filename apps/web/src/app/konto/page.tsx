@@ -3,7 +3,7 @@ import Link from "next/link";
 import { formatMoney, type OrderStatus } from "@burp/core";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { ReviewForm } from "@/components/guest/review-form";
-import { getGuestAvatarUrl, getGuestOrders, getLoyalty, requireGuest } from "@/lib/guest";
+import { getGuestAvatar, getGuestOrders, getLoyalty, requireGuest } from "@/lib/guest";
 import { summariseGuest } from "@/lib/guest-summary";
 import {
   dictionary,
@@ -43,10 +43,10 @@ export default async function AccountPage() {
   const locale = await requestLocale();
   const t = dictionary(locale);
 
-  const [orders, loyalty, avatarUrl] = await Promise.all([
+  const [orders, loyalty, avatar] = await Promise.all([
     getGuestOrders(guest.userId),
     getLoyalty(guest.userId),
-    getGuestAvatarUrl(guest.userId),
+    getGuestAvatar(guest.userId),
   ]);
 
   const active = orders.filter(
@@ -87,9 +87,9 @@ export default async function AccountPage() {
         <div className="flex items-center gap-4">
           {/* Bilden visas bara om hon lagt upp en. En tom rund ruta med en
               generisk ikon är inte en personlig detalj, det är en lucka. */}
-          {avatarUrl ? (
+          {avatar ? (
             <img
-              src={avatarUrl}
+              src={avatar.url}
               alt=""
               className="size-14 shrink-0 rounded-full border border-[var(--rule)] object-cover"
             />

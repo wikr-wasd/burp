@@ -748,7 +748,12 @@ export const sv = {
      * som laddar upp ett ansikte har rätt att veta det innan hon gör det.
      */
     photoTitle: "Din bild",
-    photoHint: "Bara du ser den. Den visas inte på dina omdömen och inte för restaurangerna.",
+    photoHint: "Bilden är privat. Den visas för andra först om du själv väljer det nedan.",
+    photoShow: "Visa bilden på mina omdömen",
+    photoShowHint: "Ett omdöme med ett ansikte väger tyngre. Du kan ta bort valet när du vill.",
+    photoPending: "Väntar på granskning. Den visas när Burp tittat på den.",
+    photoApproved: "Visas på dina omdömen.",
+    photoRejected: "Bilden godkändes inte för publicering. Den är kvar som din privata bild.",
     photoChoose: "Välj en bild",
     photoRemove: "Ta bort bilden",
     photoUploading: "Laddar upp…",

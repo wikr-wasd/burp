@@ -5,6 +5,7 @@ import type { CurrencyCode } from "@burp/core";
 import { redirect } from "next/navigation";
 import { calculateBalance, type LoyaltyTransaction } from "@burp/core";
 import { createClient } from "./supabase/server";
+import { publicEnv } from "./env";
 
 /**
  * Den inloggade gästen.
@@ -174,31 +175,40 @@ export async function getLoyalty(userId: string): Promise<LoyaltyState | null> {
 
 /* ── Gästens egen bild ───────────────────────────────────────────────────── */
 
+export interface GuestAvatar {
+  url: string;
+  /** Har hon valt att visa den på sina omdömen? Standard är nej. */
+  isPublic: boolean;
+  /** Burps granskning. Gäller bara när `isPublic` är sant. */
+  status: "PENDING" | "APPROVED" | "REJECTED";
+}
+
 /**
- * En adress som går att visa bilden på, eller null.
+ * Gästens bild, eller null.
  *
- * Bucketen är privat (migration 0067), så adressen måste signeras. Den går ut
- * efter en timme — sidan är ändå `force-dynamic` och renderas per besök, så en
- * längre giltighet hade bara betytt att en läckt adress fungerar längre.
+ * Adressen är publik sedan migration 0068. Den signerades tidigare, och skälet
+ * att sluta är konkret: restaurangsidan är ISR-cachad en timme, så en signerad
+ * adress i den hinner gå ut innan sidan byggts om — och att signera per visning
+ * hade betytt ett serveranrop per ansikte i en lista med tjugo omdömen.
  *
  * Egen funktion och inte en del av `getGuest()`: den anropas på varje gästyta,
  * och en profilfråga per sidvisning för en bild som visas på två av dem är en
  * kostnad utan täckning.
  */
-export async function getGuestAvatarUrl(userId: string): Promise<string | null> {
+export async function getGuestAvatar(userId: string): Promise<GuestAvatar | null> {
   const supabase = await createClient();
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("avatar_path")
+    .select("avatar_path, avatar_public, avatar_status")
     .eq("id", userId)
     .maybeSingle();
 
   if (!profile?.avatar_path) return null;
 
-  const { data } = await supabase.storage
-    .from("guest-avatars")
-    .createSignedUrl(profile.avatar_path, 60 * 60);
-
-  return data?.signedUrl ?? null;
+  return {
+    url: `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/guest-avatars/${profile.avatar_path}`,
+    isPublic: profile.avatar_public,
+    status: profile.avatar_status as GuestAvatar["status"],
+  };
 }
