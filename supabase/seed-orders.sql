@@ -920,6 +920,101 @@ begin
 end
 $$;
 
+/*
+ * Favoriter, och Burps utvalda.
+ *
+ * `co_favourites()` (migration 0070) räknar samförekomst: de som sparat något
+ * du sparat, vad sparade de mer? Med EN favorit i hela databasen fanns
+ * ingenting att räkna, och funktionen hade returnerat tomt för alltid — en yta
+ * som ser trasig ut fast koden är rätt. Samma fel som visningsnamnet hade i
+ * går, och som pengaytorna hade före det.
+ *
+ * Tjugo demogäster med två till fyra favoriter var ger ett signalvärde som
+ * faktiskt går att bedöma: några restauranger sticker ut, andra gör det inte.
+ * Ett jämnt utfall hade sett ut som slump, vilket det hade varit.
+ */
+do $$
+declare
+  v_gast    uuid;
+  v_ny      uuid;
+  v_rest    uuid;
+  v_i       integer;
+  v_j       integer;
+  v_antal   integer;
+  v_stad    text;
+begin
+  if (select count(*) from public.favorites) > 5 then
+    raise notice 'Favoriter finns redan — läggs inte in igen.';
+    return;
+  end if;
+
+  for v_i in 1..20 loop
+    v_ny := gen_random_uuid();
+
+    insert into auth.users (id, email, raw_user_meta_data)
+    values (
+      v_ny,
+      'demogast' || v_i || '@example.com',
+      jsonb_build_object('full_name', 'Demogäst ' || v_i)
+    )
+    on conflict do nothing;
+
+    /*
+     * Två till fyra favoriter, dragna med en vikt: restauranger med högre
+     * betyg sparas oftare. Rent slumpade favoriter hade gett en lista där
+     * allt är lika populärt, och då säger "andra sparade också" ingenting.
+     */
+    v_antal := 2 + floor(random() * 3)::integer;
+
+    for v_j in 1..v_antal loop
+      select r.id into v_rest
+      from public.restaurants r
+      where r.status = 'ACTIVE'
+      order by random() * coalesce(r.rating_average, 3.5) desc
+      limit 1;
+
+      insert into public.favorites (user_id, restaurant_id)
+      values (v_ny, v_rest)
+      on conflict do nothing;
+    end loop;
+  end loop;
+
+  -- Testgästen får två egna, så att samförekomsten har något att utgå från.
+  select id into v_gast from auth.users where email = 'gast@burp.test';
+
+  if v_gast is not null then
+    insert into public.favorites (user_id, restaurant_id)
+    select v_gast, r.id
+    from public.restaurants r
+    where r.status = 'ACTIVE'
+    order by r.rating_average desc nulls last
+    limit 2
+    on conflict do nothing;
+  end if;
+
+  /*
+   * Burps egna utvalda: två per stad.
+   *
+   * Egen lista och egen rubrik. Blandad med den räknade hade den gjort
+   * påståendet om vad andra gäster gillar osant — se kommentaren i 0070.
+   */
+  for v_stad in select distinct city_slug from public.restaurants where status = 'ACTIVE' loop
+    insert into public.featured_restaurants (city_slug, restaurant_id, sort_order, note)
+    select v_stad, r.id, row_number() over (order by r.rating_average desc nulls last, r.name),
+           'Demo — valt på betyg'
+    from public.restaurants r
+    where r.city_slug = v_stad and r.status = 'ACTIVE'
+    order by r.rating_average desc nulls last, r.name
+    limit 2
+    on conflict (city_slug, restaurant_id) do nothing;
+  end loop;
+
+  raise notice 'Favoriter: %, utvalda: %',
+    (select count(*) from public.favorites),
+    (select count(*) from public.featured_restaurants);
+end
+$$;
+
 commit;
 
 select

@@ -768,6 +768,21 @@ export const sv = {
     displayNameSave: "Spara namnet",
     displayNameSaved: "Namnet är sparat.",
     displayNameTooLong: "Högst 40 tecken.",
+    /*
+     * Två listor, och rubrikerna får inte byta plats.
+     *
+     * `alsoSaved` är ett PÅSTÅENDE om vad andra gäster gjort och räknas ur
+     * riktiga favoriter. `featured` är Burps eget urval. Att lägga det andra
+     * under den första rubriken vore en annons som utger sig för att vara
+     * något annat — se migration 0070.
+     */
+    alsoSaved: "Andra sparade också",
+    alsoSavedHint: "Räknat ur vad gäster som sparat samma ställen som du också har sparat.",
+    popularHint: "De mest sparade just nu. När du sparat fler ställen blir listan din egen.",
+    savedBy: "{n} har sparat",
+    savedByOne: "1 har sparat",
+    featuredIn: "Utvalda i {city}",
+    featuredHint: "Burps eget urval — inte en popularitetslista.",
     photoChoose: "Välj en bild",
     photoRemove: "Ta bort bilden",
     photoUploading: "Laddar upp…",

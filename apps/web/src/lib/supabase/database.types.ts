@@ -203,6 +203,44 @@ export type Database = {
           },
         ]
       }
+      featured_restaurants: {
+        Row: {
+          city_slug: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          restaurant_id: string
+          sort_order: number
+        }
+        Insert: {
+          city_slug: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          restaurant_id: string
+          sort_order?: number
+        }
+        Update: {
+          city_slug?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          restaurant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_restaurants_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_changes: {
         Row: {
           changed_by: string
@@ -2920,6 +2958,14 @@ export type Database = {
       close_table_session: {
         Args: { p_actor_id?: string; p_session_id: string }
         Returns: undefined
+      }
+      co_favourites: {
+        Args: { p_city_slug?: string; p_limit?: number; p_user_id: string }
+        Returns: {
+          from_others: boolean
+          restaurant_id: string
+          saves: number
+        }[]
       }
       confirm_order_payment: {
         Args: { p_method?: string; p_payment_id: string }

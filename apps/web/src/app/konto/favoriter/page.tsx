@@ -5,7 +5,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { FavoriteButton } from "@/components/guest/favorite-button";
 import { requireGuest } from "@/lib/guest";
-import { dictionary, requestLocale } from "@/lib/i18n";
+import { getRecommendations } from "@/lib/recommendations";
+import { RecommendationList } from "@/components/guest/recommendation-list";
+import { fill, dictionary, requestLocale } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,6 +44,18 @@ export default async function FavoritesPage() {
   // Ordningen kommer från favorites, inte från restaurants — senast sparad först.
   const byId = new Map((restaurants ?? []).map((r) => [r.id, r] as const));
   const ordered = restaurantIds.map((id) => byId.get(id)).filter((r) => r !== undefined);
+
+  /*
+   * Området räknas ur hennes egna favoriter, inte ur en väljare.
+   *
+   * Den som sparat två ställen i Mostar är i Mostar. Att fråga henne vilken
+   * stad hon vill se hade varit ett steg till innan hon får något — och svaret
+   * står redan i listan ovanför.
+   */
+  const favouriteCities = [
+    ...new Set(ordered.map((r) => r.city_slug).filter((slug): slug is string => slug !== null)),
+  ];
+  const recommendations = await getRecommendations(guest.userId, favouriteCities);
 
   return (
     <>
@@ -118,6 +132,41 @@ export default async function FavoritesPage() {
             ))}
           </ul>
         )}
+
+        {/*
+          Två listor, och rubrikerna får aldrig byta plats.
+
+          Den första är ett PÅSTÅENDE om vad andra gäster gjort och räknas ur
+          riktiga favoriter. Den andra är Burps eget urval. Att lägga det andra
+          under den första rubriken vore en annons som utger sig för att vara
+          något annat — samma tillit som omdömena är byggda för att skydda.
+        */}
+        {recommendations.alsoSaved.length > 0 ? (
+          <section className="mt-12">
+            <h2 className="font-display text-2xl">{t.account.alsoSaved}</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {recommendations.fromSimilarGuests
+                ? t.account.alsoSavedHint
+                : t.account.popularHint}
+            </p>
+
+            <RecommendationList
+              restaurants={recommendations.alsoSaved}
+              labels={t.account}
+            />
+          </section>
+        ) : null}
+
+        {recommendations.featured.length > 0 && recommendations.cityName ? (
+          <section className="mt-12">
+            <h2 className="font-display text-2xl">
+              {fill(t.account.featuredIn, { city: recommendations.cityName })}
+            </h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">{t.account.featuredHint}</p>
+
+            <RecommendationList restaurants={recommendations.featured} labels={t.account} />
+          </section>
+        ) : null}
       </main>
     </>
   );

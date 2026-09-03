@@ -772,7 +772,7 @@ if [ -n "$OWNER_COOKIE" ] && [ -n "$GUEST_COOKIE" ] && [ -n "$ADMIN_COOKIE" ] &&
     fi
   done
 
-  for path in /backoffice /backoffice/restauranger /backoffice/media /backoffice/avrakning; do
+  for path in /backoffice /backoffice/restauranger /backoffice/media /backoffice/avrakning /backoffice/utvalda; do
     code=$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: $COOKIE_NAME=$ADMIN_COOKIE" "$BASE$path")
     if [ "$code" = "200" ]; then
       pass "$path svarar"

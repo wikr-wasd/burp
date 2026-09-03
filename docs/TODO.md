@@ -66,6 +66,58 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-09-03 (v) — rekommendationer på favoritsidan
+
+Migration `0070`. **Två listor, och de får aldrig blandas.**
+
+#### Varför två och inte en
+
+Rubriken *"andra i området hade även dessa som favorit"* är ett **påstående om
+vad riktiga gäster gjort**. En handplockad lista under den rubriken är inte en
+rekommendation — den är en annons som utger sig för att vara något annat.
+
+Det är samma tillit som `reviews` är byggd för att skydda: betyg får bara komma
+från genomförda order, och `lib/reviews.ts` bär beslutet att skribenten är
+pseudonym eftersom hon aldrig sagt ja till annat. En påhittad
+popularitetslista hade underminerat exakt det.
+
+| Lista | Källa | Rubrik |
+|---|---|---|
+| `co_favourites()` | **Räknad** ur riktiga favoriter | "Andra sparade också" |
+| `featured_restaurants` | Burps eget urval per stad | "Utvalda i {stad}" |
+
+`co_favourites()` är klassisk samförekomst: de som sparat något du sparat, vad
+sparade de mer? Faller det ut tomt — vilket det gör för den som just skapat
+konto — svarar den med stadens mest sparade i stället, och gränssnittet byter då
+hjälptext. En tom lista är en yta som ser trasig ut.
+
+Funktionen är security definer, eftersom `favorites_own` med rätta hindrar en
+gäst från att läsa andras favoriter. Den ger aldrig ut VEM som sparat något,
+bara hur många — en restaurang är inte en personuppgift.
+
+#### Området räknas ur hennes egna favoriter
+
+Ingen stadsväljare på gästsidan. Den som sparat två ställen i Mostar ÄR i
+Mostar, och svaret står redan i listan ovanför. Hittar området ingenting faller
+uppslaget tillbaka på hela plattformen — hellre något från Sarajevo än en tom
+ruta.
+
+I backoffice är staden däremot i adressen: `?stad=mostar`. Urvalet gäller ett
+område, och en länk till "utvalda i Mostar" ska gå att skicka till någon.
+
+#### ⚠️ Betald placering är ett affärsbeslut, inte en funktion
+
+Ska en restaurang kunna **köpa** sin plats i en annan stads lista hör det till
+`docs/BUSINESS.md`: det kräver ett pris, och det kräver att listan märks som
+betald. `featured_restaurants` är Burps redaktionella urval och ingenting annat.
+
+#### Demodata
+
+Fyrtiofem favoriter fördelade på tjugo demogäster, viktade mot högre betyg —
+rent slumpade favoriter hade gett en lista där allt är lika populärt, och då
+säger "andra sparade också" ingenting. Före: **en** favorit i hela databasen,
+alltså ingenting att räkna.
+
 ### Byggt 2026-09-03 (iv) — /dashboard/bord svarade 500, och tre ytor var tomma
 
 #### En konstant i en "use server"-modul

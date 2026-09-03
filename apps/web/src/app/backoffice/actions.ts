@@ -386,3 +386,53 @@ export async function moderateAvatar(userId: string, approve: boolean): Promise<
 
   return error ? fail(error.message) : done();
 }
+
+/* ── Burps utvalda per stad ──────────────────────────────────────────────── */
+
+/**
+ * Lägger en restaurang i stadens urval (migration 0070).
+ *
+ * ⚠️ Det här är Burps REDAKTIONELLA val och ingen popularitetslista. Listan
+ * visas under sin egen rubrik, skild från "andra sparade också" — den senare
+ * räknas ur riktiga favoriter, och att blanda dem hade gjort ett påstående om
+ * vad gäster gillar till en annons.
+ *
+ * Ska en restaurang kunna KÖPA sin plats är det ett affärsbeslut och inte en
+ * funktion: det hör till docs/BUSINESS.md, kräver ett pris, och kräver att
+ * listan märks som betald.
+ */
+export async function addFeatured(
+  citySlug: string,
+  restaurantId: string,
+  note?: string,
+): Promise<ActionResult> {
+  const admin = await requirePlatformAdmin(WRITE_ROLES);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("featured_restaurants").insert({
+    city_slug: citySlug,
+    restaurant_id: restaurantId,
+    note: note?.trim() || null,
+    created_by: admin.userId,
+    // Sist i listan. Ordningen ändras genom att ta bort och lägga till igen —
+    // en dra-och-släpp för en lista på två rader är mer kod än nytta.
+    sort_order: 99,
+  });
+
+  if (error) {
+    return fail(
+      error.code === "23505" ? "Restaurangen är redan utvald i den staden." : error.message,
+    );
+  }
+
+  return done();
+}
+
+export async function removeFeatured(id: string): Promise<ActionResult> {
+  await requirePlatformAdmin(WRITE_ROLES);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("featured_restaurants").delete().eq("id", id);
+
+  return error ? fail(error.message) : done();
+}

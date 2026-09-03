@@ -15,7 +15,7 @@ export function PlatformHeader({
   current,
 }: {
   admin: PlatformContext;
-  current: "oversikt" | "restauranger" | "avrakning" | "media";
+  current: "oversikt" | "restauranger" | "avrakning" | "media" | "utvalda";
 }) {
   return (
     <header className="border-b border-[var(--rule)] bg-burp-900/10 dark:bg-burp-900/30">
@@ -49,6 +49,10 @@ export function PlatformHeader({
           <NavLink href="/backoffice/avrakning" active={current === "avrakning"}>
             Avräkning
           </NavLink>
+          <NavLink href="/backoffice/utvalda" active={current === "utvalda"}>
+            Utvalda
+          </NavLink>
+
           <NavLink href="/backoffice/media" active={current === "media"}>
             Media
           </NavLink>
