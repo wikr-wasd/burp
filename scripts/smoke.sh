@@ -734,11 +734,12 @@ check_landing() {
   esac
 }
 
+OWNER_COOKIE=$(session_cookie "agare@burp.test")
 GUEST_COOKIE=$(session_cookie "gast@burp.test")
 ADMIN_COOKIE=$(session_cookie "burp@burp.test")
 KITCHEN_COOKIE=$(session_cookie "kock@burp.test")
 
-if [ -n "$GUEST_COOKIE" ] && [ -n "$ADMIN_COOKIE" ] && [ -n "$KITCHEN_COOKIE" ]; then
+if [ -n "$OWNER_COOKIE" ] && [ -n "$GUEST_COOKIE" ] && [ -n "$ADMIN_COOKIE" ] && [ -n "$KITCHEN_COOKIE" ]; then
   # Gästen: ingen personalyta alls, och alltid till sitt eget konto.
   check_landing "gästen" /dashboard  /konto      "$GUEST_COOKIE"
   check_landing "gästen" /kok        /konto      "$GUEST_COOKIE"
@@ -747,6 +748,38 @@ if [ -n "$GUEST_COOKIE" ] && [ -n "$ADMIN_COOKIE" ] && [ -n "$KITCHEN_COOKIE" ];
   # Plattformsadmin: har ingen staff-rad, men hör inte hemma hos gästen heller.
   check_landing "plattformsadmin" /dashboard  /backoffice "$ADMIN_COOKIE"
   check_landing "plattformsadmin" /backoffice 200         "$ADMIN_COOKIE"
+
+  # ── Varenda personalyta svarar, inte bara de som råkar prövas ────────────
+  #
+  # `/dashboard/bord` svarade 500 i produktionsbygget utan att något test sa
+  # ifrån. Orsaken var att `TABLE_ATTRIBUTES` exporterades ur en "use server"-
+  # modul: en sådan får bara exportera asynkrona funktioner, och allt annat
+  # görs om till en serveråtgärdsreferens. Klientkomponenten fick alltså en
+  # funktion i stället för en array.
+  #
+  # Typkontrollen kan inte se det — typen är rätt, omskrivningen sker i
+  # bundlern. Det enda som avslöjar det är att faktiskt hämta sidan.
+  #
+  # Svepet är därför medvetet trubbigt: alla ytor, bara statuskoden. En yta som
+  # inte går att öppna är trasig oavsett vad den skulle ha visat.
+  for path in     /dashboard /dashboard/order /dashboard/meny /dashboard/bord     /dashboard/bokningar /dashboard/kassa /dashboard/omdomen     /dashboard/erbjudanden /dashboard/presentkort /dashboard/statistik     /dashboard/avrakning /dashboard/handelser /dashboard/marknadsforing     /dashboard/personal /dashboard/installningar /dashboard/sakerhet
+  do
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: $COOKIE_NAME=$OWNER_COOKIE" "$BASE$path")
+    if [ "$code" = "200" ]; then
+      pass "$path svarar"
+    else
+      fail "$path svarade $code"
+    fi
+  done
+
+  for path in /backoffice /backoffice/restauranger /backoffice/media /backoffice/avrakning; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: $COOKIE_NAME=$ADMIN_COOKIE" "$BASE$path")
+    if [ "$code" = "200" ]; then
+      pass "$path svarar"
+    else
+      fail "$path svarade $code"
+    fi
+  done
 
   # ── Systemstatuspanelen renderas ─────────────────────────────────────────
   #

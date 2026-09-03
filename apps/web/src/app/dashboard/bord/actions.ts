@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { TABLE_ATTRIBUTES, type TableAttribute } from "@/lib/table-attributes";
 import { generatePublicId, parseAmount } from "@burp/core";
 import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -211,16 +212,7 @@ export async function archiveTable(tableId: string): Promise<ActionResult> {
  * restaurangen. Burp tar aldrig emot det, och det ingår inte i
  * avgiftsunderlaget — se regel 8 om vad som är restaurangens pengar.
  */
-export const TABLE_ATTRIBUTES = [
-  "VIEW",
-  "WINDOW",
-  "OUTDOOR",
-  "QUIET",
-  "BOOTH",
-  "ACCESSIBLE",
-] as const;
-
-export type TableAttribute = (typeof TABLE_ATTRIBUTES)[number];
+/* Listan ligger i `lib/table-attributes.ts` — se kommentaren där. */
 
 export async function saveTableBooking(
   tableId: string,

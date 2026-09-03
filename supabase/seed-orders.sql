@@ -741,6 +741,185 @@ begin
 end
 $$;
 
+/*
+ * Bord, bokningar, kuponger och presentkort.
+ *
+ * Fyra ytor som var byggda, verifierade var för sig — och tomma. Mätt före:
+ * fyrtiofem bord varav två hade egenskaper och ett hade tillägg, noll
+ * bokningar, noll kuponger, noll presentkort.
+ *
+ * En yta som aldrig visats med data är oprövad. `/dashboard/bokningar`,
+ * `/dashboard/erbjudanden` och `/dashboard/presentkort` gick att öppna och sa
+ * "inget här än" — vilket ser ut som att de fungerar och bevisar ingenting.
+ */
+do $$
+declare
+  v_rest    record;
+  v_table   record;
+  v_i       integer;
+  v_start   timestamptz;
+  v_status  public.reservation_status;
+  v_zones   text[];
+  v_namn    text[] := array[
+    'Amina Softić', 'Emir Hadžić', 'Lejla Begić', 'Tarik Kovačević',
+    'Selma Đurić', 'Haris Mujić', 'Ivana Marić', 'Nikola Petrović'
+  ];
+  v_bokade  integer := 0;
+begin
+  for v_rest in
+    select r.id, r.name, r.country, r.currency
+    from public.restaurants r
+    where r.status = 'ACTIVE'
+      and exists (select 1 from public.tables t where t.restaurant_id = r.id)
+  loop
+    /*
+     * ── Borden får ett rum, en form och en egenskap ──────────────────────
+     *
+     * Bara seed-restaurangen hade zoner. Utan zon skriver köksbiljetten bara
+     * ett nummer, och "bord 6" är en halv adress i en lokal med uteservering
+     * OCH en sal innanför. Det var därför zonen byggdes 2026-08-20; utan data
+     * gick den aldrig att se.
+     */
+    v_zones := case
+      when v_rest.country = 'HR' then array['Terasa', 'Unutra']
+      else array['Bašta', 'Unutra']
+    end;
+
+    v_i := 0;
+    for v_table in
+      select id, table_number from public.tables
+      where restaurant_id = v_rest.id and zone is null
+      order by table_number
+    loop
+      v_i := v_i + 1;
+
+      update public.tables
+      set zone = v_zones[1 + (v_i % 2)],
+          shape = case when v_i % 3 = 0 then 'SQUARE' else 'ROUND' end::public.table_shape,
+          capacity = 2 + (v_i % 3) * 2,
+          -- Egenskaperna översätts och kommer ur en fast lista (0054). Två av
+          -- tre bord får någon; alla bord med samma märkning säger ingenting.
+          attributes = case (v_i % 4)
+            when 0 then array['WINDOW']
+            when 1 then array['OUTDOOR', 'QUIET']
+            when 2 then array['BOOTH']
+            else array[]::text[]
+          end,
+          -- Tillägget hamnar på NOTAN i restaurangen. Burp tar aldrig emot det
+          -- och det ingår inte i avgiftsunderlaget — regel 8.
+          surcharge_ore = case when v_i % 5 = 0 then 500 else 0 end
+      where id = v_table.id;
+    end loop;
+
+    /*
+     * ── Bokningar över tre veckor ────────────────────────────────────────
+     *
+     * Spridda bakåt och framåt, och genom alla fem tillstånden. En vy som bara
+     * visar kommande bokningar går inte att bedöma: det är NO_SHOW och
+     * CANCELLED som avgör om listan är läsbar när något gått fel.
+     *
+     * Direktinsert och inte `create_reservation()`: den funktionen prövar
+     * tiden mot `reservation_slots()`, som räknar ur öppettider och policy.
+     * Rätt beteende i produkten, men en demorad som råkar hamna en halvtimme
+     * utanför öppettiden hade fällt hela seeden i stället för att bli en rad.
+     * Överlappsspärren i 0054 gäller ändå — därför en bokning per bord och dag.
+     */
+    v_i := 0;
+    for v_table in
+      select id from public.tables
+      where restaurant_id = v_rest.id and status = 'ACTIVE'
+      order by table_number
+      limit 6
+    loop
+      v_i := v_i + 1;
+
+      -- Från tio dagar bakåt till elva dagar framåt, ett bord i taget.
+      v_start := date_trunc('hour', now()) - interval '10 days'
+               + (v_i * interval '3 days') + interval '18 hours';
+
+      v_status := case
+        when v_start < now() - interval '2 days' then 'COMPLETED'
+        when v_start < now() then (case when v_i % 3 = 0 then 'NO_SHOW' else 'COMPLETED' end)
+        when v_i % 5 = 0 then 'CANCELLED'
+        else 'BOOKED'
+      end::public.reservation_status;
+
+      insert into public.reservations (
+        restaurant_id, table_id, guest_name, guest_phone, guest_email,
+        party_size, during, status, note, cancelled_at, seated_at
+      )
+      values (
+        v_rest.id, v_table.id,
+        v_namn[1 + (v_i % array_length(v_namn, 1))],
+        '+387 6' || lpad((100000 + v_i * 7919)::text, 7, '0'),
+        'gast' || v_i || '@example.com',
+        2 + (v_i % 4),
+        tstzrange(v_start, v_start + interval '90 minutes', '[)'),
+        v_status,
+        case when v_i % 4 = 0 then 'Barnstol, tack.' else null end,
+        case when v_status = 'CANCELLED' then v_start - interval '1 day' else null end,
+        case when v_status in ('COMPLETED', 'NO_SHOW') then v_start else null end
+      )
+      on conflict do nothing;
+
+      v_bokade := v_bokade + 1;
+    end loop;
+
+    /*
+     * ── Kuponger: en i procent, en i pengar, en utgången ─────────────────
+     *
+     * Den utgångna är inte utfyllnad. En kupongyta som bara visar giltiga
+     * koder ser ut att fungera tills någon undrar var förra månadens kampanj
+     * tog vägen — och då är frågan om den utelämnades eller aldrig sparades.
+     *
+     * Existenskontroll och inte `on conflict`: koden är unik per restaurang
+     * genom ett PARTIELLT index (`where restaurant_id is not null`), och en
+     * on conflict-sats kan inte matcha det utan att upprepa predikatet. En
+     * vanlig if-sats säger dessutom rakt ut vad den gör.
+     */
+    if not exists (select 1 from public.coupons c where c.restaurant_id = v_rest.id) then
+      insert into public.coupons (
+        code, restaurant_id, discount_bps, min_order_ore, max_redemptions,
+        max_per_guest, valid_from, valid_until, is_active, funded_by
+      )
+      values
+        ('DOBRODOSLI10', v_rest.id, 1000, 2000, 100, 1,
+         now() - interval '20 days', now() + interval '40 days', true, 'RESTAURANT'),
+        ('PETKOM' || upper(substr(md5(v_rest.id::text), 1, 4)),
+         v_rest.id, 500, 1500, 50, 2,
+         now() - interval '10 days', now() + interval '20 days', true, 'RESTAURANT'),
+        ('LJETO' || upper(substr(md5(v_rest.name), 1, 4)),
+         v_rest.id, 1500, 3000, 200, 1,
+         now() - interval '80 days', now() - interval '15 days', true, 'RESTAURANT');
+    end if;
+
+    /*
+     * ── Presentkort ──────────────────────────────────────────────────────
+     *
+     * Genom `issue_gift_card()` och inte som en rad: saldot räknas ur
+     * transaktionerna, precis som lojalitetspoängen, och ett kort utan
+     * utgivningsrad hade visat noll i kassan. Koden är tolv tecken ur samma
+     * alfabet som formatet kräver — utan I, O, 0 och 1.
+     */
+    if not exists (select 1 from public.gift_cards g where g.restaurant_id = v_rest.id) then
+      perform public.issue_gift_card(
+        v_rest.id,
+        upper(translate(substr(md5(v_rest.id::text || 'a'), 1, 12), 'abcdef01', 'ABCDEF23')),
+        5000, v_rest.currency, now() + interval '1 year', 'poklon@example.com', 'Demo'
+      );
+
+      perform public.issue_gift_card(
+        v_rest.id,
+        upper(translate(substr(md5(v_rest.id::text || 'b'), 1, 12), 'abcdef01', 'BCDEFG34')),
+        10000, v_rest.currency, now() + interval '6 months', null, 'Demo'
+      );
+    end if;
+  end loop;
+
+  raise notice 'Bokningar: %, kuponger och presentkort per restaurang: 3 + 2', v_bokade;
+end
+$$;
+
 commit;
 
 select

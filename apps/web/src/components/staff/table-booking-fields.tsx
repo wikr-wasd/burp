@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import type { CurrencyCode } from "@burp/core";
 import { formatAmountInput } from "@burp/core";
-import { saveTableBooking, TABLE_ATTRIBUTES } from "@/app/dashboard/bord/actions";
+import { saveTableBooking } from "@/app/dashboard/bord/actions";
+import { TABLE_ATTRIBUTES } from "@/lib/table-attributes";
 import type { Dictionary } from "@/lib/i18n";
 
 /**

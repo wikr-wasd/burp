@@ -66,6 +66,69 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-09-03 (iv) — /dashboard/bord svarade 500, och tre ytor var tomma
+
+#### En konstant i en "use server"-modul
+
+`/dashboard/bord` gav 500 med
+
+```
+TypeError: TABLE_ATTRIBUTES.map is not a function
+```
+
+`app/dashboard/bord/actions.ts` börjar med `"use server"`, och **en sådan modul
+får bara exportera asynkrona funktioner**. Allt annat som exporteras görs om
+till en referens till en serveråtgärd — så klientkomponenten fick en funktion i
+stället för en array.
+
+⚠️ **Typkontrollen kan inte se det.** Typen är rätt; omskrivningen sker i
+bundlern. Det enda som avslöjar det är att faktiskt hämta sidan.
+
+Listan ligger nu i `lib/table-attributes.ts` med skälet skrivet i filen.
+
+#### Röktestet svepte inte personalytorna, och därför låg felet kvar
+
+Sidan gick att öppna i menyn och svarade 500 utan att något test sa ifrån.
+`smoke.sh` prövade var varje ROLL hamnar, men inte att varje YTA svarar.
+
+Nu sveps alla sexton personalytor och alla fyra backoffice-ytor på statuskod —
+medvetet trubbigt. En yta som inte går att öppna är trasig oavsett vad den
+skulle ha visat. Röktestet gick från 221 till **241 kontroller**.
+
+#### Tre ytor var byggda och tomma
+
+Mätt före: fyrtiofem bord varav **två** hade egenskaper och **ett** hade
+tillägg, **noll** bokningar, **noll** kuponger, **noll** presentkort.
+
+`/dashboard/bokningar`, `/dashboard/erbjudanden` och `/dashboard/presentkort`
+gick att öppna och sa "inget här än" — vilket ser ut som att de fungerar och
+bevisar ingenting.
+
+| | Före | Efter |
+|---|---|---|
+| Bord med zon | 15 av 45 | **45** |
+| Bord med egenskaper | 2 | **27** |
+| Bokningar | 0 | **36**, över fyra tillstånd |
+| Kuponger | 0 | **18**, varav 6 utgångna |
+| Presentkort | 0 | **12** |
+
+Tre val i demodatan som inte är utfyllnad:
+
+- **Zonen på varje bord.** Utan den skriver köksbiljetten bara ett nummer, och
+  "bord 6" är en halv adress i en lokal med uteservering OCH en sal innanför.
+  Zonen byggdes 2026-08-20; utan data gick den aldrig att se.
+- **Bokningar i alla fyra tillstånden.** Det är `NO_SHOW` och `CANCELLED` som
+  avgör om listan är läsbar när något gått fel — en vy med bara kommande
+  bokningar går inte att bedöma.
+- **En utgången kupong.** En kupongyta som bara visar giltiga koder ser ut att
+  fungera tills någon undrar var förra månadens kampanj tog vägen.
+
+Bokningarna sätts in direkt och inte genom `create_reservation()`: den prövar
+tiden mot `reservation_slots()`, som räknar ur öppettider och policy. Rätt
+beteende i produkten, men en demorad som råkar hamna en halvtimme utanför
+öppettiden hade fällt hela seeden i stället för att bli en rad. Överlappsspärren
+i `0054` gäller ändå.
+
 ### Byggt 2026-09-03 (iii) — bilden på omdömet, om gästen väljer det
 
 Migration `0068`. **Williams beslut:** bilden ska synas vid omdömet, för
