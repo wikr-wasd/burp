@@ -823,6 +823,19 @@ export const en: Dictionary = {
     },
 
     /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
+    tableView: {
+      back: "Back to overview",
+      emptyTitle: "The table is empty",
+      emptyBody: "No open bill right now. Orders show up here as soon as a guest scans the QR code at the table.",
+      ordersTitle: "Orders",
+      placed: "Placed {time}",
+      total: "Total",
+      paid: "Paid",
+      due: "Left to pay",
+      notCounted: "Not counted towards the bill.",
+      openReceipt: "Open in the register",
+    },
+
     staffAdmin: {
       intro: "Who works here, in what role, and who has been invited but has not joined yet.",
       actionFailed: "The action did not go through.",

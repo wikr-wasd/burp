@@ -112,6 +112,56 @@ export async function getActiveOrders(restaurantId: string): Promise<ActiveOrder
 
   if (!orders || orders.length === 0) return { due: [], upcoming: [], prepTimeMinutes };
 
+  const mapped = await hydrateOrders(supabase, orders);
+
+  // Filtreringen sker på tiden, inte på ett bakgrundsjobb. Ett jobb som inte
+  // kört är ett jobb som tappat en order — och det felet upptäcks av en hungrig
+  // gäst, inte av ett larm.
+  const now = new Date();
+  const due: KitchenOrder[] = [];
+  const upcoming: KitchenOrder[] = [];
+
+  for (const order of mapped) {
+    const scheduled = order.scheduledFor ? new Date(order.scheduledFor) : null;
+    if (isDueForKitchen(scheduled, prepTimeMinutes, now)) due.push(order);
+    else upcoming.push(order);
+  }
+
+  // Kommande sorteras på hämttid: den som ska hämtas först är den som snart
+  // dyker upp i köket.
+  upcoming.sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""));
+
+  return { due, upcoming, prepTimeMinutes };
+}
+
+
+/* ── Delad hydrering ─────────────────────────────────────────────────────── */
+
+/**
+ * Rader ur `orders` → färdiga `KitchenOrder`.
+ *
+ * Bruten ur `getActiveOrders()` när bordsvyn behövde exakt samma sak. Två
+ * kopior av det här steget hade betytt att en tillvalsrad som ritas på
+ * köksskärmen kan saknas i bordets nota — och den sortens skillnad upptäcks
+ * av en gäst som fick fel mat, inte av ett test.
+ */
+type OrderRow = {
+  id: string;
+  status: string;
+  type: string;
+  placed_at: string | null;
+  accepted_at: string | null;
+  note: string | null;
+  total_ore: number;
+  table_id: string | null;
+  scheduled_for: string | null;
+  prep_minutes: number | null;
+};
+
+async function hydrateOrders(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orders: OrderRow[],
+): Promise<KitchenOrder[]> {
   const orderIds = orders.map((order) => order.id);
 
   const { data: items } = await supabase
@@ -181,22 +231,116 @@ export async function getActiveOrders(restaurantId: string): Promise<ActiveOrder
     items: itemsByOrder.get(order.id) ?? [],
   }));
 
-  // Filtreringen sker på tiden, inte på ett bakgrundsjobb. Ett jobb som inte
-  // kört är ett jobb som tappat en order — och det felet upptäcks av en hungrig
-  // gäst, inte av ett larm.
-  const now = new Date();
-  const due: KitchenOrder[] = [];
-  const upcoming: KitchenOrder[] = [];
+  return mapped;
+}
 
-  for (const order of mapped) {
-    const scheduled = order.scheduledFor ? new Date(order.scheduledFor) : null;
-    if (isDueForKitchen(scheduled, prepTimeMinutes, now)) due.push(order);
-    else upcoming.push(order);
-  }
+/* ── Ett enskilt bord ────────────────────────────────────────────────────── */
 
-  // Kommande sorteras på hämttid: den som ska hämtas först är den som snart
-  // dyker upp i köket.
-  upcoming.sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""));
+export interface TableOrders {
+  tableId: string;
+  tableNumber: string;
+  zone: string | null;
+  /** Null när bordet står tomt — ingen öppen session finns. */
+  sessionId: string | null;
+  /** Sällskapets order i den ordning de lades. Alla statusar utom utkast. */
+  orders: KitchenOrder[];
+  totalOre: number;
+  paidOre: number;
+  dueOre: number;
+}
 
-  return { due, upcoming, prepTimeMinutes };
+/**
+ * Vad det här bordet har beställt.
+ *
+ * Servitören som klickar på ett bord i översikten frågar inte "vilka order är
+ * aktiva" utan "vad har de fått och vad är kvar att betala". Därför hela
+ * sessionen och alla statusar — en serverad rätt ska stå kvar i listan, och en
+ * avbruten ska synas som avbruten i stället för att försvinna.
+ *
+ * Bordet hämtas med restaurangfiltret på plats. RLS säger samma sak, men ett
+ * id ur adressfältet ska ge "finns inte" och inte ett tomt bord.
+ */
+export async function getTableOrders(
+  restaurantId: string,
+  tableId: string,
+): Promise<TableOrders | null> {
+  const supabase = await createClient();
+
+  const { data: table } = await supabase
+    .from("tables")
+    .select("id, table_number, zone")
+    .eq("id", tableId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  if (!table) return null;
+
+  const empty: TableOrders = {
+    tableId: table.id,
+    tableNumber: table.table_number,
+    zone: table.zone ?? null,
+    sessionId: null,
+    orders: [],
+    totalOre: 0,
+    paidOre: 0,
+    dueOre: 0,
+  };
+
+  const { data: session } = await supabase
+    .from("table_sessions")
+    .select("id")
+    .eq("table_id", tableId)
+    .is("closed_at", null)
+    .order("opened_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!session) return empty;
+
+  const { data: rows } = await supabase
+    .from("orders")
+    .select(
+      "id, status, type, placed_at, accepted_at, note, total_ore, table_id, scheduled_for, prep_minutes",
+    )
+    .eq("table_session_id", session.id)
+    .neq("status", "DRAFT")
+    .order("placed_at", { ascending: true });
+
+  if (!rows || rows.length === 0) return { ...empty, sessionId: session.id };
+
+  const orders = await hydrateOrders(supabase, rows);
+
+  /*
+   * Avbrutna och återbetalda order räknas inte in i notan.
+   *
+   * De VISAS — servitören ska se att något ströks — men en avbruten rätt som
+   * låg kvar i summan hade gjort att bordet krävdes på pengar det inte är
+   * skyldigt. Samma regel som dricksen: raden finns kvar, beloppet gör det inte.
+   */
+  const billable = orders.filter(
+    (order) => order.status !== "CANCELLED" && order.status !== "REFUNDED",
+  );
+
+  const { data: payments } = await supabase
+    .from("payments")
+    .select("order_id, amount_ore, status")
+    .in(
+      "order_id",
+      billable.map((order) => order.id),
+    );
+
+  const paidOre = (payments ?? [])
+    .filter((payment) => payment.status !== "FAILED")
+    .reduce((sum, payment) => sum + payment.amount_ore, 0);
+
+  const totalOre = billable.reduce((sum, order) => sum + order.totalOre, 0);
+
+  return {
+    ...empty,
+    sessionId: session.id,
+    orders,
+    totalOre,
+    paidOre,
+    dueOre: Math.max(0, totalOre - paidOre),
+  };
 }

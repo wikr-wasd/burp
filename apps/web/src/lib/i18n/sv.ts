@@ -1166,6 +1166,20 @@ export const sv = {
       stateSERVERAS: "Klar att servera",
     },
 
+    /* Bordets nota. Servitören klickade på ett bord i översikten. */
+    tableView: {
+      back: "Till översikten",
+      emptyTitle: "Bordet är tomt",
+      emptyBody: "Ingen öppen nota just nu. Beställningarna dyker upp här så fort en gäst skannat QR-koden vid bordet.",
+      ordersTitle: "Beställningar",
+      placed: "Lagd {time}",
+      total: "Summa",
+      paid: "Betalt",
+      due: "Kvar att betala",
+      notCounted: "Räknas inte in i notan.",
+      openReceipt: "Öppna i kassan",
+    },
+
     /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
     staffAdmin: {
       intro: "Vem som arbetar här, med vilken roll, och vem som är inbjuden men inte kommit in än.",

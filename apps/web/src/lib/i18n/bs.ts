@@ -861,6 +861,19 @@ export const bs: Dictionary = {
     },
 
     /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
+    tableView: {
+      back: "Na pregled",
+      emptyTitle: "Sto je prazan",
+      emptyBody: "Trenutno nema otvorenog računa. Narudžbe se pojavljuju ovdje čim gost skenira QR kod za stolom.",
+      ordersTitle: "Narudžbe",
+      placed: "Poslano {time}",
+      total: "Ukupno",
+      paid: "Plaćeno",
+      due: "Preostalo za platiti",
+      notCounted: "Ne ulazi u račun.",
+      openReceipt: "Otvori na kasi",
+    },
+
     staffAdmin: {
       intro: "Ko ovdje radi, s kojom ulogom, i ko je pozvan ali još nije ušao.",
       actionFailed: "Radnja nije prošla.",

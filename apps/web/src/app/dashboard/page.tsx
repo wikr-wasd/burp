@@ -305,16 +305,24 @@ function TableCell({
   const stateLabel = labels[`state${table.state}`];
 
   return (
-    <li
-      className={`grid aspect-square place-items-center rounded-[0.5rem] text-sm font-semibold ${state.cell}`}
-      // Färgen ensam räcker inte — den som inte skiljer färgerna åt behöver
-      // texten, och den som hovrar slipper gissa.
-      title={`${fill(tableLabel, { number: table.tableNumber })}${
-        table.zone ? ` · ${table.zone}` : ""
-      } — ${stateLabel}`}
-    >
-      {table.tableNumber}
-      <span className="sr-only">{stateLabel}</span>
+    <li>
+      {/*
+        Rutan är en länk till bordets nota, precis som bordet i ritningen.
+        Borden utanför en ritning ska svara på samma klick — annars beror det
+        på var någon råkat placera bordet om det går att öppna.
+      */}
+      <Link
+        href={`/dashboard/bord/${table.id}`}
+        className={`grid aspect-square place-items-center rounded-[0.5rem] text-sm font-semibold transition-opacity duration-[var(--speed)] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600 ${state.cell}`}
+        // Färgen ensam räcker inte — den som inte skiljer färgerna åt behöver
+        // texten, och den som hovrar slipper gissa.
+        title={`${fill(tableLabel, { number: table.tableNumber })}${
+          table.zone ? ` · ${table.zone}` : ""
+        } — ${stateLabel}`}
+      >
+        {table.tableNumber}
+        <span className="sr-only">{stateLabel}</span>
+      </Link>
     </li>
   );
 }

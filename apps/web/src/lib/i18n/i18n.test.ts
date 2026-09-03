@@ -271,6 +271,8 @@ describe("ordböckerna", () => {
       // "E-post" stavas likadant. "Passord" och "Navn" gör det inte,
       // vilket är kvittot på att avsnittet faktiskt är norskt.
       "auth.email",
+      // "Betalt" är samma ord. "Sum" och "Bestillinger" är det inte.
+      "staff.tableView.paid",
       // "Kontrast" är samma lånord som på svenska.
       "staff.image.contrast",
 

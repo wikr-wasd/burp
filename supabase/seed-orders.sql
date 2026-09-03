@@ -19,7 +19,7 @@
 -- momsen räknas ur dem. Sidorna ska stämma internt.
 --
 -- Ordern skrivs direkt och inte genom `place_order()`. Funktionen sätter
--- tidsstämplarna till now(), och det som behövs här är historik — 75 dagar
+-- tidsstämplarna till now(), och det som behövs här är historik — 90 dagar
 -- bakåt, så att förra månaden går att stänga i Avräkning.
 
 -- Inga psql-metakommandon här. Filen kontrolleras av `npm run db:validate`, som
@@ -51,6 +51,8 @@ declare
   v_completed    timestamptz;
   v_payment_id   uuid;
   v_refunded     boolean;
+  v_cancelled    boolean;
+  v_session_id   uuid;
 begin
   /*
    * Kör en gång, inte varje gång.
@@ -63,9 +65,27 @@ begin
    *
    * En färsk `supabase db reset` har noll order, så tabellen är signalen.
    */
-  if exists (select 1 from public.orders limit 1) then
-    raise notice 'Databasen har redan order — historiken läggs inte in igen.';
-    raise notice 'Kör `npm run db:reset` först om du vill ha en färsk omgång.';
+  /*
+   * Vakten frågar efter HISTORIK, inte efter order.
+   *
+   * Den stod som `exists (select 1 from public.orders)` och var därmed alltid
+   * sann direkt efter en reset: `seed-staff.sql` lägger in en genomförd order
+   * för att kassan ska ha något att visa. Följden var att `npm run db:demo`
+   * skrev ut sitt eget felmeddelande och la in NOLL dagars historik —
+   * och rådet det gav, "kör db:reset först", gjorde saken värre eftersom
+   * reseten lägger tillbaka precis den order som utlöser vakten.
+   *
+   * Pengaytorna stod alltså tomma efter varje reset, vilket är exakt det
+   * db:demo finns för att förhindra.
+   *
+   * Sju dagar är gränsen: seedens order och passet som pågår ligger i dag,
+   * historiken sträcker sig nittio dagar bakåt.
+   */
+  if exists (
+    select 1 from public.orders where placed_at < now() - interval '7 days'
+  ) then
+    raise notice 'Databasen har redan historik — den läggs inte in igen.';
+    raise notice 'Kör `npm run db:reset` följt av `npm run db:demo` för en färsk omgång.';
     raise notice 'Passet som pågår återställs ändå — se sista avsnittet.';
     return;
   end if;
@@ -91,10 +111,47 @@ begin
       continue;
     end if;
 
+    /*
+     * Bord åt den som saknar dem.
+     *
+     * Bara seed-restaurangen hade bord, och följden var att alla andra
+     * restaurangers order blev AVHÄMTNING — vilket i sin tur betydde att de
+     * aldrig fick en bordssession, och därmed inget omdöme, eftersom gästen vid
+     * bordet är sin session (migration 0028). Fyrtioåtta omdömen låg på en enda
+     * restaurang medan fjorton visade betyg utan en enda text bakom.
+     *
+     * Bord hör egentligen hemma i `seed.sql`. De läggs här därför att de bara
+     * behövs för att demodatan ska bli trovärdig — en restaurang som just
+     * anslutit sig har med rätta noll bord tills ägaren lagt upp dem.
+     *
+     * QR-koden är sex tecken ur Crockford base32 — alfabetet utan I, L, O och
+     * U, så att en handskriven kod inte går att blanda ihop med 1, 0 eller V.
+     * `tables_qr_public_id_format` kräver exakt det, och ett U i alfabetet
+     * fällde hela demodatan på en check-constraint.
+     */
+    if not exists (
+      select 1 from public.tables t
+      where t.restaurant_id = v_rest.id and t.status = 'ACTIVE'
+    ) then
+      insert into public.tables (restaurant_id, table_number, qr_public_id, capacity)
+      select
+        v_rest.id,
+        n::text,
+        string_agg(
+          substr('0123456789ABCDEFGHJKMNPQRSTVWXYZ',
+                 1 + floor(random() * 32)::integer, 1),
+          ''
+        ),
+        2 + (n % 3) * 2
+      from generate_series(1, 6) as n,
+           generate_series(1, 6) as c
+      group by n;
+    end if;
+
     v_refunded := false;
 
     for v_day in
-      select generate_series(current_date - 75, current_date - 1, interval '1 day')::date
+      select generate_series(current_date - 90, current_date - 1, interval '1 day')::date
     loop
       -- Två till fem order per dag. Helgen är starkare, som i en verklig lokal.
       v_count := 2 + floor(random() * 3)::integer
@@ -119,20 +176,67 @@ begin
         order by random()
         limit 1;
 
+        /*
+         * Ett bordssällskap per order, stängt när de gick.
+         *
+         * Historiken saknade sessioner helt, och sessionen är det som gör en
+         * order till ett SÄLLSKAP i stället för en ensam rad. Två saker föll på
+         * det: bordets gemensamma nota hade ingen historia att visa, och ett
+         * omdöme gick inte att skapa alls — `reviews_has_author` kräver en
+         * författare, och gästen vid bordet har inget konto. Sessionen ÄR
+         * författaren (migration 0028).
+         *
+         * Stängd direkt: sällskapet gick hem för nittio dagar sedan. En öppen
+         * session i historiken hade fått översikten att visa varje bord som
+         * upptaget i evighet — precis felet migration 0035 finns för att rätta.
+         */
+        v_session_id := null;
+
+        if v_table_id is not null then
+          insert into public.table_sessions (
+            table_id, restaurant_id, status, guest_count, opened_at, closed_at
+          )
+          values (
+            v_table_id, v_rest.id, 'CLOSED', 1 + floor(random() * 4)::integer,
+            v_completed - interval '55 minutes', v_completed + interval '25 minutes'
+          )
+          returning id into v_session_id;
+        end if;
+
+        /*
+         * Var tolfte order avbryts.
+         *
+         * Avbrutna order fanns inte alls i demodatan, och följden var att varje
+         * yta som hanterar dem — händelseloggen, kassans motbokning,
+         * avräkningens kreditrad, statistikens bortfall — såg tom och
+         * välfungerande ut. En yta som aldrig visats med data är oprövad.
+         *
+         * De sprids över hela historiken och inte över en enstaka vecka: en
+         * avbokning är inte en händelse som inträffar en gång, den är en del av
+         * en vanlig dag.
+         *
+         * Ingen avgift och ingen dricks på en avbruten order. Öppen fråga 15 —
+         * ska en makulering kosta restaurangen något — är obesvarad, och
+         * demodatan ska inte föregripa svaret.
+         */
+        v_cancelled := random() < 0.085;
+
         insert into public.orders (
-          restaurant_id, table_id, type, status, idempotency_key,
+          restaurant_id, table_id, table_session_id, type, status, idempotency_key,
           items_gross_ore, items_vat_ore, vat_by_rate, tip_ore, total_ore,
-          placed_at, accepted_at, ready_at, completed_at
+          placed_at, accepted_at, ready_at, completed_at, cancelled_at
         )
         values (
-          v_rest.id, v_table_id,
+          v_rest.id, v_table_id, v_session_id,
           (case when v_table_id is null then 'PICKUP' else 'TABLE' end)::public.order_type,
-          'COMPLETED', gen_random_uuid(),
+          (case when v_cancelled then 'CANCELLED' else 'COMPLETED' end)::public.order_status,
+          gen_random_uuid(),
           0, 0, '{}'::jsonb, 0, 0,
           v_completed - interval '38 minutes',
           v_completed - interval '36 minutes',
-          v_completed - interval '9 minutes',
-          v_completed
+          case when v_cancelled then null else v_completed - interval '9 minutes' end,
+          case when v_cancelled then null else v_completed end,
+          case when v_cancelled then v_completed - interval '30 minutes' else null end
         )
         returning id into v_order_id;
 
@@ -176,7 +280,12 @@ begin
         end loop;
 
         -- Dricks på var tredje nota. Aldrig i avgiftsunderlaget — regel 8.
-        v_tip := case when random() < 0.33 then round(v_gross * 0.1 / 100) * 100 else 0 end;
+        -- En avbruten order får ingen: dricksen är personalens pengar för ett
+        -- pass som blev av.
+        v_tip := case
+          when not v_cancelled and random() < 0.33 then round(v_gross * 0.1 / 100) * 100
+          else 0
+        end;
 
         update public.orders
         set items_gross_ore = v_gross,
@@ -194,14 +303,23 @@ begin
           values (v_order_id, v_rest.id, v_tip, v_completed);
         end if;
 
-        v_bps := v_rest.bps;
-        insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore, created_at)
-        values (v_order_id, v_rest.id, 'GROSS_ITEMS', v_gross, v_bps,
-                round(v_gross::numeric * v_bps / 10000), v_completed);
+        /*
+         * Avgiften och betalningen hör till en order som blev av.
+         *
+         * En avbruten order som ändå bar en avgift hade gjort avräkningen fel
+         * på ett sätt som ser ut som en riktig faktura — och öppen fråga 15,
+         * om en makulering ska kosta något, är fortfarande obesvarad.
+         */
+        if not v_cancelled then
+          v_bps := v_rest.bps;
+          insert into public.fees (order_id, restaurant_id, base, base_amount_ore, bps, fee_ore, created_at)
+          values (v_order_id, v_rest.id, 'GROSS_ITEMS', v_gross, v_bps,
+                  round(v_gross::numeric * v_bps / 10000), v_completed);
+        end if;
 
         -- Tre av fyra notor kvitteras som kontanter. Resten står obetalda, som
         -- de gör i verkligheten tills någon i kassan hunnit med dem.
-        if random() < 0.75 then
+        if not v_cancelled and random() < 0.75 then
           insert into public.payments (
             order_id, restaurant_id, amount_ore, provider, method, status,
             idempotency_key, captured_at, created_at
@@ -313,7 +431,7 @@ $$;
 -- konkret: `smoke.sh` driver varje aktiv order till COMPLETED och stänger
 -- notorna, alltså tömmer den Översikten. Historikspärren hade sedan hindrat
 -- `db:demo` från att lägga tillbaka passet, och enda vägen ut vore en full
--- reset — som tar bort de 75 dagarna på köpet. Varje bord kontrolleras därför
+-- reset — som tar bort de 90 dagarna på köpet. Varje bord kontrolleras därför
 -- för sig, och det som redan lever lämnas i fred.
 
 do $$
@@ -477,12 +595,111 @@ begin
 end
 $$;
 
+/*
+ * Omdömen på ungefär var femte genomförd order.
+ *
+ * Databasen hade ETT omdöme totalt. Följden var att restaurangsidans
+ * omdömeslista, betyget på korten i upptäcktsvyn, personalens omdömesyta och
+ * moderationen i backoffice alla såg tomma eller nästan tomma ut — fyra ytor
+ * som är byggda och verifierade var för sig men aldrig setts med data.
+ *
+ * Omdömet hänger på en GENOMFÖRD order, och det är hela grunden för att
+ * omdömena går att lita på: bara den som faktiskt handlat kan tycka något.
+ * Därför läses de ur `orders` i stället för att hittas på fritt — en avbruten
+ * order får inget omdöme, precis som i produkten.
+ *
+ * Författaren är bordssessionen och inte en användare. Så ser det ut i
+ * verkligheten: gästen vid bordet har inget konto (migration 0028), och
+ * `reviews_has_author` kräver bara att EN av de tre finns.
+ *
+ * Betygen är inte jämnt slumpade. En gäst som tar sig tid att skriva är oftare
+ * nöjd än missnöjd, och en lista där ettor och femmor är lika vanliga läser som
+ * genererad — vilket den är, men den ska inte se ut så.
+ */
+do $$
+declare
+  v_order   record;
+  v_food    smallint;
+  v_service smallint;
+  v_comment text;
+  v_written integer := 0;
+  -- Kommentarerna står på marknadens språk. Restaurangens egen text och
+  -- gästens egen text översätts aldrig — bara gränssnittet.
+  v_good    text[] := array[
+    'Odlično! Ćevapi kao nekad.',
+    'Brza usluga i sve toplo. Vraćamo se.',
+    'Najbolji burek u gradu, bez konkurencije.',
+    'Sve pohvale za osoblje, veoma ljubazni.',
+    'Porcije velike, cijena poštena.',
+    'Naručili preko QR koda za stolom — gotovo za deset minuta.',
+    'Sehr freundlich und schnell. Das Essen war ausgezeichnet.',
+    'Great food, ordered straight from the table. No app needed.'
+  ];
+  v_mixed   text[] := array[
+    'Hrana dobra, ali smo čekali malo duže nego što piše.',
+    'Ukusno, mada je bilo prilično bučno.',
+    'Dobro, ali bi salata mogla biti svježija.',
+    'Essen gut, Wartezeit etwas lang.'
+  ];
+  v_poor    text[] := array[
+    'Naručili smo dva jela, stiglo je jedno.',
+    'Hladno kad je stiglo. Šteta, jer je ukus dobar.'
+  ];
+begin
+  for v_order in
+    select o.id, o.restaurant_id, o.table_session_id, o.completed_at
+    from public.orders o
+    where o.status = 'COMPLETED'
+      and o.table_session_id is not null
+      and o.completed_at is not null
+      and not exists (select 1 from public.reviews rv where rv.order_id = o.id)
+      and random() < 0.2
+  loop
+    -- Sjuttio procent fyror och femmor, tjugo blandat, tio klagomål.
+    if random() < 0.7 then
+      v_food    := 4 + floor(random() * 2)::smallint;
+      v_service := 4 + floor(random() * 2)::smallint;
+      v_comment := v_good[1 + floor(random() * array_length(v_good, 1))::integer];
+    elsif random() < 0.67 then
+      v_food    := 3;
+      v_service := 3 + floor(random() * 2)::smallint;
+      v_comment := v_mixed[1 + floor(random() * array_length(v_mixed, 1))::integer];
+    else
+      v_food    := 1 + floor(random() * 2)::smallint;
+      v_service := 2;
+      v_comment := v_poor[1 + floor(random() * array_length(v_poor, 1))::integer];
+    end if;
+
+    insert into public.reviews (
+      order_id, restaurant_id, table_session_id,
+      rating_food, rating_service, comment, is_published, created_at, updated_at
+    )
+    values (
+      v_order.id, v_order.restaurant_id, v_order.table_session_id,
+      v_food, v_service,
+      -- Var tredje skriver ingenting. Ett betyg utan text är det vanligaste
+      -- omdömet som finns, och listan ska tåla att rendera det.
+      case when random() < 0.66 then v_comment else null end,
+      true,
+      v_order.completed_at + interval '2 hours',
+      v_order.completed_at + interval '2 hours'
+    );
+
+    v_written := v_written + 1;
+  end loop;
+
+  raise notice 'Omdömen: % st', v_written;
+end
+$$;
+
 commit;
 
 select
   count(*)                                        as antal_order,
+  count(*) filter (where status = 'CANCELLED')    as avbrutna,
   count(*) filter (where status = 'REFUNDED')     as aterbetalda,
   min(completed_at)::date                         as fran,
   max(completed_at)::date                         as till,
+  (select count(*) from public.reviews)           as omdomen,
   (select count(*) from public.settlements)       as avrakningar
 from public.orders;

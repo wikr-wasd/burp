@@ -11,7 +11,7 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-09-02**, branch `dev`.
+Senast uppdaterad **2026-09-03**, branch `dev`.
 
 Fas 1 är byggd i sin helhet, och **kortbetalning ingår nu**. Produkten går att
 använda rakt igenom: en gäst skannar en dekal, beställer vid bordet, betalar med
@@ -65,6 +65,117 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   upptäcktslistorna har samma tak på åtta rader med "Alla städer" som
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
+
+### Byggt 2026-09-03 — klickbara bord, 90 dagar, och demodata som faktiskt kom in
+
+#### Ett hook-brott som kraschade menyredigeraren
+
+`useMenuLocale()` anropades inuti `{expanded ? … }` i `ItemRow`, alltså bara när
+en rätt var utfälld. React räknar krokar i ordning per rendering: hopfälld rad
+gav sex krokar, utfälld sju.
+
+```
+React has detected a change in the order of Hooks called by ItemRow
+7. undefined  →  useContext
+```
+
+Kroken låg i ett JSX-attribut — `labels={useMenuLocale().imageLabels}` — vilket
+är precis varför den var lätt att missa: den ser ut som ett värde, inte som ett
+anrop. Hoistad till toppen av komponenten. Genomsökning av alla
+personalkomponenter hittade inga fler.
+
+Ett brott mot hook-reglerna **kastar**, och då slår `app/error.tsx` till med
+"Något gick fel." Det förklarar sannolikt också felet William såg på
+`/dashboard/sakerhet` — den sidan svarar 200 för alla fyra roller och renderar
+93 kB utan serverfel, så kraschen kom från webbläsaren.
+
+#### Klickbara bord
+
+Ny sida `/dashboard/bord/[id]`: bordets nota med varje beställning och dess
+rader, tillagningsstatus, och summa/betalt/kvar överst. Både borden i
+planritningen och rutorna bredvid är länkar dit — ett `<a>` inuti SVG, alltså
+riktig HTML som fungerar med tangentbord utan en enda rad skript.
+
+Ingen kvittering på sidan. Att ta betalt hör hemma i kassan där hela handslaget
+finns; en andra knapp för samma sak hade blivit en andra väg att röra pengar.
+
+Avbrutna och återbetalda order **visas men räknas inte in i notan**. Servitören
+ska se att något ströks — annars ser bordet ut att ha beställt mindre än gästen
+minns, och det är en diskussion vid disken.
+
+Orderhydreringen bröts ur `getActiveOrders()` till en delad hjälpare. Två
+kopior hade betytt att en tillvalsrad som ritas på köksskärmen kan saknas i
+bordets nota, och den skillnaden upptäcks av en gäst som fick fel mat.
+
+#### 90 dagar — och fyra kopior som hade gjort det tyst omöjligt
+
+`PERIODS` har nu `kvartal: 90 dagar`, vilket slår igenom på både statistiken och
+händelserna eftersom de delar listan.
+
+Men `isPeriodKey()` fanns i **fyra kopior** — statistiken, händelserna,
+CSV-exporten och plattformsöversikten — var och en med de tre nycklarna
+inskrivna för hand. En ny period hade lagts in i `PERIODS` och sedan avvisats
+som okänd på varenda yta. Kontrollen härleds nu ur `PERIODS`.
+
+#### Demodatan kom aldrig in — och ingen märkte det
+
+⚠️ **`npm run db:demo` har inte lagt in någon historik alls efter en reset.**
+
+Vakten löd `if exists (select 1 from public.orders)`. `seed-staff.sql` lägger in
+en genomförd order för att kassan ska ha något att visa, så vakten var alltid
+sann direkt efter en reset. Skriptet skrev sitt eget meddelande — *"Databasen
+har redan order"* — och la in noll dagar. Rådet det gav, "kör db:reset först",
+gjorde saken värre: reseten lägger tillbaka precis den order som utlöser vakten.
+
+Pengaytorna stod alltså tomma efter varje reset, vilket är exakt det db:demo
+finns för att förhindra. Vakten frågar nu efter **historik** — order äldre än
+sju dagar — inte efter order.
+
+Före: 4 order. Efter: **1 771 order över 90 dagar**.
+
+#### Vad demodatan bär nu
+
+| | Före | Efter |
+|---|---|---|
+| Order | 4 | 1 771 |
+| Avbrutna | 0 | 154 |
+| Omdömen | 1 | 321 |
+| Restauranger med data | 1 | 6 |
+| Historik | — | 90 dagar |
+
+- **Avbrutna order genom hela historiken**, ungefär var tolfte. De fanns inte
+  alls, vilket betyder att händelseloggen, kassans motbokning och avräkningens
+  kreditrad aldrig setts med data. Ingen avgift och ingen dricks på dem — öppen
+  fråga 15 är obesvarad och demodatan ska inte föregripa svaret.
+
+- **Bordssessioner i historiken.** Order hade `table_id` men ingen session, och
+  sessionen är det som gör en order till ett SÄLLSKAP. Två saker föll på det:
+  bordets gemensamma nota hade ingen historia, och ett omdöme gick inte att
+  skapa alls — `reviews_has_author` kräver en författare, och gästen vid bordet
+  ÄR sin session.
+
+- **Bord åt de restauranger som saknade dem.** Bara seed-restaurangen hade bord,
+  så alla andras order blev avhämtning — och därmed inga sessioner och inga
+  omdömen. Fyrtioåtta omdömen låg på en restaurang medan fjorton visade betyg
+  utan en enda text bakom.
+
+  QR-koden är Crockford base32, alltså utan I, L, O och U. Ett `U` i alfabetet
+  fällde hela demodatan på `tables_qr_public_id_format` — värt att minnas:
+  koderna är gjorda för att skrivas av för hand.
+
+- **Omdömena är viktade**, inte jämnt slumpade: sjuttio procent nöjda, tio
+  procent klagomål, och var tredje bara betyg utan text. En lista där ettor och
+  femmor är lika vanliga läser som genererad.
+
+#### Kvar: nio restauranger utan meny
+
+Sex av femton restauranger har nu data. De övriga nio har ingen publicerad meny
+alls och hoppas därför över av generatorn — de visar betyg på korten men har
+varken rätter, order eller omdömen bakom sig.
+
+Att lägga till en sextonde tom restaurang gör marknadsplatsen större men inte
+mer trovärdig. Det som saknas är **menyer**, och de är innehåll: rätter, priser
+och allergener på marknadens språk. Säg till om de ska skrivas.
 
 ### Byggt 2026-09-02 (iv) — städerna är en knapp i mobilen
 

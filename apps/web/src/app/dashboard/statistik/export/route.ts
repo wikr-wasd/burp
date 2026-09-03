@@ -1,6 +1,6 @@
 import { csvAmount, csvFilename, csvHeaders, toCsv } from "@/lib/csv";
 import { requireStaff } from "@/lib/auth";
-import { getStatistics, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
+import { getStatistics, isPeriodKey, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
 
 /**
  * Statistiken som CSV.
@@ -16,9 +16,6 @@ import { getStatistics, periodFor, PERIODS, type PeriodKey } from "@/lib/statist
  * rätt.
  */
 
-function isPeriodKey(value: string | null): value is PeriodKey {
-  return value === "idag" || value === "vecka" || value === "manad";
-}
 
 export async function GET(request: Request) {
   const staff = await requireStaff(["owner", "manager"]);

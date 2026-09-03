@@ -7,7 +7,7 @@ import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
 import { dictionary, type Dictionary } from "@/lib/i18n";
 import { getMoneyEvents } from "@/lib/money-events";
-import { periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
+import { isPeriodKey, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
 
 /**
  * Vem gjorde vad med pengarna.
@@ -33,9 +33,6 @@ interface PageProps {
   searchParams: Promise<{ period?: string }>;
 }
 
-function isPeriodKey(value: string | undefined): value is PeriodKey {
-  return value === "idag" || value === "vecka" || value === "manad";
-}
 
 export default async function MoneyEventsPage({ searchParams }: PageProps) {
   const staff = await requireStaff(["owner", "manager"]);

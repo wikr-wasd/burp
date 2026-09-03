@@ -10,9 +10,10 @@ import type { FloorPlanSnapshot, TableSnapshot, TableState } from "@/lib/overvie
  * tänker i rummet, inte i en lista. Med ritningen blir "bord 7 väntar" en punkt
  * man kan gå till.
  *
- * Serverkomponent med flit: ingenting här behöver interaktivitet, och
- * översikten laddas om av sig själv. En klientkomponent hade bara skickat
- * hundra rader JavaScript för att rita samma statiska SVG.
+ * Serverkomponent med flit: varje bord är en LÄNK och ingen knapp, så
+ * ingenting här behöver JavaScript. Översikten laddas om av sig själv, och en
+ * klientkomponent hade bara skickat hundra rader skript för att rita samma
+ * statiska SVG.
  *
  * Bord som inte är utplacerade visas inte här — de ligger kvar i rutnätet
  * bredvid. Att gissa en plats åt dem hade betytt att ritningen ljuger.
@@ -81,7 +82,20 @@ export function FloorPlanView({
           const cy = y + table.height / 2;
 
           return (
-            <g key={table.id} transform={`rotate(${table.rotation} ${cx} ${cy})`}>
+            /*
+             * Hela bordet är klickbart, inte bara siffran.
+             *
+             * `<a>` inuti SVG är riktig HTML och fungerar med tangentbord och
+             * skärmläsare utan att vi bygger något eget. Träffytan blir hela
+             * rutan — det är en ritning man pekar på med fingret, och en
+             * bordsruta är mindre än en tumme på en surfplatta.
+             */
+            <a
+              key={table.id}
+              href={`/dashboard/bord/${table.id}`}
+              className="cursor-pointer outline-none [&:focus-visible>*]:stroke-burp-600 [&:hover>*]:opacity-80"
+            >
+            <g transform={`rotate(${table.rotation} ${cx} ${cy})`}>
               {/* Titeln är det som gör ritningen läsbar för den som inte
                   skiljer färgerna åt. Färg ensam räcker aldrig. */}
               <title>
@@ -124,6 +138,7 @@ export function FloorPlanView({
                 {table.tableNumber}
               </text>
             </g>
+            </a>
           );
         })}
       </svg>

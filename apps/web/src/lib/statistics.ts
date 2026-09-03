@@ -150,9 +150,32 @@ export const PERIODS = {
   idag: { label: "I dag", days: 1 },
   vecka: { label: "7 dagar", days: 7 },
   manad: { label: "30 dagar", days: 30 },
+  /*
+   * Kvartalet.
+   *
+   * Nittio dagar är vad som behövs för att se ett mönster som inte är en vecka
+   * — säsong, en kampanj som tog, en månad som avvek. Demodatan sträcker sig
+   * lika långt av samma skäl: en yta som bara kan visa trettio dagar går inte
+   * att bedöma på trettio dagars data.
+   */
+  kvartal: { label: "90 dagar", days: 90 },
 } as const;
 
 export type PeriodKey = keyof typeof PERIODS;
+
+/**
+ * Är strängen ur adressfältet en period vi känner igen?
+ *
+ * Låg som FYRA kopior — statistiken, händelserna, exporten och
+ * plattformsöversikten — var och en med de tre nycklarna inskrivna för hand.
+ * En ny period hade alltså lagts till i PERIODS och tyst inte fungerat på
+ * någon av ytorna, eftersom varje kontroll avvisade den som okänd.
+ *
+ * Härledd ur PERIODS, så att listan bara finns på ett ställe.
+ */
+export function isPeriodKey(value: string | null | undefined): value is PeriodKey {
+  return value !== null && value !== undefined && Object.hasOwn(PERIODS, value);
+}
 
 export function periodFor(key: PeriodKey, now = new Date()): Period {
   const days = PERIODS[key].days;

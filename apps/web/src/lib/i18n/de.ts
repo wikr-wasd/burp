@@ -833,6 +833,19 @@ export const de: Dictionary = {
     },
 
     /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
+    tableView: {
+      back: "Zur Übersicht",
+      emptyTitle: "Der Tisch ist frei",
+      emptyBody: "Zurzeit keine offene Rechnung. Bestellungen erscheinen hier, sobald ein Gast den QR-Code am Tisch scannt.",
+      ordersTitle: "Bestellungen",
+      placed: "Aufgegeben {time}",
+      total: "Summe",
+      paid: "Bezahlt",
+      due: "Noch zu zahlen",
+      notCounted: "Zählt nicht zur Rechnung.",
+      openReceipt: "In der Kasse öffnen",
+    },
+
     staffAdmin: {
       intro:
         "Wer hier arbeitet, in welcher Rolle, und wer eingeladen ist, aber noch nicht beigetreten.",

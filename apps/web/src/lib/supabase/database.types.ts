@@ -2015,7 +2015,6 @@ export type Database = {
           id: string
           latitude: number | null
           location: unknown
-          logo_adjust: Json | null
           logo_url: string | null
           longitude: number | null
           loyalty_points_per_krona: number
@@ -2056,7 +2055,6 @@ export type Database = {
           id?: string
           latitude?: number | null
           location?: unknown
-          logo_adjust?: Json | null
           logo_url?: string | null
           longitude?: number | null
           loyalty_points_per_krona?: number
@@ -2097,7 +2095,6 @@ export type Database = {
           id?: string
           latitude?: number | null
           location?: unknown
-          logo_adjust?: Json | null
           logo_url?: string | null
           longitude?: number | null
           loyalty_points_per_krona?: number

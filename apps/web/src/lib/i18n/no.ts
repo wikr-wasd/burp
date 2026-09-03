@@ -826,6 +826,19 @@ export const no: Dictionary = {
     },
 
     /* Personalsidan. ENBART strängar — skickas till klientkomponenter. */
+    tableView: {
+      back: "Til oversikten",
+      emptyTitle: "Bordet er tomt",
+      emptyBody: "Ingen åpen regning akkurat nå. Bestillingene dukker opp her så snart en gjest skanner QR-koden ved bordet.",
+      ordersTitle: "Bestillinger",
+      placed: "Lagt inn {time}",
+      total: "Sum",
+      paid: "Betalt",
+      due: "Igjen å betale",
+      notCounted: "Regnes ikke med i regningen.",
+      openReceipt: "Åpne i kassen",
+    },
+
     staffAdmin: {
       intro: "Hvem som jobber her, med hvilken rolle, og hvem som er invitert men ikke kommet inn.",
       actionFailed: "Handlingen gikk ikke gjennom.",

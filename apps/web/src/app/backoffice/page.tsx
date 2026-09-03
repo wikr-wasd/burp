@@ -12,7 +12,7 @@ import { untranslatedSurface } from "@/lib/i18n";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { capabilities, summarise } from "@/lib/readiness";
 import { serverEnv, publicEnv } from "@/lib/env";
-import { periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
+import { isPeriodKey, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -34,9 +34,6 @@ interface PageProps {
   searchParams: Promise<{ period?: string }>;
 }
 
-function isPeriodKey(value: string | undefined): value is PeriodKey {
-  return value === "idag" || value === "vecka" || value === "manad";
-}
 
 export default async function BackofficePage({ searchParams }: PageProps) {
   const admin = await requirePlatformAdmin();

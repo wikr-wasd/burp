@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
 import { dictionary } from "@/lib/i18n";
-import { getStatistics, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
+import { getStatistics, isPeriodKey, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
 
 /**
  * Statistik och ekonomi (avsnitt 11).
@@ -26,9 +26,6 @@ interface PageProps {
   searchParams: Promise<{ period?: string }>;
 }
 
-function isPeriodKey(value: string | undefined): value is PeriodKey {
-  return value === "idag" || value === "vecka" || value === "manad";
-}
 
 export default async function StatisticsPage({ searchParams }: PageProps) {
   const staff = await requireStaff(["owner", "manager"]);

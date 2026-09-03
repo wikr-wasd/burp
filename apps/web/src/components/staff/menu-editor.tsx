@@ -500,7 +500,20 @@ function ItemRow({
   onError: (message: string) => void;
 }) {
   const labels = useMenuLabels();
-  const { country, currency } = useMenuLocale();
+  /*
+   * `imageLabels` hämtas HÄR och inte i JSX:en nedanför.
+   *
+   * Bilduppladdningen ligger inuti `{expanded ? … }`, och ett `useMenuLocale()`
+   * på den platsen kördes bara när raden var utfälld. React räknar krokar per
+   * rendering och i ordning: hopfälld rad gav sex krokar, utfälld sju, och den
+   * sjunde blev då en useContext som förra renderingen inte hade —
+   *
+   *   "React has detected a change in the order of Hooks called by ItemRow"
+   *
+   * Krokar får aldrig ligga bakom ett villkor. Att den låg i ett JSX-attribut
+   * gjorde den lätt att missa; den ser ut som ett värde, inte som ett anrop.
+   */
+  const { country, currency, imageLabels } = useMenuLocale();
   const [pending, run] = useAction(onError);
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -677,7 +690,7 @@ function ItemRow({
                 mediaId={item.media?.id ?? null}
                 adjust={item.media?.adjust}
                 label={fill(labels.imageUploadFor, { name: item.name })}
-                labels={useMenuLocale().imageLabels}
+                labels={imageLabels}
               />
             </div>
           </div>
