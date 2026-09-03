@@ -97,3 +97,83 @@ export async function setMarketingOptIn(optIn: boolean): Promise<EraseActionResu
   revalidatePath("/konto/uppgifter");
   return { ok: true };
 }
+
+/* ── Profilbilden ────────────────────────────────────────────────────────── */
+
+/**
+ * Kopplar en uppladdad bild till gästens profil.
+ *
+ * Filen ligger redan i Storage när det här anropas — samma ordning som för
+ * restaurangernas bilder, och av samma skäl: en pekare till en fil som inte
+ * finns är en trasig bild, en fil utan pekare är skräp ingen ser.
+ *
+ * Den GAMLA bilden raderas här. Utan det växer bucketen med varje byte, och
+ * gamla ansikten blir kvar i en lagring som ingen städar — vilket är precis
+ * den sortens data GDPR-flödet finns för att bli av med.
+ */
+export async function saveAvatar(storagePath: string): Promise<EraseActionResult> {
+  const guest = await getGuest();
+  const t = dictionary(await requestLocale()).account;
+
+  if (!guest) return { ok: false, message: t.errors.mustBeLoggedIn };
+
+  // Sökvägen måste börja med gästens eget id. Storage-policyn säger samma sak
+  // om filen; den här kontrollen hindrar att profilen pekar på någon annans.
+  if (!storagePath.startsWith(`${guest.userId}/`)) {
+    return { ok: false, message: t.errors.saveFailed };
+  }
+
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", guest.userId)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_path: storagePath })
+    .eq("id", guest.userId);
+
+  if (error) return { ok: false, message: t.errors.saveFailed };
+
+  if (existing?.avatar_path && existing.avatar_path !== storagePath) {
+    await supabase.storage.from("guest-avatars").remove([existing.avatar_path]);
+  }
+
+  revalidatePath("/konto");
+  revalidatePath("/konto/uppgifter");
+  return { ok: true };
+}
+
+/** Tar bort bilden — både pekaren och filen. */
+export async function removeAvatar(): Promise<EraseActionResult> {
+  const guest = await getGuest();
+  const t = dictionary(await requestLocale()).account;
+
+  if (!guest) return { ok: false, message: t.errors.mustBeLoggedIn };
+
+  const supabase = await createClient();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", guest.userId)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_path: null })
+    .eq("id", guest.userId);
+
+  if (error) return { ok: false, message: t.errors.saveFailed };
+
+  if (profile?.avatar_path) {
+    await supabase.storage.from("guest-avatars").remove([profile.avatar_path]);
+  }
+
+  revalidatePath("/konto");
+  revalidatePath("/konto/uppgifter");
+  return { ok: true };
+}

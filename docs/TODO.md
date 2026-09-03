@@ -66,6 +66,85 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
 
+### Byggt 2026-09-03 (ii) — gästens konto blev gästens
+
+Migration `0067`.
+
+#### Kontot är personligt av det gästen redan gjort
+
+`/konto` öppnade med rubriken "Mina beställningar" och ett poängsaldo i en grå
+ruta. Korrekt och kallt. Den som loggar in är en återkommande gäst, och det
+första hon möts av bör säga att vi känner igen henne — inte rubricera en tabell.
+
+Nu: en hälsning med förnamnet, hur länge hon varit gäst, poängen som något man
+**ser** i stället för läser, och två listor — **dina ställen** och **det du
+beställer oftast**.
+
+Ingenting av det kräver en enda ny uppgift från gästen. `summariseGuest()` är en
+ren funktion över den orderhistorik sidan ändå hämtar, med åtta tester. Tre
+regler i den är värda att minnas:
+
+- **Avbrutna och återbetalda order räknas inte.** "Din favoriträtt" som pekar på
+  något hon fick pengarna tillbaka för läser som ett hån.
+- **Samma rätt två gånger på en nota är ett tillfälle, inte två.** Den som
+  beställer två portioner åt sällskapet har valt en gång.
+- **Listorna visas först vid tre besök.** "Din favoritrestaurang" efter ett enda
+  besök är en gissning gästen genomskådar direkt.
+
+#### Profilbild — i en PRIVAT bucket
+
+`profiles.avatar_path` och bucketen `guest-avatars`, som till skillnad från
+`menu-media` och `restaurant-docs` **inte** är publik.
+
+Den avvägningen ser ut som en inkonsekvens och är motsatsen. En publik bucket
+valdes för menybilder därför att modereringen avgör vad som VISAS, och en
+signering per bild i varje meny kostar i varje laddning. Här är det ett ansikte,
+det visas för en enda person, och det laddas en gång per sidvisning. En publik
+pekare hade fungerat för vem som helst för alltid — också efter att gästen bytt
+bild.
+
+Ingen granskningskö heller, och det är ett resonemang och inte en genväg: bilden
+visas bara för gästen själv, så det finns ingenting för Burp att stå som värd
+för. En granskare som tittar på främlingars ansikten utan att någon annan ser
+dem vore integritetsintrånget i sig.
+
+**Raderingen tar bilden.** `erase_guest` raderar `auth.users` och `profiles`
+följer med på sin kaskad — pekaren försvinner alltså helt, men filen i bucketen
+gör det inte. Den tas nu bort FÖRE raderingen, medan `avatar_path` fortfarande
+går att läsa. Efteråt finns ingen kvar som vet vilken fil som var gästens, och
+ett ansikte vi lovat ta bort hade blivit liggande för alltid.
+
+#### Dela — och varför det inte finns några plattformsknappar
+
+⚠️ **Att tagga vänner via Snapchat, Facebook, WhatsApp eller Kick går inte**, och
+det är ingen begränsning i Burp. Ingen plattform tillåter att en extern
+webbplats taggar någons konto — att tagga är något bara användaren själv kan
+göra, inne i appen, med sina egna kontakter.
+
+Det som byggts i stället är `navigator.share()`: en knapp som öppnar telefonens
+egen delningsruta med WhatsApp, Snapchat, Messenger, SMS och allt annat gästen
+har installerat. Där taggar hon sina vänner själv.
+
+| | Web Share API | SDK per plattform |
+|---|---|---|
+| Tredjepartsskript | Nej | Ja — och CSP:n ligger i rapportläge just för att sådant inte är avgjort |
+| Nycklar och appgranskning | Nej | Ja, Snapchat kräver granskning |
+| Kick | Fungerar om appen finns i telefonen | Ingen delningsintegration alls |
+
+På skrivbordet, där `navigator.share` saknas i bland annat Firefox, kopieras
+länken i stället.
+
+**Knappen sitter på restaurangsidan och rättsidan, aldrig på ett kvitto.** Ett
+kvitto bär vad gästen åt och vad hon betalade.
+
+#### Kvar att bestämma: syns bilden på omdömen?
+
+I dag: nej, och det är byggt så med flit. Ska den synas blir det en annan sak —
+Burp blir värd för ett ansikte på en indexerad sida, alltså samma granskningskö
+som restaurangernas bilder, och omdömena går från nästan anonyma till
+identifierade. Det är en integritetsförändring, inte en designdetalj, och den
+bör beslutas för sig.
+
 ### Byggt 2026-09-03 — klickbara bord, 90 dagar, och demodata som faktiskt kom in
 
 #### Ett hook-brott som kraschade menyredigeraren

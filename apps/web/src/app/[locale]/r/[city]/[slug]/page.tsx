@@ -26,6 +26,7 @@ import {
   toSchemaOpeningHours,
 } from "@/components/site/opening-hours-week";
 import { SiteHeader } from "@/components/site/site-header";
+import { ShareButton } from "@/components/site/share-button";
 import { dictionary, isLocale, localePath, LOCALE_TAGS, type Locale } from "@/lib/i18n";
 import { todaysHours, type OpeningHours } from "@/lib/discovery-format";
 import { publicEnv } from "@/lib/env";
@@ -392,10 +393,25 @@ export default async function RestaurantPage({ params }: PageProps) {
           Länken bär restaurangens id och valet görs på en yta som ändå är
           personlig.
         */}
-        <p className="mt-6">
+        {/*
+          Dela och spara på samma rad: båda svarar på "jag vill komma tillbaka
+          hit, eller ta med någon".
+
+          Delningen går genom telefonens egen delningsruta. Vi lägger inga
+          plattformsknappar här — ingen sajt kan tagga någons konto åt henne, och
+          ett SDK per plattform hade betytt tredjepartsskript på en indexerad
+          sida. Se `share-button.tsx`.
+        */}
+        <p className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
           <Link href={`/konto/rutter?lagg=${restaurant.id}`} className="link text-sm">
             {t.routes.saveToRoute}
           </Link>
+
+          <ShareButton
+            title={restaurant.name}
+            label={t.site.share}
+            copiedLabel={t.site.shareCopied}
+          />
         </p>
 
         <nav aria-label={t.restaurant.onThisPage} className="mt-8 flex flex-wrap gap-2">

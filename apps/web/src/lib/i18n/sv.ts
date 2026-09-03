@@ -8,6 +8,8 @@
  */
 export const sv = {
   site: {
+    share: "Dela",
+    shareCopied: "Länken är kopierad",
     forRestaurants: "För restauranger",
     forGuests: "För gäster",
     home: "Burp — till startsidan",
@@ -727,6 +729,38 @@ export const sv = {
     ordersTitle: "Mina beställningar",
     points: "Poäng",
     pointsExpiring: "{n} poäng går ut inom 30 dagar.",
+    /*
+     * Det personliga i kontot.
+     *
+     * Byggt av gästens egen historik och inte av nya frågor till henne. Ett
+     * konto som ber om mer för att kännas personligt är inte personligt — det
+     * är ett formulär.
+     */
+    greeting: "Hej {name}",
+    greetingNoName: "Välkommen tillbaka",
+    since: "Gäst hos Burp sedan {date}",
+    firstVisit: "Din första beställning — välkommen.",
+    /*
+     * Profilbilden.
+     *
+     * Hjälptexten säger var bilden syns, och det är inte en artighet: bucketen
+     * är privat (migration 0067) och bilden visas bara för gästen själv. Den
+     * som laddar upp ett ansikte har rätt att veta det innan hon gör det.
+     */
+    photoTitle: "Din bild",
+    photoHint: "Bara du ser den. Den visas inte på dina omdömen och inte för restaurangerna.",
+    photoChoose: "Välj en bild",
+    photoRemove: "Ta bort bilden",
+    photoUploading: "Laddar upp…",
+    photoFormatError: "Bilden måste vara JPEG, PNG, WebP eller AVIF.",
+    photoSizeError: "Bilden får vara högst 5 MB.",
+    photoFailed: "Bilden kunde inte sparas.",
+    yourPlaces: "Dina ställen",
+    yourDishes: "Det du beställer oftast",
+    visits: "{n} besök",
+    visitsOne: "1 besök",
+    times: "{n} gånger",
+    timesOne: "1 gång",
     ordersEmpty: "Du har inte beställt något än.",
     findRestaurant: "Hitta en restaurang",
     ongoing: "Pågående",

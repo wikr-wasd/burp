@@ -3,7 +3,8 @@ import Link from "next/link";
 import { formatMoney, type OrderStatus } from "@burp/core";
 import { GuestHeader } from "@/components/guest/guest-header";
 import { ReviewForm } from "@/components/guest/review-form";
-import { getGuestOrders, getLoyalty, requireGuest } from "@/lib/guest";
+import { getGuestAvatarUrl, getGuestOrders, getLoyalty, requireGuest } from "@/lib/guest";
+import { summariseGuest } from "@/lib/guest-summary";
 import {
   dictionary,
   fill,
@@ -42,9 +43,10 @@ export default async function AccountPage() {
   const locale = await requestLocale();
   const t = dictionary(locale);
 
-  const [orders, loyalty] = await Promise.all([
+  const [orders, loyalty, avatarUrl] = await Promise.all([
     getGuestOrders(guest.userId),
     getLoyalty(guest.userId),
+    getGuestAvatarUrl(guest.userId),
   ]);
 
   const active = orders.filter(
@@ -53,6 +55,16 @@ export default async function AccountPage() {
   const past = orders.filter((order) =>
     ["COMPLETED", "CANCELLED", "REFUNDED"].includes(order.status),
   );
+
+  // Byggt av historiken sidan ändå hämtat. Ingen extra fråga, ingen ny uppgift
+  // att be gästen om.
+  const summary = summariseGuest(orders);
+
+  const monthYear = (iso: string) =>
+    new Date(iso).toLocaleDateString(LOCALE_DATE_TAGS[locale], {
+      month: "long",
+      year: "numeric",
+    });
 
   return (
     <>
@@ -64,20 +76,122 @@ export default async function AccountPage() {
       />
 
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <p className="label-caps">{t.account.label}</p>
-        <h1 className="font-display mt-2 text-4xl">{t.account.ordersTitle}</h1>
+        {/*
+          Hälsningen först, listan sedan.
+
+          Sidan öppnade med "Mina beställningar" och ett saldo i en grå ruta.
+          Det är korrekt och kallt. Den som loggar in är en återkommande gäst,
+          och det första hon möts av bör säga att vi känner igen henne — inte
+          rubricera en tabell.
+        */}
+        <div className="flex items-center gap-4">
+          {/* Bilden visas bara om hon lagt upp en. En tom rund ruta med en
+              generisk ikon är inte en personlig detalj, det är en lucka. */}
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              className="size-14 shrink-0 rounded-full border border-[var(--rule)] object-cover"
+            />
+          ) : null}
+
+          <div className="min-w-0">
+            <p className="label-caps">{t.account.label}</p>
+            <h1 className="font-display mt-1 text-4xl">
+              {guest.fullName
+                ? fill(t.account.greeting, { name: guest.fullName.split(" ")[0] ?? guest.fullName })
+                : t.account.greetingNoName}
+            </h1>
+          </div>
+        </div>
+
+        {summary.since ? (
+          <p className="mt-1 text-[var(--muted)]">
+            {summary.visits === 1
+              ? t.account.firstVisit
+              : fill(t.account.since, { date: monthYear(summary.since) })}
+          </p>
+        ) : null}
 
         {loyalty && loyalty.balance > 0 ? (
-          <div className="card mt-4 p-4">
-            <p className="text-sm opacity-60">{t.account.points}</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{loyalty.balance}</p>
-            {loyalty.expiringSoon > 0 ? (
-              <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                {fill(t.account.pointsExpiring, { n: loyalty.expiringSoon })}
-              </p>
+          /*
+            Poängen som något man ser, inte som en rad man läser.
+
+            Accentfärgen är Burps egen och inte restaurangens: det här är
+            gästens förhållande till Burp, och det ska se likadant ut oavsett
+            var hon senast åt.
+          */
+          <div className="card mt-6 flex items-center gap-4 p-4">
+            <span className="grid size-16 shrink-0 place-items-center rounded-full bg-burp-600 text-2xl font-semibold text-white tabular-nums">
+              {loyalty.balance}
+            </span>
+            <span>
+              <span className="block font-medium">{t.account.points}</span>
+              {loyalty.expiringSoon > 0 ? (
+                <span className="mt-0.5 block text-sm text-amber-700 dark:text-amber-400">
+                  {fill(t.account.pointsExpiring, { n: loyalty.expiringSoon })}
+                </span>
+              ) : null}
+            </span>
+          </div>
+        ) : null}
+
+        {/*
+          Dina ställen och det du beställer oftast.
+
+          Visas först när det finns något att visa: två besök säger inget om en
+          vana, och "din favoritrestaurang" efter ett enda besök är en gissning
+          gästen genomskådar direkt.
+        */}
+        {summary.visits >= 3 ? (
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {summary.places.length > 0 ? (
+              <section className="card p-4">
+                <h2 className="label-caps">{t.account.yourPlaces}</h2>
+                <ul className="mt-3 space-y-2">
+                  {summary.places.map((place) => (
+                    <li key={place.restaurantId}>
+                      <Link
+                        href={`/${locale}/r/${place.citySlug}/${place.slug}`}
+                        className="flex items-baseline justify-between gap-3 text-sm hover:text-burp-600"
+                      >
+                        <span className="truncate font-medium">{place.name}</span>
+                        <span className="shrink-0 text-[var(--muted)] tabular-nums">
+                          {place.visits === 1
+                            ? t.account.visitsOne
+                            : fill(t.account.visits, { n: place.visits })}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {summary.dishes.length > 0 ? (
+              <section className="card p-4">
+                <h2 className="label-caps">{t.account.yourDishes}</h2>
+                <ul className="mt-3 space-y-2">
+                  {summary.dishes.map((dish) => (
+                    <li
+                      key={dish.name}
+                      className="flex items-baseline justify-between gap-3 text-sm"
+                    >
+                      <span className="truncate">{dish.name}</span>
+                      <span className="shrink-0 text-[var(--muted)] tabular-nums">
+                        {dish.times === 1
+                          ? t.account.timesOne
+                          : fill(t.account.times, { n: dish.times })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ) : null}
           </div>
         ) : null}
+
+        <h2 className="font-display mt-10 text-2xl">{t.account.ordersTitle}</h2>
 
         {orders.length === 0 ? (
           <div className="mt-10 border-y border-[var(--rule)] py-14 text-center">

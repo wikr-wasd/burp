@@ -10,6 +10,7 @@ import { dictionary, fill, isLocale, localePath, LOCALE_TAGS, type Locale } from
 import { serializeJsonLd } from "@/lib/seo/jsonld";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { ShareButton } from "@/components/site/share-button";
 
 /**
  * Rättsida — burp.se/sv/sarajevo/ratt/punjene-paprike.
@@ -162,6 +163,16 @@ export default async function DishPage({ params }: PageProps) {
                 ),
               })}`
             : ""}
+        </p>
+
+        {/* Rättsidan är den mest delbara ytan som finns: "var äter man bäst
+            X i Y" är själva frågan man skickar till en vän. */}
+        <p className="mt-5">
+          <ShareButton
+            title={fill(t.dish.title, { dish: dish.name, city: city.name })}
+            label={t.site.share}
+            copiedLabel={t.site.shareCopied}
+          />
         </p>
 
         <CityRestaurantList locale={locale} restaurants={restaurants} />

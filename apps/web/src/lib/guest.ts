@@ -171,3 +171,34 @@ export async function getLoyalty(userId: string): Promise<LoyaltyState | null> {
       .reduce((sum, t) => sum + t.points, 0),
   };
 }
+
+/* ── Gästens egen bild ───────────────────────────────────────────────────── */
+
+/**
+ * En adress som går att visa bilden på, eller null.
+ *
+ * Bucketen är privat (migration 0067), så adressen måste signeras. Den går ut
+ * efter en timme — sidan är ändå `force-dynamic` och renderas per besök, så en
+ * längre giltighet hade bara betytt att en läckt adress fungerar längre.
+ *
+ * Egen funktion och inte en del av `getGuest()`: den anropas på varje gästyta,
+ * och en profilfråga per sidvisning för en bild som visas på två av dem är en
+ * kostnad utan täckning.
+ */
+export async function getGuestAvatarUrl(userId: string): Promise<string | null> {
+  const supabase = await createClient();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!profile?.avatar_path) return null;
+
+  const { data } = await supabase.storage
+    .from("guest-avatars")
+    .createSignedUrl(profile.avatar_path, 60 * 60);
+
+  return data?.signedUrl ?? null;
+}

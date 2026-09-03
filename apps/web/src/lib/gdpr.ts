@@ -45,7 +45,34 @@ export interface EraseResult {
  * är borta. Se migration 0041 för varför det inte går att bara radera raderna.
  */
 export async function eraseGuest(userId: string): Promise<EraseResult> {
-  const { data, error } = await createAdminClient().rpc("erase_guest", {
+  const admin = createAdminClient();
+
+  /*
+   * Profilbilden ligger i Storage och nås inte av transaktionen.
+   *
+   * `erase_guest` raderar `auth.users`, och `profiles` följer med på sin
+   * kaskad — pekaren försvinner alltså helt. Filen i bucketen gör det inte.
+   *
+   * Därför måste den tas bort FÖRE raderingen, medan `avatar_path`
+   * fortfarande går att läsa. Efteråt finns ingen kvar som vet vilken fil som
+   * var gästens, och ett ansikte vi lovat ta bort blir liggande för alltid.
+   * Till skillnad från de oföränderliga loggarna finns inget skäl att behålla
+   * den.
+   *
+   * service-role: gästens egen session är slut när det här körs, och
+   * storage-policyn i 0067 kräver en. Frågan begränsas av user_id.
+   */
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profile?.avatar_path) {
+    await admin.storage.from("guest-avatars").remove([profile.avatar_path]);
+  }
+
+  const { data, error } = await admin.rpc("erase_guest", {
     p_user_id: userId,
   });
 

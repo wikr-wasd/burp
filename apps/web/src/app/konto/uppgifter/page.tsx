@@ -4,12 +4,13 @@ import { GuestHeader } from "@/components/guest/guest-header";
 import { DeleteAccount } from "@/components/guest/delete-account";
 import { PushToggle } from "@/components/notifications/push-toggle";
 import { MarketingToggle } from "@/components/guest/marketing-toggle";
+import { AvatarUpload } from "@/components/guest/avatar-upload";
 import {
   removeGuestPushSubscription,
   saveGuestPushSubscription,
 } from "@/app/konto/push-actions";
 import { publicEnv } from "@/lib/env";
-import { requireGuest } from "@/lib/guest";
+import { getGuestAvatarUrl, requireGuest } from "@/lib/guest";
 import { createClient } from "@/lib/supabase/server";
 import { dictionary, requestLocale } from "@/lib/i18n";
 
@@ -51,6 +52,8 @@ export default async function DataPage() {
     .eq("id", guest.userId)
     .maybeSingle();
 
+  const avatarUrl = await getGuestAvatarUrl(guest.userId);
+
   return (
     <>
       <GuestHeader
@@ -71,7 +74,18 @@ export default async function DataPage() {
           att LÄMNA. En växel som gör tjänsten bättre hör hemma före dem —
           annars är det första en gäst ser på sin egen sida två vägar ut.
         */}
+        {/*
+          Bilden först. Den är det enda på sidan som handlar om vem gästen är —
+          resten är notiser, samtycke och två vägar ut.
+        */}
         <section className="mt-8">
+          <h2 className="font-display text-2xl">{t.account.photoTitle}</h2>
+          <p className="mt-2 text-[var(--muted)]">{t.account.photoHint}</p>
+
+          <AvatarUpload currentUrl={avatarUrl} userId={guest.userId} labels={t.account} />
+        </section>
+
+        <section className="mt-10 border-t border-[var(--rule)] pt-8">
           <h2 className="font-display text-2xl">{t.account.pushTitle}</h2>
           <p className="mt-2 text-[var(--muted)]">{t.account.pushBody}</p>
 
