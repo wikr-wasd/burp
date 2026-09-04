@@ -351,6 +351,9 @@ export const no: Dictionary = {
     punchCardUse: "Bruk stempelkortet",
     popular: "Populær",
     autoTranslated: "Beskrivelsene er oversatt automatisk.",
+    orderNote: "Er det noe vi bør vite?",
+    orderNotePlaceholder: "F.eks. nøtteallergi, eller at dere sitter ute.",
+    orderNoteHint: "Går til kjøkkenet sammen med bestillingen.",
   },
 
   table: {

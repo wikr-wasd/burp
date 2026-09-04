@@ -463,6 +463,9 @@ export const sv = {
     punchCardUse: "Använd klippkortet",
     popular: "Populär",
     autoTranslated: "Beskrivningarna är översatta automatiskt.",
+    orderNote: "Något vi bör veta?",
+    orderNotePlaceholder: "T.ex. nötallergi, eller att ni sitter ute.",
+    orderNoteHint: "Går till köket tillsammans med beställningen.",
   },
 
   /** Meddelanden på QR-sidan innan menyn visas. */

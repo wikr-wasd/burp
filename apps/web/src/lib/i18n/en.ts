@@ -351,6 +351,9 @@ export const en: Dictionary = {
     punchCardUse: "Use the loyalty card",
     popular: "Popular",
     autoTranslated: "The descriptions are translated automatically.",
+    orderNote: "Anything we should know?",
+    orderNotePlaceholder: "E.g. a nut allergy, or that you are sitting outside.",
+    orderNoteHint: "Goes to the kitchen with your order.",
   },
 
   table: {

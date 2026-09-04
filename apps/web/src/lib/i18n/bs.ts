@@ -375,6 +375,9 @@ export const bs: Dictionary = {
     punchCardUse: "Iskoristi karticu vjernosti",
     popular: "Popularno",
     autoTranslated: "Opisi su prevedeni automatski.",
+    orderNote: "Trebamo li nešto znati?",
+    orderNotePlaceholder: "Npr. alergija na orašaste plodove ili da sjedite vani.",
+    orderNoteHint: "Ide u kuhinju zajedno s narudžbom.",
   },
 
   table: {

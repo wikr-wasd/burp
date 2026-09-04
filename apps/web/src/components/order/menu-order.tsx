@@ -218,6 +218,18 @@ export function MenuOrder({
    */
   const [announcement, setAnnouncement] = useState("");
   const [tipBps, setTipBps] = useState(0);
+  /**
+   * Gästens meddelande om HELA beställningen.
+   *
+   * Skilt från rättens egen anteckning: "utan lök" hör till en rätt, "vi
+   * sitter ute" och "nötallergi" hör till sällskapet. Köket ritar den i en
+   * egen ruta över biljetten, och sedan 2026-09-04 översätts den till
+   * personalens språk — gästen skriver på sitt.
+   *
+   * Fältet fanns i API:t och i `orders.note` men hade ingen väg in: en kolumn
+   * som lästes av köksskärmen och skrevs av ingen.
+   */
+  const [orderNote, setOrderNote] = useState("");
   // Tom sträng = åt gången, vilket är det gästen oftast vill.
   const [scheduledFor, setScheduledFor] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -655,6 +667,7 @@ export function MenuOrder({
           tip_ore: tipOre,
           ...(scheduledFor ? { scheduled_for: scheduledFor } : {}),
           client_total_ore: totals.totalOre,
+          ...(orderNote.trim() ? { note: orderNote.trim() } : {}),
           // Betalsätt, inte leverantör. Vilken inlösare kortet går genom
           // avgörs av restaurangens betalkonto, på servern.
           payment_method: payWithCard && card ? "CARD" : "CASH",
@@ -1040,6 +1053,8 @@ export function MenuOrder({
           labels={labels}
           money={money}
           tipBps={tipBps}
+          orderNote={orderNote}
+          onOrderNoteChange={setOrderNote}
           tipOre={tipOre}
           onTipChange={setTipBps}
           pickupSlots={pickupSlots}
@@ -1403,6 +1418,8 @@ function CartBar({
   labels,
   money,
   tipBps,
+  orderNote,
+  onOrderNoteChange,
   tipOre,
   onTipChange,
   onQuantityChange,
@@ -1436,6 +1453,9 @@ function CartBar({
   labels: Dictionary["menu"];
   money: (amount: Ore) => string;
   tipBps: number;
+  /** Gästens meddelande om hela beställningen. Går till köket. */
+  orderNote: string;
+  onOrderNoteChange: (value: string) => void;
   tipOre: Ore;
   onTipChange: (value: number) => void;
   onQuantityChange: (key: string, delta: number) => void;
@@ -1573,6 +1593,29 @@ function CartBar({
                 </select>
               </label>
             ) : null}
+
+            {/*
+              Meddelandet om hela beställningen, före dricksen.
+
+              Efter rätterna och före pengarna: det är i den ordningen gästen
+              tänker. "Nötallergi" och "vi sitter ute" hör till sällskapet och
+              inte till en enskild rätt — den anteckningen finns redan på varje
+              rätt.
+            */}
+            <label className="mt-5 block">
+              <span className="label-caps">{labels.orderNote}</span>
+              <textarea
+                value={orderNote}
+                maxLength={500}
+                rows={2}
+                onChange={(event) => onOrderNoteChange(event.target.value)}
+                placeholder={labels.orderNotePlaceholder}
+                className="field mt-1.5 resize-y"
+              />
+              <span className="mt-1 block text-xs text-[var(--muted)]">
+                {labels.orderNoteHint}
+              </span>
+            </label>
 
             <div className="mt-5">
               <p className="label-caps">{labels.tip}</p>

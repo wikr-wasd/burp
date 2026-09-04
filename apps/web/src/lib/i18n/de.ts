@@ -351,6 +351,9 @@ export const de: Dictionary = {
     punchCardUse: "Treuekarte einlösen",
     popular: "Beliebt",
     autoTranslated: "Die Beschreibungen wurden automatisch übersetzt.",
+    orderNote: "Sollten wir etwas wissen?",
+    orderNotePlaceholder: "Z. B. eine Nussallergie oder dass Sie draußen sitzen.",
+    orderNoteHint: "Geht zusammen mit der Bestellung in die Küche.",
   },
 
   table: {
