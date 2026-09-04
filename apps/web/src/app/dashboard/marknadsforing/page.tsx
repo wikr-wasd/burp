@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { MarketingKit } from "@/components/staff/marketing-kit";
+import { CampaignComposer } from "@/components/staff/campaign-composer";
+import { CAMPAIGN_TEMPLATES, type CampaignTemplate } from "@/lib/campaign-types";
+import { getCampaignOverview } from "@/lib/campaigns";
 import { requireStaff } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
-import { DEFAULT_LOCALE_BY_COUNTRY, dictionary, LOCALE_LABELS } from "@/lib/i18n";
+import { DEFAULT_LOCALE_BY_COUNTRY, dictionary, fill, LOCALE_LABELS } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -72,6 +75,28 @@ export default async function MarketingPage() {
   const marketingLocale = DEFAULT_LOCALE_BY_COUNTRY[staff.country];
   const guestTexts = dictionary(marketingLocale).marketing;
 
+  /*
+   * Utskicken: saldot, mottagarantalet och historiken.
+   *
+   * Bara ANTALET mottagare når sidan — adresserna hämtas först i
+   * serveråtgärden, när ett utskick faktiskt görs. En sida som råkar bära
+   * gästernas e-postadresser i sin nyttolast är en läcka utan angripare.
+   */
+  const campaigns = await getCampaignOverview(staff.restaurantId);
+
+  // Mallarna på gästernas språk, färdiga att skriva om.
+  const campaignTemplates = Object.fromEntries(
+    CAMPAIGN_TEMPLATES.map((template) => [
+      template,
+      {
+        subject: fill(guestTexts[`campaign${template}`], {
+          name: restaurant?.name ?? staff.restaurantName,
+        }),
+        body: guestTexts[`campaign${template}Body`],
+      },
+    ]),
+  ) as Record<CampaignTemplate, { subject: string; body: string }>;
+
   return (
     <StaffShell
       staff={staff}
@@ -89,6 +114,28 @@ export default async function MarketingPage() {
         guestTexts={guestTexts}
         guestLanguage={LOCALE_LABELS[marketingLocale]}
       />
+
+      {/*
+        Utskicken efter materialet, inte före.
+
+        Affischen och texterna fungerar från dag ett. Ett utskick kräver
+        gäster som sagt ja OCH handlat hos restaurangen — alltså en lista som
+        fylls med tiden. Den som just öppnat ska mötas av det som går att
+        använda i dag.
+      */}
+      <section className="mt-14 border-t border-[var(--rule)] pt-10">
+        <h2 className="font-display text-2xl">{t.campaigns.title}</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">{t.campaigns.intro}</p>
+
+        <CampaignComposer
+          labels={t.campaigns}
+          templates={campaignTemplates}
+          credits={campaigns.credits}
+          audience={campaigns.audience}
+          history={campaigns.history}
+          guestLanguage={LOCALE_LABELS[marketingLocale]}
+        />
+      </section>
     </StaffShell>
   );
 }

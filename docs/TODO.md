@@ -1888,31 +1888,38 @@ fråga 15.
 Följ den uppifrån. Det som kräver dig, hårdvara eller ett beslut står med
 det utskrivet — och ligger kvar tills beslutet är fattat.
 
-- [ ] **E-postutskick till registrerade kunder — VÄNTAR PÅ DITT BESKED.**
-      Beställt 2026-09-01. Ingenting är byggt, och formen avgör vad som byggs.
+- [x] **Utskick till gästerna — byggt 2026-09-04.** Migration 0076.
 
-      Vad som redan finns: automatiska brev vid ny order, ny bokning, ny
-      restaurangansökan, och gästens besked när maten tas emot och blir klar.
-      Alla går genom `sendEmail()` och skrivs bara i loggen utan
-      `RESEND_API_KEY`.
+      Formen avgjordes av William: mallar, inte fritext från noll. Fyra —
+      välkommen, vi saknar dig, erbjudande, nyhet — som fyller ämnesrad och
+      text och sedan går att skriva om. En tom ruta är det som gör att
+      utskicket aldrig blir av.
 
-      Vad som **inte** finns: att du som ägare skriver ett brev och skickar det
-      till registrerade kunder.
+      **Mottagarlistan går inte att välja.** Två villkor, båda nödvändiga:
+      gästen har sagt ja (`marketing_opt_in`) OCH handlat hos just den
+      restaurangen. "Potentiella kunder" går alltså inte att nå den här
+      vägen, och det är avsikten — utskick till någon som inte sagt ja är
+      olagligt i hela EU, och böterna träffar Burp som avsändare. Räckvidd
+      mot NYA gäster är plattformens egen yta: placering, listor, notiser.
 
-      **Två saker avgör formen:**
+      **Paketen William säljer** är en logg och inte ett saldo:
+      `campaign_credit_events`, summerad av `campaign_credits()`. Samma regel
+      som lojalitetspoängen, och av samma skäl — det är pengar restaurangen
+      betalat för. Burp bokför ett köpt paket i backoffice; loggen är
+      oföränderlig och rättas med en motpost.
 
-      1. **Samtycket finns redan** — `profiles.marketing_opt_in`, migration
-         0002, med `false` som standard. Ett utskick får bara gå till dem som
-         kryssat i, annars är det olagligt. Och eftersom standardvärdet är
-         `false` är listan i dag **med största sannolikhet tom**: rutan finns
-         inte där gästen skapar konto. Utan den steget är utskicksverktyget en
-         yta utan mottagare.
-      2. **Fritext eller mallar?** Antingen skriver du varje brev för hand och
-         skickar, eller så redigerar du mallar som systemet skickar automatiskt
-         vid händelser (välkomstbrev, "vi saknar dig"). Det är två olika
-         produkter och två olika bygg.
+      Brevet skrivs på GÄSTERNAS språk (restaurangens land), inte på
+      personalens: en norsk chef i Sarajevo ska inte råka skicka norska till
+      bosniska gäster. Ett brev per mottagare, aldrig en `to`-rad med hundra
+      adresser. Avanmälningslänken står i varje brev.
 
-      Svara på 2, så byggs 1 med i samma veva.
+      **Kvar: `RESEND_API_KEY`.** Utan den skrivs breven bara i loggen —
+      utskicket bokförs, upptäcker att inget gick fram, och bokar tillbaka
+      hela saldot. Ingen kredit går förlorad. **Kräver William.**
+
+      SMS ligger kvar: det kostar per meddelande, kräver ett registrerat
+      avsändarnamn per land, och är krångligare i BA och RS än i SE. E-post
+      först.
 
 - [ ] **Sentry-DSN.** SDK:n är installerad, konfigurerad och skrubbad sedan
       2026-09-01, men rapporterar ingenting utan DSN. Organisationen finns

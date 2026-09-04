@@ -2084,6 +2084,132 @@ begin
 end
 $$;
 
+\echo '   utskicket når bara den som sagt ja och handlat där'
+
+do $$
+declare
+  v_rest      uuid := '11111111-1111-1111-1111-111111111111';
+  v_annan     uuid;
+  v_owner     uuid;
+  v_yes       uuid;   -- sagt ja, handlat här
+  v_no        uuid;   -- handlat här, men inte sagt ja
+  v_elsewhere uuid;   -- sagt ja, men handlat någon annanstans
+  v_count     integer;
+  v_campaign  uuid;
+begin
+  select id into v_annan from public.restaurants where slug = 'planritning-test';
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'agare-utskick@example.com')
+  returning id into v_owner;
+  insert into public.staff (restaurant_id, user_id, role)
+  values (v_rest, v_owner, 'owner');
+
+  insert into auth.users (id, email) values (gen_random_uuid(), 'ja@example.com')
+  returning id into v_yes;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'nej@example.com')
+  returning id into v_no;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'annanstans@example.com')
+  returning id into v_elsewhere;
+
+  update public.profiles set marketing_opt_in = true where id in (v_yes, v_elsewhere);
+  update public.profiles set marketing_opt_in = false where id = v_no;
+
+  insert into public.orders (restaurant_id, guest_id, type, status, idempotency_key, total_ore)
+  values (v_rest, v_yes, 'PICKUP', 'COMPLETED', gen_random_uuid(), 1200),
+         (v_rest, v_no, 'PICKUP', 'COMPLETED', gen_random_uuid(), 1200),
+         (v_annan, v_elsewhere, 'PICKUP', 'COMPLETED', gen_random_uuid(), 1200);
+
+  -- Som ägaren. Funktionen kontrollerar rollen själv: den är SECURITY DEFINER
+  -- och kringgår RLS, och restaurangen får annars inte läsa `profiles`.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_owner::text, true);
+
+  select count(*) into v_count from public.campaign_audience(v_rest);
+  if v_count <> 1 then
+    raise exception 'FEL: utskickslistan hade % mottagare, väntade 1', v_count;
+  end if;
+
+  -- Rätt person, och bara den.
+  if not exists (select 1 from public.campaign_audience(v_rest) a where a.user_id = v_yes) then
+    raise exception 'FEL: gästen som sagt ja saknades i listan';
+  end if;
+
+  -- Saldot är noll: utskicket ska nekas innan ett enda brev skrivs.
+  begin
+    perform public.start_campaign(v_rest, 'NEWS', 'Ny meny', 'Kom och prova.');
+    raise exception 'FEL: ett utskick gick igenom utan saldo';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  -- Burp bokför ett köpt paket.
+  insert into public.campaign_credit_events (restaurant_id, delta, reason)
+  values (v_rest, 10, 'Paket 10 utskick, test');
+
+  if public.campaign_credits(v_rest) <> 10 then
+    raise exception 'FEL: saldot blev inte 10';
+  end if;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_owner::text, true);
+
+  select c.campaign_id into v_campaign
+  from public.start_campaign(v_rest, 'NEWS', 'Ny meny', 'Kom och prova.') c
+  limit 1;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  if v_campaign is null then
+    raise exception 'FEL: utskicket skapades inte';
+  end if;
+
+  -- En mottagare drogs.
+  if public.campaign_credits(v_rest) <> 9 then
+    raise exception 'FEL: saldot drogs inte, står på %', public.campaign_credits(v_rest);
+  end if;
+
+  -- Brevet gick inte fram: motposten bokas, saldot är tillbaka.
+  perform public.refund_campaign_credits(v_campaign, 1);
+
+  if public.campaign_credits(v_rest) <> 10 then
+    raise exception 'FEL: återbokningen kom inte fram, saldot står på %',
+      public.campaign_credits(v_rest);
+  end if;
+
+  -- Loggen är oföränderlig, som order_events och loyalty_transactions.
+  begin
+    update public.campaign_credit_events set delta = 999 where restaurant_id = v_rest;
+    raise exception 'FEL: kreditloggen gick att skriva om';
+  exception
+    when restrict_violation then null;
+  end;
+
+  begin
+    delete from public.campaign_credit_events where restaurant_id = v_rest;
+    raise exception 'FEL: kreditloggen gick att radera';
+  exception
+    when restrict_violation then null;
+  end;
+
+  -- En gäst utan roll hos restaurangen får inte se listan.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', v_yes::text, true);
+  begin
+    perform public.campaign_audience(v_rest);
+    raise exception 'FEL: en gäst fick läsa utskickslistan';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
 \echo '   inredningen hör till sin egen ritning'
 
 do $$

@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { DEFAULT_FEE_BPS } from "@burp/core";
-import { setRestaurantFee, setRestaurantStatus } from "@/app/backoffice/actions";
+import {
+  addCampaignCredits,
+  setRestaurantFee,
+  setRestaurantStatus,
+} from "@/app/backoffice/actions";
 import type { PlatformRestaurant } from "@/app/backoffice/restauranger/page";
 
 /**
@@ -139,6 +143,8 @@ export function RestaurantList({
                 ) : null}
 
                 <FeeEditor restaurant={restaurant} pending={pending} onSave={run} />
+
+                <CreditEditor restaurant={restaurant} pending={pending} onSave={run} />
               </div>
             ) : null}
           </li>
@@ -289,6 +295,99 @@ function FeeEditor({
           Spara ändringen
         </button>
         <button type="button" onClick={close} disabled={pending} className="btn btn-secondary">
+          Avbryt
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Utskickspaketen restaurangen köpt.
+ *
+ * En LOGGRAD, aldrig ett saldo som skrivs över — `campaign_credits()` är en
+ * summa över loggen (migration 0076). Ett paket som lagts på fel restaurang
+ * rättas med ett negativt antal och en anteckning, inte genom att raden
+ * skrivs om: den går inte att skriva om.
+ *
+ * Anteckningen är obligatorisk därför att den är kvittot. Betalningen sker
+ * utanför systemet tills det finns en faktureringsväg, och då är raden här
+ * det enda som säger varför saldot ökade.
+ */
+function CreditEditor({
+  restaurant,
+  pending,
+  onSave,
+}: {
+  restaurant: PlatformRestaurant;
+  pending: boolean;
+  onSave: (fn: () => Promise<{ ok: boolean; message?: string }>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("500");
+  const [reason, setReason] = useState("");
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="btn btn-secondary">
+        Utskickspaket
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 w-full rounded-lg border border-[var(--rule)] p-3">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="block">
+          <span className="label-caps">Antal utskick</span>
+          <input
+            value={amount}
+            disabled={pending}
+            inputMode="numeric"
+            onChange={(event) => setAmount(event.target.value)}
+            className="field mt-1 w-28 text-right tabular-nums"
+          />
+        </label>
+
+        <label className="block min-w-0 flex-1">
+          <span className="label-caps">Vad avser paketet</span>
+          <input
+            value={reason}
+            disabled={pending}
+            placeholder="T.ex. Paket 500 utskick, faktura 2026-1042"
+            onChange={(event) => setReason(event.target.value)}
+            className="field mt-1 w-full"
+          />
+        </label>
+      </div>
+
+      <p className="mt-2 text-sm opacity-70">
+        Ett negativt antal bokför en motpost. Raden går inte att ändra i
+        efterhand — saldot är en summa över loggen.
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={pending || reason.trim().length < 3 || amount.trim() === ""}
+          onClick={() => {
+            onSave(() => addCampaignCredits(restaurant.id, amount, reason));
+            setOpen(false);
+            setReason("");
+          }}
+          className="btn btn-primary"
+        >
+          Bokför paketet
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setReason("");
+          }}
+          disabled={pending}
+          className="btn btn-secondary"
+        >
           Avbryt
         </button>
       </div>

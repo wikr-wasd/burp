@@ -450,6 +450,15 @@ export const en: Dictionary = {
       "The whole menu is on your phone now. Scan at our place or find {name} on Burp. #{city}",
     google:
       "{name} is now on Burp: the menu, the opening hours, the way here, and ordering at the table without an app. {url}",
+    campaignWELCOME: "Welcome to {name}",
+    campaignWELCOMEBody: "Thank you for visiting us. We would love to see you again — the whole menu is on your phone, and you order at the table without an app.",
+    campaignWE_MISS_YOU: "We miss you at {name}",
+    campaignWE_MISS_YOUBody: "It has been a while. The menu has changed since your last visit — come by and see what is on it now.",
+    campaignOFFER: "An offer from {name}",
+    campaignOFFERBody: "We have something on this week. Come and try it — show this email at your table.",
+    campaignNEWS: "News from {name}",
+    campaignNEWSBody: "We have something new to tell you. Read more on our page at Burp.",
+    campaignFooter: "You are receiving this from {name} because you agreed to hear from us on Burp. You can opt out whenever you like: {url}",
   },
 
   routes: {
@@ -1295,6 +1304,38 @@ export const en: Dictionary = {
       planDelete: "Delete the plan",
       planDeleteConfirm: "Delete the plan {name}? The tables stay, but move to the unplaced ones.",
       planCanvasEmpty: "Place a table or add the bar to begin.",
+    },
+
+    /**
+     * Utskicken till gästerna (migration 0076).
+     *
+     * Går bara till den som sagt ja OCH handlat hos restaurangen. Texten i
+     * SJÄLVA brevet ligger under `marketing` och skrivs pa gästernas sprak —
+     * de här orden är personalens egna, som resten av ytan.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    campaigns: {
+      title: "Emails to your guests",
+      intro: "Goes only to guests who opted in AND have ordered from you. New guests are not reached this way — that is deliberate.",
+      template: "Template",
+      subject: "Subject line",
+      body: "Message",
+      audience: "{n} recipients",
+      noAudience: "No guest has opted in to hear from you yet.",
+      credits: "{n} sends left",
+      noCredits: "Not enough balance. Get in touch with Burp for more sends.",
+      send: "Send",
+      sending: "Sending…",
+      sent: "The email went to {n} recipients.",
+      language: "The email is written in {language} — the language your guests read.",
+      history: "Earlier emails",
+      historyEmpty: "Nothing sent yet.",
+      failedSome: "{n} emails did not go through and have been credited back.",
+      statusSENT: "Sent",
+      statusFAILED: "Failed",
+      statusSENDING: "Sending",
+      statusDRAFT: "Draft",
     },
 
     /**

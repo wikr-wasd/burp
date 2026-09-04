@@ -452,6 +452,15 @@ export const de: Dictionary = {
       "Die ganze Karte ist jetzt im Telefon. Bei uns scannen oder {name} auf Burp finden. #{city}",
     google:
       "{name} ist jetzt auf Burp: Karte, Öffnungszeiten, Anfahrt und Bestellen am Tisch ohne App. {url}",
+    campaignWELCOME: "Willkommen bei {name}",
+    campaignWELCOMEBody: "Danke für Ihren Besuch. Wir sehen Sie gerne wieder — die ganze Speisekarte liegt auf Ihrem Telefon, und Sie bestellen am Tisch ganz ohne App.",
+    campaignWE_MISS_YOU: "Wir vermissen Sie bei {name}",
+    campaignWE_MISS_YOUBody: "Es ist eine Weile her. Die Karte hat sich inzwischen geändert — schauen Sie vorbei und sehen Sie, was jetzt darauf steht.",
+    campaignOFFER: "Ein Angebot von {name}",
+    campaignOFFERBody: "Diese Woche haben wir etwas Besonderes. Kommen Sie vorbei und probieren Sie es — zeigen Sie diese E-Mail am Tisch.",
+    campaignNEWS: "Neues von {name}",
+    campaignNEWSBody: "Wir haben Neuigkeiten für Sie. Mehr dazu auf unserer Seite bei Burp.",
+    campaignFooter: "Sie erhalten diese E-Mail von {name}, weil Sie bei Burp zugestimmt haben. Sie können jederzeit widersprechen: {url}",
   },
 
   routes: {
@@ -1310,6 +1319,38 @@ export const de: Dictionary = {
       planDelete: "Grundriss löschen",
       planDeleteConfirm: "Grundriss {name} löschen? Die Tische bleiben, landen aber bei den nicht platzierten.",
       planCanvasEmpty: "Ziehen Sie einen Tisch heraus oder fügen Sie die Theke hinzu.",
+    },
+
+    /**
+     * Utskicken till gästerna (migration 0076).
+     *
+     * Går bara till den som sagt ja OCH handlat hos restaurangen. Texten i
+     * SJÄLVA brevet ligger under `marketing` och skrivs pa gästernas sprak —
+     * de här orden är personalens egna, som resten av ytan.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    campaigns: {
+      title: "E-Mails an Ihre Gäste",
+      intro: "Geht nur an Gäste, die zugestimmt haben UND bei Ihnen bestellt haben. Neue Gäste erreichen Sie so nicht — das ist beabsichtigt.",
+      template: "Vorlage",
+      subject: "Betreff",
+      body: "Nachricht",
+      audience: "{n} Empfänger",
+      noAudience: "Noch hat kein Gast zugestimmt, von Ihnen zu hören.",
+      credits: "Noch {n} Sendungen",
+      noCredits: "Das Guthaben reicht nicht. Melden Sie sich bei Burp für weitere Sendungen.",
+      send: "Senden",
+      sending: "Wird gesendet…",
+      sent: "Die E-Mail ging an {n} Empfänger.",
+      language: "Die E-Mail wird auf {language} verfasst — die Sprache Ihrer Gäste.",
+      history: "Frühere E-Mails",
+      historyEmpty: "Noch nichts versendet.",
+      failedSome: "{n} E-Mails kamen nicht an und wurden gutgeschrieben.",
+      statusSENT: "Gesendet",
+      statusFAILED: "Fehlgeschlagen",
+      statusSENDING: "Wird gesendet",
+      statusDRAFT: "Entwurf",
     },
 
     /**

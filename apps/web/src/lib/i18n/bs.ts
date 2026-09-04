@@ -475,6 +475,15 @@ export const bs: Dictionary = {
       "Cijeli meni je sada u telefonu. Skenirajte kod nas ili pronađite {name} na Burpu. #{city}",
     google:
       "{name} je sada na Burpu: meni, radno vrijeme, put do nas i narudžba za stolom bez aplikacije. {url}",
+    campaignWELCOME: "Dobrodošli u {name}",
+    campaignWELCOMEBody: "Hvala na posjeti! Rado vas vidimo ponovo — cijeli jelovnik je u telefonu, a naručujete za stolom bez aplikacije.",
+    campaignWE_MISS_YOU: "Nedostajete nam u {name}",
+    campaignWE_MISS_YOUBody: "Odavno se nismo vidjeli. Jelovnik se u međuvremenu promijenio — svratite i pogledajte šta je sada na njemu.",
+    campaignOFFER: "Ponuda iz {name}",
+    campaignOFFERBody: "Ove sedmice spremamo nešto posebno. Navratite i probajte — pokažite ovo pismo za stolom.",
+    campaignNEWS: "Novosti iz {name}",
+    campaignNEWSBody: "Imamo nešto novo da vam ispričamo. Više pročitajte na našoj stranici na Burpu.",
+    campaignFooter: "Ovo pismo dobijate od {name} jer ste pristali na obavještenja na Burpu. Možete odustati kad god želite: {url}",
   },
 
   routes: {
@@ -1335,6 +1344,38 @@ export const bs: Dictionary = {
       planDelete: "Ukloni nacrt",
       planDeleteConfirm: "Ukloniti nacrt {name}? Stolovi ostaju, ali prelaze među nerazmještene.",
       planCanvasEmpty: "Povucite sto ili dodajte šank da počnete.",
+    },
+
+    /**
+     * Utskicken till gästerna (migration 0076).
+     *
+     * Går bara till den som sagt ja OCH handlat hos restaurangen. Texten i
+     * SJÄLVA brevet ligger under `marketing` och skrivs pa gästernas sprak —
+     * de här orden är personalens egna, som resten av ytan.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    campaigns: {
+      title: "Obavještenja vašim gostima",
+      intro: "Ide samo gostima koji su pristali I koji su naručivali kod vas. Novi gosti se ovim putem ne dobijaju — tako je i zamišljeno.",
+      template: "Predložak",
+      subject: "Naslov",
+      body: "Tekst pisma",
+      audience: "{n} primalaca",
+      noAudience: "Nijedan gost još nije pristao na obavještenja od vas.",
+      credits: "Preostalo: {n}",
+      noCredits: "Stanje nije dovoljno. Javite se Burpu za još obavještenja.",
+      send: "Pošalji",
+      sending: "Šalje se…",
+      sent: "Poslato na {n} adresa.",
+      language: "Pismo se piše na jeziku: {language} — jezik koji vaši gosti čitaju.",
+      history: "Ranija obavještenja",
+      historyEmpty: "Još nema poslatih obavještenja.",
+      failedSome: "{n} pisama nije stiglo i vraćeno je na stanje.",
+      statusSENT: "Poslato",
+      statusFAILED: "Nije stiglo",
+      statusSENDING: "Šalje se",
+      statusDRAFT: "Nacrt",
     },
 
     /**

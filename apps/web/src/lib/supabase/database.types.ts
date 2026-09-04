@@ -54,6 +54,133 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_credit_events: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          reason: string
+          restaurant_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          reason: string
+          restaurant_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          reason?: string
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_credit_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_credit_events_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          delivered: boolean
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          delivered?: boolean
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          delivered?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          failed: number
+          id: string
+          recipients: number
+          restaurant_id: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          subject: string
+          template: Database["public"]["Enums"]["campaign_template"]
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          id?: string
+          recipients?: number
+          restaurant_id: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          subject: string
+          template: Database["public"]["Enums"]["campaign_template"]
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          id?: string
+          recipients?: number
+          restaurant_id?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          subject?: string
+          template?: Database["public"]["Enums"]["campaign_template"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupon_redemptions: {
         Row: {
           coupon_id: string
@@ -3026,6 +3153,14 @@ export type Database = {
         Args: { p_restaurant_id: string; p_user_id: string }
         Returns: undefined
       }
+      campaign_audience: {
+        Args: { p_restaurant_id: string }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
+      campaign_credits: { Args: { p_restaurant_id: string }; Returns: number }
       can_grant_role: {
         Args: {
           p_granter: Database["public"]["Enums"]["staff_role"]
@@ -3138,6 +3273,7 @@ export type Database = {
           restaurants: number
         }[]
       }
+      finish_campaign: { Args: { p_campaign_id: string }; Returns: undefined }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -3482,6 +3618,10 @@ export type Database = {
           p_reward_ore: number
         }
         Returns: number
+      }
+      refund_campaign_credits: {
+        Args: { p_campaign_id: string; p_failed: number }
+        Returns: undefined
       }
       remove_order_item: {
         Args: { p_actor?: string; p_item_id: string; p_order_id: string }
@@ -4301,6 +4441,19 @@ export type Database = {
         Args: { geom: unknown; move: number; wrap: number }
         Returns: unknown
       }
+      start_campaign: {
+        Args: {
+          p_body: string
+          p_restaurant_id: string
+          p_subject: string
+          p_template: Database["public"]["Enums"]["campaign_template"]
+        }
+        Returns: {
+          campaign_id: string
+          email: string
+          user_id: string
+        }[]
+      }
       table_session_bill: {
         Args: { p_session_id: string }
         Returns: {
@@ -4327,6 +4480,8 @@ export type Database = {
       }
     }
     Enums: {
+      campaign_status: "DRAFT" | "SENDING" | "SENT" | "FAILED"
+      campaign_template: "WELCOME" | "WE_MISS_YOU" | "OFFER" | "NEWS"
       content_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
       country_code: "BA" | "HR" | "RS" | "SE"
       coupon_funder: "BURP" | "RESTAURANT"
@@ -4523,6 +4678,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      campaign_status: ["DRAFT", "SENDING", "SENT", "FAILED"],
+      campaign_template: ["WELCOME", "WE_MISS_YOU", "OFFER", "NEWS"],
       content_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
       country_code: ["BA", "HR", "RS", "SE"],
       coupon_funder: ["BURP", "RESTAURANT"],

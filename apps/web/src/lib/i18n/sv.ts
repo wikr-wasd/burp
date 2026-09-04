@@ -660,6 +660,15 @@ export const sv = {
       "Hela menyn finns nu i telefonen. Skanna koden hos oss eller hitta {name} på Burp. #{city}",
     google:
       "{name} finns nu på Burp: se menyn, öppettiderna och vägen hit, och beställ vid bordet utan app. {url}",
+    campaignWELCOME: "Välkommen till {name}",
+    campaignWELCOMEBody: "Tack för ditt besök hos oss! Vi ses gärna igen — hela menyn finns i telefonen, och du beställer vid bordet utan app.",
+    campaignWE_MISS_YOU: "Vi saknar dig hos {name}",
+    campaignWE_MISS_YOUBody: "Det var ett tag sedan sist. Menyn har hunnit ändra sig — titta in och se vad som står på den nu.",
+    campaignOFFER: "Ett erbjudande från {name}",
+    campaignOFFERBody: "Vi har något på gång den här veckan. Kom förbi och prova — visa det här brevet vid bordet.",
+    campaignNEWS: "Nyheter från {name}",
+    campaignNEWSBody: "Vi har något nytt att berätta. Läs mer på vår sida hos Burp.",
+    campaignFooter: "Du får det här brevet från {name} för att du sagt ja till utskick på Burp. Tacka nej när du vill: {url}",
   },
 
   routes: {
@@ -1704,6 +1713,38 @@ export const sv = {
       planDelete: "Ta bort ritningen",
       planDeleteConfirm: "Ta bort ritningen {name}? Borden blir kvar, men hamnar bland de outplacerade.",
       planCanvasEmpty: "Dra ut ett bord eller lägg till baren för att börja.",
+    },
+
+    /**
+     * Utskicken till gästerna (migration 0076).
+     *
+     * Går bara till den som sagt ja OCH handlat hos restaurangen. Texten i
+     * SJÄLVA brevet ligger under `marketing` och skrivs pa gästernas sprak —
+     * de här orden är personalens egna, som resten av ytan.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    campaigns: {
+      title: "Utskick till era gäster",
+      intro: "Går bara till gäster som sagt ja OCH handlat hos er. Nya gäster nås inte den här vägen — det är avsikten.",
+      template: "Mall",
+      subject: "Ämnesrad",
+      body: "Brevtext",
+      audience: "{n} mottagare",
+      noAudience: "Ingen gäst har sagt ja till utskick från er än.",
+      credits: "{n} utskick kvar",
+      noCredits: "Saldot räcker inte. Hör av dig till Burp för fler utskick.",
+      send: "Skicka",
+      sending: "Skickar…",
+      sent: "Utskicket gick till {n} mottagare.",
+      language: "Brevet skrivs på {language} — det språk era gäster läser.",
+      history: "Tidigare utskick",
+      historyEmpty: "Inget utskick än.",
+      failedSome: "{n} brev gick inte fram och är återbokade.",
+      statusSENT: "Skickat",
+      statusFAILED: "Gick inte fram",
+      statusSENDING: "Skickas",
+      statusDRAFT: "Utkast",
     },
 
     /**

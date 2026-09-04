@@ -470,6 +470,10 @@ describe("ordböckerna", () => {
       "staff.tables.shape",
       "staff.floorItem.BAR",
       "staff.floorItem.WC",
+      // "Utkast" stavas likadant på norska. Att "Kom ikke fram" och
+      // "Emnefelt" i samma avsnitt INTE gör det är kvittot på att raderna är
+      // norska och inte kopierade.
+      "staff.campaigns.statusDRAFT",
     ],
   };
 

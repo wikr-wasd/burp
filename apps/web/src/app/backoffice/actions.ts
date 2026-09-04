@@ -436,3 +436,53 @@ export async function removeFeatured(id: string): Promise<ActionResult> {
 
   return error ? fail(error.message) : done();
 }
+
+/**
+ * Lägger på utskick som restaurangen köpt.
+ *
+ * Det här är produkten William säljer: X antal utskick, betalda i förväg.
+ * Betalningen sker utanför systemet tills det finns en faktureringsväg —
+ * raden här är bokföringen av att den skett, och anteckningen är kvittot.
+ *
+ * En LOGGRAD, aldrig ett saldo som skrivs över. `campaign_credits()` är en
+ * summa över loggen (migration 0076), av samma skäl som lojalitetspoängen:
+ * ett lagrat saldo kan hamna i otakt med sina transaktioner, en summa kan
+ * det inte. Ett paket som lagts på fel restaurang rättas därför med en
+ * motpost och inte genom att raden skrivs om — den går inte att skriva om.
+ *
+ * service-role: hela plattformen — kreditloggen har ingen skrivpolicy för
+ * någon roll, just för att den ska vara oföränderlig. Raden bär den
+ * restaurang admin valt, och plattformsrollen är kontrollerad ovanför.
+ */
+export async function addCampaignCredits(
+  restaurantId: string,
+  amountInput: string,
+  reason: string,
+): Promise<ActionResult> {
+  const admin = await requirePlatformAdmin(WRITE_ROLES);
+
+  const amount = Number(amountInput.trim());
+  if (!Number.isInteger(amount) || amount === 0 || Math.abs(amount) > 100_000) {
+    return fail(`"${amountInput}" är inte ett antal utskick.`);
+  }
+
+  const note = reason.trim();
+  if (note.length < 3) {
+    return fail("Skriv vad paketet avser. Anteckningen är kvittot på köpet.");
+  }
+
+  const supabase = createAdminClient();
+
+  const { error } = await supabase.from("campaign_credit_events").insert({
+    restaurant_id: restaurantId,
+    delta: amount,
+    reason: note,
+    created_by: admin.userId,
+  });
+
+  if (error) return fail(error.message);
+
+  revalidatePath("/backoffice/restauranger");
+  revalidatePath("/dashboard/marknadsforing");
+  return done();
+}
