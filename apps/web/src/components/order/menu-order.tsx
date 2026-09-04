@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Search, SearchX, ShoppingBag, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Search,
+  SearchX,
+  ShoppingBag,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import {
   calculateOrderTotals,
   formatMoney,
@@ -87,6 +95,16 @@ interface Props {
   labels: Dictionary["menu"];
   /** Allergenernas namn på gästens språk. Se migration 0071. */
   allergenLabels: Dictionary["allergen"];
+  /**
+   * Rätterna som beställts oftast här den senaste månaden, vid NAMN.
+   *
+   * Kommer ur `restaurant_favourite_dishes()` (migration 0074) och är tom när
+   * underlaget är för tunt — då märks ingenting alls. Namnet är nyckeln
+   * eftersom historiken bär `name_snapshot`: en rätt som bytt namn i menyn
+   * matchar inte längre, vilket är rätt svar. Den gamla favoriten är inte den
+   * här rätten.
+   */
+  popularDishes?: readonly string[];
   /** Restaurangens valuta. Avgör hur varenda summa på sidan skrivs. */
   currency: CurrencyCode;
   /**
@@ -161,6 +179,7 @@ export function MenuOrder({
   context,
   labels,
   allergenLabels,
+  popularDishes = [],
   currency,
   timeZone,
   pickupSlots = [],
@@ -169,6 +188,9 @@ export function MenuOrder({
   punchCard = null,
 }: Props) {
   const router = useRouter();
+
+  /** Namnuppslaget görs en gång för hela menyn, inte en gång per kort. */
+  const popular = useMemo(() => new Set(popularDishes), [popularDishes]);
 
   const [cart, setCart] = useState<CartLine[]>([]);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
@@ -975,6 +997,7 @@ export function MenuOrder({
                 key={item.id}
                 item={item}
                 labels={labels}
+                popular={popular.has(item.name)}
                 money={money}
                 isOpen={openItemId === item.id}
                 onToggle={() => setOpenItemId(openItemId === item.id ? null : item.id)}
@@ -1060,6 +1083,7 @@ function MenuItemCard({
   item,
   labels,
   allergenLabels,
+  popular,
   money,
   isOpen,
   onToggle,
@@ -1069,6 +1093,8 @@ function MenuItemCard({
   labels: Dictionary["menu"];
   /** Allergenernas namn. Koder i databasen sedan 0071, namn ur ordboken. */
   allergenLabels: Dictionary["allergen"];
+  /** Hör rätten till dem som beställs oftast här? Se migration 0074. */
+  popular: boolean;
   money: (amount: Ore) => string;
   isOpen: boolean;
   onToggle: () => void;
@@ -1172,7 +1198,23 @@ function MenuItemCard({
         aria-expanded={hasOptions ? isOpen : undefined}
         className="card group block w-full overflow-hidden text-left transition-shadow duration-[var(--speed)] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burp-600"
       >
-        <FoodImage src={dishImage(item.name, item.imageUrl)} alt="" ratio="aspect-[4/3]" adjust={item.imageAdjust} />
+        {/*
+          Populärmärket ligger på bilden och inte i texten.
+
+          Det är en upplysning och inte en knapp: gästen som vet vad hon vill
+          ha ska kunna läsa förbi den. Vitt märke, inte rött — rött är
+          handling i den här produkten, och "lägg till" är den enda handlingen
+          på kortet.
+        */}
+        <span className="relative block">
+          <FoodImage src={dishImage(item.name, item.imageUrl)} alt="" ratio="aspect-[4/3]" adjust={item.imageAdjust} />
+          {popular ? (
+            <span className="badge absolute top-3 left-3 bg-[var(--surface)]/90 text-burp-700 backdrop-blur dark:text-burp-300">
+              <TrendingUp size={12} aria-hidden="true" />
+              {labels.popular}
+            </span>
+          ) : null}
+        </span>
 
         <span className="block p-4">
         <span className="flex items-baseline justify-between gap-4">

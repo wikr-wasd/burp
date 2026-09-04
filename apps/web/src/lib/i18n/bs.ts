@@ -373,6 +373,7 @@ export const bs: Dictionary = {
     punchCardRemaining: "Još {n} posjeta do besplatnog obroka",
     punchCardEarned: "Ovaj obrok časti restoran",
     punchCardUse: "Iskoristi karticu vjernosti",
+    popular: "Popularno",
   },
 
   table: {

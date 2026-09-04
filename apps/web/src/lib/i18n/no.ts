@@ -349,6 +349,7 @@ export const no: Dictionary = {
     punchCardRemaining: "{n} besøk igjen til et gratis måltid",
     punchCardEarned: "Dette måltidet spanderer restauranten",
     punchCardUse: "Bruk stempelkortet",
+    popular: "Populær",
   },
 
   table: {

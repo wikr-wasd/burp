@@ -14,6 +14,7 @@ import {
 } from "@/lib/table-session";
 import { MenuOrder } from "@/components/order/menu-order";
 import { GuestLanguagePicker } from "@/components/site/guest-language-picker";
+import { favouriteDishes } from "@/lib/activity";
 import { dictionary, fill, requestLocale, type Dictionary } from "@/lib/i18n";
 
 /**
@@ -157,6 +158,16 @@ export default async function TablePage({ params }: PageProps) {
    */
   const ongoingOrderId = await ongoingTableOrderId(table.restaurantId);
 
+  /*
+   * Vad gästerna beställer oftast här.
+   *
+   * Ytan har högst kvalitetskrav i produkten, och den fråga en gäst vid
+   * bordet faktiskt ställer är "vad ska jag ta?". Menyn svarar på vad som
+   * finns; det här svarar på vad folk väljer. Tom lista när underlaget är för
+   * tunt — då märks ingen rätt alls.
+   */
+  const favourites = await favouriteDishes(table.restaurantId);
+
   return (
     /*
      * `.theme-table` — den enda ytan som följer telefonens mörka läge.
@@ -205,6 +216,7 @@ export default async function TablePage({ params }: PageProps) {
           menu={menu}
           restaurantName={table.restaurantName}
           labels={t.menu}
+          popularDishes={favourites}
           allergenLabels={t.allergen}
           currency={table.currency}
           timeZone={table.timeZone}

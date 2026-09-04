@@ -498,6 +498,7 @@ export default async function RestaurantPage({ params }: PageProps) {
               menu={menu}
               restaurantName={restaurant.name}
               labels={t.menu}
+              popularDishes={favourites}
           allergenLabels={t.allergen}
               currency={restaurant.currency}
               timeZone={timeZone}

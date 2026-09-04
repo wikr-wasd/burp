@@ -461,6 +461,7 @@ export const sv = {
     punchCardRemaining: "{n} besök kvar till en gratis måltid",
     punchCardEarned: "Den här måltiden bjuder restaurangen på",
     punchCardUse: "Använd klippkortet",
+    popular: "Populär",
   },
 
   /** Meddelanden på QR-sidan innan menyn visas. */

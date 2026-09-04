@@ -349,6 +349,7 @@ export const en: Dictionary = {
     punchCardRemaining: "{n} visits to go until a free meal",
     punchCardEarned: "This meal is on the restaurant",
     punchCardUse: "Use the loyalty card",
+    popular: "Popular",
   },
 
   table: {

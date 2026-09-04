@@ -349,6 +349,7 @@ export const de: Dictionary = {
     punchCardRemaining: "Noch {n} Besuche bis zu einer Gratismahlzeit",
     punchCardEarned: "Diese Mahlzeit geht auf das Restaurant",
     punchCardUse: "Treuekarte einlösen",
+    popular: "Beliebt",
   },
 
   table: {
