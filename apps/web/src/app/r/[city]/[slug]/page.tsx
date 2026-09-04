@@ -1,6 +1,5 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { pickLocale } from "@/lib/i18n";
+import { requestLocale } from "@/lib/i18n";
 
 /**
  * `/r/{stad}/{restaurang}` utan språk väljer språk åt besökaren.
@@ -28,7 +27,7 @@ interface PageProps {
 
 export default async function RestaurantLocaleRedirect({ params }: PageProps) {
   const { city, slug } = await params;
-  const locale = pickLocale((await headers()).get("accept-language"));
+  const locale = await requestLocale();
 
   redirect(`/${locale}/r/${city}/${slug}`);
 }

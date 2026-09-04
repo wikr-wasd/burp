@@ -175,6 +175,38 @@ export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && (LOCALES as readonly string[]).includes(value);
 }
 
+
+/**
+ * Kakan som bär gästens EGET språkval.
+ *
+ * `Accept-Language` säger vilket språk telefonen är inställd på, inte vilket
+ * språk gästen vill läsa. En svensk i Sarajevo kan ha en telefon på engelska,
+ * och en gäst som bytt till bosniska på marknadsplatsen ska inte mötas av
+ * engelska när hon skannar QR-koden vid bordet tio minuter senare.
+ *
+ * Kakan är därför starkare än headern, och headern starkare än ingenting:
+ *
+ *   1. gästens val (den här kakan)
+ *   2. `Accept-Language`
+ *   3. svenska
+ *
+ * Den innehåller en av fem kända koder och ingenting annat — inget id, ingen
+ * profil, ingenting som pekar på en person. Den är inte `httpOnly`: det finns
+ * ingenting i den att skydda, och en klientkomponent som vill visa valet ska
+ * kunna läsa det utan ett serveranrop.
+ *
+ * Ett år. Ett språkval är inte en session — den som kommer tillbaka nästa
+ * sommar vill läsa samma språk som förra sommaren.
+ */
+export const LOCALE_COOKIE = "burp_sprak";
+
+export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+/** Kakans värde → språk. Skräp i kakan är inget språkval. */
+export function localeFromCookie(value: string | undefined | null): Locale | null {
+  return isLocale(value) ? value : null;
+}
+
 /**
  * Språk vi inte har en egen ordbok för, men som ska landa rätt ändå.
  *

@@ -1,4 +1,11 @@
-import { DEFAULT_LOCALE, isLocale, pickLocale, type Locale } from "./config";
+import {
+  DEFAULT_LOCALE,
+  isLocale,
+  localeFromCookie,
+  LOCALE_COOKIE,
+  pickLocale,
+  type Locale,
+} from "./config";
 import { bs } from "./bs";
 import { de } from "./de";
 import { en } from "./en";
@@ -80,16 +87,26 @@ export function localePath(locale: Locale, path: string): string {
  * Språket för en yta utan språkprefix i adressen.
  *
  * QR-sidan vid bordet och kvittona är noindex — de ska aldrig hamna i en
- * sökträff, och behöver därför inte en egen URL per språk. De kan i stället
- * läsa `Accept-Language`, alltså det språk gästens telefon redan är inställd
- * på.
+ * sökträff, och behöver därför inte en egen URL per språk.
  *
- * Det är dessutom rätt svar just där: QR-beställning används av turister. En
- * engelsktalande gäst i Sarajevo ska inte mötas av svenska för att produkten
- * råkar vara byggd i Sverige.
+ * Ordningen är gästens val först, telefonens inställning sedan.
+ *
+ * `Accept-Language` ensam räckte inte. Den säger vilket språk telefonen är
+ * inställd på, inte vilket språk gästen vill läsa — och den som bytt språk på
+ * marknadsplatsen möttes ändå av telefonens språk när hon skannade QR-koden
+ * vid bordet. Språket ska följa gästen genom hela plattformen, inte gälla den
+ * sida där hon råkade byta.
+ *
+ * Turisten som inte valt något får ändå rätt: en engelsktalande gäst i
+ * Sarajevo ska inte mötas av svenska för att produkten råkar vara byggd i
+ * Sverige.
  */
 export async function requestLocale(): Promise<Locale> {
-  const { headers } = await import("next/headers");
+  const { cookies, headers } = await import("next/headers");
+
+  const chosen = localeFromCookie((await cookies()).get(LOCALE_COOKIE)?.value);
+  if (chosen) return chosen;
+
   return pickLocale((await headers()).get("accept-language"));
 }
 

@@ -18,6 +18,9 @@ import {
   LOCALE_LABELS,
   LOCALE_TAGS,
   dictionary,
+  localeFromCookie,
+  LOCALE_COOKIE,
+  LOCALE_COOKIE_MAX_AGE,
   localePath,
   pickLocale,
 } from "./index";
@@ -658,6 +661,32 @@ describe("pickLocale", () => {
     expect(pickLocale("fr,it;q=0.8")).toBe(DEFAULT_LOCALE);
     // q=0 betyder uttryckligen "inte det här språket".
     expect(pickLocale("en;q=0")).toBe(DEFAULT_LOCALE);
+  });
+});
+
+describe("localeFromCookie", () => {
+  it("läser ett giltigt språkval", () => {
+    for (const locale of LOCALES) expect(localeFromCookie(locale)).toBe(locale);
+  });
+
+  /*
+   * Kakan kommer från klienten och är därför inte att lita på. Skräp i den är
+   * inget språkval — inte ett fel heller: gästen ska få `Accept-Language` i
+   * stället, aldrig en kraschad sida.
+   */
+  it("ger null för allt annat", () => {
+    expect(localeFromCookie("hr")).toBeNull();
+    expect(localeFromCookie("SV")).toBeNull();
+    expect(localeFromCookie("")).toBeNull();
+    expect(localeFromCookie(undefined)).toBeNull();
+    expect(localeFromCookie(null)).toBeNull();
+  });
+
+  it("håller kakan ett år", () => {
+    // Ett språkval är inte en session. Den som kommer tillbaka nästa sommar
+    // ska läsa samma språk som förra sommaren.
+    expect(LOCALE_COOKIE_MAX_AGE).toBe(60 * 60 * 24 * 365);
+    expect(LOCALE_COOKIE).toBe("burp_sprak");
   });
 });
 

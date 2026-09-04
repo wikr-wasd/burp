@@ -1,6 +1,5 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { localePath, pickLocale } from "@/lib/i18n";
+import { localePath, requestLocale } from "@/lib/i18n";
 
 /**
  * `/anslut` väljer språk och skickar vidare.
@@ -22,6 +21,6 @@ import { localePath, pickLocale } from "@/lib/i18n";
 export const dynamic = "force-dynamic";
 
 export default async function JoinRedirect() {
-  const locale = pickLocale((await headers()).get("accept-language"));
+  const locale = await requestLocale();
   redirect(localePath(locale, "/anslut"));
 }

@@ -13,6 +13,7 @@ import {
   type ClosedRestaurantContext,
 } from "@/lib/table-session";
 import { MenuOrder } from "@/components/order/menu-order";
+import { GuestLanguagePicker } from "@/components/site/guest-language-picker";
 import { dictionary, fill, requestLocale, type Dictionary } from "@/lib/i18n";
 
 /**
@@ -53,7 +54,8 @@ export default async function TablePage({ params }: PageProps) {
    * engelsktalande gäst i Sarajevo ska inte mötas av svenska för att
    * produkten råkar vara byggd i Sverige.
    */
-  const t = dictionary(await requestLocale());
+  const locale = await requestLocale();
+  const t = dictionary(locale);
 
   const requestHeaders = await headers();
   const limit = await rateLimit(`qr:${clientIp(requestHeaders)}`, RATE_LIMITS.qrLookup);
@@ -165,6 +167,18 @@ export default async function TablePage({ params }: PageProps) {
      */
     <div className="theme-table">
       <main className="mx-auto max-w-2xl px-6 py-10">
+        {/*
+          Språkväljaren först på sidan, före allt annat.
+
+          Gästen som inte förstår språket kan inte läsa sig fram till en
+          väljare längre ned — det är precis den situationen hon försöker ta
+          sig ur. Valet skrivs i kakan och gäller sedan hela plattformen:
+          menyn, notan, kvittot och kontot.
+        */}
+        <div className="mb-6 flex justify-end">
+          <GuestLanguagePicker current={locale} label={t.site.language} />
+        </div>
+
         {/* Över menyn och inte i den. Gästen som redan beställt ska se det
             innan hon börjar bläddra — inte upptäcka det längst ned. */}
         {ongoingOrderId ? (

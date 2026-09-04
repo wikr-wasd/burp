@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GuestLanguagePicker } from "@/components/site/guest-language-picker";
 import Link from "next/link";
 import { formatMoney, type OrderStatus } from "@burp/core";
 import { GuestHeader } from "@/components/guest/guest-header";
@@ -102,6 +103,12 @@ export default async function AccountPage() {
                 ? fill(t.account.greeting, { name: guest.fullName.split(" ")[0] ?? guest.fullName })
                 : t.account.greetingNoName}
             </h1>
+          </div>
+
+          {/* Språkvalet står hos gästen och inte bara i adressen. Det gäller
+              hela plattformen — också QR-sidan vid bordet och kvittot. */}
+          <div className="ml-auto shrink-0">
+            <GuestLanguagePicker current={locale} label={t.site.language} />
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { buildCsp, isCachedRoute } from "@/lib/csp";
+import { isLocale, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from "@/lib/i18n/config";
 import { MFA_CHALLENGE_PATH } from "@/lib/mfa-path";
 
 /**
@@ -126,6 +127,32 @@ export default async function proxy(request: NextRequest) {
       redirect.headers.set(CSP_HEADER, csp);
       return redirect;
     }
+  }
+
+  /*
+   * Språkvalet följer med ut ur adressen.
+   *
+   * De indexerade ytorna bär språket i URL:en — `/de/sarajevo`. QR-sidan,
+   * kvittona och `/konto` gör det inte, och läste tidigare bara
+   * `Accept-Language`. Följden var att en gäst som bytt till tyska på
+   * marknadsplatsen ändå fick telefonens språk när hon skannade koden vid
+   * bordet: språket gällde sidan, inte gästen.
+   *
+   * Ett besök på en språkprefixad adress skriver därför valet i kakan, och
+   * `requestLocale()` läser den före headern. Det görs HÄR och inte i sidan
+   * därför att en server component inte får skriva cookies — försöket ger
+   * antingen ett fel eller, värre, en tyst utebliven kaka.
+   *
+   * Bara när värdet faktiskt ändras. En Set-Cookie på varje request gör
+   * svaret omöjligt att cacha i mellanled utan att någon ser varför.
+   */
+  const inPath = path.split("/")[1];
+  if (isLocale(inPath) && request.cookies.get(LOCALE_COOKIE)?.value !== inPath) {
+    response.cookies.set(LOCALE_COOKIE, inPath, {
+      path: "/",
+      maxAge: LOCALE_COOKIE_MAX_AGE,
+      sameSite: "lax",
+    });
   }
 
   /*

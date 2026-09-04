@@ -3,8 +3,8 @@
 De sju frågorna ur arkitekturunderlaget, med status och var i koden svaret ska
 landa. Fråga 8 tillkom när kartsidan byggdes, fråga 9 och 10 när koden mättes
 mot UI-mockuperna, fråga 12 när avräkningen byggdes, fråga 13 när GDPR-flödet
-byggdes, fråga 14 när kortterminalen kom och fråga 15 när William frågade vad
-en makulering ska kosta.
+byggdes, fråga 14 när kortterminalen kom, fråga 15 när William frågade vad
+en makulering ska kosta och fråga 16 när han bad om Airbnbs översättning.
 
 Frågorna är inte formaliteter. Fråga 5 blockerar Fas 1 — utan svar går det inte
 att ta betalt med kort. Fråga 4 kan blockera lanseringen av QR-flödet helt.
@@ -629,6 +629,77 @@ kolumn — `cancelled_at` finns sedan migration 0005.
 
 Hänger ihop med fråga 12: den handlar om samma pengar från andra hållet, när
 måltiden såldes men delvis gavs tillbaka.
+
+---
+
+## 16. Ska restaurangens egen text översättas maskinellt?
+
+**Status:** obesvarad · **Blockerar:** "svenska in, bosniska ut" — inget annat
+
+Frågan kom från William 2026-09-03: *"en svensk är i Bosnien och vill beställa
+mat, då ska allt vara på svenska som sedan översätts till restaurangen. Lite
+som Airbnb gör."*
+
+**Tre delar, och bara en av dem är en fråga.**
+
+**1. Gränssnittet — klart, gratis, gjort.** Fem språk i `lib/i18n/`, och sedan
+2026-09-04 följer gästens val henne genom hela plattformen i stället för att
+gälla den sida där hon bytte. `LOCALE_COOKIE` slås före `Accept-Language`, och
+QR-sidan och kontot har en egen väljare eftersom de saknar `/de/…`-adress.
+
+**2. Allergenerna — klart, och medvetet INTE maskinöversatta.** De blev koder
+2026-09-03 (migration 0071). En maskin som gissar fel på "nötter" ger ett svar
+man inte vill ge en allergiker; vår egen ordbok gissar aldrig.
+
+**3. Restaurangens egen text — det här är frågan.** Rättnamn, beskrivningar,
+zonnamn, etiketten "Bašta" på planritningen. Och åt andra hållet: gästens
+meddelande till köket, som i dag når en kock som kanske inte läser svenska.
+
+CLAUDE.md säger i dag att restaurangens text står kvar som den skrivits. Det är
+inte en teknisk begränsning utan ett ställningstagande, och det är det som
+frågan handlar om att ändra.
+
+### Vad det kostar, och varför det inte finns en gratisväg
+
+Det finns ingen översättningsmotor som kan köras inuti Next-appen. Något
+tredjepartsanrop krävs, alltså ett konto, en nyckel och en gräns.
+
+| Väg | Vad den kostar | Vad som talar emot |
+|---|---|---|
+| **A. Google Cloud Translation** | 500 000 tecken/månad gratis, därefter ca 20 USD per miljon tecken | Kräver ett Google Cloud-konto med kort registrerat |
+| **B. DeepL API Free** | 500 000 tecken/månad gratis | **Språkstödet måste kontrolleras först** — bosniska och serbiska saknades senast jag såg listan, och då är vägen värdelös här |
+| **C. LibreTranslate i egen drift** | Programvaran är gratis, servern är det inte (~5–10 USD/mån) | Kvaliteten på bs/hr/sr är märkbart sämre. En dålig översättning av ett rättnamn är en felbeställning |
+| **D. Ingen maskin. Restaurangen skriver själv ett andra språk** | 0 | Kräver arbete av restaurangen, och de flesta gör det inte |
+
+### Vad volymen faktiskt är
+
+Det här är poängen: **menytext ändras nästan aldrig.** En meny på 60 rätter är
+ungefär 6 000 tecken. Fyra målspråk ger 24 000 tecken per restaurang — en
+engångskostnad. Hundra restauranger ryms alltså i en enda gratismånad hos A.
+
+Det som är löpande är gästens meddelande till köket: ett par hundra tecken per
+order, och bara när gästens språk skiljer sig från restaurangens.
+
+### Rekommendation
+
+**A, med översättningen CACHAD i databasen och originalet alltid kvar.**
+
+- En tabell `translations (source_table, source_id, field, locale, text,
+  source_hash)`. `source_hash` gör att en ändrad rätt översätts om — och bara
+  då. Utan den hashen ligger gammal text kvar och ingen ser det.
+- Översättningen märks ut i gränssnittet, som hos Airbnb: "Översatt
+  automatiskt" med originalet ett klick bort. En gäst ska veta vem som skrev
+  orden hon läser.
+- **Aldrig** allergener (koder), **aldrig** priser, **aldrig** restaurangens
+  namn.
+- Gästens meddelande till köket översätts vid beställningen och sparas
+  BREDVID originalet på ordern. Köket ser båda; det översatta är en hjälp och
+  inte ett facit.
+- Faller anropet: originaltexten visas. En sida utan översättning är en liten
+  förlust, en sida som inte laddar är en beställning som uteblir.
+
+Vill du ha nolla i kostnad blir svaret D, och då ska det synas i
+restaurangens redigerare som ett andra textfält per språk — inte som tystnad.
 
 ---
 
