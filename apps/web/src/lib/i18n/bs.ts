@@ -1200,6 +1200,16 @@ export const bs: Dictionary = {
       presentationSaved: "Spremljeno. Izmjene se vide na vašoj stranici u roku od sat vremena.",
       cuisinesPlaceholder: "Roštilj, bosanska",
       mapLinkPlaceholder: "https://maps.google.com/… ili 43.8595, 18.4287",
+      challengeStep: "Drugi korak",
+      challengeTitle: "Potvrdite",
+      challengeIntro: "Otvorite aplikaciju za autentifikaciju i upišite šestocifreni kod za Burp.",
+      challengeCode: "Jednokratni kod",
+      challengeSubmit: "Potvrdi",
+      challengeSubmitting: "Potvrđuje se…",
+      challengeNoFactor: "Na računu nije registrovan drugi faktor. Osvježite stranicu.",
+      challengeWrongCode: "Kod se ne poklapa. Provjerite da li sat na telefonu ide tačno i pokušajte ponovo.",
+      challengeLost: "Promijenili ste telefon i više nemate kod? Javite se Burpu — možemo ukloniti drugi faktor, i to se bilježi.",
+      challengeLogOut: "Odjava",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */

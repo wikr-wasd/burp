@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { Dictionary } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { loginDestination } from "@/app/logga-in/actions";
 import { createClient } from "@/lib/supabase/client";
@@ -16,7 +17,14 @@ import { createClient } from "@/lib/supabase/client";
  * Sidan bakom är en serverkomponent som redan vet att det FINNS en faktor, men
  * inte vilken: id:t ligger i Supabase auth och inte i något av våra scheman.
  */
-export function ChallengeForm({ next }: { next?: string }) {
+export function ChallengeForm({
+  next,
+  labels,
+}: {
+  next?: string;
+  /** Texterna, färdigvalda av sidan. Rena strängar — komponenten är klientkod. */
+  labels: Dictionary["staff"]["settings"];
+}) {
   const router = useRouter();
 
   const [code, setCode] = useState("");
@@ -37,7 +45,7 @@ export function ChallengeForm({ next }: { next?: string }) {
     const factor = factors?.totp?.[0];
 
     if (listError || !factor) {
-      setError("Ingen andra faktor är registrerad på kontot. Ladda om sidan.");
+      setError(labels.challengeNoFactor);
       setSubmitting(false);
       return;
     }
@@ -51,7 +59,7 @@ export function ChallengeForm({ next }: { next?: string }) {
       // Koden gäller i ett kort fönster. Den vanligaste orsaken till att en
       // riktig kod avvisas är att telefonens klocka gått isär, och det är värt
       // att säga — annars provar man samma sak igen.
-      setError("Koden stämmer inte. Kontrollera att telefonens klocka går rätt och försök igen.");
+      setError(labels.challengeWrongCode);
       setCode("");
       setSubmitting(false);
       return;
@@ -66,7 +74,7 @@ export function ChallengeForm({ next }: { next?: string }) {
   return (
     <form onSubmit={handleSubmit} className="mt-10 space-y-7">
       <label className="block">
-        <span className="label-caps">Engångskod</span>
+        <span className="label-caps">{labels.challengeCode}</span>
         <input
           type="text"
           value={code}
@@ -100,7 +108,7 @@ export function ChallengeForm({ next }: { next?: string }) {
         disabled={submitting || code.trim().length < 6}
         className="btn btn-primary w-full"
       >
-        {submitting ? "Verifierar…" : "Verifiera"}
+        {submitting ? labels.challengeSubmitting : labels.challengeSubmit}
       </button>
     </form>
   );

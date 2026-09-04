@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
- * Letar efter text som står SKRIVEN i personalytorna i stället för i ordboken.
+ * Letar efter text som står SKRIVEN i gränssnittet i stället för i ordboken.
  *
  * Personalytorna följer personens eget språk — `staff.locale`, migration 0047.
+ * Gästytorna följer adressen eller gästens val. Ingen av dem följer en sträng
+ * som står i JSX:en.
  * En sträng som står i JSX:en gör inte det, och följden är en sida där
  * brödtexten är bosniska men rubriken svenska. Det syns aldrig i en diff och
  * aldrig för den som utvecklar på svenska.
@@ -32,9 +34,30 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOTS = [
+  // Personalytorna: följer personens eget språk, `staff.locale`.
   "apps/web/src/app/dashboard",
   "apps/web/src/app/kok",
   "apps/web/src/components/staff",
+
+  /*
+   * Gästytorna: språket står i adressen på de indexerade sidorna och i kakan
+   * på QR-sidan, kvittot och kontot. En hårdkodad sträng här möter en
+   * betalande gäst — och det var på den YTA marknaden finns.
+   *
+   * Svepet 2026-09-04 gav tre träffar, alla på tvåstegsverifieringen: steget
+   * en restaurangägare i Sarajevo måste passera varje gång hen loggar in stod
+   * i sin helhet på svenska, felmeddelandena inräknade.
+   */
+  "apps/web/src/app/[locale]",
+  "apps/web/src/app/t",
+  "apps/web/src/app/konto",
+  "apps/web/src/app/bokning",
+  "apps/web/src/app/logga-in",
+  "apps/web/src/app/skapa-konto",
+  "apps/web/src/components/order",
+  "apps/web/src/components/site",
+  "apps/web/src/components/guest",
+  "apps/web/src/components/discovery",
 ];
 
 /** Attribut vars strängvärde blir text någon läser. */
@@ -87,7 +110,7 @@ for (const root of ROOTS) {
 
 if (findings.length === 0) {
   const files = ROOTS.map((root) => walk(root).length).reduce((a, b) => a + b, 0);
-  console.log(`${files} filer i personalytorna — all text kommer ur ordboken.`);
+  console.log(`${files} filer i gränssnittet — all text kommer ur ordboken.`);
   process.exit(0);
 }
 

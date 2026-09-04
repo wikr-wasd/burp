@@ -1552,6 +1552,16 @@ export const sv = {
       presentationSaved: "Sparat. Ändringarna syns på din sida inom en timme.",
       cuisinesPlaceholder: "Grill, Bosniskt",
       mapLinkPlaceholder: "https://maps.google.com/… eller 43.8595, 18.4287",
+      challengeStep: "Steg två",
+      challengeTitle: "Verifiera",
+      challengeIntro: "Öppna din autentiseringsapp och skriv in den sexsiffriga koden för Burp.",
+      challengeCode: "Engångskod",
+      challengeSubmit: "Verifiera",
+      challengeSubmitting: "Verifierar…",
+      challengeNoFactor: "Ingen andra faktor är registrerad på kontot. Ladda om sidan.",
+      challengeWrongCode: "Koden stämmer inte. Kontrollera att telefonens klocka går rätt och försök igen.",
+      challengeLost: "Har du bytt telefon och inte längre tillgång till koden? Kontakta Burp — vi kan ta bort din andra faktor, och det loggas.",
+      challengeLogOut: "Logga ut",
     },
 
     /**

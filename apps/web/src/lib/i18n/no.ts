@@ -1164,6 +1164,16 @@ export const no: Dictionary = {
       presentationSaved: "Lagret. Endringene vises på siden deres innen en time.",
       cuisinesPlaceholder: "Grill, bosnisk",
       mapLinkPlaceholder: "https://maps.google.com/… eller 43.8595, 18.4287",
+      challengeStep: "Steg to",
+      challengeTitle: "Bekreft",
+      challengeIntro: "Åpne autentiseringsappen og skriv inn den sekssifrede koden for Burp.",
+      challengeCode: "Engangskode",
+      challengeSubmit: "Bekreft",
+      challengeSubmitting: "Bekrefter…",
+      challengeNoFactor: "Ingen andre faktor er registrert på kontoen. Last inn siden på nytt.",
+      challengeWrongCode: "Koden stemmer ikke. Sjekk at klokken på telefonen går riktig, og prøv igjen.",
+      challengeLost: "Har du byttet telefon og mistet koden? Ta kontakt med Burp — vi kan fjerne den andre faktoren, og det logges.",
+      challengeLogOut: "Logg ut",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */

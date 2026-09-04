@@ -5,7 +5,7 @@ import { needsMfaChallenge } from "@/lib/mfa";
 import { safeNext } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site/site-header";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { dictionary, requestLocale } from "@/lib/i18n";
 import { ChallengeForm } from "./challenge-form";
 
 /**
@@ -49,24 +49,31 @@ export default async function ChallengePage({ searchParams }: PageProps) {
    */
   if (!(await needsMfaChallenge())) redirect(safeNext(next) ?? "/dashboard");
 
+  /*
+   * Språket läses som på inloggningssidan: gästens val först,
+   * `Accept-Language` sedan. Personens `staff.locale` finns i databasen men
+   * hämtas INTE här — sessionen är ännu inte uppgraderad till aal2, och en
+   * fråga mot `staff` i det läget är en fråga vi inte ska behöva ställa för
+   * att kunna skriva ut "Steg två".
+   */
+  const t = dictionary(await requestLocale()).staff.settings;
+  const locale = await requestLocale();
+
   return (
     <>
-      <SiteHeader locale={DEFAULT_LOCALE} />
+      <SiteHeader locale={locale} />
 
       <main className="mx-auto w-full max-w-sm px-6 py-20 sm:py-28">
-        <p className="label-caps">Steg två</p>
-        <h1 className="font-display mt-2 text-4xl">Verifiera</h1>
-        <p className="mt-3 text-[var(--muted)]">
-          Öppna din autentiseringsapp och skriv in den sexsiffriga koden för Burp.
-        </p>
+        <p className="label-caps">{t.challengeStep}</p>
+        <h1 className="font-display mt-2 text-4xl">{t.challengeTitle}</h1>
+        <p className="mt-3 text-[var(--muted)]">{t.challengeIntro}</p>
 
-        <ChallengeForm next={safeNext(next)} />
+        <ChallengeForm next={safeNext(next)} labels={t} />
 
         <p className="mt-10 text-sm text-[var(--muted)]">
-          Har du bytt telefon och inte längre tillgång till koden? Kontakta Burp
-          — vi kan ta bort din andra faktor, och det loggas.{" "}
+          {t.challengeLost}{" "}
           <Link href="/logga-ut" className="link">
-            Logga ut
+            {t.challengeLogOut}
           </Link>
         </p>
       </main>

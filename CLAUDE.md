@@ -106,7 +106,7 @@ npm run db:types:remote    # …ur molnet, när SUPABASE_PROJECT_ID finns
 npm run db:types:check     # faller om filen är ur takt — kör den efter en migration
 
 npm run check:service-role # varje fråga förbi RLS smalnar av sig själv
-npm run check:staff-strings # personalytornas text kommer ur ordboken, inte ur JSX:en
+npm run check:ui-strings   # all text kommer ur ordboken, inte ur JSX:en
 npm run audit:prod         # sårbarheter i det som LEVERERAS, inte i vercel-CLI:t
 
 node scripts/print-qr-links.mjs   # QR-länkar för seed-borden
