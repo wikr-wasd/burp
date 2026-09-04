@@ -1912,6 +1912,8 @@ export const sv = {
         "Ett presentkort är förbetalt värde hos er. Det går att använda flera gånger tills det är slut, och resten ligger kvar till nästa besök.",
       block: "Spärra",
       unblock: "Öppna igen",
+      tipChoice: "Vanligast: {choice} · {n} av {total}",
+      tipChoiceOwn: "eget belopp",
     },
 
     /**

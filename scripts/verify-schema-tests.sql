@@ -2210,6 +2210,55 @@ begin
 end
 $$;
 
+\echo '   dricksvalet sparas, och släppt dricks räknas inte'
+
+do $$
+declare
+  v_rest  uuid := '11111111-1111-1111-1111-111111111111';
+  v_order uuid;
+  v_rows  integer;
+begin
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore, tip_ore)
+  values (v_rest, 'PICKUP', 'COMPLETED', gen_random_uuid(), 1540, 140)
+  returning id into v_order;
+
+  insert into public.tips (order_id, restaurant_id, amount_ore, chosen_as, chosen_bps)
+  values (v_order, v_rest, 140, 'PERCENT', 1000);
+
+  select tips into v_rows
+  from public.restaurant_tip_choices(v_rest, now() - interval '1 hour', now() + interval '1 hour')
+  where chosen_bps = 1000;
+
+  if v_rows is distinct from 1 then
+    raise exception 'FEL: dricksvalet syntes inte i rapporten';
+  end if;
+
+  /*
+   * Släppt dricks är personalens pengar som gick tillbaka när ordern avbröts
+   * (migration 0040). Den hör inte hemma i en fråga om vad gästerna VÄLJER —
+   * regel 8: bara dricks personalen faktiskt fick räknas.
+   */
+  update public.tips set released_at = now() where order_id = v_order;
+
+  select count(*) into v_rows
+  from public.restaurant_tip_choices(v_rest, now() - interval '1 hour', now() + interval '1 hour')
+  where chosen_bps = 1000;
+
+  if v_rows <> 0 then
+    raise exception 'FEL: släppt dricks räknades som ett dricksval';
+  end if;
+
+  -- Ett okänt val finns inte: kolumnen är begränsad till de två formerna.
+  begin
+    insert into public.tips (order_id, restaurant_id, amount_ore, chosen_as)
+    values (v_order, v_rest, 100, 'GISSNING');
+    raise exception 'FEL: ett okänt dricksval accepterades';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
 \echo '   inredningen hör till sin egen ritning'
 
 do $$

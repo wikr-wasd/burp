@@ -1495,6 +1495,8 @@ export const en: Dictionary = {
         "A gift card is prepaid value with you. It can be used several times until it runs out, and the rest waits for the next visit.",
       block: "Block",
       unblock: "Unblock",
+      tipChoice: "Most common: {choice} · {n} of {total}",
+      tipChoiceOwn: "own amount",
     },
 
     /* Se sv.ts. Skickas som result.message — aldrig som objekt. */

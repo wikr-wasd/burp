@@ -1535,6 +1535,8 @@ export const bs: Dictionary = {
         "Poklon kartica je unaprijed plaćena vrijednost kod vas. Može se koristiti više puta dok se ne potroši, a ostatak čeka sljedeći dolazak.",
       block: "Blokiraj",
       unblock: "Otključaj",
+      tipChoice: "Najčešće: {choice} · {n} od {total}",
+      tipChoiceOwn: "vlastiti iznos",
     },
 
     /* Se sv.ts. Skickas som result.message — aldrig som objekt. */

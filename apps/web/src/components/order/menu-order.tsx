@@ -665,6 +665,9 @@ export function MenuOrder({
           type: context.kind,
           ...(context.kind === "TABLE" ? { table_token: context.tableToken } : {}),
           tip_ore: tipOre,
+          // VAD gästen tryckte på, inte bara vad det blev. Servern kontrollerar
+          // att satsen och beloppet hör ihop innan den sparas — se 0077.
+          ...(tipBps > 0 ? { tip_bps: tipBps } : {}),
           ...(scheduledFor ? { scheduled_for: scheduledFor } : {}),
           client_total_ore: totals.totalOre,
           ...(orderNote.trim() ? { note: orderNote.trim() } : {}),

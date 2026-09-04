@@ -8,6 +8,7 @@ import {
   DEFAULT_FEE_BASE,
   GIFT_CARD_PROBLEM_MESSAGES,
   punchCardReward,
+  roundHalfEven,
   parseOpeningHours,
   parseOrderPolicy,
   PriceMismatchError,
@@ -350,6 +351,15 @@ export async function POST(request: Request) {
       delivery_fee_ore: totals.deliveryFeeOre,
       discount_ore: totals.discountOre,
       tip_ore: totals.tipOre,
+      /*
+       * Hur gästen valde dricksen, inte bara vad den blev.
+       *
+       * Satsen sparas BARA om den stämmer med beloppet. Klienten räknar med
+       * `roundHalfEven` på samma underlag, så en avvikelse betyder att de två
+       * inte hör ihop — och då är "gästen valde 10 %" ett påstående vi inte
+       * kan stå för. Ett belopp är alltid sant.
+       */
+      ...tipChoice(totals.tipOre, totals.itemsGrossOre, input.tip_bps),
       total_ore: totals.totalOre,
       fee_base: fee.base,
       fee_bps: fee.bps,
@@ -637,4 +647,27 @@ function problem(
     { title, detail, status, ...extra },
     { status, headers: { "Cache-Control": "no-store", ...headers } },
   );
+}
+
+/**
+ * Dricksvalet, om sats och belopp hör ihop.
+ *
+ * Kolumnerna finns sedan migration 0006 och skrevs av ingen förrän 0077.
+ * Skälet att kontrollera i stället för att lita på klienten är detsamma som
+ * för priserna: det som lagras ska gå att stå för. Skillnaden är att ett fel
+ * här inte avbryter ordern — dricksen är riktig oavsett vilken knapp som
+ * trycktes, och en gäst ska inte nekas för att en metadatarad inte gick ihop.
+ */
+function tipChoice(
+  tipOre: number,
+  itemsGrossOre: number,
+  bps: number | undefined,
+): { tip_chosen_as: string; tip_chosen_bps?: number } {
+  if (!bps || tipOre <= 0) return { tip_chosen_as: "AMOUNT" };
+
+  const expected = roundHalfEven((itemsGrossOre * bps) / 10_000);
+
+  return expected === tipOre
+    ? { tip_chosen_as: "PERCENT", tip_chosen_bps: bps }
+    : { tip_chosen_as: "AMOUNT" };
 }

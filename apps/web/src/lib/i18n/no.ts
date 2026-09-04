@@ -1498,6 +1498,8 @@ export const no: Dictionary = {
         "Et gavekort er forhåndsbetalt verdi hos dere. Det kan brukes flere ganger til det er tomt, og resten blir liggende til neste besøk.",
       block: "Sperr",
       unblock: "Åpne igjen",
+      tipChoice: "Vanligst: {choice} · {n} av {total}",
+      tipChoiceOwn: "eget beløp",
     },
 
     /* Se sv.ts. Skickas som result.message — aldrig som objekt. */

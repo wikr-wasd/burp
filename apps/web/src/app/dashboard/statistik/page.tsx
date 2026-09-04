@@ -5,8 +5,8 @@ import { formatMoney } from "@burp/core";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
-import { dictionary } from "@/lib/i18n";
-import { getStatistics, isPeriodKey, periodFor, PERIODS, type PeriodKey } from "@/lib/statistics";
+import { dictionary, fill, type Dictionary } from "@/lib/i18n";
+import { getStatistics, isPeriodKey, periodFor, PERIODS, type PeriodKey, type TipChoice } from "@/lib/statistics";
 
 /**
  * Statistik och ekonomi (avsnitt 11).
@@ -112,7 +112,13 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
               <Stat
           label={t.reports.tips}
           value={formatMoney(summary.tipsOre, staff.currency)}
-          hint={t.reports.tipsToStaff}
+          /*
+            Vad gästerna faktiskt tryckte på, när det finns något att säga.
+            Restaurangen väljer själv vilka dricksknappar som visas, och det
+            här är svaret på om någon använder dem. Faller tillbaka på vem
+            pengarna tillhör när ingen gett dricks än.
+          */
+          hint={tipHint(stats.tipChoices, t.reports) ?? t.reports.tipsToStaff}
         />
             </section>
 
@@ -271,4 +277,26 @@ function formatDuration(seconds: number): string {
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `${minutes} min`;
   return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
+
+/**
+ * Det vanligaste dricksvalet, som en rad.
+ *
+ * Null när ingen dricks getts i perioden — då står "går till personalen"
+ * kvar, vilket är det viktigaste att veta om siffran ändå.
+ */
+function tipHint(
+  choices: TipChoice[],
+  labels: Dictionary["staff"]["reports"],
+): string | null {
+  const total = choices.reduce((sum, choice) => sum + choice.tips, 0);
+  const top = choices[0];
+
+  if (!top || total === 0) return null;
+
+  return fill(labels.tipChoice, {
+    choice: top.chosenBps === null ? labels.tipChoiceOwn : `${top.chosenBps / 100} %`,
+    n: top.tips,
+    total,
+  });
 }

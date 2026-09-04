@@ -94,6 +94,16 @@ export const createOrderSchema = z
     table_token: qrTokenSchema.optional(),
     items: z.array(orderItemInputSchema).min(1).max(100),
     tip_ore: oreSchema.default(0),
+    /**
+     * Vilken procentsats gästen tryckte på, i baspunkter. 1000 = 10 %.
+     *
+     * Valfri, och aldrig ett pris: beloppet står i `tip_ore` och kontrolleras
+     * mot den här satsen på servern. Stämmer de inte lagras valet som ett
+     * belopp, vilket är sanningen — se migration 0077.
+     *
+     * Utelämnas när gästen skrev ett eget belopp eller inte gav dricks.
+     */
+    tip_bps: z.int().min(0).max(10000).optional(),
     note: z.string().max(500).optional(),
     /** ISO 8601. Kräver att restaurangen tillåter schemalagda order. */
     scheduled_for: z.iso.datetime({ offset: true }).optional(),

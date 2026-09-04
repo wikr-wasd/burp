@@ -3753,6 +3753,14 @@ export type Database = {
           zone: string
         }[]
       }
+      restaurant_tip_choices: {
+        Args: { p_from: string; p_restaurant_id: string; p_to: string }
+        Returns: {
+          amount_ore: number
+          chosen_bps: number
+          tips: number
+        }[]
+      }
       restaurant_tips_summary: {
         Args: { p_from: string; p_restaurant_id: string; p_to: string }
         Returns: {

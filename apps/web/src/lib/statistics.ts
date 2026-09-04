@@ -36,6 +36,19 @@ export interface TopItem {
   grossOre: number;
 }
 
+/**
+ * Vad gästerna tryckte på när de gav dricks.
+ *
+ * `chosenBps` är null när gästen skrev ett eget belopp. Rader finns bara för
+ * dricks som faktiskt hör personalen till — släppt dricks (avbruten eller
+ * återbetald order) räknas inte, av samma skäl som i regel 8.
+ */
+export interface TipChoice {
+  chosenBps: number | null;
+  tips: number;
+  amountOre: number;
+}
+
 export interface TableRevenue {
   tableNumber: string;
   zone: string | null;
@@ -58,6 +71,7 @@ export interface Statistics {
   summary: RevenueSummary;
   topItems: TopItem[];
   tableRevenue: TableRevenue[];
+  tipChoices: TipChoice[];
   prepTimes: PrepTimes;
   vat: VatLine[];
 }
@@ -81,14 +95,15 @@ export async function getStatistics(restaurantId: string, period: Period): Promi
     p_to: period.to.toISOString(),
   };
 
-  // Fem oberoende frågor, alltså parallellt. I följd blir sidladdningen fem
+  // Sex oberoende frågor, alltså parallellt. I följd blir sidladdningen fem
   // rundturer lång utan att någon av dem behöver den föregåendes svar.
-  const [summary, topItems, tableRevenue, prepTimes, vat] = await Promise.all([
+  const [summary, topItems, tableRevenue, prepTimes, vat, tipChoices] = await Promise.all([
     supabase.rpc("restaurant_revenue_summary", args),
     supabase.rpc("restaurant_top_items", { ...args, p_limit: 10 }),
     supabase.rpc("restaurant_table_revenue", args),
     supabase.rpc("restaurant_prep_times", args),
     supabase.rpc("restaurant_vat_breakdown", args),
+    supabase.rpc("restaurant_tip_choices", args),
   ]);
 
   // Postgres returnerar `bigint` som sträng i JSON — ett tal över 2^53 kan
@@ -114,6 +129,12 @@ export async function getStatistics(restaurantId: string, period: Period): Promi
       name: String(row["name"]),
       quantity: Number(row["quantity"] ?? 0),
       grossOre: Number(row["gross_ore"] ?? 0),
+    })),
+
+    tipChoices: rows(tipChoices.data).map((row) => ({
+      chosenBps: row["chosen_bps"] === null ? null : Number(row["chosen_bps"]),
+      tips: Number(row["tips"] ?? 0),
+      amountOre: Number(row["amount_ore"] ?? 0),
     })),
 
     tableRevenue: rows(tableRevenue.data).map((row) => ({

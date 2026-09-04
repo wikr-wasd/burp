@@ -1511,6 +1511,8 @@ export const de: Dictionary = {
         "Ein Gutschein ist vorausbezahlter Wert bei Ihnen. Er lässt sich mehrfach nutzen, bis er aufgebraucht ist, und der Rest wartet auf den nächsten Besuch.",
       block: "Sperren",
       unblock: "Wieder öffnen",
+      tipChoice: "Am häufigsten: {choice} · {n} von {total}",
+      tipChoiceOwn: "eigener Betrag",
     },
 
     /* Se sv.ts. Skickas som result.message — aldrig som objekt. */
