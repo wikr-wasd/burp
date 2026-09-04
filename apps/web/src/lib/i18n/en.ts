@@ -58,6 +58,7 @@ export const en: Dictionary = {
     rating: "{rating} average from {n} reviews",
     ago: "{n} min ago",
     justNow: "just now",
+    popular: "Popular this week",
   },
 
   /* The map page, /upptack. */
@@ -266,6 +267,8 @@ export const en: Dictionary = {
     serviceRating: "Service rating",
     ratingOutOf: "{n} out of 5",
     restaurantReply: "Reply from the restaurant",
+    guestFavourites: "Guest favourites",
+    guestFavouritesHint: "Ordered most often here over the past month.",
   },
 
   menu: {

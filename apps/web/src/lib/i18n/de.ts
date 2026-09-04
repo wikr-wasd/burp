@@ -58,6 +58,7 @@ export const de: Dictionary = {
     rating: "{rating} im Schnitt aus {n} Bewertungen",
     ago: "vor {n} Min.",
     justNow: "gerade eben",
+    popular: "Diese Woche gefragt",
   },
 
   discover: {
@@ -265,6 +266,8 @@ export const de: Dictionary = {
     serviceRating: "Bewertung des Service",
     ratingOutOf: "{n} von 5",
     restaurantReply: "Antwort des Restaurants",
+    guestFavourites: "Beliebt bei Gästen",
+    guestFavouritesHint: "Was hier im letzten Monat am häufigsten bestellt wurde.",
   },
 
   menu: {

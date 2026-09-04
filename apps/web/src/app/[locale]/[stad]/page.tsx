@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { popularRestaurantIds } from "@/lib/activity";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listCities, listCuisines, searchRestaurants } from "@/lib/discovery";
@@ -63,9 +64,16 @@ export default async function CityPage({ params }: PageProps) {
 
   if (!city) notFound();
 
-  const [restaurants, cuisines] = await Promise.all([
+  const [restaurants, cuisines, popularIds] = await Promise.all([
     searchRestaurants({ city: city.slug }),
     listCuisines(city.slug),
+
+    /*
+     * Veckans mest beställda. Samma märkning som startsidan sätter, och samma
+     * funktion bakom — ett kort får inte säga "populär" i en lista och tiga i
+     * en annan.
+     */
+    popularRestaurantIds(),
   ]);
 
   const url = new URL(`/${city.slug}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString();
@@ -135,7 +143,11 @@ export default async function CityPage({ params }: PageProps) {
         ) : null}
 
         
-        <CityRestaurantList locale={locale} restaurants={restaurants} />
+        <CityRestaurantList
+          locale={locale}
+          restaurants={restaurants}
+          popularIds={popularIds}
+        />
       </main>
 
       <SiteFooter locale={locale} path={`/${city.slug}`} />

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TrendingUp } from "lucide-react";
 import {
   availableSlots,
   checkAccentColor,
@@ -13,6 +14,7 @@ import {
   type CountryCode,
   type CurrencyCode,
 } from "@burp/core";
+import { favouriteDishes } from "@/lib/activity";
 import { FoodImage } from "@/components/media/food-image";
 import { MenuOrder } from "@/components/order/menu-order";
 import { BookingForm } from "@/components/site/booking-form";
@@ -206,6 +208,16 @@ export default async function RestaurantPage({ params }: PageProps) {
    * gästen. Tom lista när förbeställning är avstängd; då visas ingen väljare.
    */
   const reviews = await getPublicReviews(restaurant.id);
+
+  /*
+   * Vad gästerna faktiskt beställer här.
+   *
+   * Menyn säger vad stället erbjuder; det här säger vad folk väljer, vilket är
+   * en annan och för en ny gäst mer användbar uppgift. Namn, aldrig antal —
+   * hur många order stället har är dess egen affär (migration 0074). Tom
+   * lista när underlaget är för tunt, och då ritas avsnittet inte alls.
+   */
+  const favourites = await favouriteDishes(restaurant.id);
 
   const policy = parseOrderPolicy(restaurant.order_policy);
   const pickupSlots = policy.allowScheduledOrders
@@ -459,6 +471,24 @@ export default async function RestaurantPage({ params }: PageProps) {
           />
         </section>
       ) : null}
+
+        {favourites.length > 0 ? (
+          <section className="mt-14">
+            <h2 className="font-display text-2xl">{t.restaurant.guestFavourites}</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {t.restaurant.guestFavouritesHint}
+            </p>
+
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {favourites.map((dish) => (
+                <li key={dish} className="badge bg-[var(--surface)] text-[var(--foreground)]">
+                  <TrendingUp size={12} aria-hidden="true" className="text-burp-600" />
+                  {dish}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         {menu && menu.categories.length > 0 ? (
         <section id="meny" className="mt-16">

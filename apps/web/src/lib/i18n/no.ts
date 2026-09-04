@@ -60,6 +60,7 @@ export const no: Dictionary = {
     rating: "{rating} i snitt fra {n} omtaler",
     ago: "for {n} min siden",
     justNow: "nettopp",
+    popular: "Populær denne uken",
   },
 
   discover: {
@@ -267,6 +268,8 @@ export const no: Dictionary = {
     serviceRating: "Vurdering av servicen",
     ratingOutOf: "{n} av 5",
     restaurantReply: "Svar fra restauranten",
+    guestFavourites: "Gjestenes favoritter",
+    guestFavouritesHint: "Det som er bestilt oftest her den siste måneden.",
   },
 
   menu: {

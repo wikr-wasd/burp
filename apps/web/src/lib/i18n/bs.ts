@@ -80,6 +80,7 @@ export const bs: Dictionary = {
     rating: "{rating} prosječno iz {n} ocjena",
     ago: "prije {n} min",
     justNow: "upravo sad",
+    popular: "Popularno ove sedmice",
   },
 
   discover: {
@@ -291,6 +292,8 @@ export const bs: Dictionary = {
     serviceRating: "Ocjena usluge",
     ratingOutOf: "{n} od 5",
     restaurantReply: "Odgovor restorana",
+    guestFavourites: "Favoriti gostiju",
+    guestFavouritesHint: "Ono što se ovdje najčešće naručivalo u posljednjih mjesec dana.",
   },
 
   menu: {

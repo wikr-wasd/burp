@@ -1955,6 +1955,79 @@ begin
 end
 $$;
 
+\echo '   populärmärkningen kräver ett bottental, och röjer aldrig antalet'
+
+do $$
+declare
+  v_zeljo uuid := '11111111-1111-1111-1111-111111111111';
+  v_item  uuid;
+  v_name  text;
+  v_order uuid;
+  v_hit   boolean;
+  v_rows  integer;
+begin
+  select id, name into v_item, v_name
+  from public.menu_items
+  where restaurant_id = v_zeljo and is_available and status = 'PUBLISHED'
+  limit 1;
+
+  if v_item is null then
+    raise exception 'FEL: seeden har ingen publicerad rätt att räkna på';
+  end if;
+
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_zeljo, 'PICKUP', 'COMPLETED', gen_random_uuid(), 1200)
+  returning id into v_order;
+
+  insert into public.order_items
+    (order_id, restaurant_id, menu_item_id, name_snapshot, unit_price_ore, vat_rate_bps,
+     quantity, line_gross_ore)
+  values (v_order, v_zeljo, v_item, v_name, 1200, 1700, 1, 1200);
+
+  -- Ett bottental på hundra: en enda order räcker inte till en märkning.
+  select exists (select 1 from public.popular_restaurant_ids(7, 100, 10) as id where id = v_zeljo)
+    into v_hit;
+  if v_hit then
+    raise exception 'FEL: populärmärkningen delades ut under bottentalet';
+  end if;
+
+  select exists (select 1 from public.popular_restaurant_ids(7, 1, 10) as id where id = v_zeljo)
+    into v_hit;
+  if not v_hit then
+    raise exception 'FEL: den mest beställda restaurangen märktes inte';
+  end if;
+
+  -- Favoritlistan har sitt eget bottental, av samma skäl: tre slumpar är
+  -- inget mönster.
+  select count(*) into v_rows
+  from public.restaurant_favourite_dishes(v_zeljo, 3, 30, 100);
+  if v_rows <> 0 then
+    raise exception 'FEL: favoritlistan visades under bottentalet';
+  end if;
+
+  select count(*) into v_rows
+  from public.restaurant_favourite_dishes(v_zeljo, 3, 30, 1);
+  if v_rows = 0 then
+    raise exception 'FEL: favoritlistan var tom trots beställningar';
+  end if;
+
+  -- Som anonym besökare: funktionerna svarar, orderraderna gör det inte.
+  execute 'set local role anon';
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  perform public.popular_restaurant_ids();
+  perform public.restaurant_favourite_dishes(v_zeljo);
+
+  select count(*) into v_rows from public.order_items;
+  if v_rows <> 0 then
+    raise exception 'FEL: anon läste % orderrader', v_rows;
+  end if;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
 \echo '   inredningen hör till sin egen ritning'
 
 do $$

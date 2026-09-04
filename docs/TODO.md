@@ -11,7 +11,7 @@ snabbt.
 
 ## Var vi står
 
-Senast uppdaterad **2026-09-03**, branch `dev`.
+Senast uppdaterad **2026-09-04**, branch `dev`.
 
 Fas 1 är byggd i sin helhet, och **kortbetalning ingår nu**. Produkten går att
 använda rakt igenom: en gäst skannar en dekal, beställer vid bordet, betalar med
@@ -65,6 +65,79 @@ OpenStreetMaps egna servrar, vilket inte är tillåtet för en publik tjänst. S
   upptäcktslistorna har samma tak på åtta rader med "Alla städer" som
   spill-länk. Fyra block som slutar inom ett par rader från varandra i stället
   för ett som slutar sex rader under de andra.
+
+### Byggt 2026-09-04 — rummet, språket och pulsen
+
+Fyra saker, varav en var beställd i två delar och en tredje inte gick att
+bygga färdigt utan ett beslut.
+
+#### Planritningen fick stolar, väggar och en bašta
+
+Migration `0072`. Ritningen fanns sedan 0032 men bar bara bord på ett rutnät.
+Nu finns **stolar** — räknade ur `capacity` av `seatPositions()` i
+`@burp/core`, aldrig lagrade: ett lagrat stolsläge hade gett två sanningar om
+samma bord, och ingenting i Burp adresserar en enskild stol. Och **inredning**:
+bar, vägg, dörr, fönster, växt, trappa, toalett, köksöppning och egen etikett.
+
+Sorterna är en fast lista och inte fritext, av samma skäl som allergenerna
+blev koder dagen innan: orden översätts, och "šank", "bar" och "Theke" hade
+annars blivit tre olika saker. Etiketten är undantaget — den ÄR restaurangens
+egen text.
+
+Redigeraren kan nu form, storlek, platsantal, rummets mått och byta namn.
+`renameFloorPlan()` låg som en oanvänd serveråtgärd utan knapp, och
+bekräftelserutan stod på svenska mitt i en yta som läser personalens språk.
+
+**Inte jQuery**, som frågan gällde: React äger redan DOM:en, och ett bibliotek
+som flyttar noder bakom ryggen på den ger två sanningar om var ett bord står.
+Draget är egna pointer events — samma kod för finger, penna och mus.
+
+Rummet ligger nu UNDER "Just nu i köket" på översikten i stället för i
+kolumnen bredvid, där det fick en tredjedels bredd.
+
+#### Språket följer gästen, inte sidan hon bytte på
+
+De indexerade ytorna bär språket i URL:en. QR-sidan, kvittona och `/konto` gör
+det inte och läste bara `Accept-Language` — alltså vad telefonen är inställd
+på. En gäst som bytt till tyska på marknadsplatsen möttes ändå av telefonens
+språk vid bordet.
+
+Ordningen är nu **gästens val → `Accept-Language` → svenska**. Valet ligger i
+`LOCALE_COOKIE`, som proxyn skriver vid besök på en språkprefixad adress: en
+server component får inte skriva cookies. `requestLocale()` var redan enda
+vägen in på de ytorna, så ändringen slog igenom överallt på en gång. QR-sidan
+och kontot har dessutom en egen väljare.
+
+Två fel av samma sort rättade i `city-restaurant-list.tsx`: "Idag 08:00–22:00"
+och "Stängt idag" stod på svenska mitt i en sida som finns på fem språk, och
+betyget skrevs med svenskt decimalkomma.
+
+#### Pulsen — riktiga siffror, eller tystnad
+
+Migration `0073` och `0074`. Startsidan visar hur många restauranger, städer,
+öppna nu, beställningar den senaste veckan och snittbetyget, plus de senaste
+beställningarna som rätt + stad. Korten i alla listor kan bära **"Populär den
+här veckan"**, och restaurangsidan **"Gästernas favoriter"** — det som
+faktiskt beställts oftast där.
+
+Varje tal har en tröskel och utelämnas under den; en påhittad siffra i dess
+ställe är genomskådad första gången någon räknar restaurangerna i listan
+nedanför. Högst tio restauranger kan bära populärmärkningen samtidigt.
+
+`orders` är inte publikt läsbart och blir det inte. Fyra SECURITY
+DEFINER-funktioner svarar HUR MÅNGA, aldrig VILKA — och **antalet order per
+restaurang lämnar aldrig databasen**: en konkurrent på andra sidan gatan hade
+kunnat räkna om det till omsättning.
+
+#### Kvar: fråga 16
+
+Att översätta restaurangens EGEN text maskinellt, som Airbnb, ligger som öppen
+fråga 16 med kostnaderna uppställda. Den kräver ett beslut om leverantör och
+pengar — och allergenerna ska aldrig gå den vägen.
+
+**Verifierat:** `db:validate`, `type-check`, `lint`, 662 enhetstester, hela
+schemat i container med fyra nya kontroller, och `smoke.sh` — alla kontroller
+passerade.
 
 ### Byggt 2026-09-03 (v) — rekommendationer på favoritsidan
 
@@ -1933,12 +2006,11 @@ det utskrivet — och ligger kvar tills beslutet är fattat.
       Kontrollera samtidigt att HSTS sätts på apex-domänen — Vercel brukar göra
       det, men det är värt att se med egna ögon.
 
-- [ ] **Ska en gäst kunna visa ett namn på sitt omdöme?** Omdömen är
-      pseudonyma sedan 2026-08-22, och det är ett medvetet beslut. Vill vi visa
-      ett namn är vägen ett EGET visningsnamn som gästen själv väljer att
-      publicera — aldrig hennes profilnamn, som hon lämnat för att kunna bli
-      kontaktad och inte för att synas. Kräver ett fält, ett formulär och ett
-      beslut. Ren kod när beslutet finns.
+- [x] **Visningsnamn på omdömet — byggt 2026-09-03.** Migration 0069 gav
+      `profiles.display_name`, en EGEN kolumn skild från `full_name`: det
+      senare är vad gästen heter och lämnades för att kunna bli kontaktad,
+      inte för att synas. Uppslaget går genom `public_display_names()` och
+      `lib/reviews.ts`; utan ett valt namn står omdömet kvar som pseudonymt.
 
 - [ ] **Gästens adress bär inget land.** `saveAddress()` kontrollerar
       postnumret mot `^\d{5,6}$` — unionen av marknadens format — i stället för

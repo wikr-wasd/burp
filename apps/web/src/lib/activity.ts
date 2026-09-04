@@ -88,3 +88,46 @@ export async function recentActivity(limit = 6): Promise<PulseEntry[]> {
     }))
     .filter((entry) => entry.dish !== "" && entry.city !== "");
 }
+
+/**
+ * Veckans mest beställda restauranger.
+ *
+ * Bara id:n — hur många order en enskild restaurang har lämnar aldrig
+ * databasen. Det talet är restaurangens affär, och en konkurrent på andra
+ * sidan gatan hade kunnat räkna om det till omsättning.
+ *
+ * Högst tio kan bära märkningen samtidigt. En "populär"-etikett som alla har
+ * är ingen etikett, och då hade den bara varit dekoration på ett kort som
+ * redan bär betyg, kök, pris och öppettid.
+ */
+export async function popularRestaurantIds(): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("popular_restaurant_ids");
+
+  if (error || !Array.isArray(data)) return new Set();
+
+  return new Set(
+    data
+      .map((row) => (typeof row === "string" ? row : String((row as { id?: string }).id ?? "")))
+      .filter(Boolean),
+  );
+}
+
+/**
+ * Rätterna gästerna väljer oftast hos en restaurang.
+ *
+ * Namn, aldrig antal — av samma skäl som ovan. Tom lista när stället inte
+ * haft tillräckligt många order för att listan ska vara ett mönster och inte
+ * tre slumpar; avsnittet ritas då inte alls.
+ */
+export async function favouriteDishes(restaurantId: string, limit = 3): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("restaurant_favourite_dishes", {
+    p_restaurant_id: restaurantId,
+    p_limit: limit,
+  });
+
+  if (error || !Array.isArray(data)) return [];
+
+  return data.map((row) => String(row.name ?? "")).filter(Boolean);
+}

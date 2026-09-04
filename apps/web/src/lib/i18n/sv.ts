@@ -53,6 +53,7 @@ export const sv = {
     rating: "{rating} i snitt på {n} omdömen",
     ago: "för {n} min sedan",
     justNow: "nyss",
+    popular: "Populär den här veckan",
   },
 
   /* Kartsidan /upptack. */
@@ -330,6 +331,8 @@ export const sv = {
     serviceRating: "Servicebetyg",
     ratingOutOf: "{n} av 5",
     restaurantReply: "Svar från restaurangen",
+    guestFavourites: "Gästernas favoriter",
+    guestFavouritesHint: "Det som beställts oftast här den senaste månaden.",
   },
 
   /**

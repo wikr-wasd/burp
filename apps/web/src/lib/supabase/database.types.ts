@@ -3340,6 +3340,10 @@ export type Database = {
           restaurants_total: number
         }[]
       }
+      popular_restaurant_ids: {
+        Args: { p_days?: number; p_limit?: number; p_min?: number }
+        Returns: string[]
+      }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }
@@ -3472,6 +3476,17 @@ export type Database = {
           table_id: string
           table_number: string
           zone: string
+        }[]
+      }
+      restaurant_favourite_dishes: {
+        Args: {
+          p_days?: number
+          p_limit?: number
+          p_min_orders?: number
+          p_restaurant_id: string
+        }
+        Returns: {
+          name: string
         }[]
       }
       restaurant_highlights: {

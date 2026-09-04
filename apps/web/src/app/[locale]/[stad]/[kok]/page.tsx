@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { popularRestaurantIds } from "@/lib/activity";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listCities, listCuisines, searchRestaurants } from "@/lib/discovery";
@@ -74,9 +75,16 @@ export default async function CuisinePage({ params }: PageProps) {
 
   const { city, cuisine } = resolved;
 
-  const [restaurants, allCuisines] = await Promise.all([
+  const [restaurants, allCuisines, popularIds] = await Promise.all([
     searchRestaurants({ city: city.slug, cuisine }),
     listCuisines(city.slug),
+
+    /*
+     * Veckans mest beställda. Samma märkning som startsidan sätter, och samma
+     * funktion bakom — ett kort får inte säga "populär" i en lista och tiga i
+     * en annan.
+     */
+    popularRestaurantIds(),
   ]);
 
   const url = new URL(`/${city.slug}/${kok}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString();
@@ -127,7 +135,11 @@ export default async function CuisinePage({ params }: PageProps) {
         </p>
 
         
-        <CityRestaurantList locale={locale} restaurants={restaurants} />
+        <CityRestaurantList
+          locale={locale}
+          restaurants={restaurants}
+          popularIds={popularIds}
+        />
 
         {allCuisines.length > 1 ? (
           <nav aria-label={t.city.otherCuisines(city.name)} className="mt-16">

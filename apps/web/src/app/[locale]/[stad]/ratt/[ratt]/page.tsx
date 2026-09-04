@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { popularRestaurantIds } from "@/lib/activity";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatMoney, type CurrencyCode } from "@burp/core";
@@ -90,6 +91,9 @@ export default async function DishPage({ params }: PageProps) {
     ids: serving.map((row) => row.restaurantId),
   });
 
+  // Veckans mest beställda — samma märkning som i listorna på övriga ytor.
+  const popularIds = await popularRestaurantIds();
+
   const priceById = new Map(serving.map((row) => [row.restaurantId, row]));
 
   /*
@@ -175,7 +179,11 @@ export default async function DishPage({ params }: PageProps) {
           />
         </p>
 
-        <CityRestaurantList locale={locale} restaurants={restaurants} />
+        <CityRestaurantList
+          locale={locale}
+          restaurants={restaurants}
+          popularIds={popularIds}
+        />
 
         {/*
           Priset per restaurang står under listan och inte på korten.

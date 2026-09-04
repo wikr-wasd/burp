@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Clock, MapPin, Star } from "lucide-react";
+import { Clock, MapPin, Star, TrendingUp } from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
 import { priceTierLabel, todaysHours, type DiscoveryRestaurant } from "@/lib/discovery";
-import { dictionary, localePath, type Locale } from "@/lib/i18n";
+import { dictionary, localePath, LOCALE_TAGS, type Locale } from "@/lib/i18n";
 import { restaurantImage } from "@/lib/placeholder";
 
 /**
@@ -14,13 +14,24 @@ import { restaurantImage } from "@/lib/placeholder";
  * Samma redaktionella form som startsidan: bild överst, namn i antikva,
  * metadata som spärrad versaletikett. Två listor som visar samma sak ska se
  * likadana ut — annars läser gästen dem som två olika produkter.
+ *
+ * Öppettiden och betyget stod här på SVENSKA mitt i en sida som finns på fem
+ * språk och har språket i adressen: "Idag 08:00–22:00" på `/de/sarajevo`, och
+ * betyget med svenskt decimalkomma. Båda läser nu ordboken respektive
+ * läsarens eget språk — sidan är översatt, eller så är den inte det.
  */
 export function CityRestaurantList({
   locale,
   restaurants,
+  popularIds,
 }: {
   locale: Locale;
   restaurants: readonly DiscoveryRestaurant[];
+  /**
+   * Veckans mest beställda. Samma märkning som på startsidan — två listor som
+   * visar samma sak ska säga samma sak om samma restaurang.
+   */
+  popularIds: ReadonlySet<string>;
 }) {
   const t = dictionary(locale);
 
@@ -75,8 +86,15 @@ export function CityRestaurantList({
                   }`}
                 >
                   <Clock size={12} aria-hidden="true" />
-                  {open ? `Idag ${hours}` : "Stängt idag"}
+                  {open ? t.home.todayHours(hours!) : t.home.closedToday}
                 </span>
+
+                {popularIds.has(restaurant.id) ? (
+                  <span className="badge absolute top-3 right-3 bg-[var(--surface)]/90 text-burp-700 backdrop-blur dark:text-burp-300">
+                    <TrendingUp size={12} aria-hidden="true" />
+                    {t.pulse.popular}
+                  </span>
+                ) : null}
               </div>
 
               <div className="flex flex-1 flex-col p-4">
@@ -91,7 +109,10 @@ export function CityRestaurantList({
                         aria-hidden="true"
                         className="inline fill-[var(--star)] text-[var(--star)]"
                       />{" "}
-                      {restaurant.ratingAverage.toFixed(1).replace(".", ",")}
+                      {restaurant.ratingAverage.toLocaleString(LOCALE_TAGS[locale], {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      })}
                       <span className="text-[var(--muted)]"> ({restaurant.ratingCount})</span>
                     </span>
                   ) : null}

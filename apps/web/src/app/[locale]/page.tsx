@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { ChevronDown, Clock, QrCode, Receipt, Star, UtensilsCrossed } from "lucide-react";
+import {
+  ChevronDown,
+  Clock,
+  QrCode,
+  Receipt,
+  Star,
+  TrendingUp,
+  UtensilsCrossed,
+} from "lucide-react";
 import { FoodImage } from "@/components/media/food-image";
 import { RestaurantMap, type MapPin } from "@/components/discovery/restaurant-map";
 import { FocusOnHover } from "@/components/discovery/focus-on-hover";
@@ -10,7 +18,7 @@ import { SearchCommand } from "@/components/discovery/search-command";
 import { DishPicker, type PickableDish } from "@/components/discovery/dish-picker";
 import { findDishes } from "@/lib/dishes";
 import { PlatformPulseStrip } from "@/components/discovery/platform-pulse";
-import { platformPulse, recentActivity } from "@/lib/activity";
+import { platformPulse, popularRestaurantIds, recentActivity } from "@/lib/activity";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import {
@@ -152,7 +160,8 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
    */
   const origin = ipOrigin(await headers());
 
-  const [matched, cuisines, cities, openIds, dishes, pulse, activity] = await Promise.all([
+  const [matched, cuisines, cities, openIds, dishes, pulse, activity, popularIds] =
+    await Promise.all([
     searchRestaurants({ query, cuisine, city, bounds }),
     listCuisines(city),
     listCities(),
@@ -175,6 +184,12 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
      */
     platformPulse(),
     recentActivity(6),
+
+    /*
+     * Veckans mest beställda. Ett id-set och inga tal — se `lib/activity.ts`
+     * om varför antalet order per restaurang aldrig lämnar databasen.
+     */
+    popularRestaurantIds(),
   ]);
 
   const restaurants = onlyOpen
@@ -573,6 +588,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
                           locale={locale}
                           restaurant={restaurant}
                           dishes={highlights.get(restaurant.id) ?? []}
+                          popular={popularIds.has(restaurant.id)}
                         />
                       </FocusOnHover>
                     </li>
@@ -590,6 +606,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
                       locale={locale}
                       restaurant={restaurant}
                       dishes={highlights.get(restaurant.id) ?? []}
+                      popular={popularIds.has(restaurant.id)}
                     />
                   </FocusOnHover>
                 </li>
@@ -1064,12 +1081,15 @@ function RestaurantCard({
   locale,
   restaurant,
   dishes,
+  popular,
 }: {
   t: Dictionary;
   locale: Locale;
   restaurant: DiscoveryRestaurant;
   /** Några rätter ur menyn, i restaurangens egen ordning. Kan vara tom. */
   dishes: readonly DishHighlight[];
+  /** Hör stället till veckans mest beställda? Högst tio gör det åt gången. */
+  popular: boolean;
 }) {
   const hours = todaysHours(restaurant.openingHours, restaurant.timeZone);
   const open = Boolean(hours);
@@ -1101,6 +1121,21 @@ function RestaurantCard({
           <Clock size={12} aria-hidden="true" />
           {open ? t.home.todayHours(hours!) : t.home.closedToday}
         </span>
+
+        {/*
+          Populärmärket i motsatt hörn mot öppetmärket, och i vitt.
+
+          Guld hör till betyg och grönt till öppet; ett tredje färgat märke
+          hade gjort bilden till en anslagstavla. Det här är dessutom en
+          svagare signal än de två — den ska synas när ögat redan är på
+          kortet, inte ropa från listan.
+        */}
+        {popular ? (
+          <span className="badge absolute top-3 right-3 bg-[var(--surface)]/90 text-burp-700 backdrop-blur dark:text-burp-300">
+            <TrendingUp size={12} aria-hidden="true" />
+            {t.pulse.popular}
+          </span>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col p-4">
