@@ -191,6 +191,7 @@ export default async function TablePage({ params }: PageProps) {
           menu={menu}
           restaurantName={table.restaurantName}
           labels={t.menu}
+          allergenLabels={t.allergen}
           currency={table.currency}
           timeZone={table.timeZone}
           card={card}

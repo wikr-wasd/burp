@@ -131,6 +131,14 @@ describe("ordböckerna", () => {
     bs: [
       "errors.notFoundLabel",
       "menu.giftCardPlaceholder",
+      /*
+       * Allergennamn som ÄR samma ord. "Gluten" heter gluten överallt, och att
+       * skriva om det för att undvika en kollision hade gjort listan sämre —
+       * det är dessutom det enda fältet på menyn där en missförståelse är
+       * farlig.
+       */
+      "allergen.GLUTEN",
+      "allergen.SOY",
       // Ett NAMN i ett platshållarfält. "Amina S." ser likadant ut på alla
       // fem språken, av samma skäl som presentkortskoden gör det.
       "account.displayNamePlaceholder",
@@ -153,6 +161,15 @@ describe("ordböckerna", () => {
     de: [
       "errors.notFoundLabel",
       "menu.giftCardPlaceholder",
+      /*
+       * Allergennamn som ÄR samma ord. "Gluten" heter gluten överallt, och att
+       * skriva om det för att undvika en kollision hade gjort listan sämre —
+       * det är dessutom det enda fältet på menyn där en missförståelse är
+       * farlig.
+       */
+      "allergen.GLUTEN",
+      "allergen.SOY",
+      "allergen.SESAME",
       // Ett NAMN i ett platshållarfält. "Amina S." ser likadant ut på alla
       // fem språken, av samma skäl som presentkortskoden gör det.
       "account.displayNamePlaceholder",
@@ -201,6 +218,14 @@ describe("ordböckerna", () => {
     en: [
       "errors.notFoundLabel",
       "menu.giftCardPlaceholder",
+      /*
+       * Allergennamn som ÄR samma ord. "Gluten" heter gluten överallt, och att
+       * skriva om det för att undvika en kollision hade gjort listan sämre —
+       * det är dessutom det enda fältet på menyn där en missförståelse är
+       * farlig.
+       */
+      "allergen.GLUTEN",
+      "allergen.LUPIN",
       // Ett NAMN i ett platshållarfält. "Amina S." ser likadant ut på alla
       // fem språken, av samma skäl som presentkortskoden gör det.
       "account.displayNamePlaceholder",
@@ -234,6 +259,17 @@ describe("ordböckerna", () => {
       "receipt.cancelConfirm",
       "menu.allergens",
       "menu.giftCardPlaceholder",
+      /*
+       * Allergennamn som ÄR samma ord. "Gluten" heter gluten överallt, och att
+       * skriva om det för att undvika en kollision hade gjort listan sämre —
+       * det är dessutom det enda fältet på menyn där en missförståelse är
+       * farlig.
+       */
+      "allergen.GLUTEN",
+      "allergen.FISH",
+      "allergen.SESAME",
+      "allergen.CELERY",
+      "allergen.LUPIN",
       // Ett NAMN i ett platshållarfält. "Amina S." ser likadant ut på alla
       // fem språken, av samma skäl som presentkortskoden gör det.
       "account.displayNamePlaceholder",

@@ -1170,7 +1170,7 @@ export const no: Dictionary = {
       description: "Beskrivelse",
       vat: "Mva.",
       allergens: "Allergener",
-      allergensHint: "kommaseparert",
+      allergensHint: "klikk for å merke retten",
       image: "Bilde",
       imageHint:
         "Bildet vises for gjesten først når Burp har godkjent det. JPEG, PNG, WebP eller AVIF, høyst 10 MB.",
@@ -1508,6 +1508,23 @@ export const no: Dictionary = {
     HR: "Kroatia",
     RS: "Serbia",
     SE: "Sverige",
+  },
+
+  allergen: {
+    GLUTEN: "Gluten",
+    CRUSTACEANS: "Skalldyr",
+    EGGS: "Egg",
+    FISH: "Fisk",
+    PEANUTS: "Peanøtter",
+    SOY: "Soya",
+    MILK: "Melk",
+    NUTS: "Nøtter",
+    CELERY: "Selleri",
+    MUSTARD: "Sennep",
+    SESAME: "Sesam",
+    SULPHITES: "Sulfitter",
+    LUPIN: "Lupin",
+    MOLLUSCS: "Bløtdyr",
   },
 
   weekday: {

@@ -29,3 +29,5 @@ export * from "./schemas";
 export * from "./loyalty";
 
 export * from "./image-adjust";
+
+export * from "./allergens";

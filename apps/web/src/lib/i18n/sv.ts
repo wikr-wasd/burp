@@ -1567,7 +1567,7 @@ export const sv = {
       description: "Beskrivning",
       vat: "Moms",
       allergens: "Allergener",
-      allergensHint: "kommaseparerade",
+      allergensHint: "klicka för att märka rätten",
       image: "Bild",
       imageHint:
         "Bilden syns för gästen först när Burp godkänt den. JPEG, PNG, WebP eller AVIF, högst 10 MB.",
@@ -1962,6 +1962,33 @@ export const sv = {
     HR: "Kroatien",
     RS: "Serbien",
     SE: "Sverige",
+  },
+
+  /*
+   * Allergenerna.
+   *
+   * Koder i databasen (migration 0071), namn här. Det är enda stället på menyn
+   * där en gäst som inte förstår riskerar något värre än en missad rätt — och
+   * därför det enda av restaurangens innehåll som översätts.
+   *
+   * Ändras ALLERGENS i @burp/core måste den här listan följa med. Samma krav
+   * som country_time_zone() och COUNTRY_INFO.
+   */
+  allergen: {
+    GLUTEN: "Gluten",
+    CRUSTACEANS: "Skaldjur",
+    EGGS: "Ägg",
+    FISH: "Fisk",
+    PEANUTS: "Jordnötter",
+    SOY: "Soja",
+    MILK: "Mjölk",
+    NUTS: "Nötter",
+    CELERY: "Selleri",
+    MUSTARD: "Senap",
+    SESAME: "Sesam",
+    SULPHITES: "Sulfiter",
+    LUPIN: "Lupin",
+    MOLLUSCS: "Blötdjur",
   },
 
   weekday: {

@@ -210,13 +210,13 @@ values
    '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
    'Ćevapi 10 kom', 'Deset ćevapa u lepinji, sa lukom i kajmakom',
-   1200, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 1),
+   1200, 1700, array['GLUTEN', 'MILK'], true, 'PUBLISHED', 1),
 
   ('44444444-4444-4444-4444-444444444442',
    '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
    'Pljeskavica', 'Sa žara, u lepinji sa ajvarom',
-   1400, 1700, array['gluten'], true, 'PUBLISHED', 2),
+   1400, 1700, array['GLUTEN'], true, 'PUBLISHED', 2),
 
   ('44444444-4444-4444-4444-444444444443',
    '33333333-3333-3333-3333-333333333332',
@@ -257,7 +257,7 @@ values
   ('44444444-4444-4444-4444-4444444444a1', '33333333-3333-3333-3333-333333333333',
    '11111111-1111-1111-1111-111111111111',
    'Kajmak', 'Sa Vlašića, sječen iz kace',
-   400, 1700, array['mlijeko'], true, 'PUBLISHED', 1),
+   400, 1700, array['MILK'], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-4444444444a2', '33333333-3333-3333-3333-333333333333',
    '11111111-1111-1111-1111-111111111111',
    'Ajvar domaći', 'Od pečene paprike i patlidžana',
@@ -265,7 +265,7 @@ values
   ('44444444-4444-4444-4444-4444444444a3', '33333333-3333-3333-3333-333333333333',
    '11111111-1111-1111-1111-111111111111',
    'Uštipci', 'Prženo tijesto, služi se sa kajmakom',
-   600, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 3),
+   600, 1700, array['GLUTEN', 'MILK'], true, 'PUBLISHED', 3),
   ('44444444-4444-4444-4444-4444444444a4', '33333333-3333-3333-3333-333333333333',
    '11111111-1111-1111-1111-111111111111',
    'Suho meso', 'Dimljena govedina, tanko narezana',
@@ -275,11 +275,11 @@ values
   ('44444444-4444-4444-4444-4444444444b1', '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
    'Ćevapi 5 kom', 'Pet ćevapa u pola lepinje — mala porcija',
-   800, 1700, array['gluten'], true, 'PUBLISHED', 3),
+   800, 1700, array['GLUTEN'], true, 'PUBLISHED', 3),
   ('44444444-4444-4444-4444-4444444444b2', '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
    'Ćevapi 15 kom', 'Petnaest ćevapa u cijeloj lepinji, luk i kajmak',
-   1700, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 4),
+   1700, 1700, array['GLUTEN', 'MILK'], true, 'PUBLISHED', 4),
   ('44444444-4444-4444-4444-4444444444b3', '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
    'Ražnjići', 'Teletina i janjetina sa žara na ćumur',
@@ -287,31 +287,31 @@ values
   ('44444444-4444-4444-4444-4444444444b4', '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
    'Pileći ćevapi', 'Od piletine, za lakšu varijantu',
-   1300, 1700, array['gluten'], true, 'PUBLISHED', 6),
+   1300, 1700, array['GLUTEN'], true, 'PUBLISHED', 6),
 
   -- Pite
   ('44444444-4444-4444-4444-4444444444c1', '33333333-3333-3333-3333-333333333334',
    '11111111-1111-1111-1111-111111111111',
    'Burek', 'Ručno savijen, sa junećim mesom i lukom',
-   700, 1700, array['gluten'], true, 'PUBLISHED', 1),
+   700, 1700, array['GLUTEN'], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-4444444444c2', '33333333-3333-3333-3333-333333333334',
    '11111111-1111-1111-1111-111111111111',
    'Sirnica', 'Sa mladim sirom',
-   700, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 2),
+   700, 1700, array['GLUTEN', 'MILK'], true, 'PUBLISHED', 2),
   ('44444444-4444-4444-4444-4444444444c3', '33333333-3333-3333-3333-333333333334',
    '11111111-1111-1111-1111-111111111111',
    'Zeljanica', 'Sa špinatom i sirom',
-   700, 1700, array['gluten', 'mlijeko'], true, 'PUBLISHED', 3),
+   700, 1700, array['GLUTEN', 'MILK'], true, 'PUBLISHED', 3),
   ('44444444-4444-4444-4444-4444444444c4', '33333333-3333-3333-3333-333333333334',
    '11111111-1111-1111-1111-111111111111',
    'Krompiruša', 'Sa krompirom i lukom',
-   650, 1700, array['gluten'], true, 'PUBLISHED', 4),
+   650, 1700, array['GLUTEN'], true, 'PUBLISHED', 4),
 
   -- Prilozi
   ('44444444-4444-4444-4444-4444444444d1', '33333333-3333-3333-3333-333333333335',
    '11111111-1111-1111-1111-111111111111',
    'Lepinja', 'Svježe pečena, iz krušne peći',
-   200, 1700, array['gluten'], true, 'PUBLISHED', 1),
+   200, 1700, array['GLUTEN'], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-4444444444d2', '33333333-3333-3333-3333-333333333335',
    '11111111-1111-1111-1111-111111111111',
    'Kiseli kupus', 'Domaći, iz kace',
@@ -347,21 +347,21 @@ values
   ('44444444-4444-4444-4444-4444444444e5', '33333333-3333-3333-3333-333333333332',
    '11111111-1111-1111-1111-111111111111',
    'Kefir 0,33 l', 'Kiselo mliječno piće',
-   300, 1700, array['mlijeko'], false, 'PUBLISHED', 6),
+   300, 1700, array['MILK'], false, 'PUBLISHED', 6),
 
   -- Deserti
   ('44444444-4444-4444-4444-4444444444f1', '33333333-3333-3333-3333-333333333336',
    '11111111-1111-1111-1111-111111111111',
    'Tufahija', 'Kuhana jabuka punjena orasima, sa šlagom',
-   600, 1700, array['orašasti plodovi', 'mlijeko'], true, 'PUBLISHED', 1),
+   600, 1700, array['NUTS', 'MILK'], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-4444444444f2', '33333333-3333-3333-3333-333333333336',
    '11111111-1111-1111-1111-111111111111',
    'Baklava', 'Sa orasima i agdom',
-   500, 1700, array['gluten', 'orašasti plodovi'], true, 'PUBLISHED', 2),
+   500, 1700, array['GLUTEN', 'NUTS'], true, 'PUBLISHED', 2),
   ('44444444-4444-4444-4444-4444444444f3', '33333333-3333-3333-3333-333333333336',
    '11111111-1111-1111-1111-111111111111',
    'Hurmašice', 'Natopljene agdom',
-   450, 1700, array['gluten'], true, 'PUBLISHED', 3);
+   450, 1700, array['GLUTEN'], true, 'PUBLISHED', 3);
 
 /*
  * En obligatorisk storleksgrupp.
@@ -495,7 +495,7 @@ values
    '33333333-3333-3333-3333-333333333331',
    '11111111-1111-1111-1111-111111111111',
    'Punjene paprike', 'Paprike punjene mesom i rižom, iz pećnice',
-   1400, 1700, array['gluten']::text[], true, 'PUBLISHED', 9, 4);
+   1400, 1700, array['GLUTEN']::text[], true, 'PUBLISHED', 9, 4);
 
 -- Restaurangens egna förslag. Ingen algoritm: den som står vid grillen vet att
 -- ćevapi går med jogurt och att kaffet säljs efter baklavan.
@@ -584,11 +584,11 @@ values
   ('44444444-4444-4444-4444-44444444bb01', '33333333-3333-3333-3333-333333333371',
    '11111111-1111-1111-1111-111111111117',
    'Ćevapi 10 kom', 'Sa domaćom lepinjom',
-   1300, 1700, array['gluten', 'mlijeko']::text[], true, 'PUBLISHED', 1, 1),
+   1300, 1700, array['GLUTEN', 'MILK']::text[], true, 'PUBLISHED', 1, 1),
   ('44444444-4444-4444-4444-44444444bb02', '33333333-3333-3333-3333-333333333371',
    '11111111-1111-1111-1111-111111111117',
    'Punjene paprike', 'Kuhane u loncu, sa pavlakom',
-   1250, 1700, array['mlijeko']::text[], true, 'PUBLISHED', 2, 1),
+   1250, 1700, array['MILK']::text[], true, 'PUBLISHED', 2, 1),
 
   -- Aščinicans eget.
   ('44444444-4444-4444-4444-44444444bb03', '33333333-3333-3333-3333-333333333371',
@@ -598,7 +598,7 @@ values
   ('44444444-4444-4444-4444-44444444bb04', '33333333-3333-3333-3333-333333333371',
    '11111111-1111-1111-1111-111111111117',
    'Grah sa suhim mesom', 'Sa domaćim hljebom',
-   1100, 1700, array['gluten']::text[], true, 'PUBLISHED', 4, 1),
+   1100, 1700, array['GLUTEN']::text[], true, 'PUBLISHED', 4, 1),
   ('44444444-4444-4444-4444-44444444bb05', '33333333-3333-3333-3333-333333333371',
    '11111111-1111-1111-1111-111111111117',
    'Sarma', 'Iz kiselog kupusa',
@@ -786,27 +786,27 @@ values
   -- Mostar: båda har ćevapi, och Šadrvan har dolma.
   ('44444444-4444-4444-4444-44444444a001', '33333333-3333-3333-3333-3333333a0001',
    '11111111-1111-1111-1111-11111111a001', 'Ćevapi 10 kom', 'Sa lepinjom i lukom',
-   1300, 1700, array['gluten']::text[], true, 'PUBLISHED', 1),
+   1300, 1700, array['GLUTEN']::text[], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-44444444a002', '33333333-3333-3333-3333-3333333a0001',
    '11111111-1111-1111-1111-11111111a001', 'Japrak', 'Vinblad fyllda med kött och ris',
    1400, 1700, array[]::text[], true, 'PUBLISHED', 2),
   ('44444444-4444-4444-4444-44444444a003', '33333333-3333-3333-3333-3333333a0002',
    '11111111-1111-1111-1111-11111111a002', 'Ćevapi 10 kom', 'Sa kajmakom',
-   1200, 1700, array['gluten', 'mlijeko']::text[], true, 'PUBLISHED', 1),
+   1200, 1700, array['GLUTEN', 'MILK']::text[], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-44444444a004', '33333333-3333-3333-3333-3333333a0002',
    '11111111-1111-1111-1111-11111111a002', 'Pljeskavica', 'Punjena sirom',
-   1400, 1700, array['gluten', 'mlijeko']::text[], true, 'PUBLISHED', 2),
+   1400, 1700, array['GLUTEN', 'MILK']::text[], true, 'PUBLISHED', 2),
 
   -- Novi Sad: båda har burek.
   ('44444444-4444-4444-4444-44444444a006', '33333333-3333-3333-3333-3333333a0006',
    '11111111-1111-1111-1111-11111111a006', 'Pljeskavica', 'Sa kajmakom i ajvarom',
-   65000, 2000, array['mleko']::text[], true, 'PUBLISHED', 1),
+   65000, 2000, array['MILK']::text[], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-44444444a007', '33333333-3333-3333-3333-3333333a0006',
    '11111111-1111-1111-1111-11111111a006', 'Burek sa mesom', 'Iz peći, po komadu',
-   28000, 2000, array['gluten']::text[], true, 'PUBLISHED', 2),
+   28000, 2000, array['GLUTEN']::text[], true, 'PUBLISHED', 2),
   ('44444444-4444-4444-4444-44444444a008', '33333333-3333-3333-3333-3333333a0007',
    '11111111-1111-1111-1111-11111111a007', 'Burek sa mesom', 'Od pet ujutru',
-   25000, 2000, array['gluten']::text[], true, 'PUBLISHED', 1),
+   25000, 2000, array['GLUTEN']::text[], true, 'PUBLISHED', 1),
   ('44444444-4444-4444-4444-44444444a009', '33333333-3333-3333-3333-3333333a0007',
    '11111111-1111-1111-1111-11111111a007', 'Burek sa sirom', 'Sa mladim sirom',
-   25000, 2000, array['gluten', 'mleko']::text[], true, 'PUBLISHED', 2);
+   25000, 2000, array['GLUTEN', 'MILK']::text[], true, 'PUBLISHED', 2);

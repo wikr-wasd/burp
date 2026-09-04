@@ -1207,7 +1207,7 @@ export const bs: Dictionary = {
       description: "Opis",
       vat: "PDV",
       allergens: "Alergeni",
-      allergensHint: "odvojeni zarezom",
+      allergensHint: "kliknite da označite jelo",
       image: "Slika",
       imageHint:
         "Slika se gostu prikazuje tek kad je Burp odobri. JPEG, PNG, WebP ili AVIF, najviše 10 MB.",
@@ -1556,6 +1556,23 @@ export const bs: Dictionary = {
     HR: "Hrvatska",
     RS: "Srbija",
     SE: "Švedska",
+  },
+
+  allergen: {
+    GLUTEN: "Gluten",
+    CRUSTACEANS: "Rakovi",
+    EGGS: "Jaja",
+    FISH: "Riba",
+    PEANUTS: "Kikiriki",
+    SOY: "Soja",
+    MILK: "Mlijeko",
+    NUTS: "Orašasti plodovi",
+    CELERY: "Celer",
+    MUSTARD: "Slačica",
+    SESAME: "Susam",
+    SULPHITES: "Sulfiti",
+    LUPIN: "Lupina",
+    MOLLUSCS: "Mekušci",
   },
 
   weekday: {

@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { allowedVatRates, COUNTRY_INFO, parseAmount } from "@burp/core";
+import {
+  parseAllergens, allowedVatRates, COUNTRY_INFO, parseAmount } from "@burp/core";
 import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { TableUpdate } from "@/lib/supabase/types";
@@ -282,10 +283,19 @@ export async function updateMenuItem(itemId: string, patch: MenuItemPatch): Prom
   }
 
   if (patch.allergens !== undefined) {
-    update["allergens"] = patch.allergens
-      .map((allergen) => allergen.trim())
-      .filter((allergen) => allergen.length > 0 && allergen.length <= 60)
-      .slice(0, 30);
+    /*
+     * Bara koder, aldrig fritext (migration 0071).
+     *
+     * `parseAllergens()` tolkar även gamla stavningar — `mlijeko` och `mleko`
+     * blir båda MILK — och låter det som inte går att tolka falla bort. En
+     * rätt som tappar en allergen är fel; en rätt som får FEL allergen är
+     * farligare, och en gissning är precis det.
+     *
+     * Check-villkoret i databasen säger samma sak. Det här är inte en andra
+     * regel utan samma, tidigare — så att felet blir ett tomt fält i stället
+     * för ett constraint-brott ingen kan agera på.
+     */
+    update["allergens"] = parseAllergens(patch.allergens);
   }
 
   if (patch.isAvailable !== undefined) update["is_available"] = patch.isAvailable;

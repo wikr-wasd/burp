@@ -42,6 +42,7 @@ import type {
 import { BookOpen } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ImageUpload } from "@/components/staff/image-upload";
+import { AllergenPicker } from "@/components/staff/allergen-picker";
 import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
@@ -78,6 +79,8 @@ interface MenuLocale {
   currency: CurrencyCode;
   labels: MenuLabels;
   imageLabels: Dictionary["staff"]["image"];
+  /** Allergenernas namn. Koder i databasen, namn här (migration 0071). */
+  allergenLabels: Dictionary["allergen"];
 }
 
 const MenuLocaleContext = createContext<MenuLocale | null>(null);
@@ -102,6 +105,7 @@ export function MenuEditor({
   currency,
   labels,
   imageLabels,
+  allergenLabels,
 }: {
   menus: EditorMenu[];
   restaurantId: string;
@@ -112,11 +116,13 @@ export function MenuEditor({
   labels: MenuLabels;
   /** Bilduppladdningens besked. Delas med presentationen — se ordboken. */
   imageLabels: Dictionary["staff"]["image"];
+  /** Allergenernas namn på personalens språk. */
+  allergenLabels: Dictionary["allergen"];
 }) {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <MenuLocaleContext.Provider value={{ country, currency, labels, imageLabels }}>
+    <MenuLocaleContext.Provider value={{ country, currency, labels, imageLabels, allergenLabels }}>
     <div className="mt-8">
       {error ? (
         <p role="alert" className="mb-4 bg-red-600/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
@@ -513,7 +519,7 @@ function ItemRow({
    * Krokar får aldrig ligga bakom ett villkor. Att den låg i ett JSX-attribut
    * gjorde den lätt att missa; den ser ut som ett värde, inte som ett anrop.
    */
-  const { country, currency, imageLabels } = useMenuLocale();
+  const { country, currency, imageLabels, allergenLabels } = useMenuLocale();
   const [pending, run] = useAction(onError);
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -657,20 +663,29 @@ function ItemRow({
 
           <UpsellPicker item={item} menuItems={menuItems} onError={onError} />
 
-          <label className="block">
+          <div>
             <span className="label-caps">
               {labels.allergens}{" "}
               <span className="font-normal opacity-60">{labels.allergensHint}</span>
             </span>
-            <InlineText
-              value={item.allergens.join(", ")}
-              label={labels.allergens}
-              className="mt-1 w-full"
-              onSave={(value) =>
-                run(() => updateMenuItem(item.id, { allergens: value.split(",") }))
-              }
+
+            {/*
+              Kryssrutor och inte fritext. Se `allergen-picker.tsx` — fältet gav
+              två stavningar av samma allergen i den lokala datan, och det här
+              är det enda fältet på menyn där en missförståelse är farlig.
+            */}
+            <AllergenPicker
+              selected={item.allergens}
+              labels={allergenLabels}
+              onSave={async (allergens) => {
+                const result = await updateMenuItem(item.id, { allergens });
+                if (!result.ok) {
+                  onError(result.message ?? "");
+                  throw new Error(result.message ?? "");
+                }
+              }}
             />
-          </label>
+          </div>
 
           <div>
             <p className="text-sm font-medium">{labels.image}</p>

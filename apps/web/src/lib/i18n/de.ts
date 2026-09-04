@@ -1181,7 +1181,7 @@ export const de: Dictionary = {
       description: "Beschreibung",
       vat: "MwSt.",
       allergens: "Allergene",
-      allergensHint: "mit Komma getrennt",
+      allergensHint: "zum Markieren anklicken",
       image: "Bild",
       imageHint:
         "Das Bild sehen Gäste erst, wenn Burp es freigegeben hat. JPEG, PNG, WebP oder AVIF, höchstens 10 MB.",
@@ -1525,6 +1525,23 @@ export const de: Dictionary = {
     HR: "Kroatien",
     RS: "Serbien",
     SE: "Schweden",
+  },
+
+  allergen: {
+    GLUTEN: "Gluten",
+    CRUSTACEANS: "Krebstiere",
+    EGGS: "Eier",
+    FISH: "Fisch",
+    PEANUTS: "Erdnüsse",
+    SOY: "Soja",
+    MILK: "Milch",
+    NUTS: "Schalenfrüchte",
+    CELERY: "Sellerie",
+    MUSTARD: "Senf",
+    SESAME: "Sesam",
+    SULPHITES: "Sulfite",
+    LUPIN: "Lupinen",
+    MOLLUSCS: "Weichtiere",
   },
 
   weekday: {

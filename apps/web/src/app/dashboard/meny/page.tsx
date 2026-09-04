@@ -264,6 +264,7 @@ export default async function MenuPage() {
         currency={staff.currency}
         labels={t.menu}
         imageLabels={t.image}
+        allergenLabels={dictionary(staff.locale).allergen}
       />
     </StaffShell>
   );

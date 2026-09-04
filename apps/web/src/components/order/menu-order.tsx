@@ -85,6 +85,8 @@ interface Props {
    * fått.
    */
   labels: Dictionary["menu"];
+  /** Allergenernas namn på gästens språk. Se migration 0071. */
+  allergenLabels: Dictionary["allergen"];
   /** Restaurangens valuta. Avgör hur varenda summa på sidan skrivs. */
   currency: CurrencyCode;
   /**
@@ -158,6 +160,7 @@ export function MenuOrder({
   restaurantName,
   context,
   labels,
+  allergenLabels,
   currency,
   timeZone,
   pickupSlots = [],
@@ -968,6 +971,7 @@ export function MenuOrder({
           <ul className="mt-5 grid gap-x-6 gap-y-8 sm:grid-cols-2">
             {category.items.map((item) => (
               <MenuItemCard
+                allergenLabels={allergenLabels}
                 key={item.id}
                 item={item}
                 labels={labels}
@@ -1055,6 +1059,7 @@ export function MenuOrder({
 function MenuItemCard({
   item,
   labels,
+  allergenLabels,
   money,
   isOpen,
   onToggle,
@@ -1062,6 +1067,8 @@ function MenuItemCard({
 }: {
   item: MenuItem;
   labels: Dictionary["menu"];
+  /** Allergenernas namn. Koder i databasen sedan 0071, namn ur ordboken. */
+  allergenLabels: Dictionary["allergen"];
   money: (amount: Ore) => string;
   isOpen: boolean;
   onToggle: () => void;
@@ -1183,13 +1190,23 @@ function MenuItemCard({
           </span>
         ) : null}
 
-        {/* Etiketten är gränssnitt och översätts. Allergenerna själva är
-            restaurangens fritext och står kvar som de skrivits — men ordet
-            framför dem är det enda på menyn där en gäst som inte förstår
-            riskerar något värre än en missad rätt. */}
+        {/*
+          Allergenerna översätts, och det är det ENDA av menyns innehåll som
+          gör det.
+
+          Fältet var restaurangens fritext, och i datan stod `mleko` och
+          `mlijeko` sida vid sida — samma allergen, två stavningar. En svensk
+          gäst i Sarajevo läste den ena och förstod ingenting. Sedan migration
+          0071 är de koder, och koder går att översätta exakt. En
+          översättningstjänst hade fått gissa, och en gissning om nötter är
+          inte ett svar man ger en allergiker.
+        */}
         {item.allergens.length > 0 ? (
           <span className="label-caps mt-2 block">
-            {labels.allergens}: {item.allergens.join(", ")}
+            {labels.allergens}:{" "}
+            {item.allergens
+              .map((code) => allergenLabels[code as keyof typeof allergenLabels] ?? code)
+              .join(", ")}
           </span>
         ) : null}
 
