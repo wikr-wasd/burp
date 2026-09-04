@@ -83,7 +83,7 @@ const TABLE_STATES: { state: TableState; cell: string; swatch: string }[] = [
 export default async function OverviewPage() {
   const staff = await requireStaff(["owner", "manager", "staff"]);
 
-  const [{ due }, { tables, floorPlans }, statistics] = await Promise.all([
+  const [{ due }, { tables, floorPlans, floorItems }, statistics] = await Promise.all([
     getActiveOrders(staff.restaurantId),
     getTableSnapshots(staff.restaurantId),
     getStatistics(staff.restaurantId, periodFor("idag")),
@@ -105,6 +105,10 @@ export default async function OverviewPage() {
   }).format(new Date());
 
   const busyTables = tables.filter((table) => table.state !== "LEDIGT").length;
+  // Ägaren och chefen ritar, servitören läser. Länken till redigeraren visas
+  // bara för den som får använda den — en knapp som leder till en 403 är värre
+  // än ingen knapp.
+  const canEditPlan = staff.role === "owner" || staff.role === "manager";
   const t = dictionary(staff.locale).staff;
 
   return (
@@ -151,7 +155,7 @@ export default async function OverviewPage() {
         />
       </div>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+      <section className="mt-8">
         <div>
           <div className="flex items-baseline justify-between gap-4">
             <h2 className="font-display text-2xl">{t.overview.inKitchen}</h2>
@@ -169,7 +173,7 @@ export default async function OverviewPage() {
               />
             </div>
           ) : (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {COLUMNS.map((column) => {
                 const orders = due.filter((order) => order.status === column.status);
 
@@ -209,13 +213,30 @@ export default async function OverviewPage() {
             </div>
           )}
         </div>
+      </section>
 
+      {/*
+        Rummet står UNDER köket, inte bredvid.
+
+        Det är två frågor efter varandra och inte två kolumner: vad har köket
+        framför sig, och var i lokalen står det. Bredvid varandra fick
+        ritningen en tredjedels bredd på en surfplatta, och ett bord blev en
+        prick man inte kan peka på med fingret.
+      */}
+      <section className="mt-10">
         <div>
-          <div className="flex items-baseline justify-between gap-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 className="font-display text-2xl">{t.overview.tables}</h2>
-            <p className="text-sm text-[var(--muted)] tabular-nums">
-              {fill(t.overview.tablesBusy, { busy: busyTables, total: tables.length })}
-            </p>
+            <div className="flex items-baseline gap-4">
+              <p className="text-sm text-[var(--muted)] tabular-nums">
+                {fill(t.overview.tablesBusy, { busy: busyTables, total: tables.length })}
+              </p>
+              {canEditPlan ? (
+                <Link href="/dashboard/bord" className="link text-sm whitespace-nowrap">
+                  {t.overview.editPlan}
+                </Link>
+              ) : null}
+            </div>
           </div>
 
           {tables.length === 0 ? (
@@ -240,15 +261,19 @@ export default async function OverviewPage() {
                 Ritningen gör "bord 7 väntar" till en punkt att gå till — och
                 det är hela skälet att den byggdes.
               */}
-              {floorPlans.map((plan) => (
-                <FloorPlanView
-                  key={plan.id}
-                  plan={plan}
-                  tables={tables}
-                  labels={t.overview}
-                  tableLabel={t.orderType.table}
-                />
-              ))}
+              <div className="grid gap-6 lg:grid-cols-2">
+                {floorPlans.map((plan) => (
+                  <FloorPlanView
+                    key={plan.id}
+                    plan={plan}
+                    tables={tables}
+                    items={floorItems}
+                    labels={t.overview}
+                    itemLabels={t.floorItem}
+                    tableLabel={t.orderType.table}
+                  />
+                ))}
+              </div>
 
               {/*
                 Rutnätet står kvar för borden som inte är utplacerade. Att gissa
@@ -256,7 +281,7 @@ export default async function OverviewPage() {
                 hade betytt att ett bord med en öppen nota inte syns någonstans.
               */}
               {unplacedTables.length > 0 ? (
-                <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-4">
+                <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-10">
                   {unplacedTables.map((table) => (
                     <TableCell
                       key={table.id}
@@ -270,7 +295,7 @@ export default async function OverviewPage() {
 
               {/* Färgerna betyder ingenting utan den här listan. En rutnätsvy
                   utan teckenförklaring är en gåta, inte en översikt. */}
-              <ul className="mt-3 space-y-1">
+              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
                 {TABLE_STATES.map((entry) => (
                   <li
                     key={entry.state}

@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { TABLE_ATTRIBUTES, type TableAttribute } from "@/lib/table-attributes";
-import { generatePublicId, parseAmount } from "@burp/core";
+import {
+  clampToPlan,
+  generatePublicId,
+  isFloorItemKind,
+  parseAmount,
+  type FloorItemKind,
+} from "@burp/core";
 import { requireStaff, staffErrors } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { asJson } from "@/lib/supabase/types";
@@ -157,32 +163,112 @@ export interface TablePosition {
   shape: "ROUND" | "SQUARE" | "RECT";
   width: number;
   height: number;
+  /** Platsantalet ritar stolarna. Samma siffra som bokningen läser. */
+  capacity: number | null;
+}
+
+export interface PlanItemInput {
+  id: string;
+  kind: FloorItemKind;
+  /** Restaurangens egen text — "Bašta". Översätts aldrig. */
+  label: string | null;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+}
+
+export interface FloorPlanLayout {
+  tables: TablePosition[];
+  items: PlanItemInput[];
+  /** Rummets storlek i rutnätsenheter. */
+  width: number;
+  height: number;
 }
 
 /**
  * Sparar hela rummet på en gång.
  *
- * Redigeraren flyttar flera bord innan någon trycker Spara. Att skriva dem en
- * och en hade betytt att ett avbrott mitt i lämnar halva rummet flyttat — och
- * den som ritar ser inte skillnaden förrän nästa gång sidan laddas.
+ * Redigeraren flyttar bord, möblerar och ändrar rummets storlek innan någon
+ * trycker Spara. Att skriva delarna en och en hade betytt att ett avbrott mitt
+ * i lämnar borden flyttade men baren kvar där den stod — och den som ritar ser
+ * inte skillnaden förrän nästa gång sidan laddas. Servern skriver allt i EN
+ * transaktion (`save_floor_plan_layout`, migration 0072).
+ *
+ * Värdena tvättas här och inte bara i webbläsaren. Den som skickar sitt eget
+ * anrop är inte redigeraren, och ett bord utanför rummet ritas ingenstans.
  */
-export async function saveFloorPlanPositions(
+export async function saveFloorPlanLayout(
   planId: string,
-  positions: TablePosition[],
+  layout: FloorPlanLayout,
 ): Promise<ActionResult> {
   await requireStaff(["owner", "manager"]);
 
+  const width = clampInt(layout.width, 10, 200);
+  const height = clampInt(layout.height, 10, 200);
+  const plan = { width, height };
+
+  const tables = layout.tables.map((table) => {
+    const size = {
+      width: clampInt(table.width, 1, 40),
+      height: clampInt(table.height, 1, 40),
+    };
+
+    return {
+      ...table,
+      ...size,
+      ...clampToPlan({ x: table.x, y: table.y, ...size }, plan),
+      rotation: clampInt(table.rotation, 0, 359),
+      // 0 platser finns inte i schemat (`capacity > 0`). Ett bord utan siffra
+      // är ett bord vars platsantal ingen fyllt i, inte ett bord för noll.
+      capacity: table.capacity === null ? null : clampInt(table.capacity, 1, 100),
+    };
+  });
+
+  // Okända sorter faller bort i stället för att nekas — databasen hade ändå
+  // avvisat dem, och ett constraint-brott är inte ett besked någon kan agera
+  // på. En TEXT utan text hoppas över av samma skäl: den ritar en tom ruta.
+  const items = layout.items
+    .filter((item) => isFloorItemKind(item.kind))
+    .map((item) => {
+      const size = {
+        width: clampInt(item.width, 1, width),
+        height: clampInt(item.height, 1, height),
+      };
+      const label = (item.label ?? "").trim().slice(0, 40);
+
+      return {
+        ...item,
+        ...size,
+        ...clampToPlan({ x: item.x, y: item.y, ...size }, plan),
+        rotation: clampInt(item.rotation, 0, 359),
+        label: label || null,
+      };
+    })
+    .filter((item) => item.kind !== "TEXT" || item.label !== null);
+
   const supabase = await createClient();
-  const { error } = await supabase.rpc("save_floor_plan_positions", {
+  const { error } = await supabase.rpc("save_floor_plan_layout", {
     p_floor_plan_id: planId,
-    p_positions: asJson(positions),
+    p_tables: asJson(tables),
+    p_items: asJson(items),
+    p_width: width,
+    p_height: height,
   });
 
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/dashboard/bord");
   revalidatePath("/dashboard");
+  // Borden syns i bokningsformuläret på den publika sidan — platsantalet med.
+  revalidatePath("/r", "layout");
   return { ok: true };
+}
+
+function clampInt(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(Math.max(Math.round(value), min), max);
 }
 
 export async function archiveTable(tableId: string): Promise<ActionResult> {

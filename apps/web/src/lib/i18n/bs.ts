@@ -883,6 +883,8 @@ export const bs: Dictionary = {
       statTipsHint: "pripada osoblju, ne restoranu",
 
       inKitchen: "Trenutno u kuhinji",
+
+      editPlan: "Uredi raspored",
       allOrders: "Sve narudžbe",
       noOrdersTitle: "Trenutno nema narudžbi",
       noOrdersBody: "Nove narudžbe pojavljuju se ovdje čim ih gost pošalje.",
@@ -1287,6 +1289,47 @@ export const bs: Dictionary = {
       add: "Dodaj",
       save: "Spremi",
       saving: "Spremanje…",
+
+      /* Rummet: formen, storleken och det som inte är ett bord. */
+      addFurniture: "Dodaj u prostor",
+      removeItem: "Ukloni",
+      selectHint: "Odaberite sto ili nešto u prostoru da biste to promijenili.",
+      shape: "Oblik",
+      shapeROUND: "Okruglo",
+      shapeSQUARE: "Četvrtasto",
+      shapeRECT: "Duguljasto",
+      widthLabel: "Širina",
+      heightLabel: "Dubina",
+      itemLabel: "Vlastiti tekst",
+      itemLabelPlaceholder: "Npr. Bašta",
+      itemLabelHint: "Vaš tekst ostaje onakav kakvim ste ga napisali. Prevodi se samo naziv vrste.",
+      planSize: "Veličina prostora",
+      planSizeHint: "Jedno polje je otprilike pola metra. 40 × 30 je prostor od dvadeset sa petnaest metara.",
+      planName: "Naziv nacrta",
+      rename: "Preimenuj",
+      planDelete: "Ukloni nacrt",
+      planDeleteConfirm: "Ukloniti nacrt {name}? Stolovi ostaju, ali prelaze među nerazmještene.",
+      planCanvasEmpty: "Povucite sto ili dodajte šank da počnete.",
+    },
+
+    /**
+     * Inredningen på planritningen.
+     *
+     * Sorterna är en fast lista och översätts — restaurangens EGEN etikett på
+     * en sak ("Bašta") gör det aldrig. Se migration 0072.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    floorItem: {
+      BAR: "Šank",
+      WALL: "Zid",
+      DOOR: "Vrata",
+      WINDOW: "Prozor",
+      PLANT: "Biljka",
+      STAIRS: "Stepenice",
+      WC: "Toalet",
+      KITCHEN: "Kuhinja",
+      TEXT: "Tekst",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */

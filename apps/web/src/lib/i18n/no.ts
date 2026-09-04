@@ -848,6 +848,8 @@ export const no: Dictionary = {
       statTipsHint: "de ansattes, ikke restaurantens",
 
       inKitchen: "Akkurat nå på kjøkkenet",
+
+      editPlan: "Tegn om lokalet",
       allOrders: "Alle bestillinger",
       noOrdersTitle: "Ingen bestillinger akkurat nå",
       noOrdersBody: "Nye bestillinger dukker opp her så snart en gjest sender dem.",
@@ -1250,6 +1252,47 @@ export const no: Dictionary = {
       add: "Legg til",
       save: "Lagre",
       saving: "Lagrer…",
+
+      /* Rummet: formen, storleken och det som inte är ett bord. */
+      addFurniture: "Legg til i rommet",
+      removeItem: "Fjern",
+      selectHint: "Velg et bord eller noe i rommet for å endre det.",
+      shape: "Form",
+      shapeROUND: "Rundt",
+      shapeSQUARE: "Firkantet",
+      shapeRECT: "Avlangt",
+      widthLabel: "Bredde",
+      heightLabel: "Dybde",
+      itemLabel: "Egen tekst",
+      itemLabelPlaceholder: "F.eks. Bašta",
+      itemLabelHint: "Din egen tekst står som du skrev den. Bare navnet på typen oversettes.",
+      planSize: "Rommets størrelse",
+      planSizeHint: "Én rute er omtrent en halv meter. 40 × 30 blir et rom på tjue ganger femten meter.",
+      planName: "Navn på tegningen",
+      rename: "Gi nytt navn",
+      planDelete: "Slett tegningen",
+      planDeleteConfirm: "Slette tegningen {name}? Bordene blir stående, men havner blant de uplasserte.",
+      planCanvasEmpty: "Dra ut et bord eller legg til baren for å begynne.",
+    },
+
+    /**
+     * Inredningen på planritningen.
+     *
+     * Sorterna är en fast lista och översätts — restaurangens EGEN etikett på
+     * en sak ("Bašta") gör det aldrig. Se migration 0072.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    floorItem: {
+      BAR: "Bar",
+      WALL: "Vegg",
+      DOOR: "Dør",
+      WINDOW: "Vindu",
+      PLANT: "Plante",
+      STAIRS: "Trapp",
+      WC: "Toalett",
+      KITCHEN: "Kjøkken",
+      TEXT: "Tekst",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */

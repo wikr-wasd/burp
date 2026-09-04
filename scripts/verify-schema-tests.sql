@@ -1892,6 +1892,58 @@ begin
 end
 $$;
 
+\echo '   inredningen hör till sin egen ritning'
+
+do $$
+declare
+  v_zeljo  uuid := '11111111-1111-1111-1111-111111111111';
+  v_annan  uuid;
+  v_plan   uuid;
+  v_frammande uuid;
+  v_item   uuid;
+begin
+  select id into v_annan from public.restaurants where slug = 'planritning-test';
+
+  insert into public.floor_plans (restaurant_id, name) values (v_zeljo, 'Inredningstest')
+  returning id into v_plan;
+
+  insert into public.floor_plans (restaurant_id, name) values (v_annan, 'Inredningstest')
+  returning id into v_frammande;
+
+  -- En främmande ritning. Utan spärren går det att möblera en annan
+  -- restaurangs lokal genom att skicka dess ritnings-id.
+  begin
+    insert into public.floor_plan_items (restaurant_id, floor_plan_id, kind, pos_x, pos_y)
+    values (v_zeljo, v_frammande, 'BAR', 2, 2);
+    raise exception 'FEL: en sak lades på en annan restaurangs ritning';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  -- En etikett utan text är en tom ruta mitt i rummet.
+  begin
+    insert into public.floor_plan_items (restaurant_id, floor_plan_id, kind, pos_x, pos_y)
+    values (v_zeljo, v_plan, 'TEXT', 2, 2);
+    raise exception 'FEL: en TEXT utan etikett accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  insert into public.floor_plan_items (restaurant_id, floor_plan_id, kind, pos_x, pos_y)
+  values (v_zeljo, v_plan, 'BAR', 2, 2)
+  returning id into v_item;
+
+  -- Inredningen försvinner MED ritningen, till skillnad från borden. Ett bord
+  -- är en beställningspunkt med historik; en vägg är bara en vägg i det rum
+  -- som togs bort.
+  delete from public.floor_plans where id = v_plan;
+
+  if exists (select 1 from public.floor_plan_items where id = v_item) then
+    raise exception 'FEL: inredningen blev kvar utan sin ritning';
+  end if;
+end
+$$;
+
 \echo '   öppettider räknas i restaurangens egen tidszon'
 
 do $$

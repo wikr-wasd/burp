@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { OrderStatus } from "@burp/core";
+import type { FloorItemKind, OrderStatus, TableShape } from "@burp/core";
 
 import { createClient } from "./supabase/server";
 
@@ -45,9 +45,30 @@ export interface TableSnapshot {
   x: number | null;
   y: number | null;
   rotation: number;
-  shape: "ROUND" | "SQUARE" | "RECT";
+  shape: TableShape;
   width: number;
   height: number;
+  /** Platsantalet ritar stolarna runt bordet. Se `seatPositions()`. */
+  capacity: number | null;
+}
+
+/**
+ * Inredningen på ritningen: baren, väggen, dörren, trappan, växten.
+ *
+ * Läses av översikten och inte bara av redigeraren. Ett rum utan sina väggar
+ * går inte att känna igen, och det är igenkänningen som gör att "bord 7
+ * väntar" blir en punkt att gå till.
+ */
+export interface FloorItemSnapshot {
+  id: string;
+  floorPlanId: string;
+  kind: FloorItemKind;
+  label: string | null;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
 }
 
 export interface FloorPlanSnapshot {
@@ -64,6 +85,8 @@ export interface OverviewTables {
    * planritningen är ett tillägg, inte ett krav.
    */
   floorPlans: FloorPlanSnapshot[];
+  /** Inredningen, över alla ritningar. Filtreras per ritning där den ritas. */
+  floorItems: FloorItemSnapshot[];
 }
 
 /** Statusar där köket äger ordern. Servitören behöver inte göra något. */
@@ -75,13 +98,13 @@ const READY_STATUS = "READY" satisfies OrderStatus;
 export async function getTableSnapshots(restaurantId: string): Promise<OverviewTables> {
   const supabase = await createClient();
 
-  // Fyra oberoende frågor, alltså parallellt. Ingen behöver den föregåendes svar.
-  const [{ data: tables }, { data: sessions }, { data: orders }, { data: plans }] =
+  // Fem oberoende frågor, alltså parallellt. Ingen behöver den föregåendes svar.
+  const [{ data: tables }, { data: sessions }, { data: orders }, { data: plans }, { data: items }] =
     await Promise.all([
       supabase
         .from("tables")
         .select(
-          "id, table_number, zone, floor_plan_id, pos_x, pos_y, rotation, shape, width, height",
+          "id, table_number, zone, capacity, floor_plan_id, pos_x, pos_y, rotation, shape, width, height",
         )
         .eq("restaurant_id", restaurantId)
         .neq("status", "ARCHIVED")
@@ -105,6 +128,11 @@ export async function getTableSnapshots(restaurantId: string): Promise<OverviewT
         .select("id, name, width, height")
         .eq("restaurant_id", restaurantId)
         .order("sort_order", { ascending: true }),
+
+      supabase
+        .from("floor_plan_items")
+        .select("id, floor_plan_id, kind, label, pos_x, pos_y, width, height, rotation")
+        .eq("restaurant_id", restaurantId),
     ]);
 
   const openTables = new Set((sessions ?? []).map((row) => row.table_id as string));
@@ -139,15 +167,27 @@ export async function getTableSnapshots(restaurantId: string): Promise<OverviewT
       x: row.pos_x,
       y: row.pos_y,
       rotation: row.rotation,
-      shape: row.shape as "ROUND" | "SQUARE" | "RECT",
+      shape: row.shape as TableShape,
       width: row.width,
       height: row.height,
+      capacity: row.capacity,
     })),
     floorPlans: (plans ?? []).map((plan) => ({
       id: plan.id,
       name: plan.name,
       width: plan.width,
       height: plan.height,
+    })),
+    floorItems: (items ?? []).map((item) => ({
+      id: item.id,
+      floorPlanId: item.floor_plan_id,
+      kind: item.kind as FloorItemKind,
+      label: item.label,
+      x: item.pos_x,
+      y: item.pos_y,
+      width: item.width,
+      height: item.height,
+      rotation: item.rotation,
     })),
   };
 }

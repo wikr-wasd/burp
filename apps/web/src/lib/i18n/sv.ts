@@ -1212,6 +1212,8 @@ export const sv = {
       statTipsHint: "personalens, inte restaurangens",
 
       inKitchen: "Just nu i köket",
+
+      editPlan: "Rita om lokalen",
       allOrders: "Alla beställningar",
       noOrdersTitle: "Inga beställningar just nu",
       noOrdersBody: "Nya order dyker upp här så fort en gäst skickar dem.",
@@ -1656,6 +1658,47 @@ export const sv = {
       add: "Lägg till",
       save: "Spara",
       saving: "Sparar…",
+
+      /* Rummet: formen, storleken och det som inte är ett bord. */
+      addFurniture: "Lägg till i rummet",
+      removeItem: "Ta bort",
+      selectHint: "Välj ett bord eller något i rummet för att ändra det.",
+      shape: "Form",
+      shapeROUND: "Runt",
+      shapeSQUARE: "Fyrkantigt",
+      shapeRECT: "Avlångt",
+      widthLabel: "Bredd",
+      heightLabel: "Djup",
+      itemLabel: "Egen text",
+      itemLabelPlaceholder: "T.ex. Bašta",
+      itemLabelHint: "Din egen text står kvar som du skrivit den. Bara sortens namn översätts.",
+      planSize: "Rummets storlek",
+      planSizeHint: "En ruta är ungefär en halv meter. 40 × 30 blir ett rum på tjugo gånger femton meter.",
+      planName: "Ritningens namn",
+      rename: "Byt namn",
+      planDelete: "Ta bort ritningen",
+      planDeleteConfirm: "Ta bort ritningen {name}? Borden blir kvar, men hamnar bland de outplacerade.",
+      planCanvasEmpty: "Dra ut ett bord eller lägg till baren för att börja.",
+    },
+
+    /**
+     * Inredningen på planritningen.
+     *
+     * Sorterna är en fast lista och översätts — restaurangens EGEN etikett på
+     * en sak ("Bašta") gör det aldrig. Se migration 0072.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    floorItem: {
+      BAR: "Bar",
+      WALL: "Vägg",
+      DOOR: "Dörr",
+      WINDOW: "Fönster",
+      PLANT: "Växt",
+      STAIRS: "Trappa",
+      WC: "Toalett",
+      KITCHEN: "Kök",
+      TEXT: "Text",
     },
 
     /**

@@ -333,6 +333,66 @@ export type Database = {
           },
         ]
       }
+      floor_plan_items: {
+        Row: {
+          created_at: string
+          floor_plan_id: string
+          height: number
+          id: string
+          kind: Database["public"]["Enums"]["floor_item_kind"]
+          label: string | null
+          pos_x: number
+          pos_y: number
+          restaurant_id: string
+          rotation: number
+          updated_at: string
+          width: number
+        }
+        Insert: {
+          created_at?: string
+          floor_plan_id: string
+          height?: number
+          id?: string
+          kind: Database["public"]["Enums"]["floor_item_kind"]
+          label?: string | null
+          pos_x: number
+          pos_y: number
+          restaurant_id: string
+          rotation?: number
+          updated_at?: string
+          width?: number
+        }
+        Update: {
+          created_at?: string
+          floor_plan_id?: string
+          height?: number
+          id?: string
+          kind?: Database["public"]["Enums"]["floor_item_kind"]
+          label?: string | null
+          pos_x?: number
+          pos_y?: number
+          restaurant_id?: string
+          rotation?: number
+          updated_at?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "floor_plan_items_floor_plan_id_fkey"
+            columns: ["floor_plan_id"]
+            isOneToOne: false
+            referencedRelation: "floor_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "floor_plan_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       floor_plans: {
         Row: {
           created_at: string
@@ -3540,8 +3600,14 @@ export type Database = {
         Args: { p_invitation_id: string }
         Returns: undefined
       }
-      save_floor_plan_positions: {
-        Args: { p_floor_plan_id: string; p_positions: Json }
+      save_floor_plan_layout: {
+        Args: {
+          p_floor_plan_id: string
+          p_height?: number
+          p_items: Json
+          p_tables: Json
+          p_width?: number
+        }
         Returns: number
       }
       set_staff_active: {
@@ -4203,6 +4269,16 @@ export type Database = {
       coupon_funder: "BURP" | "RESTAURANT"
       currency_code: "BAM" | "EUR" | "RSD" | "SEK"
       fee_base: "GROSS_ITEMS" | "NET_ITEMS" | "GROSS_TOTAL"
+      floor_item_kind:
+        | "BAR"
+        | "WALL"
+        | "DOOR"
+        | "WINDOW"
+        | "PLANT"
+        | "STAIRS"
+        | "WC"
+        | "KITCHEN"
+        | "TEXT"
       gift_card_kind: "ISSUE" | "REDEEM" | "REFUND"
       invitation_status: "PENDING" | "ACCEPTED" | "REVOKED"
       loyalty_kind:
@@ -4389,6 +4465,17 @@ export const Constants = {
       coupon_funder: ["BURP", "RESTAURANT"],
       currency_code: ["BAM", "EUR", "RSD", "SEK"],
       fee_base: ["GROSS_ITEMS", "NET_ITEMS", "GROSS_TOTAL"],
+      floor_item_kind: [
+        "BAR",
+        "WALL",
+        "DOOR",
+        "WINDOW",
+        "PLANT",
+        "STAIRS",
+        "WC",
+        "KITCHEN",
+        "TEXT",
+      ],
       gift_card_kind: ["ISSUE", "REDEEM", "REFUND"],
       invitation_status: ["PENDING", "ACCEPTED", "REVOKED"],
       loyalty_kind: [

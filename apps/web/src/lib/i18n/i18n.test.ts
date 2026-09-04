@@ -213,6 +213,9 @@ describe("ordböckerna", () => {
       "staff.image.contrast",
       // "Titel" delas rakt av. "Weinkarte 2026" och resten av avsnittet gör det inte.
       "staff.documents.titleLabel",
+      // "Text" är samma ord på tyska. "Theke", "Wand" och "Treppe" i samma
+      // avsnitt är det inte — kvittot på att inredningen faktiskt är översatt.
+      "staff.floorItem.TEXT",
     ],
 
     en: [
@@ -240,6 +243,10 @@ describe("ordböckerna", () => {
        * oöversatt ruta.
        */
       "staff.settings.bannerTitle",
+      // "Bar" och "Text" är samma ord på engelska. "Restroom" och "Stairs" i
+      // samma avsnitt är det inte.
+      "staff.floorItem.BAR",
+      "staff.floorItem.TEXT",
     ],
 
     /*
@@ -454,6 +461,12 @@ describe("ordböckerna", () => {
       "staff.reports.inDiscount",
       "staff.reports.amountIn",
       "staff.reports.actorSystem",
+      // "Form", "Bar" och "Toalett" stavas likadant på norska. Att "Dybde",
+      // "Firkantet" och "Kjøkken" gör det INTE är kvittot på att raderna är
+      // norska och inte kopierade.
+      "staff.tables.shape",
+      "staff.floorItem.BAR",
+      "staff.floorItem.WC",
     ],
   };
 

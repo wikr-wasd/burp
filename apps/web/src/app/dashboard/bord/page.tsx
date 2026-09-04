@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { QrCode } from "lucide-react";
-import { signTableToken, tableQrUrl } from "@burp/core";
+import { signTableToken, tableQrUrl, type FloorItemKind, type TableShape } from "@burp/core";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FloorPlanEditor } from "@/components/staff/floor-plan-editor";
 import { StaffShell } from "@/components/staff/staff-shell";
@@ -60,6 +60,11 @@ export default async function TablesPage() {
     .select("id, name, width, height")
     .eq("restaurant_id", staff.restaurantId)
     .order("sort_order", { ascending: true });
+
+  const { data: planItems } = await supabase
+    .from("floor_plan_items")
+    .select("id, floor_plan_id, kind, label, pos_x, pos_y, width, height, rotation")
+    .eq("restaurant_id", staff.restaurantId);
 
   const { data: openSessions } = await supabase
     .from("table_sessions")
@@ -143,6 +148,18 @@ export default async function TablesPage() {
 
           <FloorPlanEditor
             labels={t.tables}
+            itemLabels={t.floorItem}
+            items={(planItems ?? []).map((item) => ({
+              id: item.id,
+              floorPlanId: item.floor_plan_id,
+              kind: item.kind as FloorItemKind,
+              label: item.label,
+              x: item.pos_x,
+              y: item.pos_y,
+              width: item.width,
+              height: item.height,
+              rotation: item.rotation,
+            }))}
             plans={(floorPlans ?? []).map((plan) => ({
               id: plan.id,
               name: plan.name,
@@ -158,7 +175,7 @@ export default async function TablesPage() {
               x: row.pos_x,
               y: row.pos_y,
               rotation: row.rotation,
-              shape: row.shape as "ROUND" | "SQUARE" | "RECT",
+              shape: row.shape as TableShape,
               width: row.width,
               height: row.height,
             }))}

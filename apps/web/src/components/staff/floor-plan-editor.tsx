@@ -1,24 +1,49 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState, useTransition } from "react";
-import { Plus, RotateCw, Save, Trash2, Undo2 } from "lucide-react";
+import {
+  AppWindow,
+  Bath,
+  ChefHat,
+  DoorOpen,
+  Footprints,
+  LayoutGrid,
+  Minus,
+  Plus,
+  RotateCw,
+  Save,
+  Sprout,
+  Trash2,
+  Type,
+  Undo2,
+  Wine,
+} from "lucide-react";
+import {
+  clampToPlan,
+  FLOOR_ITEM_KINDS,
+  FLOOR_ITEM_SIZE,
+  type FloorItemKind,
+  type TableShape,
+} from "@burp/core";
 import {
   createFloorPlan,
   deleteFloorPlan,
-  saveFloorPlanPositions,
+  renameFloorPlan,
+  saveFloorPlanLayout,
+  type PlanItemInput,
   type TablePosition,
 } from "@/app/dashboard/bord/actions";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { Dictionary } from "@/lib/i18n";
-import { LayoutGrid } from "lucide-react";
+import { ItemGlyph, PlanGrid, TableGlyph } from "@/components/staff/floor-plan-shapes";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
- * Planritningen.
+ * Planritningen — rummet som restaurangen ritar själv.
  *
- * Redigeraren är den svåra delen och den svåraste delen av den är att det ska
+ * Redigeraren är den svåra delen, och den svåraste delen av den är att det ska
  * fungera med fingrar. Därför **pointer events** och inte mouse events: samma
  * kod hanterar mus, penna och finger, och en surfplatta i en restaurang är det
- * mest sannolika stället någon ritar om ett rum.
+ * mest sannolika stället någon möblerar om.
  *
  * Koordinaterna är i rutnätsenheter. Ritytan skalas till skärmen med en
  * viewBox — hade positionerna varit i pixlar hade rummet ritats om varje gång
@@ -26,7 +51,16 @@ import { LayoutGrid } from "lucide-react";
  *
  * SVG och inte absolut positionerade divar, av samma skäl: en viewBox gör
  * skalningen till en egenskap hos ritytan i stället för till en uträkning som
- * måste göras om vid varje omrendering.
+ * måste göras om vid varje omrendering. Det är också skälet att ingenting här
+ * är jQuery: React äger redan DOM:en, och ett bibliotek som flyttar noder bakom
+ * ryggen på den ger två sanningar om var ett bord står. Draget nedan är
+ * trettio rader egen kod och fungerar med finger, penna, mus och tangentbord.
+ *
+ * Allt utom Spara är lokalt. Den som möblerar om ett rum provar sig fram, och
+ * varje flytt får inte vara ett anrop — därför en ångra-stack här och ETT
+ * anrop när det är klart. Servern skriver hela rummet i en transaktion
+ * (`save_floor_plan_layout`, migration 0072): ett avbrott mitt i får inte
+ * lämna borden flyttade men baren kvar där den stod.
  */
 
 export interface FloorPlanView {
@@ -45,68 +79,209 @@ export interface EditorTable {
   x: number | null;
   y: number | null;
   rotation: number;
-  shape: "ROUND" | "SQUARE" | "RECT";
+  shape: TableShape;
   width: number;
   height: number;
 }
 
+export interface EditorItem {
+  id: string;
+  floorPlanId: string;
+  kind: FloorItemKind;
+  label: string | null;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+}
+
+type Selection = { type: "table" | "item"; id: string } | null;
+
+type PlanSizes = Record<string, { width: number; height: number }>;
+
 /** Rutnätets steg. Bord fäster mot heltal, vilket räcker för ett rum. */
 const SNAP = 1;
+
+/** Ikon per sort. Paletten ska gå att läsa i förbifarten. */
+const ITEM_ICON: Record<FloorItemKind, typeof Wine> = {
+  BAR: Wine,
+  WALL: Minus,
+  DOOR: DoorOpen,
+  WINDOW: AppWindow,
+  PLANT: Sprout,
+  STAIRS: Footprints,
+  WC: Bath,
+  KITCHEN: ChefHat,
+  TEXT: Type,
+};
+
+const SHAPES: TableShape[] = ["ROUND", "SQUARE", "RECT"];
 
 export function FloorPlanEditor({
   plans,
   tables,
+  items,
   labels,
+  itemLabels,
 }: {
   plans: FloorPlanView[];
   tables: EditorTable[];
+  items: EditorItem[];
   /** Bordsytans texter ur ordboken. Rena strängar — komponenten är klientkod. */
   labels: Dictionary["staff"]["tables"];
+  /** Inredningens sortnamn. Restaurangens egna etiketter översätts aldrig. */
+  itemLabels: Dictionary["staff"]["floorItem"];
 }) {
   const [activePlanId, setActivePlanId] = useState(plans[0]?.id ?? null);
   const [layout, setLayout] = useState<EditorTable[]>(tables);
+  const [furniture, setFurniture] = useState<EditorItem[]>(items);
+  const [sizes, setSizes] = useState<PlanSizes>(() => initialSizes(plans));
+
   /** Varje ändring lägger en kopia här. Ångra är att plocka den senaste. */
-  const [history, setHistory] = useState<EditorTable[][]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [history, setHistory] = useState<{ tables: EditorTable[]; items: EditorItem[]; sizes: PlanSizes }[]>([]);
+  const [selected, setSelected] = useState<Selection>(null);
   const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
   const [newPlanName, setNewPlanName] = useState("");
   const [pending, startTransition] = useTransition();
 
-  const plan = plans.find((candidate) => candidate.id === activePlanId) ?? null;
+  const plan = useMemo(() => {
+    const found = plans.find((candidate) => candidate.id === activePlanId);
+    if (!found) return null;
+    const size = sizes[found.id] ?? { width: found.width, height: found.height };
+    return { ...found, ...size };
+  }, [plans, activePlanId, sizes]);
 
   const placed = useMemo(
     () => layout.filter((table) => table.floorPlanId === activePlanId && table.x !== null),
     [layout, activePlanId],
   );
 
-  const unplaced = useMemo(
-    () => layout.filter((table) => table.floorPlanId === null),
-    [layout],
+  const onPlan = useMemo(
+    () => furniture.filter((item) => item.floorPlanId === activePlanId),
+    [furniture, activePlanId],
   );
 
+  const unplaced = useMemo(() => layout.filter((table) => table.floorPlanId === null), [layout]);
+
   const dirty = useMemo(
-    () => JSON.stringify(layout) !== JSON.stringify(tables),
-    [layout, tables],
+    () =>
+      JSON.stringify({ layout, furniture, sizes }) !==
+      JSON.stringify({ layout: tables, furniture: items, sizes: initialSizes(plans) }),
+    [layout, furniture, sizes, tables, items, plans],
   );
+
+  const selectedTable =
+    selected?.type === "table" ? (layout.find((t) => t.id === selected.id) ?? null) : null;
+  const selectedItem =
+    selected?.type === "item" ? (furniture.find((i) => i.id === selected.id) ?? null) : null;
 
   /** Sparar nuvarande läge innan en ändring, så att Ångra har något att gå till. */
   const remember = useCallback(() => {
-    setHistory((current) => [...current.slice(-49), layout]);
+    setHistory((current) => [...current.slice(-49), { tables: layout, items: furniture, sizes }]);
     setFeedback(null);
-  }, [layout]);
+  }, [layout, furniture, sizes]);
 
-  function update(id: string, patch: Partial<EditorTable>) {
-    setLayout((current) =>
-      current.map((table) => (table.id === id ? { ...table, ...patch } : table)),
-    );
+  function updateTable(id: string, patch: Partial<EditorTable>) {
+    setLayout((current) => current.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }
+
+  function updateItem(id: string, patch: Partial<EditorItem>) {
+    setFurniture((current) => current.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   }
 
   function undo() {
     setHistory((current) => {
       const previous = current[current.length - 1];
-      if (previous) setLayout(previous);
+      if (previous) {
+        setLayout(previous.tables);
+        setFurniture(previous.items);
+        setSizes(previous.sizes);
+      }
       return current.slice(0, -1);
     });
+  }
+
+  /** Flyttar det valda, oavsett om det är ett bord eller en sak. */
+  function move(type: "table" | "item", id: string, x: number, y: number) {
+    if (type === "table") updateTable(id, { x, y });
+    else updateItem(id, { x, y });
+  }
+
+  function addItem(kind: FloorItemKind) {
+    if (!plan) return;
+    remember();
+
+    const size = FLOOR_ITEM_SIZE[kind];
+    const at = clampToPlan(
+      {
+        x: Math.round(plan.width / 2 - size.width / 2),
+        y: Math.round(plan.height / 2 - size.height / 2),
+        ...size,
+      },
+      plan,
+    );
+
+    const item: EditorItem = {
+      id: crypto.randomUUID(),
+      floorPlanId: plan.id,
+      kind,
+      // En etikett utan text är en tom ruta mitt i rummet — därför får TEXT
+      // sitt sortnamn som utgångsvärde och skrivs över direkt i fältet.
+      label: kind === "TEXT" ? itemLabels.TEXT : null,
+      rotation: 0,
+      ...size,
+      ...at,
+    };
+
+    setFurniture((current) => [...current, item]);
+    setSelected({ type: "item", id: item.id });
+  }
+
+  function resize(delta: { width?: number; height?: number }) {
+    if (!plan) return;
+    remember();
+
+    if (selectedTable) {
+      const width = clamp((selectedTable.width ?? 4) + (delta.width ?? 0), 1, 40);
+      const height = clamp((selectedTable.height ?? 4) + (delta.height ?? 0), 1, 40);
+      const at = clampToPlan({ x: selectedTable.x ?? 0, y: selectedTable.y ?? 0, width, height }, plan);
+      updateTable(selectedTable.id, { width, height, ...at });
+      return;
+    }
+
+    if (selectedItem) {
+      const width = clamp(selectedItem.width + (delta.width ?? 0), 1, plan.width);
+      const height = clamp(selectedItem.height + (delta.height ?? 0), 1, plan.height);
+      const at = clampToPlan({ x: selectedItem.x, y: selectedItem.y, width, height }, plan);
+      updateItem(selectedItem.id, { width, height, ...at });
+    }
+  }
+
+  function rotate() {
+    if (!selected) return;
+    remember();
+
+    if (selectedTable) {
+      updateTable(selectedTable.id, { rotation: (selectedTable.rotation + 45) % 360 });
+    } else if (selectedItem) {
+      updateItem(selectedItem.id, { rotation: (selectedItem.rotation + 45) % 360 });
+    }
+  }
+
+  function removeSelected() {
+    if (!selected) return;
+    remember();
+
+    if (selectedTable) {
+      // Bordet raderas ALDRIG här. Det är en beställningspunkt med historik
+      // och hamnar bland de outplacerade, redo att sättas ut igen.
+      updateTable(selectedTable.id, { floorPlanId: null, x: null, y: null });
+    } else if (selectedItem) {
+      setFurniture((current) => current.filter((item) => item.id !== selectedItem.id));
+    }
+
+    setSelected(null);
   }
 
   function save() {
@@ -124,10 +299,28 @@ export function FloorPlanEditor({
         shape: table.shape,
         width: table.width,
         height: table.height,
+        capacity: table.capacity,
       }));
 
+    const planItems: PlanItemInput[] = onPlan.map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      label: item.label,
+      x: item.x,
+      y: item.y,
+      width: item.width,
+      height: item.height,
+      rotation: item.rotation,
+    }));
+
     startTransition(async () => {
-      const result = await saveFloorPlanPositions(plan.id, positions);
+      const result = await saveFloorPlanLayout(plan.id, {
+        tables: positions,
+        items: planItems,
+        width: plan.width,
+        height: plan.height,
+      });
+
       setFeedback({
         ok: result.ok,
         message: result.ok ? labels.planSaved : (result.message ?? labels.somethingWrong),
@@ -139,11 +332,7 @@ export function FloorPlanEditor({
   if (plans.length === 0) {
     return (
       <div className="mt-8">
-        <EmptyState
-          icon={LayoutGrid}
-          title={labels.planEmptyTitle}
-          body={labels.planEmptyBody}
-        />
+        <EmptyState icon={LayoutGrid} title={labels.planEmptyTitle} body={labels.planEmptyBody} />
         <NewPlan
           labels={labels}
           value={newPlanName}
@@ -176,7 +365,7 @@ export function FloorPlanEditor({
             aria-pressed={candidate.id === activePlanId}
             onClick={() => {
               setActivePlanId(candidate.id);
-              setSelectedId(null);
+              setSelected(null);
             }}
             className={`min-h-11 rounded-lg border px-3 text-sm font-medium transition-colors ${
               candidate.id === activePlanId
@@ -191,6 +380,28 @@ export function FloorPlanEditor({
 
       {plan ? (
         <>
+          {/* Paletten. Klick lägger saken mitt i rummet — den som just lagt ut
+              en bar vill dra den dit den ska, inte leta efter den i ett hörn. */}
+          <section className="mt-4">
+            <h3 className="label-caps">{labels.addFurniture}</h3>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {FLOOR_ITEM_KINDS.map((kind) => {
+                const Icon = ITEM_ICON[kind];
+                return (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => addItem(kind)}
+                    className="btn btn-secondary"
+                  >
+                    <Icon size={16} aria-hidden="true" />
+                    {itemLabels[kind]}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -202,33 +413,19 @@ export function FloorPlanEditor({
               {labels.undo}
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (!selectedId) return;
-                remember();
-                const table = layout.find((candidate) => candidate.id === selectedId);
-                if (table) update(selectedId, { rotation: (table.rotation + 45) % 360 });
-              }}
-              disabled={!selectedId}
-              className="btn btn-secondary"
-            >
+            <button type="button" onClick={rotate} disabled={!selected} className="btn btn-secondary">
               <RotateCw size={16} aria-hidden="true" />
               {labels.rotate}
             </button>
 
             <button
               type="button"
-              onClick={() => {
-                if (!selectedId) return;
-                remember();
-                update(selectedId, { floorPlanId: null, x: null, y: null });
-                setSelectedId(null);
-              }}
-              disabled={!selectedId}
+              onClick={removeSelected}
+              disabled={!selected}
               className="btn btn-secondary"
             >
-              {labels.removeFromPlan}
+              <Trash2 size={16} aria-hidden="true" />
+              {selectedItem ? labels.removeItem : labels.removeFromPlan}
             </button>
 
             <span className="mr-auto" />
@@ -256,11 +453,44 @@ export function FloorPlanEditor({
           <Canvas
             plan={plan}
             tables={placed}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
+            items={onPlan}
+            itemLabels={itemLabels}
+            selected={selected}
+            onSelect={setSelected}
             onBeforeMove={remember}
-            onMove={(id, x, y) => update(id, { x, y })}
+            onMove={move}
+            emptyLabel={labels.planCanvasEmpty}
           />
+
+          {/* Det valda, och vad som går att göra med det. Panelen står under
+              ritningen och inte bredvid: på en surfplatta i liggande läge är
+              ritytan bred, och en kolumn vid sidan hade tryckt ihop rummet. */}
+          {selectedTable ? (
+            <TablePanel
+              table={selectedTable}
+              labels={labels}
+              onShape={(shape) => {
+                remember();
+                updateTable(selectedTable.id, { shape });
+              }}
+              onSeats={(delta) => {
+                remember();
+                const next = clamp((selectedTable.capacity ?? 0) + delta, 0, 100);
+                updateTable(selectedTable.id, { capacity: next === 0 ? null : next });
+              }}
+              onResize={resize}
+            />
+          ) : selectedItem ? (
+            <ItemPanel
+              item={selectedItem}
+              labels={labels}
+              itemLabels={itemLabels}
+              onLabel={(label) => updateItem(selectedItem.id, { label: label || null })}
+              onResize={resize}
+            />
+          ) : (
+            <p className="mt-3 text-sm text-[var(--muted)]">{labels.selectHint}</p>
+          )}
 
           {/* Bord som inte är utplacerade. De skapades innan ritningen fanns,
               eller lades till mitt i ett pass — båda är normala, och listan
@@ -279,12 +509,12 @@ export function FloorPlanEditor({
                         remember();
                         // Mitt i rummet. Den som just lagt ut ett bord vill
                         // flytta det, inte leta efter det i ett hörn.
-                        update(table.id, {
+                        updateTable(table.id, {
                           floorPlanId: plan.id,
                           x: Math.round(plan.width / 2),
                           y: Math.round(plan.height / 2),
                         });
-                        setSelectedId(table.id);
+                        setSelected({ type: "table", id: table.id });
                       }}
                       className="btn btn-secondary"
                     >
@@ -301,31 +531,69 @@ export function FloorPlanEditor({
             <summary className="cursor-pointer text-sm text-[var(--muted)]">
               {labels.managePlans}
             </summary>
-            <div className="mt-3">
-              <NewPlan
-                value={newPlanName}
-                onChange={setNewPlanName}
-                onCreate={() => {
-                  startTransition(async () => {
-                    const result = await createFloorPlan(newPlanName);
-                    if (result.ok) setNewPlanName("");
-                    else setFeedback({ ok: false, message: result.message ?? labels.somethingWrong });
-                  });
-                }}
-                pending={pending}
-                labels={labels}
-              />
+
+            <div className="mt-3 card p-4">
+              {/* Rummets storlek. En uteservering är sällan lika stor som
+                  salen, och ett rum som inte går att ändra tvingar den som
+                  ritar att krympa möblerna i stället. */}
+              <h4 className="label-caps">{labels.planSize}</h4>
+              <div className="mt-2 flex flex-wrap items-center gap-4">
+                <Stepper
+                  label={labels.widthLabel}
+                  value={plan.width}
+                  onChange={(delta) => {
+                    remember();
+                    setSizes((current) => ({
+                      ...current,
+                      [plan.id]: {
+                        width: clamp(plan.width + delta, 10, 200),
+                        height: plan.height,
+                      },
+                    }));
+                  }}
+                />
+                <Stepper
+                  label={labels.heightLabel}
+                  value={plan.height}
+                  onChange={(delta) => {
+                    remember();
+                    setSizes((current) => ({
+                      ...current,
+                      [plan.id]: {
+                        width: plan.width,
+                        height: clamp(plan.height + delta, 10, 200),
+                      },
+                    }));
+                  }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-[var(--muted)]">{labels.planSizeHint}</p>
+
+              <div className="mt-5 border-t border-[var(--rule)] pt-4">
+                <RenamePlan plan={plan} labels={labels} onFeedback={setFeedback} />
+              </div>
+
+              <div className="mt-5 border-t border-[var(--rule)] pt-4">
+                <NewPlan
+                  value={newPlanName}
+                  onChange={setNewPlanName}
+                  onCreate={() => {
+                    startTransition(async () => {
+                      const result = await createFloorPlan(newPlanName);
+                      if (result.ok) setNewPlanName("");
+                      else
+                        setFeedback({ ok: false, message: result.message ?? labels.somethingWrong });
+                    });
+                  }}
+                  pending={pending}
+                  labels={labels}
+                />
+              </div>
 
               <button
                 type="button"
                 onClick={() => {
-                  if (
-                    !window.confirm(
-                      `Ta bort ritningen "${plan.name}"? Borden blir kvar men hamnar bland de outplacerade.`,
-                    )
-                  ) {
-                    return;
-                  }
+                  if (!window.confirm(fill(labels.planDeleteConfirm, { name: plan.name }))) return;
                   startTransition(async () => {
                     const result = await deleteFloorPlan(plan.id);
                     if (!result.ok) {
@@ -333,10 +601,10 @@ export function FloorPlanEditor({
                     }
                   });
                 }}
-                className="btn btn-secondary mt-3"
+                className="btn btn-secondary mt-5"
               >
                 <Trash2 size={16} aria-hidden="true" />
-                Ta bort {plan.name}
+                {labels.planDelete}
               </button>
             </div>
           </details>
@@ -351,20 +619,33 @@ export function FloorPlanEditor({
 function Canvas({
   plan,
   tables,
-  selectedId,
+  items,
+  itemLabels,
+  selected,
   onSelect,
   onBeforeMove,
   onMove,
+  emptyLabel,
 }: {
   plan: FloorPlanView;
   tables: EditorTable[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
+  items: EditorItem[];
+  itemLabels: Dictionary["staff"]["floorItem"];
+  selected: Selection;
+  onSelect: (selection: Selection) => void;
   onBeforeMove: () => void;
-  onMove: (id: string, x: number, y: number) => void;
+  onMove: (type: "table" | "item", id: string, x: number, y: number) => void;
+  emptyLabel: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const dragging = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  const dragging = useRef<{
+    type: "table" | "item";
+    id: string;
+    width: number;
+    height: number;
+    offsetX: number;
+    offsetY: number;
+  } | null>(null);
 
   /**
    * Skärmkoordinat till rutnätskoordinat.
@@ -386,21 +667,28 @@ function Canvas({
     return { x: local.x, y: local.y };
   }
 
-  function onPointerDown(event: React.PointerEvent, table: EditorTable) {
+  function startDrag(
+    event: React.PointerEvent,
+    type: "table" | "item",
+    thing: { id: string; x: number | null; y: number | null; width: number; height: number },
+  ) {
     const point = toGrid(event);
     if (!point) return;
 
-    onSelect(table.id);
+    onSelect({ type, id: thing.id });
     onBeforeMove();
 
     // Fångar pekaren så att draget fortsätter även när fingret glider utanför
-    // bordet — utan det tappas draget så fort man rör sig snabbt.
+    // saken — utan det tappas draget så fort man rör sig snabbt.
     (event.target as Element).setPointerCapture(event.pointerId);
 
     dragging.current = {
-      id: table.id,
-      offsetX: point.x - (table.x ?? 0),
-      offsetY: point.y - (table.y ?? 0),
+      type,
+      id: thing.id,
+      width: thing.width,
+      height: thing.height,
+      offsetX: point.x - (thing.x ?? 0),
+      offsetY: point.y - (thing.y ?? 0),
     };
   }
 
@@ -411,18 +699,19 @@ function Canvas({
     const point = toGrid(event);
     if (!point) return;
 
-    const table = tables.find((candidate) => candidate.id === drag.id);
-    if (!table) return;
-
-    // Fäster mot rutnätet och håller bordet innanför rummet.
-    const x = clamp(Math.round((point.x - drag.offsetX) / SNAP) * SNAP, 0, plan.width - table.width);
-    const y = clamp(
-      Math.round((point.y - drag.offsetY) / SNAP) * SNAP,
-      0,
-      plan.height - table.height,
+    // Fäster mot rutnätet och håller saken innanför rummet. Samma uträkning
+    // som servern gör — `clampToPlan` ligger i @burp/core just därför.
+    const at = clampToPlan(
+      {
+        x: Math.round((point.x - drag.offsetX) / SNAP) * SNAP,
+        y: Math.round((point.y - drag.offsetY) / SNAP) * SNAP,
+        width: drag.width,
+        height: drag.height,
+      },
+      plan,
     );
 
-    onMove(drag.id, x, y);
+    onMove(drag.type, drag.id, at.x, at.y);
   }
 
   function endDrag() {
@@ -435,96 +724,278 @@ function Canvas({
         ref={svgRef}
         viewBox={`0 0 ${plan.width} ${plan.height}`}
         role="application"
-        aria-label={`Planritning över ${plan.name}`}
+        aria-label={plan.name}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onPointerDown={(event) => {
+          // Klick på tomma golvet avmarkerar. Utan det står panelen kvar och
+          // pekar på ett bord man redan slutat titta på.
+          if (event.target === svgRef.current) onSelect(null);
+        }}
         // `touch-none` stänger av webbläsarens egen panorering. Utan den
         // scrollar sidan i stället för att bordet flyttas.
         className="min-w-[40rem] touch-none rounded-lg border border-[var(--rule)] bg-[var(--surface)]"
         style={{ aspectRatio: `${plan.width} / ${plan.height}` }}
       >
-        <defs>
-          <pattern id="grid" width="1" height="1" patternUnits="userSpaceOnUse">
-            <path
-              d="M 1 0 L 0 0 0 1"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.02"
-              className="text-[var(--rule)]"
-            />
-          </pattern>
-        </defs>
-        <rect width={plan.width} height={plan.height} fill="url(#grid)" />
+        <PlanGrid id={plan.id} width={plan.width} height={plan.height} />
 
-        {tables.map((table) => (
-          <TableShape
-            key={table.id}
-            table={table}
-            isSelected={table.id === selectedId}
-            onPointerDown={(event) => onPointerDown(event, table)}
-          />
-        ))}
+        {/* Inredningen först, alltså under borden. Ett bord som hamnar på
+            baren ska synas ovanpå den — det är bordet man arbetar med. */}
+        {items.map((item) => {
+          const isSelected = selected?.type === "item" && selected.id === item.id;
+          return (
+            <g
+              key={item.id}
+              onPointerDown={(event) => startDrag(event, "item", item)}
+              className="cursor-grab"
+            >
+              <ItemGlyph item={item} kindLabel={itemLabels[item.kind]} />
+              {isSelected ? <SelectionRing box={item} /> : null}
+            </g>
+          );
+        })}
+
+        {tables.map((table) => {
+          const isSelected = selected?.type === "table" && selected.id === table.id;
+          return (
+            <g
+              key={table.id}
+              onPointerDown={(event) => startDrag(event, "table", table)}
+              className="cursor-grab"
+            >
+              <TableGlyph
+                table={table}
+                fillClass={isSelected ? "fill-burp-600" : "fill-[var(--background)]"}
+                textClass={isSelected ? "fill-white" : "fill-[var(--foreground)]"}
+              />
+              {isSelected ? (
+                <SelectionRing
+                  box={{ x: table.x ?? 0, y: table.y ?? 0, width: table.width, height: table.height }}
+                />
+              ) : null}
+            </g>
+          );
+        })}
+
+        {tables.length === 0 && items.length === 0 ? (
+          <text
+            x={plan.width / 2}
+            y={plan.height / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={Math.min(plan.width, plan.height) * 0.06}
+            className="fill-[var(--muted)]"
+          >
+            {emptyLabel}
+          </text>
+        ) : null}
       </svg>
     </div>
   );
 }
 
-function TableShape({
+/** Markeringen. En prickad ram utanpå det valda, i handlingsrött. */
+function SelectionRing({
+  box,
+}: {
+  box: { x: number; y: number; width: number; height: number };
+}) {
+  return (
+    <rect
+      x={box.x - 0.4}
+      y={box.y - 0.4}
+      width={box.width + 0.8}
+      height={box.height + 0.8}
+      rx={0.4}
+      fill="none"
+      strokeWidth="0.14"
+      strokeDasharray="0.5 0.4"
+      className="stroke-burp-600"
+      style={{ pointerEvents: "none" }}
+    />
+  );
+}
+
+/* ── Panelerna under ritningen ───────────────────────────────────────────── */
+
+function TablePanel({
   table,
-  isSelected,
-  onPointerDown,
+  labels,
+  onShape,
+  onSeats,
+  onResize,
 }: {
   table: EditorTable;
-  isSelected: boolean;
-  onPointerDown: (event: React.PointerEvent) => void;
+  labels: Dictionary["staff"]["tables"];
+  onShape: (shape: TableShape) => void;
+  onSeats: (delta: number) => void;
+  onResize: (delta: { width?: number; height?: number }) => void;
 }) {
-  const x = table.x ?? 0;
-  const y = table.y ?? 0;
-  const cx = x + table.width / 2;
-  const cy = y + table.height / 2;
+  return (
+    <section className="card mt-4 p-4">
+      <h3 className="font-display text-lg">{table.tableNumber}</h3>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-4">
+        <div>
+          <span className="label-caps">{labels.shape}</span>
+          <div className="mt-1.5 flex gap-2">
+            {SHAPES.map((shape) => (
+              <button
+                key={shape}
+                type="button"
+                aria-pressed={table.shape === shape}
+                onClick={() => onShape(shape)}
+                className={`min-h-11 rounded-lg border px-3 text-sm transition-colors ${
+                  table.shape === shape
+                    ? "border-burp-600 bg-burp-600 text-white"
+                    : "border-[var(--rule)] hover:border-burp-600"
+                }`}
+              >
+                {labels[`shape${shape}`]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Platsantalet ritar stolarna. Det är samma `capacity` som bokningen
+            läser — en sexa i rummet är en sexa att boka. */}
+        <Stepper
+          label={labels.seats}
+          value={table.capacity ?? 0}
+          onChange={onSeats}
+        />
+
+        <Stepper label={labels.widthLabel} value={table.width} onChange={(d) => onResize({ width: d })} />
+        <Stepper label={labels.heightLabel} value={table.height} onChange={(d) => onResize({ height: d })} />
+      </div>
+    </section>
+  );
+}
+
+function ItemPanel({
+  item,
+  labels,
+  itemLabels,
+  onLabel,
+  onResize,
+}: {
+  item: EditorItem;
+  labels: Dictionary["staff"]["tables"];
+  itemLabels: Dictionary["staff"]["floorItem"];
+  onLabel: (label: string) => void;
+  onResize: (delta: { width?: number; height?: number }) => void;
+}) {
+  return (
+    <section className="card mt-4 p-4">
+      <h3 className="font-display text-lg">{itemLabels[item.kind]}</h3>
+
+      <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-4">
+        <label className="min-w-52 flex-1">
+          <span className="label-caps">{labels.itemLabel}</span>
+          <input
+            type="text"
+            value={item.label ?? ""}
+            maxLength={40}
+            onChange={(event) => onLabel(event.target.value)}
+            placeholder={labels.itemLabelPlaceholder}
+            className="field mt-1.5"
+          />
+        </label>
+
+        <Stepper label={labels.widthLabel} value={item.width} onChange={(d) => onResize({ width: d })} />
+        <Stepper label={labels.heightLabel} value={item.height} onChange={(d) => onResize({ height: d })} />
+      </div>
+
+      <p className="mt-3 text-xs text-[var(--muted)]">{labels.itemLabelHint}</p>
+    </section>
+  );
+}
+
+/**
+ * Plus och minus, inte ett dragreglage.
+ *
+ * Ett handtag i hörnet är finare att titta på och sämre att använda: på en
+ * surfplatta täcker fingret precis det man siktar på. Två knappar med elva
+ * millimeters träffyta träffar rätt varje gång, och fungerar dessutom med
+ * tangentbord utan att vi bygger något eget.
+ */
+function Stepper({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (delta: number) => void;
+}) {
+  return (
+    <div>
+      <span className="label-caps">{label}</span>
+      <div className="mt-1.5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(-1)}
+          aria-label={`${label} −1`}
+          className="btn btn-secondary min-w-11 px-3"
+        >
+          <Minus size={16} aria-hidden="true" />
+        </button>
+        <span className="min-w-8 text-center text-sm tabular-nums">{value}</span>
+        <button
+          type="button"
+          onClick={() => onChange(1)}
+          aria-label={`${label} +1`}
+          className="btn btn-secondary min-w-11 px-3"
+        >
+          <Plus size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RenamePlan({
+  plan,
+  labels,
+  onFeedback,
+}: {
+  plan: FloorPlanView;
+  labels: Dictionary["staff"]["tables"];
+  onFeedback: (feedback: { ok: boolean; message: string }) => void;
+}) {
+  const [name, setName] = useState(plan.name);
+  const [pending, startTransition] = useTransition();
 
   return (
-    <g
-      transform={`rotate(${table.rotation} ${cx} ${cy})`}
-      onPointerDown={onPointerDown}
-      className="cursor-grab"
-    >
-      {table.shape === "ROUND" ? (
-        <ellipse
-          cx={cx}
-          cy={cy}
-          rx={table.width / 2}
-          ry={table.height / 2}
-          className={isSelected ? "fill-burp-600" : "fill-[var(--background)]"}
-          stroke="currentColor"
-          strokeWidth="0.1"
+    <div className="flex flex-wrap items-end gap-2">
+      <label className="min-w-48 flex-1">
+        <span className="label-caps">{labels.planName}</span>
+        <input
+          type="text"
+          value={name}
+          maxLength={60}
+          onChange={(event) => setName(event.target.value)}
+          className="field mt-1.5"
         />
-      ) : (
-        <rect
-          x={x}
-          y={y}
-          width={table.width}
-          height={table.height}
-          rx={0.4}
-          className={isSelected ? "fill-burp-600" : "fill-[var(--background)]"}
-          stroke="currentColor"
-          strokeWidth="0.1"
-        />
-      )}
-
-      <text
-        x={cx}
-        y={cy}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={Math.min(table.width, table.height) * 0.45}
-        className={isSelected ? "fill-white" : "fill-[var(--foreground)]"}
-        style={{ pointerEvents: "none" }}
+      </label>
+      <button
+        type="button"
+        disabled={pending || !name.trim() || name.trim() === plan.name}
+        onClick={() => {
+          startTransition(async () => {
+            const result = await renameFloorPlan(plan.id, name);
+            onFeedback({
+              ok: result.ok,
+              message: result.ok ? labels.planSaved : (result.message ?? labels.somethingWrong),
+            });
+          });
+        }}
+        className="btn btn-secondary"
       >
-        {table.tableNumber}
-      </text>
-    </g>
+        {pending ? labels.saving : labels.rename}
+      </button>
+    </div>
   );
 }
 
@@ -543,7 +1014,7 @@ function NewPlan({
   labels: Dictionary["staff"]["tables"];
 }) {
   return (
-    <div className="mt-4 flex flex-wrap items-end gap-2">
+    <div className="flex flex-wrap items-end gap-2">
       <label className="min-w-48 flex-1">
         <span className="label-caps">{labels.newPlan}</span>
         <input
@@ -564,6 +1035,12 @@ function NewPlan({
         {labels.add}
       </button>
     </div>
+  );
+}
+
+function initialSizes(plans: FloorPlanView[]): PlanSizes {
+  return Object.fromEntries(
+    plans.map((plan) => [plan.id, { width: plan.width, height: plan.height }]),
   );
 }
 

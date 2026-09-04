@@ -1,6 +1,7 @@
 import type { Dictionary } from "@/lib/i18n";
 import { fill } from "@/lib/i18n";
-import type { FloorPlanSnapshot, TableSnapshot, TableState } from "@/lib/overview";
+import { ItemGlyph, PlanGrid, TableGlyph } from "@/components/staff/floor-plan-shapes";
+import type { FloorItemSnapshot, FloorPlanSnapshot, TableSnapshot, TableState } from "@/lib/overview";
 
 /**
  * Bordens läge, ritat i rummets form.
@@ -14,6 +15,10 @@ import type { FloorPlanSnapshot, TableSnapshot, TableState } from "@/lib/overvie
  * ingenting här behöver JavaScript. Översikten laddas om av sig själv, och en
  * klientkomponent hade bara skickat hundra rader skript för att rita samma
  * statiska SVG.
+ *
+ * Formerna — bord, stolar, bar, vägg — ritas av `floor-plan-shapes.tsx`, samma
+ * modul som redigeraren använder. Rummet ska se likadant ut när man ritar det
+ * som när man arbetar i det.
  *
  * Bord som inte är utplacerade visas inte här — de ligger kvar i rutnätet
  * bredvid. Att gissa en plats åt dem hade betytt att ritningen ljuger.
@@ -50,13 +55,19 @@ export type TableStateLabels = Dictionary["staff"]["overview"];
 export function FloorPlanView({
   plan,
   tables,
+  items,
   labels,
+  itemLabels,
   tableLabel,
 }: {
   plan: FloorPlanSnapshot;
   tables: TableSnapshot[];
-  /** Bordstillstånden ur ordboken. Rena strängar — komponenten är klientkod. */
+  /** Inredningen över alla ritningar — filtreras på den här. */
+  items: FloorItemSnapshot[];
+  /** Bordstillstånden ur ordboken. */
   labels: TableStateLabels;
+  /** Inredningens sortnamn. Restaurangens egna etiketter översätts aldrig. */
+  itemLabels: Dictionary["staff"]["floorItem"];
   /** Mallen "Bord {number}" ur det delade ordertypsavsnittet. */
   tableLabel: string;
 }) {
@@ -64,83 +75,58 @@ export function FloorPlanView({
     (table) => table.floorPlanId === plan.id && table.x !== null && table.y !== null,
   );
 
-  if (placed.length === 0) return null;
+  const furniture = items.filter((item) => item.floorPlanId === plan.id);
+
+  // Ett rum utan både bord och inredning är inget rum. Ritningen döljs hellre
+  // än ritas tom — rutnätet bredvid visar borden ändå.
+  if (placed.length === 0 && furniture.length === 0) return null;
 
   return (
     <figure className="mt-3">
       <svg
         viewBox={`0 0 ${plan.width} ${plan.height}`}
         role="img"
-        aria-label={`Bordens läge i ${plan.name}`}
+        aria-label={plan.name}
         className="w-full rounded-[0.5rem] border border-[var(--rule)] bg-[var(--surface)]"
         style={{ aspectRatio: `${plan.width} / ${plan.height}` }}
       >
-        {placed.map((table) => {
-          const x = table.x ?? 0;
-          const y = table.y ?? 0;
-          const cx = x + table.width / 2;
-          const cy = y + table.height / 2;
+        <PlanGrid id={plan.id} width={plan.width} height={plan.height} />
 
-          return (
-            /*
-             * Hela bordet är klickbart, inte bara siffran.
-             *
-             * `<a>` inuti SVG är riktig HTML och fungerar med tangentbord och
-             * skärmläsare utan att vi bygger något eget. Träffytan blir hela
-             * rutan — det är en ritning man pekar på med fingret, och en
-             * bordsruta är mindre än en tumme på en surfplatta.
-             */
-            <a
-              key={table.id}
-              href={`/dashboard/bord/${table.id}`}
-              className="cursor-pointer outline-none [&:focus-visible>*]:stroke-burp-600 [&:hover>*]:opacity-80"
-            >
-            <g transform={`rotate(${table.rotation} ${cx} ${cy})`}>
-              {/* Titeln är det som gör ritningen läsbar för den som inte
-                  skiljer färgerna åt. Färg ensam räcker aldrig. */}
-              <title>
-                {`${fill(tableLabel, { number: table.tableNumber })}${
-                  table.zone ? ` · ${table.zone}` : ""
-                } — ${labels[`state${table.state}`]}`}
-              </title>
+        {/* Inredningen under borden. Ett bord ska aldrig hamna bakom baren —
+            det är bordet man arbetar med. */}
+        {furniture.map((item) => (
+          <ItemGlyph key={item.id} item={item} kindLabel={itemLabels[item.kind]} />
+        ))}
 
-              {table.shape === "ROUND" ? (
-                <ellipse
-                  cx={cx}
-                  cy={cy}
-                  rx={table.width / 2}
-                  ry={table.height / 2}
-                  className={STATE_FILL[table.state]}
-                  stroke="currentColor"
-                  strokeWidth="0.1"
-                />
-              ) : (
-                <rect
-                  x={x}
-                  y={y}
-                  width={table.width}
-                  height={table.height}
-                  rx={0.4}
-                  className={STATE_FILL[table.state]}
-                  stroke="currentColor"
-                  strokeWidth="0.1"
-                />
-              )}
+        {placed.map((table) => (
+          /*
+           * Hela bordet är klickbart, inte bara siffran.
+           *
+           * `<a>` inuti SVG är riktig HTML och fungerar med tangentbord och
+           * skärmläsare utan att vi bygger något eget. Träffytan blir hela
+           * rutan — det är en ritning man pekar på med fingret, och en
+           * bordsruta är mindre än en tumme på en surfplatta.
+           */
+          <a
+            key={table.id}
+            href={`/dashboard/bord/${table.id}`}
+            className="cursor-pointer outline-none [&:focus-visible>*]:stroke-burp-600 [&:hover>*]:opacity-80"
+          >
+            {/* Titeln är det som gör ritningen läsbar för den som inte
+                skiljer färgerna åt. Färg ensam räcker aldrig. */}
+            <title>
+              {`${fill(tableLabel, { number: table.tableNumber })}${
+                table.zone ? ` · ${table.zone}` : ""
+              } — ${labels[`state${table.state}`]}`}
+            </title>
 
-              <text
-                x={cx}
-                y={cy}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={Math.min(table.width, table.height) * 0.45}
-                className={`${STATE_TEXT[table.state]} font-semibold`}
-              >
-                {table.tableNumber}
-              </text>
-            </g>
-            </a>
-          );
-        })}
+            <TableGlyph
+              table={table}
+              fillClass={STATE_FILL[table.state]}
+              textClass={STATE_TEXT[table.state]}
+            />
+          </a>
+        ))}
       </svg>
 
       <figcaption className="label-caps mt-1.5">{plan.name}</figcaption>

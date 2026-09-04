@@ -855,6 +855,8 @@ export const de: Dictionary = {
       statTipsHint: "gehört den Mitarbeitenden, nicht dem Restaurant",
 
       inKitchen: "Gerade in der Küche",
+
+      editPlan: "Raum bearbeiten",
       allOrders: "Alle Bestellungen",
       noOrdersTitle: "Gerade keine Bestellungen",
       noOrdersBody: "Neue Bestellungen erscheinen hier, sobald ein Gast sie abschickt.",
@@ -1262,6 +1264,47 @@ export const de: Dictionary = {
       add: "Hinzufügen",
       save: "Speichern",
       saving: "Wird gespeichert…",
+
+      /* Rummet: formen, storleken och det som inte är ett bord. */
+      addFurniture: "Zum Raum hinzufügen",
+      removeItem: "Entfernen",
+      selectHint: "Wählen Sie einen Tisch oder ein Objekt im Raum, um es zu ändern.",
+      shape: "Tischform",
+      shapeROUND: "Rund",
+      shapeSQUARE: "Eckig",
+      shapeRECT: "Länglich",
+      widthLabel: "Breite",
+      heightLabel: "Tiefe",
+      itemLabel: "Eigener Text",
+      itemLabelPlaceholder: "Z. B. Bašta",
+      itemLabelHint: "Ihr eigener Text bleibt genau so stehen, wie Sie ihn geschrieben haben. Übersetzt wird nur die Bezeichnung der Art.",
+      planSize: "Raumgröße",
+      planSizeHint: "Ein Kästchen ist etwa ein halber Meter. 40 × 30 ergibt einen Raum von zwanzig mal fünfzehn Metern.",
+      planName: "Name des Grundrisses",
+      rename: "Umbenennen",
+      planDelete: "Grundriss löschen",
+      planDeleteConfirm: "Grundriss {name} löschen? Die Tische bleiben, landen aber bei den nicht platzierten.",
+      planCanvasEmpty: "Ziehen Sie einen Tisch heraus oder fügen Sie die Theke hinzu.",
+    },
+
+    /**
+     * Inredningen på planritningen.
+     *
+     * Sorterna är en fast lista och översätts — restaurangens EGEN etikett på
+     * en sak ("Bašta") gör det aldrig. Se migration 0072.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    floorItem: {
+      BAR: "Theke",
+      WALL: "Wand",
+      DOOR: "Tür",
+      WINDOW: "Fenster",
+      PLANT: "Pflanze",
+      STAIRS: "Treppe",
+      WC: "Toilette",
+      KITCHEN: "Küche",
+      TEXT: "Text",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */

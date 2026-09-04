@@ -473,6 +473,50 @@ from (values
 where t.restaurant_id = '11111111-1111-1111-1111-111111111111'
   and t.table_number = v.nr;
 
+-- ── Rummet omkring borden ───────────────────────────────────────────────────
+--
+-- Utan inredningen är ritningen ett rutnät med prickar i. Det är väggen, baren
+-- och trappan som gör att servitören känner igen sitt eget rum — och det är
+-- igenkänningen som gör "bord 7 väntar" till en punkt att gå till.
+--
+-- Växterna på uteserveringen är inte pynt i datan: det är de som avgränsar en
+-- bašta som inte har någon vägg mot gränden.
+
+insert into public.floor_plan_items
+  (restaurant_id, floor_plan_id, kind, label, pos_x, pos_y, width, height, rotation)
+values
+  -- Bašta: gränden i söder, husväggen i norr.
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666661',
+   'WALL',   null,      0,  0, 40,  1, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666661',
+   'DOOR',   null,     17,  0,  4,  1, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666661',
+   'BAR',    null,     30, 17,  8,  3, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666661',
+   'PLANT',  null,      1, 22,  2,  2, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666661',
+   'PLANT',  null,      7, 22,  2,  2, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666661',
+   'PLANT',  null,     13, 22,  2,  2, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666661',
+   'PLANT',  null,     19, 22,  2,  2, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666661',
+   'TEXT',   'Bašta',  26,  0,  8,  2, 0),
+
+  -- Unutra: salen innanför, med köksöppningen och trappan upp.
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666662',
+   'BAR',    null,      2, 17, 12,  3, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666662',
+   'KITCHEN', null,    20, 16,  8,  4, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666662',
+   'WC',     null,     25,  0,  5,  4, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666662',
+   'STAIRS', null,      0,  0,  3,  6, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666662',
+   'WINDOW', null,      6,  0,  8,  1, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666662',
+   'WINDOW', null,     16,  0,  6,  1, 0);
+
 -- ── Merförsäljning, dryckesavdelning och en rätt som lagas i sats ──────────
 --
 -- Utan det här går tre funktioner inte att bedöma i seed-datan: kundvagnens
