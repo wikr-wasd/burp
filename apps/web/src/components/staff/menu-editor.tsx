@@ -202,7 +202,7 @@ function MenuCard({
       <header className="flex flex-wrap items-center gap-3 border-b border-[var(--rule)] p-4">
         <InlineText
           value={menu.name}
-          label="Menyns namn"
+          label={labels.menuName}
           className="mr-auto text-lg font-semibold"
           onSave={(name) => run(() => updateMenu(menu.id, { name }))}
         />
@@ -297,7 +297,7 @@ function MenuCard({
             onSave={(activeUntil) => run(() => updateMenu(menu.id, { activeUntil }))}
           />
           <p className="text-sm opacity-60">
-            Tomt = hela dagen. En meny med tidsfönster vinner över en utan.
+            {labels.allDayHint}
           </p>
         </div>
       </div>
@@ -349,7 +349,7 @@ function CategoryBlock({
       <div className="flex items-center gap-3">
         <InlineText
           value={category.name}
-          label="Kategorins namn"
+          label={labels.categoryName}
           className="mr-auto font-semibold"
           onSave={(name) => run(() => renameCategory(category.id, name))}
         />
@@ -878,7 +878,7 @@ function OptionGroupBlock({
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="Nytt tillval"
+          placeholder={labels.newOption}
           className="flex-1 basis-32 border border-[var(--rule)] bg-transparent px-3 py-1.5 text-sm"
         />
         <input

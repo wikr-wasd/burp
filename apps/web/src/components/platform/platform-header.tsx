@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BurpMark } from "@/components/ui/burp-mark";
 import { IdleLogout } from "@/components/staff/idle-logout";
+import { burpInternalSurface } from "@/lib/i18n";
 import { PLATFORM_ROLE_LABELS, type PlatformContext } from "@/lib/platform";
 
 /**
@@ -22,7 +23,10 @@ export function PlatformHeader({
       {/* Samma vakt som personalytorna. Backoffice är inte en delad platta,
           men en obevakad skärm här visar varje restaurangs omsättning — och
           kan stänga av dem. */}
-      <IdleLogout />
+      {/* Backoffice är svensk: en plattformsadmin är inte personal någonstans
+          och har ingen `staff.locale`. Svenskan skickas därför in uttryckligen,
+          precis som på ytans övriga lånade personalkomponenter. */}
+      <IdleLogout labels={burpInternalSurface().staff.session} />
 
       <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-4 sm:px-6">
         <div className="mr-auto">

@@ -61,7 +61,7 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
       width="narrow"
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <nav className="flex gap-2" aria-label="Period">
+          <nav className="flex gap-2" aria-label={t.reports.periodLabel}>
             {(Object.keys(PERIODS) as PeriodKey[]).map((key) => (
               <Link
                 key={key}
@@ -108,7 +108,10 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
           hint={t.reports.inclVat}
         />
               <Stat label={t.reports.orders} value={String(summary.ordersCount)} />
-              <Stat label="Snittnota" value={formatMoney(summary.avgOrderOre, staff.currency)} />
+              <Stat
+                label={t.reports.avgOrder}
+                value={formatMoney(summary.avgOrderOre, staff.currency)}
+              />
               <Stat
           label={t.reports.tips}
           value={formatMoney(summary.tipsOre, staff.currency)}
@@ -123,13 +126,17 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
             </section>
 
             <section className="mt-8">
-              <h2 className="font-display text-2xl">Ekonomi</h2>
+              <h2 className="font-display text-2xl">{t.reports.economy}</h2>
               <dl className="card mt-3 divide-y divide-[var(--rule)]">
                 <Row
             label={t.reports.revenueInclVat}
             value={formatMoney(summary.itemsGrossOre, staff.currency)}
           />
-                <Row label="varav moms" value={formatMoney(summary.itemsVatOre, staff.currency)} muted />
+                <Row
+                  label={t.reports.ofWhichVat}
+                  value={formatMoney(summary.itemsVatOre, staff.currency)}
+                  muted
+                />
                 {stats.vat.map((line) => (
                   <Row
                     key={line.vatRateBps}
@@ -139,9 +146,12 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
                     indented
                   />
                 ))}
-                <Row label="Netto exkl. moms" value={formatMoney(summary.itemsNetOre, staff.currency)} />
                 <Row
-                  label="Burps avgift"
+                  label={t.reports.netExclVat}
+                  value={formatMoney(summary.itemsNetOre, staff.currency)}
+                />
+                <Row
+                  label={t.reports.burpFee}
                   value={`−${formatMoney(summary.feesOre, staff.currency)}`}
                   hint={
                     summary.itemsGrossOre > 0
@@ -153,9 +163,12 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
                       : undefined
                   }
                 />
-                <Row label="Dricks" value={`+${formatMoney(summary.tipsOre, staff.currency)}`} />
                 <Row
-                  label="Kvar efter Burps avgift"
+                  label={t.reports.tips}
+                  value={`+${formatMoney(summary.tipsOre, staff.currency)}`}
+                />
+                <Row
+                  label={t.reports.afterFee}
                   value={formatMoney(afterFeeOre, staff.currency)}
                   strong
                 />
@@ -172,15 +185,15 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
 
             {stats.prepTimes.measuredOrders > 0 ? (
               <section className="mt-8">
-                <h2 className="font-display text-2xl">Tid till klar mat</h2>
+                <h2 className="font-display text-2xl">{t.reports.prepTitle}</h2>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <Stat
-                    label="Median"
+                    label={t.reports.median}
                     value={formatDuration(stats.prepTimes.medianSeconds)}
-                    hint={`${stats.prepTimes.measuredOrders} mätta order`}
+                    hint={fill(t.reports.measuredOrders, { n: stats.prepTimes.measuredOrders })}
                   />
                   <Stat
-                    label="9 av 10 inom"
+                    label={t.reports.ninetieth}
                     value={formatDuration(stats.prepTimes.p90Seconds)}
                     hint={t.reports.avgHint}
                   />

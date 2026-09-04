@@ -81,7 +81,7 @@ export function ReviewResponder({
 
       {review.response && !editing ? (
         <div className="mt-3 bg-[var(--surface)] p-3">
-          <p className="text-sm font-medium">Ert svar</p>
+          <p className="text-sm font-medium">{labels.yourReply}</p>
           <p className="mt-1 text-sm">{review.response}</p>
           <div className="mt-3 flex gap-2">
             <button

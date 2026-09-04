@@ -1172,6 +1172,8 @@ export const de: Dictionary = {
       mapCurrentHint:
         "Die Karte zeigt den jetzt gespeicherten Ort. Sie aktualisiert sich, sobald Sie einen neuen Link gespeichert haben.",
       presentationSaved: "Gespeichert. Die Änderungen erscheinen innerhalb einer Stunde auf Ihrer Seite.",
+      cuisinesPlaceholder: "Grill, bosnisch",
+      mapLinkPlaceholder: "https://maps.google.com/… oder 43.8595, 18.4287",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
@@ -1249,6 +1251,10 @@ export const de: Dictionary = {
       upsellAdd: "Vorschlag hinzufügen…",
       upsellRemove: "Vorschlag {name} entfernen",
       markSoldOut: "Als ausverkauft markieren",
+      menuName: "Name der Speisekarte",
+      categoryName: "Name der Kategorie",
+      newOption: "Neue Option",
+      allDayHint: "Leer = ganztags. Eine Karte mit Zeitfenster schlägt eine ohne.",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
@@ -1322,6 +1328,26 @@ export const de: Dictionary = {
       planDelete: "Grundriss löschen",
       planDeleteConfirm: "Grundriss {name} löschen? Die Tische bleiben, landen aber bei den nicht platzierten.",
       planCanvasEmpty: "Ziehen Sie einen Tisch heraus oder fügen Sie die Theke hinzu.",
+    },
+
+    /**
+     * Passets slut: rutan som varnar innan skärmen loggas ut.
+     *
+     * Låg som hårdkodad svenska mitt i en yta som annars följer personens
+     * eget språk — och det är den enda rutan som dyker upp av sig själv, utan
+     * att någon klickat. En kock som möter fyra svenska ord och en nedräkning
+     * hen inte förstår trycker på fel knapp.
+     *
+     * `/backoffice` skickar in svenskan uttryckligen med
+     * `burpInternalSurface()`: en plattformsadmin har ingen `staff.locale`.
+     *
+     * ENBART strängar — skickas till en klientkomponent.
+     */
+    session: {
+      idleTitle: "Abmeldung in {n} s",
+      idleBody: "Der Bildschirm war eine Weile unberührt. Die Kasse meldet sich ab, damit niemand sonst herankommt.",
+      stayLoggedIn: "Ich bin noch da",
+      logOutNow: "Jetzt abmelden",
     },
 
     /**
@@ -1513,6 +1539,25 @@ export const de: Dictionary = {
       unblock: "Wieder öffnen",
       tipChoice: "Am häufigsten: {choice} · {n} von {total}",
       tipChoiceOwn: "eigener Betrag",
+      economy: "Finanzen",
+      avgOrder: "Durchschnittsbon",
+      ofWhichVat: "davon MwSt.",
+      netExclVat: "Netto ohne MwSt.",
+      burpFee: "Burp-Gebühr",
+      feeShare: "{percent} % des Umsatzes",
+      afterFee: "Bleibt nach der Burp-Gebühr",
+      prepTitle: "Zeit bis zum fertigen Essen",
+      median: "Median",
+      ninetieth: "9 von 10 innerhalb",
+      measuredOrders: "{n} gemessene Bestellungen",
+      unanswered: "Unbeantwortet",
+      nothingInPeriod: "Nichts zu berichten in diesem Zeitraum",
+      paidDirect: "direkt an Sie gezahlt",
+      ofWhichCash: "davon bar an der Kasse",
+      yourReply: "Ihre Antwort",
+      offersHere: "Sie liegen hier",
+      periodLabel: "Zeitraum",
+      noEndDate: "Leer = kein Ablaufdatum.",
     },
 
     /* Se sv.ts. Skickas som result.message — aldrig som objekt. */

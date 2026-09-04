@@ -50,7 +50,7 @@ export default async function ReviewsPage() {
             <div className="grid gap-3 sm:grid-cols-3">
               <Stat label={t.reports.reviewsTitle} value={String(reviews.length)} />
               <Stat
-                label="Obesvarade"
+                label={t.reports.unanswered}
                 value={String(unanswered.length)}
                 hint={unanswered.length > 0 ? "ett svar visas publikt" : undefined}
               />

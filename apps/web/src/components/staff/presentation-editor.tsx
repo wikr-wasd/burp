@@ -159,7 +159,7 @@ export function PresentationEditor({
               type="text"
               value={form.cuisines}
               onChange={(event) => set("cuisines", event.target.value)}
-              placeholder="Grill, Bosniskt"
+              placeholder={labels.cuisinesPlaceholder}
               className="field mt-1.5"
             />
             <span className="mt-1 block text-xs text-[var(--muted)]">
@@ -237,7 +237,7 @@ export function PresentationEditor({
             value={form.location}
             onChange={(event) => set("location", event.target.value)}
             aria-label={labels.mapLinkLabel}
-            placeholder="https://maps.google.com/… eller 43.8595, 18.4287"
+            placeholder={labels.mapLinkPlaceholder}
             className="field"
           />
 

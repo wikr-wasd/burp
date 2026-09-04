@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { IdleLogout } from "@/components/staff/idle-logout";
 import { StaffSidebar, StaffTopBar, type StaffSection } from "@/components/staff/staff-nav";
 import type { StaffContext } from "@/lib/auth";
+import { dictionary } from "@/lib/i18n";
 
 /**
  * Ramen runt varje personalyta.
@@ -44,7 +45,7 @@ export function StaffShell({
       {/* Kassan står på en disk och delas av flera. En glömd surfplatta ska
           inte stå inloggad över natten. Köksskärmen berörs inte — den bygger
           sin egen ram och ska stå på hela passet. */}
-      <IdleLogout />
+      <IdleLogout labels={dictionary(staff.locale).staff.session} />
 
       <StaffTopBar staff={staff} current={current} />
       <StaffSidebar staff={staff} current={current} />

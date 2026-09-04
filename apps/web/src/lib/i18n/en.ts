@@ -1159,6 +1159,8 @@ export const en: Dictionary = {
       mapCurrentHint:
         "The map shows the place saved right now. It updates once you have saved a new link.",
       presentationSaved: "Saved. The changes show on your page within an hour.",
+      cuisinesPlaceholder: "Grill, Bosnian",
+      mapLinkPlaceholder: "https://maps.google.com/… or 43.8595, 18.4287",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
@@ -1235,6 +1237,10 @@ export const en: Dictionary = {
       upsellAdd: "Add a suggestion…",
       upsellRemove: "Remove the suggestion {name}",
       markSoldOut: "Mark as sold out",
+      menuName: "Menu name",
+      categoryName: "Category name",
+      newOption: "New option",
+      allDayHint: "Empty = all day. A menu with a time window beats one without.",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
@@ -1307,6 +1313,26 @@ export const en: Dictionary = {
       planDelete: "Delete the plan",
       planDeleteConfirm: "Delete the plan {name}? The tables stay, but move to the unplaced ones.",
       planCanvasEmpty: "Place a table or add the bar to begin.",
+    },
+
+    /**
+     * Passets slut: rutan som varnar innan skärmen loggas ut.
+     *
+     * Låg som hårdkodad svenska mitt i en yta som annars följer personens
+     * eget språk — och det är den enda rutan som dyker upp av sig själv, utan
+     * att någon klickat. En kock som möter fyra svenska ord och en nedräkning
+     * hen inte förstår trycker på fel knapp.
+     *
+     * `/backoffice` skickar in svenskan uttryckligen med
+     * `burpInternalSurface()`: en plattformsadmin har ingen `staff.locale`.
+     *
+     * ENBART strängar — skickas till en klientkomponent.
+     */
+    session: {
+      idleTitle: "Logging out in {n} s",
+      idleBody: "The screen has been idle for a while. The register logs out so nobody else can reach it.",
+      stayLoggedIn: "I am still here",
+      logOutNow: "Log out now",
     },
 
     /**
@@ -1497,6 +1523,25 @@ export const en: Dictionary = {
       unblock: "Unblock",
       tipChoice: "Most common: {choice} · {n} of {total}",
       tipChoiceOwn: "own amount",
+      economy: "Finances",
+      avgOrder: "Average order",
+      ofWhichVat: "of which VAT",
+      netExclVat: "Net excl. VAT",
+      burpFee: "Burp's fee",
+      feeShare: "{percent} % of revenue",
+      afterFee: "Left after Burp's fee",
+      prepTitle: "Time to food ready",
+      median: "Median",
+      ninetieth: "9 out of 10 within",
+      measuredOrders: "{n} measured orders",
+      unanswered: "Unanswered",
+      nothingInPeriod: "Nothing to report in this period",
+      paidDirect: "paid straight to you",
+      ofWhichCash: "of which cash at the register",
+      yourReply: "Your reply",
+      offersHere: "They are here",
+      periodLabel: "Period",
+      noEndDate: "Empty = no end date.",
     },
 
     /* Se sv.ts. Skickas som result.message — aldrig som objekt. */

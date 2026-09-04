@@ -159,6 +159,10 @@ describe("ordböckerna", () => {
       "booking.date",
       // "Kontrast" är samma lånord som på svenska.
       "staff.image.contrast",
+      // "Period" är samma ord på bosniska. Att "Prosječan račun" och
+      // "Finansije" i samma avsnitt INTE är det är kvittot på att raderna är
+      // översatta.
+      "staff.reports.periodLabel",
     ],
 
     de: [
@@ -219,6 +223,9 @@ describe("ordböckerna", () => {
       // "Text" är samma ord på tyska. "Theke", "Wand" och "Treppe" i samma
       // avsnitt är det inte — kvittot på att inredningen faktiskt är översatt.
       "staff.floorItem.TEXT",
+      // "Median" är samma ord på tyska. "Zeitraum" och "Durchschnittsbon" i
+      // samma avsnitt är det inte.
+      "staff.reports.median",
     ],
 
     en: [
@@ -250,6 +257,9 @@ describe("ordböckerna", () => {
       // samma avsnitt är det inte.
       "staff.floorItem.BAR",
       "staff.floorItem.TEXT",
+      // "Period" och "Median" är samma ord på engelska.
+      "staff.reports.periodLabel",
+      "staff.reports.median",
     ],
 
     /*
@@ -474,6 +484,13 @@ describe("ordböckerna", () => {
       // "Emnefelt" i samma avsnitt INTE gör det är kvittot på att raderna är
       // norska och inte kopierade.
       "staff.campaigns.statusDRAFT",
+      // "Median" stavas likadant på norska. "Snittregning" och "Økonomi"
+      // gör det inte.
+      "staff.reports.median",
+      // "eller" är samma ord på norska, och resten av strängen är en URL och
+      // ett koordinatpar. Att den bosniska säger "ili" är kvittot på att raden
+      // faktiskt gås igenom.
+      "staff.settings.mapLinkPlaceholder",
     ],
   };
 

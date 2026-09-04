@@ -1198,6 +1198,8 @@ export const bs: Dictionary = {
       mapCurrentHint:
         "Karta prikazuje mjesto koje je sada spremljeno. Ažurira se kad spremite novi link.",
       presentationSaved: "Spremljeno. Izmjene se vide na vašoj stranici u roku od sat vremena.",
+      cuisinesPlaceholder: "Roštilj, bosanska",
+      mapLinkPlaceholder: "https://maps.google.com/… ili 43.8595, 18.4287",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
@@ -1275,6 +1277,10 @@ export const bs: Dictionary = {
       upsellAdd: "Dodaj prijedlog…",
       upsellRemove: "Ukloni prijedlog {name}",
       markSoldOut: "Označi kao rasprodano",
+      menuName: "Naziv jelovnika",
+      categoryName: "Naziv kategorije",
+      newOption: "Novi dodatak",
+      allDayHint: "Prazno = cijeli dan. Jelovnik s vremenskim okvirom ima prednost.",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
@@ -1347,6 +1353,26 @@ export const bs: Dictionary = {
       planDelete: "Ukloni nacrt",
       planDeleteConfirm: "Ukloniti nacrt {name}? Stolovi ostaju, ali prelaze među nerazmještene.",
       planCanvasEmpty: "Povucite sto ili dodajte šank da počnete.",
+    },
+
+    /**
+     * Passets slut: rutan som varnar innan skärmen loggas ut.
+     *
+     * Låg som hårdkodad svenska mitt i en yta som annars följer personens
+     * eget språk — och det är den enda rutan som dyker upp av sig själv, utan
+     * att någon klickat. En kock som möter fyra svenska ord och en nedräkning
+     * hen inte förstår trycker på fel knapp.
+     *
+     * `/backoffice` skickar in svenskan uttryckligen med
+     * `burpInternalSurface()`: en plattformsadmin har ingen `staff.locale`.
+     *
+     * ENBART strängar — skickas till en klientkomponent.
+     */
+    session: {
+      idleTitle: "Odjava za {n} s",
+      idleBody: "Ekran je neko vrijeme miran. Kasa se odjavljuje da joj niko drugi ne priđe.",
+      stayLoggedIn: "Ostajem",
+      logOutNow: "Odjavi me sada",
     },
 
     /**
@@ -1537,6 +1563,25 @@ export const bs: Dictionary = {
       unblock: "Otključaj",
       tipChoice: "Najčešće: {choice} · {n} od {total}",
       tipChoiceOwn: "vlastiti iznos",
+      economy: "Finansije",
+      avgOrder: "Prosječan račun",
+      ofWhichVat: "od toga PDV",
+      netExclVat: "Neto bez PDV-a",
+      burpFee: "Burpova naknada",
+      feeShare: "{percent} % prometa",
+      afterFee: "Ostaje nakon Burpove naknade",
+      prepTitle: "Vrijeme do gotovog jela",
+      median: "Medijana",
+      ninetieth: "9 od 10 unutar",
+      measuredOrders: "{n} mjerenih narudžbi",
+      unanswered: "Bez odgovora",
+      nothingInPeriod: "Nema šta prikazati u periodu",
+      paidDirect: "plaćeno direktno vama",
+      ofWhichCash: "od toga gotovina na kasi",
+      yourReply: "Vaš odgovor",
+      offersHere: "Nalaze se ovdje",
+      periodLabel: "Period",
+      noEndDate: "Prazno = bez datuma isteka.",
     },
 
     /* Se sv.ts. Skickas som result.message — aldrig som objekt. */

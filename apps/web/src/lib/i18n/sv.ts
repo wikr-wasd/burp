@@ -1550,6 +1550,8 @@ export const sv = {
       mapLinkLabel: "Kartlänk eller koordinater",
       mapCurrentHint: "Kartan visar den plats som är sparad nu. Den uppdateras när du sparat en ny länk.",
       presentationSaved: "Sparat. Ändringarna syns på din sida inom en timme.",
+      cuisinesPlaceholder: "Grill, Bosniskt",
+      mapLinkPlaceholder: "https://maps.google.com/… eller 43.8595, 18.4287",
     },
 
     /**
@@ -1635,6 +1637,10 @@ export const sv = {
       upsellAdd: "Lägg till ett förslag…",
       upsellRemove: "Ta bort förslaget {name}",
       markSoldOut: "Markera slut",
+      menuName: "Menyns namn",
+      categoryName: "Kategorins namn",
+      newOption: "Nytt tillval",
+      allDayHint: "Tomt = hela dagen. En meny med tidsfönster vinner över en utan.",
     },
 
     /**
@@ -1716,6 +1722,26 @@ export const sv = {
       planDelete: "Ta bort ritningen",
       planDeleteConfirm: "Ta bort ritningen {name}? Borden blir kvar, men hamnar bland de outplacerade.",
       planCanvasEmpty: "Dra ut ett bord eller lägg till baren för att börja.",
+    },
+
+    /**
+     * Passets slut: rutan som varnar innan skärmen loggas ut.
+     *
+     * Låg som hårdkodad svenska mitt i en yta som annars följer personens
+     * eget språk — och det är den enda rutan som dyker upp av sig själv, utan
+     * att någon klickat. En kock som möter fyra svenska ord och en nedräkning
+     * hen inte förstår trycker på fel knapp.
+     *
+     * `/backoffice` skickar in svenskan uttryckligen med
+     * `burpInternalSurface()`: en plattformsadmin har ingen `staff.locale`.
+     *
+     * ENBART strängar — skickas till en klientkomponent.
+     */
+    session: {
+      idleTitle: "Loggas ut om {n} s",
+      idleBody: "Skärmen har stått orörd en stund. Kassan loggas ut så att ingen annan kommer åt den.",
+      stayLoggedIn: "Jag är kvar",
+      logOutNow: "Logga ut nu",
     },
 
     /**
@@ -1914,6 +1940,25 @@ export const sv = {
       unblock: "Öppna igen",
       tipChoice: "Vanligast: {choice} · {n} av {total}",
       tipChoiceOwn: "eget belopp",
+      economy: "Ekonomi",
+      avgOrder: "Snittnota",
+      ofWhichVat: "varav moms",
+      netExclVat: "Netto exkl. moms",
+      burpFee: "Burps avgift",
+      feeShare: "{percent} % av omsättningen",
+      afterFee: "Kvar efter Burps avgift",
+      prepTitle: "Tid till klar mat",
+      median: "Median",
+      ninetieth: "9 av 10 inom",
+      measuredOrders: "{n} mätta order",
+      unanswered: "Obesvarade",
+      nothingInPeriod: "Ingenting att redovisa i perioden",
+      paidDirect: "betalades direkt till er",
+      ofWhichCash: "varav kontant i kassan",
+      yourReply: "Ert svar",
+      offersHere: "De ligger här",
+      periodLabel: "Period",
+      noEndDate: "Tomt = inget slutdatum.",
     },
 
     /**

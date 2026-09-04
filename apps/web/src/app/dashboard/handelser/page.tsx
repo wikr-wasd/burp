@@ -58,7 +58,7 @@ export default async function MoneyEventsPage({ searchParams }: PageProps) {
       intro={t.reports.eventsIntro}
       width="narrow"
       actions={
-        <nav className="flex gap-2" aria-label="Period">
+        <nav className="flex gap-2" aria-label={t.reports.periodLabel}>
           {(Object.keys(PERIODS) as PeriodKey[]).map((key) => (
             <Link
               key={key}
@@ -75,7 +75,7 @@ export default async function MoneyEventsPage({ searchParams }: PageProps) {
       {events.length === 0 ? (
         <EmptyState
           icon={ScrollText}
-          title="Ingenting att redovisa i perioden"
+          title={t.reports.nothingInPeriod}
           body={t.reports.eventsEmptyBody}
         />
       ) : (

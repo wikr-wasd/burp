@@ -39,11 +39,11 @@ export function SettlementFigures({
       <Row
         label={labels.revenueInclVat}
         value={formatMoney(numbers.grossOre, currency)}
-        hint="betalades direkt till er"
+        hint={labels.paidDirect}
       />
       {numbers.tipsOre > 0 ? (
         <Row
-          label="Dricks"
+          label={labels.tips}
           value={formatMoney(numbers.tipsOre, currency)}
           hint={labels.tipsNotInFeeBase}
           muted
@@ -51,7 +51,7 @@ export function SettlementFigures({
       ) : null}
       {numbers.cashOre > 0 ? (
         <Row
-          label="varav kontant i kassan"
+          label={labels.ofWhichCash}
           value={formatMoney(numbers.cashOre, currency)}
           muted
           indented
@@ -65,7 +65,7 @@ export function SettlementFigures({
         />
       ) : null}
 
-      <Row label="Burps avgift" value={formatMoney(numbers.feesOre, currency)} />
+      <Row label={labels.burpFee} value={formatMoney(numbers.feesOre, currency)} />
       {numbers.feeCreditOre > 0 ? (
         <Row
           label={labels.creditForRefunded}

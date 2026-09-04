@@ -115,7 +115,7 @@ export function GiftCardManager({
                 className="field mt-1.5"
               />
               <span className="mt-1 block text-xs text-[var(--muted)]">
-                Tomt = inget slutdatum.
+                {labels.noEndDate}
               </span>
             </label>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fill, type Dictionary } from "@/lib/i18n";
 
 /**
  * Loggar ut en glömd surfplatta.
@@ -30,7 +31,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const IDLE_MS = 30 * 60 * 1000;
 const WARNING_MS = 60 * 1000;
 
-export function IdleLogout() {
+export function IdleLogout({ labels }: { labels: Dictionary["staff"]["session"] }) {
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdown = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -115,22 +116,19 @@ export function IdleLogout() {
         >
           <div className="card w-full max-w-sm p-6 text-center">
             <h2 id="idle-title" className="font-display text-2xl">
-              Loggas ut om {secondsLeft} s
+              {fill(labels.idleTitle, { n: secondsLeft })}
             </h2>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Skärmen har stått orörd en stund. Kassan loggas ut så att ingen annan kommer åt
-              den.
-            </p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{labels.idleBody}</p>
 
             <div className="mt-6 flex flex-col gap-2">
               {/* Knappen behöver ingen egen hanterare — ett tryck var som helst
                   räknas redan som aktivitet och nollställer klockan. Den finns
                   för att säga att det GÅR att stanna kvar. */}
               <button type="button" onClick={reset} className="btn btn-primary">
-                Jag är kvar
+                {labels.stayLoggedIn}
               </button>
               <button type="button" onClick={logOut} className="btn btn-secondary">
-                Logga ut nu
+                {labels.logOutNow}
               </button>
             </div>
           </div>

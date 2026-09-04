@@ -1162,6 +1162,8 @@ export const no: Dictionary = {
       mapCurrentHint:
         "Kartet viser stedet som er lagret nå. Det oppdateres når dere har lagret en ny lenke.",
       presentationSaved: "Lagret. Endringene vises på siden deres innen en time.",
+      cuisinesPlaceholder: "Grill, bosnisk",
+      mapLinkPlaceholder: "https://maps.google.com/… eller 43.8595, 18.4287",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
@@ -1238,6 +1240,10 @@ export const no: Dictionary = {
       upsellAdd: "Legg til et forslag…",
       upsellRemove: "Fjern forslaget {name}",
       markSoldOut: "Merk som utsolgt",
+      menuName: "Menyens navn",
+      categoryName: "Kategoriens navn",
+      newOption: "Nytt tilvalg",
+      allDayHint: "Tomt = hele dagen. En meny med tidsvindu vinner over en uten.",
     },
 
     /* Se sv.ts. ENBART strängar — skickas till klientkomponenter. */
@@ -1310,6 +1316,26 @@ export const no: Dictionary = {
       planDelete: "Slett tegningen",
       planDeleteConfirm: "Slette tegningen {name}? Bordene blir stående, men havner blant de uplasserte.",
       planCanvasEmpty: "Dra ut et bord eller legg til baren for å begynne.",
+    },
+
+    /**
+     * Passets slut: rutan som varnar innan skärmen loggas ut.
+     *
+     * Låg som hårdkodad svenska mitt i en yta som annars följer personens
+     * eget språk — och det är den enda rutan som dyker upp av sig själv, utan
+     * att någon klickat. En kock som möter fyra svenska ord och en nedräkning
+     * hen inte förstår trycker på fel knapp.
+     *
+     * `/backoffice` skickar in svenskan uttryckligen med
+     * `burpInternalSurface()`: en plattformsadmin har ingen `staff.locale`.
+     *
+     * ENBART strängar — skickas till en klientkomponent.
+     */
+    session: {
+      idleTitle: "Logges ut om {n} s",
+      idleBody: "Skjermen har stått urørt en stund. Kassen logges ut så ingen andre kommer til.",
+      stayLoggedIn: "Jeg er her",
+      logOutNow: "Logg ut nå",
     },
 
     /**
@@ -1500,6 +1526,25 @@ export const no: Dictionary = {
       unblock: "Åpne igjen",
       tipChoice: "Vanligst: {choice} · {n} av {total}",
       tipChoiceOwn: "eget beløp",
+      economy: "Økonomi",
+      avgOrder: "Snittregning",
+      ofWhichVat: "herav mva.",
+      netExclVat: "Netto eks. mva.",
+      burpFee: "Burps gebyr",
+      feeShare: "{percent} % av omsetningen",
+      afterFee: "Igjen etter Burps gebyr",
+      prepTitle: "Tid til ferdig mat",
+      median: "Median",
+      ninetieth: "9 av 10 innen",
+      measuredOrders: "{n} målte bestillinger",
+      unanswered: "Ubesvarte",
+      nothingInPeriod: "Ingenting å rapportere i perioden",
+      paidDirect: "betalt direkte til dere",
+      ofWhichCash: "herav kontant i kassen",
+      yourReply: "Deres svar",
+      offersHere: "De ligger her",
+      periodLabel: "Periode",
+      noEndDate: "Tomt = ingen sluttdato.",
     },
 
     /* Se sv.ts. Skickas som result.message — aldrig som objekt. */

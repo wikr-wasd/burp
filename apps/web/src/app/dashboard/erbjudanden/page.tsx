@@ -102,7 +102,7 @@ export default async function OffersPage() {
       <p className="mt-10 text-sm text-[var(--muted)]">
         Letar du efter presentkort?{" "}
         <Link href="/dashboard/presentkort" className="link">
-          De ligger här
+          {t.reports.offersHere}
         </Link>
         . Ett presentkort är förbetalt värde och inte en rabatt — notan och momsen är
         desamma, det är bara betalningen som ändras.
