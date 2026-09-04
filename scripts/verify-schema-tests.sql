@@ -1892,6 +1892,69 @@ begin
 end
 $$;
 
+\echo '   pulsen räknar men avslöjar ingen'
+
+do $$
+declare
+  v_zeljo  uuid := '11111111-1111-1111-1111-111111111111';
+  v_before integer;
+  v_after  integer;
+  v_rows   integer;
+  v_order  uuid;
+begin
+  select orders_week into v_before from public.platform_pulse();
+
+  -- Ett utkast är ingen beställning. Kundvagnen är inte aktivitet.
+  insert into public.orders (restaurant_id, type, status, idempotency_key, total_ore)
+  values (v_zeljo, 'PICKUP', 'DRAFT', gen_random_uuid(), 1200)
+  returning id into v_order;
+
+  select orders_week into v_after from public.platform_pulse();
+  if v_after <> v_before then
+    raise exception 'FEL: ett utkast räknades som aktivitet';
+  end if;
+
+  update public.orders set status = 'PLACED' where id = v_order;
+
+  select orders_week into v_after from public.platform_pulse();
+  if v_after <> v_before + 1 then
+    raise exception 'FEL: en lagd order räknades inte';
+  end if;
+
+  -- En avbruten order säger ingenting om att någon åt någonstans.
+  update public.orders set status = 'CANCELLED' where id = v_order;
+
+  select orders_week into v_after from public.platform_pulse();
+  if v_after <> v_before then
+    raise exception 'FEL: en avbruten order räknades som aktivitet';
+  end if;
+
+  /*
+   * Anon ska kunna läsa pulsen — det är hela poängen med funktionen: talen är
+   * offentliga medan `orders` inte är det. Utan den här kontrollen hade
+   * startsidan behövt service role för att räkna dem.
+   */
+  execute 'set local role anon';
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  select count(*) into v_rows from public.platform_pulse();
+  if v_rows <> 1 then
+    raise exception 'FEL: anon fick inte pulsen';
+  end if;
+
+  -- …men fortfarande inte raderna bakom den.
+  select count(*) into v_rows from public.orders;
+  if v_rows <> 0 then
+    raise exception 'FEL: anon läste % orderrader', v_rows;
+  end if;
+
+  perform public.recent_orders_pulse(3);
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
 \echo '   inredningen hör till sin egen ritning'
 
 do $$

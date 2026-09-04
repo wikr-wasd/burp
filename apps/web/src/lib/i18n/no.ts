@@ -42,6 +42,26 @@ export const no: Dictionary = {
     searchPlaceholder: "Søk restauranter eller retter",
   },
 
+  /**
+   * Pulsen på startsidan — de riktiga siffrorna, aldrig påhittade.
+   *
+   * Varje tal är räknat ur databasen (`platform_pulse()`, migration 0073) och
+   * utelämnas när det är för litet för att bära sig självt. Se
+   * `lib/activity.ts` för trösklarna och varför de finns.
+   *
+   * ENBART strängar.
+   */
+  pulse: {
+    title: "Akkurat nå på Burp",
+    restaurants: "{n} restauranter",
+    cities: "{n} byer",
+    openNow: "{n} åpne nå",
+    ordersWeek: "{n} bestillinger denne uken",
+    rating: "{rating} i snitt fra {n} omtaler",
+    ago: "for {n} min siden",
+    justNow: "nettopp",
+  },
+
   discover: {
     title: "Alle restauranter på kartet",
     intro:

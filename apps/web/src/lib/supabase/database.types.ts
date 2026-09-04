@@ -3293,6 +3293,16 @@ export type Database = {
         }[]
       }
       place_order: { Args: { p_payload: Json }; Returns: string }
+      platform_pulse: {
+        Args: never
+        Returns: {
+          cities: number
+          orders_week: number
+          rating: number
+          restaurants: number
+          reviews: number
+        }[]
+      }
       platform_revenue_by_currency: {
         Args: { p_from: string; p_to: string }
         Returns: {
@@ -3408,6 +3418,14 @@ export type Database = {
       recalculate_order_totals: {
         Args: { p_order_id: string }
         Returns: undefined
+      }
+      recent_orders_pulse: {
+        Args: { p_limit?: number }
+        Returns: {
+          at: string
+          city: string
+          dish: string
+        }[]
       }
       redeem_coupon: {
         Args: {

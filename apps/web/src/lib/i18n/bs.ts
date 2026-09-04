@@ -62,6 +62,26 @@ export const bs: Dictionary = {
     searchPlaceholder: "Pretraži restorane ili jela",
   },
 
+  /**
+   * Pulsen på startsidan — de riktiga siffrorna, aldrig påhittade.
+   *
+   * Varje tal är räknat ur databasen (`platform_pulse()`, migration 0073) och
+   * utelämnas när det är för litet för att bära sig självt. Se
+   * `lib/activity.ts` för trösklarna och varför de finns.
+   *
+   * ENBART strängar.
+   */
+  pulse: {
+    title: "Trenutno na Burpu",
+    restaurants: "{n} restorana",
+    cities: "{n} gradova",
+    openNow: "{n} otvoreno sada",
+    ordersWeek: "{n} narudžbi ove sedmice",
+    rating: "{rating} prosječno iz {n} ocjena",
+    ago: "prije {n} min",
+    justNow: "upravo sad",
+  },
+
   discover: {
     title: "Svi restorani na mapi",
     intro:

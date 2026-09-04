@@ -9,6 +9,8 @@ import { formatMoney } from "@burp/core";
 import { SearchCommand } from "@/components/discovery/search-command";
 import { DishPicker, type PickableDish } from "@/components/discovery/dish-picker";
 import { findDishes } from "@/lib/dishes";
+import { PlatformPulseStrip } from "@/components/discovery/platform-pulse";
+import { platformPulse, recentActivity } from "@/lib/activity";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import {
@@ -150,7 +152,7 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
    */
   const origin = ipOrigin(await headers());
 
-  const [matched, cuisines, cities, openIds, dishes] = await Promise.all([
+  const [matched, cuisines, cities, openIds, dishes, pulse, activity] = await Promise.all([
     searchRestaurants({ query, cuisine, city, bounds }),
     listCuisines(city),
     listCities(),
@@ -163,6 +165,16 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
      * en sida, eftersom tröskeln på två restauranger är densamma där.
      */
     findDishes({ query, citySlug: city, limit: query ? 6 : 8 }),
+
+    /*
+     * Pulsen. Två uppslag som bär hela "är det här i gång?"-frågan.
+     *
+     * Ingetdera får fälla sidan: `platformPulse()` svarar null och
+     * `recentActivity()` en tom lista när något går fel, och avsnittet ritas
+     * då inte alls. Menyn, kartan och listan ÄR sidan.
+     */
+    platformPulse(),
+    recentActivity(6),
   ]);
 
   const restaurants = onlyOpen
@@ -311,6 +323,28 @@ export default async function HomePage({ params: routeParams, searchParams }: Pa
           openCount={openCount}
           showcase={showcase}
         />
+
+        {/*
+          Pulsen, direkt under hjälten.
+
+          Gästen som kommer till burp.se utan att ha skannat något frågar två
+          saker: vad finns här, och är det här i gång? Hjälten svarar på det
+          första. Det här avsnittet svarar på det andra — med räknade tal, och
+          med tystnad när talen är för små. Se `components/discovery/
+          platform-pulse.tsx` för varför det aldrig fylls ut med påhitt.
+        */}
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <PlatformPulseStrip
+            pulse={pulse}
+            activity={activity}
+            /* Hela plattformen, inte den filtrerade listan: rubriken säger
+               "på Burp", och ett tal som krymper när gästen filtrerar hade
+               svarat på en annan fråga än den som ställdes. */
+            openNow={openIds.size}
+            labels={t.pulse}
+            locale={locale}
+          />
+        </div>
 
         {/*
           Kartan — eget avsnitt, direkt under hjälten.

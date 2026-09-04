@@ -40,6 +40,26 @@ export const en: Dictionary = {
     searchPlaceholder: "Search restaurants or dishes",
   },
 
+  /**
+   * Pulsen på startsidan — de riktiga siffrorna, aldrig påhittade.
+   *
+   * Varje tal är räknat ur databasen (`platform_pulse()`, migration 0073) och
+   * utelämnas när det är för litet för att bära sig självt. Se
+   * `lib/activity.ts` för trösklarna och varför de finns.
+   *
+   * ENBART strängar.
+   */
+  pulse: {
+    title: "Right now on Burp",
+    restaurants: "{n} restaurants",
+    cities: "{n} cities",
+    openNow: "{n} open now",
+    ordersWeek: "{n} orders this week",
+    rating: "{rating} average from {n} reviews",
+    ago: "{n} min ago",
+    justNow: "just now",
+  },
+
   /* The map page, /upptack. */
   discover: {
     title: "Every restaurant on the map",

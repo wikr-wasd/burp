@@ -35,6 +35,26 @@ export const sv = {
     searchPlaceholder: "Sök restauranger eller rätter",
   },
 
+  /**
+   * Pulsen på startsidan — de riktiga siffrorna, aldrig påhittade.
+   *
+   * Varje tal är räknat ur databasen (`platform_pulse()`, migration 0073) och
+   * utelämnas när det är för litet för att bära sig självt. Se
+   * `lib/activity.ts` för trösklarna och varför de finns.
+   *
+   * ENBART strängar.
+   */
+  pulse: {
+    title: "Just nu på Burp",
+    restaurants: "{n} restauranger",
+    cities: "{n} städer",
+    openNow: "{n} öppna nu",
+    ordersWeek: "{n} beställningar den här veckan",
+    rating: "{rating} i snitt på {n} omdömen",
+    ago: "för {n} min sedan",
+    justNow: "nyss",
+  },
+
   /* Kartsidan /upptack. */
   discover: {
     title: "Alla restauranger på kartan",
