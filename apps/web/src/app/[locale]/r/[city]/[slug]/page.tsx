@@ -15,6 +15,8 @@ import {
   type CurrencyCode,
 } from "@burp/core";
 import { favouriteDishes } from "@/lib/activity";
+import { translateText } from "@/lib/translate";
+import { translateMenu } from "@/lib/translate-menu";
 import { FoodImage } from "@/components/media/food-image";
 import { MenuOrder } from "@/components/order/menu-order";
 import { BookingForm } from "@/components/site/booking-form";
@@ -219,6 +221,23 @@ export default async function RestaurantPage({ params }: PageProps) {
    */
   const favourites = await favouriteDishes(restaurant.id);
 
+  /*
+   * Restaurangens egna ord på läsarens språk (öppen fråga 16).
+   *
+   * Presentationen och menyns beskrivningar — aldrig namnet, aldrig
+   * rättnamnen, aldrig allergenerna. Skälen står i `lib/translate-menu.ts`.
+   *
+   * JSON-LD och sidans titel behåller ORIGINALET med flit: det är
+   * restaurangens egen text som ska indexeras, inte en maskins version av
+   * den. Googles beskrivning av stället ska komma från stället.
+   */
+  const [presentation, translatedMenu] = await Promise.all([
+    restaurant.description
+      ? translateText(restaurant.description, locale as Locale)
+      : Promise.resolve(null),
+    menu ? translateMenu(menu, locale as Locale) : Promise.resolve(null),
+  ]);
+
   const policy = parseOrderPolicy(restaurant.order_policy);
   const pickupSlots = policy.allowScheduledOrders
     ? availableSlots({
@@ -386,7 +405,9 @@ export default async function RestaurantPage({ params }: PageProps) {
         </p>
 
         {restaurant.description ? (
-          <p className="mt-6 max-w-prose text-lg leading-relaxed">{restaurant.description}</p>
+          <p className="mt-6 max-w-prose text-lg leading-relaxed">
+            {presentation?.text ?? restaurant.description}
+          </p>
         ) : null}
 
         {/*
@@ -495,10 +516,11 @@ export default async function RestaurantPage({ params }: PageProps) {
           <p className="label-caps">{t.restaurant.orderForPickup} · {menu.name}</p>
           <div className="mt-6">
             <MenuOrder
-              menu={menu}
+              menu={translatedMenu?.menu ?? menu}
               restaurantName={restaurant.name}
               labels={t.menu}
               popularDishes={favourites}
+              autoTranslated={Boolean(translatedMenu?.translated || presentation?.translated)}
           allergenLabels={t.allergen}
               currency={restaurant.currency}
               timeZone={timeZone}

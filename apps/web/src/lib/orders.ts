@@ -22,6 +22,15 @@ export interface KitchenOrderItem {
   name: string;
   quantity: number;
   note: string | null;
+  /**
+   * Gästens egna ord, när `note` är en översättning av dem.
+   *
+   * Null när ingenting översattes — utan API-nyckel, när texten redan var på
+   * personalens språk, eller när leverantören inte svarade. Se
+   * `lib/translate-notes.ts`; originalet försvinner aldrig, för en maskin kan
+   * ha fel och då ska kocken kunna se vad gästen faktiskt skrev.
+   */
+  noteOriginal?: string | null;
   options: string[];
 }
 
@@ -45,6 +54,8 @@ export interface KitchenOrder {
   placedAt: string | null;
   acceptedAt: string | null;
   note: string | null;
+  /** Gästens egna ord, när `note` är en översättning. Se `KitchenOrderItem`. */
+  noteOriginal?: string | null;
   totalOre: number;
   /** Hämttid för en förbeställning. Null för en order som ska lagas nu. */
   scheduledFor: string | null;

@@ -374,6 +374,7 @@ export const bs: Dictionary = {
     punchCardEarned: "Ovaj obrok časti restoran",
     punchCardUse: "Iskoristi karticu vjernosti",
     popular: "Popularno",
+    autoTranslated: "Opisi su prevedeni automatski.",
   },
 
   table: {
@@ -1334,6 +1335,21 @@ export const bs: Dictionary = {
       planDelete: "Ukloni nacrt",
       planDeleteConfirm: "Ukloniti nacrt {name}? Stolovi ostaju, ali prelaze među nerazmještene.",
       planCanvasEmpty: "Povucite sto ili dodajte šank da počnete.",
+    },
+
+    /**
+     * Etiketten under en text som en maskin översatt (öppen fråga 16).
+     *
+     * Gästens meddelande till köket kommer på gästens språk. Det översätts
+     * till personalens — men originalet står kvar under, och etiketten säger
+     * vilket som är vilket. En maskin kan ha fel, och då ska den som lagar
+     * maten kunna se vad gästen faktiskt skrev.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    translation: {
+      auto: "Automatski prevedeno",
+      original: "Vlastite riječi gosta",
     },
 
     /**

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Check,
   ChevronDown,
+  Languages,
   Search,
   SearchX,
   ShoppingBag,
@@ -105,6 +106,14 @@ interface Props {
    * här rätten.
    */
   popularDishes?: readonly string[];
+  /**
+   * Beskrivningarna är maskinöversatta (öppen fråga 16).
+   *
+   * Raden står EN gång över menyn och inte vid varje rätt. Gästen ska veta
+   * vem som skrev orden hon läser — men en etikett per rad hade gjort menyn
+   * till en varningsskylt.
+   */
+  autoTranslated?: boolean;
   /** Restaurangens valuta. Avgör hur varenda summa på sidan skrivs. */
   currency: CurrencyCode;
   /**
@@ -180,6 +189,7 @@ export function MenuOrder({
   labels,
   allergenLabels,
   popularDishes = [],
+  autoTranslated = false,
   currency,
   timeZone,
   pickupSlots = [],
@@ -940,6 +950,16 @@ export function MenuOrder({
             </button>
           ) : null}
         </div>
+      ) : null}
+
+      {/* Vem som skrev orden gästen läser. En rad över menyn, inte en
+          etikett per rätt — det senare hade gjort menyn till en varningsskylt.
+          Rättnamnen är restaurangens egna och översätts aldrig. */}
+      {autoTranslated ? (
+        <p className="mb-4 flex items-center gap-1.5 text-xs text-[var(--muted)]">
+          <Languages size={13} aria-hidden="true" />
+          {labels.autoTranslated}
+        </p>
       ) : null}
 
       {/*

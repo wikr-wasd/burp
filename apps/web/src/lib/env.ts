@@ -80,6 +80,19 @@ const serverSchema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   NOTIFY_FROM: z.string().min(3).default("Burp <notiser@burp.se>"),
 
+  /*
+   * Maskinöversättning av användartext (öppen fråga 16).
+   *
+   * Utan nyckel visas restaurangens och gästens text på sitt originalspråk,
+   * precis som brev utan `RESEND_API_KEY` bara skrivs i loggen. Produkten
+   * fungerar; den översätter bara inte.
+   *
+   * Google Cloud Translation valdes för att den kan bosniska, kroatiska och
+   * serbiska — DeepL är bättre på de språk den har men saknar marknadens.
+   * Nyckeln bör begränsas till Translation API i Google Cloud-konsolen.
+   */
+  GOOGLE_TRANSLATE_API_KEY: z.string().min(1).optional(),
+
   /* Burps egen adress — dit ansökningar från /anslut går. */
   BURP_OPS_EMAIL: z.email().optional(),
 

@@ -5,6 +5,7 @@ import { BookingBoard, type BookingRow } from "@/components/staff/booking-board"
 import { requireStaff } from "@/lib/auth";
 import { dictionary, LOCALE_TAGS } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
+import { translateNoteList } from "@/lib/translate-notes";
 
 /**
  * Dagens bokningar.
@@ -79,6 +80,7 @@ export default async function BookingsPage() {
       guestName: row.guest_name,
       guestPhone: row.guest_phone,
       note: row.note,
+      noteOriginal: null as string | null,
       status: row.status,
       released: !holdsTable(
         {
@@ -91,6 +93,26 @@ export default async function BookingsPage() {
       ),
     };
   });
+
+  /*
+   * Anteckningarna på personalens språk.
+   *
+   * Det här är fallet William beskrev: en gäst från Sverige bokar bord i
+   * Bosnien och skriver sitt önskemål på svenska. Restaurangen ska läsa det på
+   * sitt eget språk — originalet står kvar under.
+   */
+  const notes = await translateNoteList(
+    rows.map((row) => row.note),
+    staff.locale,
+  );
+
+  for (const [index, translated] of notes.entries()) {
+    const row = rows[index];
+    if (!row || !translated.original) continue;
+
+    row.note = translated.text;
+    row.noteOriginal = translated.original;
+  }
 
   const t = dictionary(staff.locale);
 
@@ -106,6 +128,7 @@ export default async function BookingsPage() {
         rows={rows}
         timeZone={staff.timeZone}
         localeTag={LOCALE_TAGS[staff.locale]}
+        translationLabels={t.staff.translation}
         labels={t.staff.bookings}
         statusLabels={t.booking.status}
       />

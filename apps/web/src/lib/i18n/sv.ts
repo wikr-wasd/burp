@@ -462,6 +462,7 @@ export const sv = {
     punchCardEarned: "Den här måltiden bjuder restaurangen på",
     punchCardUse: "Använd klippkortet",
     popular: "Populär",
+    autoTranslated: "Beskrivningarna är översatta automatiskt.",
   },
 
   /** Meddelanden på QR-sidan innan menyn visas. */
@@ -1703,6 +1704,21 @@ export const sv = {
       planDelete: "Ta bort ritningen",
       planDeleteConfirm: "Ta bort ritningen {name}? Borden blir kvar, men hamnar bland de outplacerade.",
       planCanvasEmpty: "Dra ut ett bord eller lägg till baren för att börja.",
+    },
+
+    /**
+     * Etiketten under en text som en maskin översatt (öppen fråga 16).
+     *
+     * Gästens meddelande till köket kommer på gästens språk. Det översätts
+     * till personalens — men originalet står kvar under, och etiketten säger
+     * vilket som är vilket. En maskin kan ha fel, och då ska den som lagar
+     * maten kunna se vad gästen faktiskt skrev.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    translation: {
+      auto: "Översatt automatiskt",
+      original: "Gästens egna ord",
     },
 
     /**

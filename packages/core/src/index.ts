@@ -33,3 +33,5 @@ export * from "./image-adjust";
 export * from "./allergens";
 
 export * from "./floor-plan";
+
+export * from "./translation";

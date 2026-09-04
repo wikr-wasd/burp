@@ -350,6 +350,7 @@ export const no: Dictionary = {
     punchCardEarned: "Dette måltidet spanderer restauranten",
     punchCardUse: "Bruk stempelkortet",
     popular: "Populær",
+    autoTranslated: "Beskrivelsene er oversatt automatisk.",
   },
 
   table: {
@@ -1297,6 +1298,21 @@ export const no: Dictionary = {
       planDelete: "Slett tegningen",
       planDeleteConfirm: "Slette tegningen {name}? Bordene blir stående, men havner blant de uplasserte.",
       planCanvasEmpty: "Dra ut et bord eller legg til baren for å begynne.",
+    },
+
+    /**
+     * Etiketten under en text som en maskin översatt (öppen fråga 16).
+     *
+     * Gästens meddelande till köket kommer på gästens språk. Det översätts
+     * till personalens — men originalet står kvar under, och etiketten säger
+     * vilket som är vilket. En maskin kan ha fel, och då ska den som lagar
+     * maten kunna se vad gästen faktiskt skrev.
+     *
+     * ENBART strängar — skickas till klientkomponenter.
+     */
+    translation: {
+      auto: "Oversatt automatisk",
+      original: "Gjestens egne ord",
     },
 
     /**

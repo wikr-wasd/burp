@@ -32,6 +32,14 @@ export interface BookingRow {
   guestName: string;
   guestPhone: string | null;
   note: string | null;
+  /**
+   * Gästens egna ord, när `note` är en översättning av dem.
+   *
+   * En svensk gäst som bokar bord i Sarajevo skriver "vi är två i rullstol"
+   * på svenska. Det är just den text restaurangen behöver förstå INNAN gästen
+   * kommer. Null när ingenting översattes; se `lib/translate-notes.ts`.
+   */
+  noteOriginal: string | null;
   status: string;
   /** Sant när karensen gått och bordet inte längre hålls. */
   released: boolean;
@@ -39,6 +47,7 @@ export interface BookingRow {
 
 export function BookingBoard({
   rows,
+  translationLabels,
   timeZone,
   localeTag,
   labels,
@@ -48,6 +57,8 @@ export function BookingBoard({
   timeZone: string;
   localeTag: string;
   labels: Dictionary["staff"]["bookings"];
+  /** Etiketten under en översatt anteckning. Samma två ord som köksskärmens. */
+  translationLabels: Dictionary["staff"]["translation"];
   statusLabels: Dictionary["booking"]["status"];
 }) {
   const [pending, startTransition] = useTransition();
@@ -104,7 +115,16 @@ export function BookingBoard({
                   {row.zone ? ` · ${row.zone}` : ""}
                   {row.guestPhone ? ` · ${row.guestPhone}` : ""}
                 </p>
-                {row.note ? <p className="mt-1 text-sm italic">{row.note}</p> : null}
+                {row.note ? (
+                  <>
+                    <p className="mt-1 text-sm italic">{row.note}</p>
+                    {row.noteOriginal ? (
+                      <p className="mt-0.5 text-xs text-[var(--muted)]">
+                        {row.noteOriginal} · {translationLabels.auto}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
 
                 {/* Karensen har gått: bordet är bokningsbart igen, och den som
                     står i lokalen behöver veta det innan hen jagar bort någon. */}

@@ -2812,6 +2812,36 @@ export type Database = {
           },
         ]
       }
+      translations: {
+        Row: {
+          created_at: string
+          provider: string
+          source_hash: string
+          source_locale: string | null
+          target_locale: string
+          text: string
+          translated: boolean
+        }
+        Insert: {
+          created_at?: string
+          provider: string
+          source_hash: string
+          source_locale?: string | null
+          target_locale: string
+          text: string
+          translated?: boolean
+        }
+        Update: {
+          created_at?: string
+          provider?: string
+          source_hash?: string
+          source_locale?: string | null
+          target_locale?: string
+          text?: string
+          translated?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       geography_columns: {

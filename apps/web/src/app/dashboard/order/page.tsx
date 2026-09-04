@@ -4,6 +4,7 @@ import { KitchenBoard } from "@/components/staff/kitchen-board";
 import { StaffShell } from "@/components/staff/staff-shell";
 import { requireStaff } from "@/lib/auth";
 import { getActiveOrders } from "@/lib/orders";
+import { translateOrderNotes } from "@/lib/translate-notes";
 import { dictionary, LOCALE_DATE_TAGS } from "@/lib/i18n";
 
 /**
@@ -28,7 +29,12 @@ export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
   const staff = await requireStaff(["owner", "manager", "staff"]);
-  const { due, upcoming, prepTimeMinutes } = await getActiveOrders(staff.restaurantId);
+  // Samma översättning som köksskärmen. Servitören som ska svara gästen
+  // behöver förstå anteckningen lika mycket som kocken som ska laga efter den.
+  const { due, upcoming, prepTimeMinutes } = await translateOrderNotes(
+    await getActiveOrders(staff.restaurantId),
+    staff.locale,
+  );
   const t = dictionary(staff.locale).staff;
 
   return (
@@ -43,6 +49,7 @@ export default async function OrdersPage() {
         defaultPrepMinutes={prepTimeMinutes}
         statusLabels={t.status}
         labels={t.kitchen}
+        translationLabels={t.translation}
         orderTypeLabels={t.orderType}
       />
 

@@ -51,6 +51,15 @@ export type KitchenLabels = Dictionary["staff"]["kitchen"];
 export type OrderTypeLabels = Dictionary["staff"]["orderType"];
 
 /**
+ * Etiketten under en översatt anteckning.
+ *
+ * Egen prop och inte en nyckel i `kitchen`: samma två strängar står under
+ * bokningarnas anteckningar, och två kopior av samma text i ordboken är två
+ * som kan glida isär.
+ */
+export type TranslationLabels = Dictionary["staff"]["translation"];
+
+/**
  * Statusarna knappen kan kliva TILL — härledda ur ordboken, inte skrivna här.
  *
  * Bara fyra av åtta statusar har en `step*`-text: `DRAFT`, `CANCELLED` och
@@ -79,6 +88,7 @@ export function KitchenBoard({
   defaultPrepMinutes,
   statusLabels,
   labels,
+  translationLabels,
   orderTypeLabels,
 }: {
   initialOrders: KitchenOrder[];
@@ -93,6 +103,7 @@ export function KitchenBoard({
   /** Orderstatusarna ur ordboken. Rena strängar — komponenten är klientkod. */
   statusLabels: Record<OrderStatus, string>;
   labels: KitchenLabels;
+  translationLabels: TranslationLabels;
   orderTypeLabels: OrderTypeLabels;
 }) {
   const router = useRouter();
@@ -282,6 +293,7 @@ export function KitchenBoard({
               defaultPrepMinutes={defaultPrepMinutes}
               statusLabels={statusLabels}
               labels={labels}
+              translationLabels={translationLabels}
               orderTypeLabels={orderTypeLabels}
             />
           ))}
@@ -293,6 +305,7 @@ export function KitchenBoard({
 
 function OrderCard({
   order,
+  translationLabels,
   pending,
   onAdvance,
   canCancel,
@@ -315,6 +328,7 @@ function OrderCard({
   defaultPrepMinutes: number;
   statusLabels: Record<OrderStatus, string>;
   labels: KitchenLabels;
+  translationLabels: TranslationLabels;
   orderTypeLabels: OrderTypeLabels;
 }) {
   const step = NEXT_STEP[order.status];
@@ -402,16 +416,33 @@ function OrderCard({
               <p className="pl-6 text-sm opacity-70">{item.options.join(", ")}</p>
             ) : null}
             {item.note ? (
-              <p className="pl-6 text-sm font-medium text-burp-700 dark:text-burp-500">
-                {item.note}
-              </p>
+              <>
+                <p className="pl-6 text-sm font-medium text-burp-700 dark:text-burp-500">
+                  {item.note}
+                </p>
+                {/* Gästens egna ord under den översatta raden. En maskin kan
+                    ha fel, och ett ord den inte kände igen överlever oftast
+                    bättre i original. */}
+                {item.noteOriginal ? (
+                  <p className="pl-6 text-xs opacity-60">
+                    {item.noteOriginal} · {translationLabels.auto}
+                  </p>
+                ) : null}
+              </>
             ) : null}
           </li>
         ))}
       </ul>
 
       {order.note ? (
-        <p className="mt-3 rounded-md bg-black/5 px-3 py-2 text-sm dark:bg-white/10">{order.note}</p>
+        <div className="mt-3 rounded-md bg-black/5 px-3 py-2 dark:bg-white/10">
+          <p className="text-sm">{order.note}</p>
+          {order.noteOriginal ? (
+            <p className="mt-1 text-xs opacity-60">
+              {order.noteOriginal} · {translationLabels.auto}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {showTotals ? (

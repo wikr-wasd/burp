@@ -2028,6 +2028,62 @@ begin
 end
 $$;
 
+\echo '   översättningscachen är stängd för alla utom service role'
+
+do $$
+declare
+  v_rows integer;
+begin
+  insert into public.translations (source_hash, target_locale, text, translated, provider)
+  values (repeat('a', 64), 'bs', 'bez luka', true, 'GOOGLE');
+
+  /*
+   * Tabellen är innehållsadresserad och därmed BLIND för vem texten hör till.
+   * Samma tabell bär en rättbeskrivning som vem som helst får se och ett
+   * meddelande till köket — "allergisk mot nötter, bord 6" — som ingen utanför
+   * restaurangen ska se. En policy kan inte skilja dem åt, eftersom raden inte
+   * vet vad den är. Alltså: ingen åtkomst alls utom service role.
+   */
+  execute 'set local role anon';
+  perform set_config('request.jwt.claim.sub', '', true);
+  select count(*) into v_rows from public.translations;
+  if v_rows <> 0 then
+    raise exception 'FEL: anon läste % rader ur översättningscachen', v_rows;
+  end if;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', gen_random_uuid()::text, true);
+  select count(*) into v_rows from public.translations;
+  if v_rows <> 0 then
+    raise exception 'FEL: en inloggad läste % rader ur översättningscachen', v_rows;
+  end if;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  -- Hashen måste vara en hash. En nyckel i fel form är en cache som aldrig
+  -- träffar, och det märks bara som en räkning hos leverantören.
+  begin
+    insert into public.translations (source_hash, target_locale, text, provider)
+    values ('inte-en-hash', 'bs', 'x', 'GOOGLE');
+    raise exception 'FEL: en nyckel i fel form accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  -- Målspråket måste vara ett av de fem ordböckerna.
+  begin
+    insert into public.translations (source_hash, target_locale, text, provider)
+    values (repeat('b', 64), 'fr', 'x', 'GOOGLE');
+    raise exception 'FEL: ett okänt målspråk accepterades';
+  exception
+    when check_violation then null;
+  end;
+
+  delete from public.translations where source_hash = repeat('a', 64);
+end
+$$;
+
 \echo '   inredningen hör till sin egen ritning'
 
 do $$

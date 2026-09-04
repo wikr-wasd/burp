@@ -15,6 +15,7 @@ import {
 import { MenuOrder } from "@/components/order/menu-order";
 import { GuestLanguagePicker } from "@/components/site/guest-language-picker";
 import { favouriteDishes } from "@/lib/activity";
+import { translateMenu } from "@/lib/translate-menu";
 import { dictionary, fill, requestLocale, type Dictionary } from "@/lib/i18n";
 
 /**
@@ -168,6 +169,16 @@ export default async function TablePage({ params }: PageProps) {
    */
   const favourites = await favouriteDishes(table.restaurantId);
 
+  /*
+   * Menyn på gästens språk.
+   *
+   * Beskrivningarna, inte rättnamnen: "Ćevapi" är vad rätten HETER, och en
+   * gäst som läst ett översatt namn skulle peka på något som varken köket
+   * eller notan känner igen. Beskrivningen är motsatsen — den finns just för
+   * att förklara vad rätten är. Se `lib/translate-menu.ts`.
+   */
+  const { menu: readableMenu, translated: menuTranslated } = await translateMenu(menu, locale);
+
   return (
     /*
      * `.theme-table` — den enda ytan som följer telefonens mörka läge.
@@ -213,10 +224,11 @@ export default async function TablePage({ params }: PageProps) {
         ) : null}
 
         <MenuOrder
-          menu={menu}
+          menu={readableMenu}
           restaurantName={table.restaurantName}
           labels={t.menu}
           popularDishes={favourites}
+          autoTranslated={menuTranslated}
           allergenLabels={t.allergen}
           currency={table.currency}
           timeZone={table.timeZone}

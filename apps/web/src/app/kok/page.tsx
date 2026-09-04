@@ -5,6 +5,7 @@ import { KitchenBoard } from "@/components/staff/kitchen-board";
 import { BurpMark } from "@/components/ui/burp-mark";
 import { requireStaff } from "@/lib/auth";
 import { getActiveOrders } from "@/lib/orders";
+import { translateOrderNotes } from "@/lib/translate-notes";
 import { dictionary } from "@/lib/i18n";
 
 /**
@@ -26,7 +27,22 @@ export const dynamic = "force-dynamic";
 export default async function KitchenPage() {
   const staff = await requireStaff();
   const t = dictionary(staff.locale).staff;
-  const { due, upcoming, prepTimeMinutes } = await getActiveOrders(staff.restaurantId);
+  /*
+   * Gästens anteckningar på KOCKENS språk.
+   *
+   * "Utan lök, jag är allergisk mot nötter" skrivs av en gäst vid bordet, på
+   * hennes språk. Den hjälper ingen kock som inte läser svenska — och det är
+   * den enda riktningen som inte går att lösa genom att restaurangen skriver
+   * sin text på två språk. Originalet står kvar under den översatta raden;
+   * se `lib/translate-notes.ts`.
+   *
+   * Utan API-nyckel händer ingenting alls: raden står kvar som gästen skrev
+   * den, precis som i dag.
+   */
+  const { due, upcoming, prepTimeMinutes } = await translateOrderNotes(
+    await getActiveOrders(staff.restaurantId),
+    staff.locale,
+  );
 
   return (
     <>
@@ -62,6 +78,7 @@ export default async function KitchenPage() {
           title={t.section.kok}
           statusLabels={t.status}
           labels={t.kitchen}
+          translationLabels={t.translation}
           orderTypeLabels={t.orderType}
         />
 
